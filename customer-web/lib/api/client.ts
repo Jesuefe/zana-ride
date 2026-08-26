@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://173.212.255.134:4000/api/v1';
+const API_BASE_URL = 'https://use-clubs-oklahoma-flashing.trycloudflare.com/api/v1';
 const TOKEN_KEY = 'zana_web_token';
 
 export function getToken(): string | null {
