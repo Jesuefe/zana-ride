@@ -1,10 +1,12 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { AlertTriangle, Phone, Star, User } from 'lucide-react';
+import { AlertTriangle, Phone, Star, User, Navigation } from 'lucide-react';
 import { fetchTrip, cancelRide, ApiTrip } from '../../lib/api/trips';
 import DirectionsMap from '../../components/DirectionsMap';
+import ReportModal from '../../components/ReportModal';
+import { useShakeDetector, requestMotionPermission } from '../../lib/shake';
 
 const STATUS_COPY: Record<string, string> = {
   SEARCHING_DRIVER: 'Finding your driver…',
@@ -17,11 +19,15 @@ const STATUS_COPY: Record<string, string> = {
   CUSTOMER_CANCELLED: 'Trip cancelled',
 };
 
+const ACTIVE_STATUSES = ['DRIVER_ASSIGNED', 'DRIVER_EN_ROUTE', 'DRIVER_ARRIVED', 'RIDE_IN_PROGRESS'];
+
 function TrackingContent() {
   const router = useRouter();
   const params = useSearchParams();
   const tripId = params.get('tripId');
   const [trip, setTrip] = useState<ApiTrip | null>(null);
+  const [showReport, setShowReport] = useState(false);
+  const motionRequested = useRef(false);
 
   useEffect(() => {
     if (!tripId) return;
@@ -42,13 +48,31 @@ function TrackingContent() {
     };
   }, [tripId]);
 
+  const status = trip?.status ?? 'SEARCHING_DRIVER';
+  const driver = trip?.driver;
+  const rideIsActive = ACTIVE_STATUSES.includes(status);
+
+  // Ask for motion sensor permission once, the first time a real driver is
+  // assigned — asking earlier (before there's anything to report on) would
+  // just be a confusing permission prompt with no context.
+  useEffect(() => {
+    if (rideIsActive && !motionRequested.current) {
+      motionRequested.current = true;
+      requestMotionPermission();
+    }
+  }, [rideIsActive]);
+
+  useShakeDetector(
+    useCallback(() => setShowReport(true), []),
+    rideIsActive,
+  );
+
   const handleCancel = async () => {
     if (tripId) await cancelRide(tripId).catch(() => {});
     router.push('/');
   };
 
-  const status = trip?.status ?? 'SEARCHING_DRIVER';
-  const driver = trip?.driver;
+  const showRouteBanner = status === 'DRIVER_EN_ROUTE' || status === 'RIDE_IN_PROGRESS';
 
   return (
     <div>
@@ -62,8 +86,16 @@ function TrackingContent() {
         ) : (
           <div className="h-56 bg-zana-primary-light" />
         )}
+
+        {showRouteBanner && (
+          <div className="absolute top-4 left-4 right-24 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full text-xs text-gray-900 shadow animate-fade-slide-up">
+            <Navigation size={13} className="text-zana-primary shrink-0" />
+            <span className="truncate">Driver is following the recommended route</span>
+          </div>
+        )}
+
         <button
-          onClick={() => alert('This alerts the Zana safety team and shares your live trip details.')}
+          onClick={() => setShowReport(true)}
           className="absolute top-4 right-4 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full text-xs font-bold text-zana-error shadow"
         >
           <AlertTriangle size={13} /> SOS
@@ -72,6 +104,9 @@ function TrackingContent() {
 
       <div className="p-5">
         <h2 className="font-semibold text-lg text-gray-900">{STATUS_COPY[status] ?? status}</h2>
+        {rideIsActive && (
+          <p className="text-xs text-zana-muted mt-1">Shake your phone anytime to report a safety concern.</p>
+        )}
 
         {driver && status !== 'RIDE_COMPLETED' && (
           <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 mt-4">
@@ -93,7 +128,7 @@ function TrackingContent() {
 
         <button
           onClick={handleCancel}
-          className={`w-full mt-6 py-3.5 rounded-xl font-semibold ${
+          className={`w-full mt-6 py-3.5 rounded-xl font-semibold transition-transform active:scale-[0.98] ${
             status === 'RIDE_COMPLETED'
               ? 'bg-zana-primary text-white'
               : 'border border-zana-primary text-zana-primary'
@@ -102,6 +137,8 @@ function TrackingContent() {
           {status === 'RIDE_COMPLETED' ? 'Rate your trip' : 'Cancel Ride'}
         </button>
       </div>
+
+      {showReport && <ReportModal onClose={() => setShowReport(false)} />}
     </div>
   );
 }

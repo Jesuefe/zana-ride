@@ -3,17 +3,18 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Menu, Bell, Wallet as WalletIcon, Plus, Car, Bike, Package, UtensilsCrossed, ShoppingBag, ArrowRight, Clock } from 'lucide-react';
+import { Menu, Bell, Wallet as WalletIcon, Plus, ArrowRight, Clock } from 'lucide-react';
 import { fetchMe } from '../lib/api/auth';
 import { ApiError } from '../lib/api/client';
 import { requestLiveLocation } from '../lib/location';
 
 const services = [
-  { id: 'car', title: 'Car Ride', subtitle: 'Comfortable rides, any distance', icon: Car, bg: '#E3F5F1', comingSoon: false, service: 'ECONOMY' },
-  { id: 'moto', title: 'Moto Ride', subtitle: 'Fast & affordable', icon: Bike, bg: '#FBF1DD', comingSoon: false, service: 'BIKE' },
-  { id: 'package', title: 'Send a Package', subtitle: 'Parcels & express drop-offs', icon: Package, bg: '#E3F5F1', comingSoon: true },
-  { id: 'food', title: 'Buy Food', subtitle: 'Meals from top kitchens', icon: UtensilsCrossed, bg: '#FBF1DD', comingSoon: true },
-  { id: 'shop', title: 'Shop & Deliver', subtitle: 'We shop, you relax', icon: ShoppingBag, bg: '#E3F5F1', comingSoon: true },
+  { id: 'car', title: 'Car Ride', subtitle: 'Comfortable rides, any distance', image: '/icons/car.png', bg: '#E3F5F1', comingSoon: false, service: 'ECONOMY' },
+  { id: 'moto', title: 'Moto Ride', subtitle: 'Fast & affordable', image: '/icons/motorbike.png', bg: '#FBF1DD', comingSoon: false, service: 'BIKE' },
+  { id: 'package', title: 'Send a Package', subtitle: 'Parcels & express drop-offs', image: '/icons/package-box.png', bg: '#FBF1DD', comingSoon: true },
+  { id: 'food', title: 'Buy Food', subtitle: 'Meals from top kitchens', image: '/icons/burger-drink.png', bg: '#E3F5F1', comingSoon: true },
+  { id: 'shop', title: 'Shop & Deliver', subtitle: 'We shop, you relax', image: '/icons/grocery-bag.png', bg: '#FBF1DD', comingSoon: true },
+  { id: 'gift', title: 'Send a Gift', subtitle: 'Roses & surprises', image: '/icons/flower-bouquet.png', bg: '#E3F5F1', comingSoon: true },
 ];
 
 export default function HomePage() {
@@ -45,8 +46,8 @@ export default function HomePage() {
 
   return (
     <div>
-      <div className="bg-gradient-to-br from-zana-primary-dark to-zana-primary px-4 pt-4 pb-14 rounded-b-3xl animate-fade-in">
-        <div className="flex items-center justify-between">
+      <div className="relative bg-gradient-to-br from-zana-primary-dark to-zana-primary px-4 pt-4 pb-16 rounded-b-3xl overflow-hidden animate-fade-in">
+        <div className="relative z-10 flex items-center justify-between">
           <button className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-white">
             <Menu size={18} />
           </button>
@@ -60,9 +61,14 @@ export default function HomePage() {
             <Bell size={18} />
           </button>
         </div>
-        <div className="mt-6">
+        <div className="relative z-10 mt-6">
           <p className="text-white/80 text-sm">Hello, {name}</p>
-          <h1 className="text-white text-2xl font-bold mt-1 max-w-[220px]">What do you need today?</h1>
+          <h1 className="text-white text-2xl font-bold mt-1 max-w-[200px]">What do you need today?</h1>
+        </div>
+
+        {/* Real photo of Kigali Convention Centre, faded into the hero backdrop */}
+        <div className="absolute right-[-20px] bottom-[-10px] w-40 h-40 opacity-90 pointer-events-none">
+          <Image src="/icons/kigali-building.png" alt="" width={220} height={220} className="object-contain" />
         </div>
       </div>
 
@@ -81,34 +87,31 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {services.map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <button
-                key={s.id}
-                onClick={() => handleServiceClick(s.id, s.comingSoon, s.service)}
-                className={`service-card animate-fade-slide-up stagger-${Math.min(i + 1, 6)} bg-white rounded-2xl p-4 text-left shadow-sm relative min-h-[130px]`}
+          {services.map((s, i) => (
+            <button
+              key={s.id}
+              onClick={() => handleServiceClick(s.id, s.comingSoon, s.service)}
+              className={`service-card animate-fade-slide-up stagger-${Math.min(i + 1, 6)} bg-white rounded-2xl p-4 text-left shadow-sm relative min-h-[150px] overflow-hidden`}
+            >
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-2 overflow-hidden"
+                style={{ backgroundColor: s.bg }}
               >
-                <div
-                  className="w-11 h-11 rounded-full flex items-center justify-center mb-2"
-                  style={{ backgroundColor: s.bg }}
-                >
-                  <Icon size={22} className="text-zana-primary-dark" />
-                </div>
-                <p className="font-semibold text-sm text-gray-900">{s.title}</p>
-                <p className="text-xs text-zana-muted mt-0.5">{s.subtitle}</p>
-                {s.comingSoon ? (
-                  <span className="absolute bottom-3 right-3 flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                    <Clock size={10} /> Soon
-                  </span>
-                ) : (
-                  <span className="absolute bottom-3 right-3 w-6 h-6 rounded-full bg-zana-primary flex items-center justify-center">
-                    <ArrowRight size={13} className="text-white" />
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                <Image src={s.image} alt={s.title} width={64} height={64} className="object-contain w-14 h-14" />
+              </div>
+              <p className="font-semibold text-sm text-gray-900">{s.title}</p>
+              <p className="text-xs text-zana-muted mt-0.5">{s.subtitle}</p>
+              {s.comingSoon ? (
+                <span className="absolute bottom-3 right-3 flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                  <Clock size={10} /> Soon
+                </span>
+              ) : (
+                <span className="absolute bottom-3 right-3 w-6 h-6 rounded-full bg-zana-primary flex items-center justify-center">
+                  <ArrowRight size={13} className="text-white" />
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         <div className="bg-gradient-to-br from-zana-primary-dark to-[#063D31] rounded-2xl p-5 text-white animate-fade-slide-up stagger-6">
