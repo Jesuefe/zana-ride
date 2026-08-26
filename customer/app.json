@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "zana-customer",
-    "slug": "zana-customer",
+    "slug": "zana-ride",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,7 +24,10 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.zana.customer",
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyAwxMhgipXYimOiMj--4jCZOJ99GuFD7jY"
@@ -33,6 +36,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ceff50ef-c404-4b4e-803d-564dd63b6cf2"
+      }
+    },
+    "owner": "ajesuefes-team"
   }
 }
