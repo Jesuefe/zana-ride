@@ -9,12 +9,32 @@ export type ApiUser = {
   role: string;
 };
 
+type AuthResponse = { token: string; user: ApiUser };
+
 export async function requestOtp(phone: string) {
   return api.post<{ sent: boolean }>('/auth/request-otp', { phone });
 }
 
 export async function verifyOtp(phone: string, code: string) {
-  const result = await api.post<{ token: string; user: ApiUser }>('/auth/verify-otp', { phone, code });
+  const result = await api.post<AuthResponse>('/auth/verify-otp', { phone, code });
+  setToken(result.token);
+  return result;
+}
+
+export async function register(data: {
+  phone: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}) {
+  const result = await api.post<AuthResponse>('/auth/register', data);
+  setToken(result.token);
+  return result;
+}
+
+export async function login(identifier: string, password: string) {
+  const result = await api.post<AuthResponse>('/auth/login', { identifier, password });
   setToken(result.token);
   return result;
 }

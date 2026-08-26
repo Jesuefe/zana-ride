@@ -2,24 +2,25 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
-import { requestOtp } from '../../lib/api/auth';
+import { login } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [phone, setPhone] = useState('');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const valid = phone.replace(/\D/g, '').length >= 9;
+  const valid = identifier.trim().length > 3 && password.length >= 6;
 
-  const handleContinue = async () => {
-    const fullPhone = `+250${phone.replace(/\D/g, '')}`;
+  const handleLogin = async () => {
     setLoading(true);
     setError(null);
     try {
-      await requestOtp(fullPhone);
-      router.push(`/verify?phone=${encodeURIComponent(fullPhone)}`);
+      await login(identifier.trim(), password);
+      router.push('/');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
     } finally {
@@ -29,24 +30,30 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="bg-zana-primary-light flex-1 flex items-center justify-center animate-fade-in">
+      <div className="bg-zana-primary-light flex-1 flex items-center justify-center animate-fade-in py-10">
         <div className="w-32 h-32 rounded-3xl bg-white shadow-lg flex items-center justify-center overflow-hidden animate-fade-slide-up">
           <Image src="/logo.png" alt="Zana" width={128} height={128} className="object-cover" priority />
         </div>
       </div>
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-900">What's your number?</h1>
-        <p className="text-sm text-zana-muted mt-1">We'll send a code to verify it's you.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
+        <p className="text-sm text-zana-muted mt-1">Log in with your email or phone number.</p>
 
-        <div className="flex gap-2 mt-6">
-          <div className="border border-zana-border rounded-lg px-3 flex items-center text-sm">RW +250</div>
+        <div className="mt-6 space-y-3">
           <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
-            placeholder="788 123 456"
-            inputMode="numeric"
-            className="flex-1 border border-zana-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder="Email or phone number"
+            className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             autoFocus
+          />
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            placeholder="Password"
+            className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
+            onKeyDown={(e) => e.key === 'Enter' && valid && handleLogin()}
           />
         </div>
 
@@ -54,11 +61,18 @@ export default function LoginPage() {
 
         <button
           disabled={!valid || loading}
-          onClick={handleContinue}
-          className="w-full mt-6 bg-zana-primary text-white font-semibold py-3 rounded-lg disabled:opacity-40 hover:bg-zana-primary-dark transition-colors"
+          onClick={handleLogin}
+          className="w-full mt-6 bg-zana-primary text-white font-semibold py-3 rounded-lg disabled:opacity-40 hover:bg-zana-primary-dark transition-colors active:scale-[0.98]"
         >
-          {loading ? 'Sending…' : 'Continue'}
+          {loading ? 'Logging in…' : 'Log In'}
         </button>
+
+        <p className="text-center text-sm text-zana-muted mt-4">
+          New to Zana?{' '}
+          <Link href="/signup" className="text-zana-primary font-semibold">
+            Create an account
+          </Link>
+        </p>
       </div>
     </div>
   );
