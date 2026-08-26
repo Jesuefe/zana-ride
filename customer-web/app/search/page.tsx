@@ -8,6 +8,7 @@ import { getStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
 import { createRide } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
+import BrandedMap from '../../components/BrandedMap';
 
 function SearchContent() {
   const router = useRouter();
@@ -19,12 +20,13 @@ function SearchContent() {
   const [currentAddress, setCurrentAddress] = useState('Current Location');
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pickup = getStoredPickup();
 
   useEffect(() => {
-    const pickup = getStoredPickup();
     reverseGeocode(pickup.lat, pickup.lng).then((address) => {
       if (address) setCurrentAddress(address);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const results = useMemo(() => {
@@ -41,7 +43,6 @@ function SearchContent() {
     if (isMoto) {
       setBooking(true);
       setError(null);
-      const pickup = getStoredPickup();
       try {
         const trip = await createRide({
           serviceType: 'BIKE',
@@ -71,7 +72,15 @@ function SearchContent() {
   };
 
   return (
-    <div className="p-4 animate-fade-in">
+    <div className="animate-fade-in">
+      <div className="relative">
+        <BrandedMap origin={pickup} showNearbyCars height={160} />
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/95 px-3 py-1 rounded-full text-[11px] text-zana-muted shadow">
+          Drivers nearby, ready to pick you up
+        </div>
+      </div>
+
+      <div className="p-4">
       <div className="flex items-center gap-3 mb-4">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />
@@ -117,6 +126,7 @@ function SearchContent() {
           </button>
         ))}
         {results.length === 0 && <p className="text-sm text-zana-muted px-2 py-4">No matching places.</p>}
+      </div>
       </div>
     </div>
   );

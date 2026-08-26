@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Car, Clock } from 'lucide-react';
 import { estimateRide, createRide, ServiceType } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
-import DirectionsMap from '../../components/DirectionsMap';
+import BrandedMap from '../../components/BrandedMap';
 import { getStoredPickup, requestLiveLocation } from '../../lib/location';
 
 const options: { service: ServiceType; label: string; icon: typeof Car; comingSoon?: boolean; recommended?: boolean }[] = [
@@ -77,7 +77,7 @@ function RideOptionsContent() {
   return (
     <div className="animate-fade-in">
       <div className="relative">
-        <DirectionsMap origin={pickup} destination={{ lat: destLat, lng: destLng }} height={200} />
+        <BrandedMap origin={pickup} destination={{ lat: destLat, lng: destLng }} height={200} />
         <button
           onClick={() => router.back()}
           className="absolute top-3 left-3 w-9 h-9 rounded-full bg-white shadow flex items-center justify-center"

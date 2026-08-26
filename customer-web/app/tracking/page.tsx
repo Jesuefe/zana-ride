@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Phone, Star, User, Navigation } from 'lucide-react';
 import { fetchTrip, cancelRide, ApiTrip } from '../../lib/api/trips';
-import DirectionsMap from '../../components/DirectionsMap';
+import BrandedMap from '../../components/BrandedMap';
 import ReportModal from '../../components/ReportModal';
 import { useShakeDetector, requestMotionPermission } from '../../lib/shake';
 
@@ -78,7 +78,7 @@ function TrackingContent() {
     <div>
       <div className="relative">
         {trip ? (
-          <DirectionsMap
+          <BrandedMap
             origin={{ lat: trip.pickupLat, lng: trip.pickupLng }}
             destination={{ lat: trip.destinationLat, lng: trip.destinationLng }}
             height={224}
