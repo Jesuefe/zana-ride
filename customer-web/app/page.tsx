@@ -80,7 +80,7 @@ export default function HomePage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {services.map((s, i) => {
             const Icon = s.icon;
             return (

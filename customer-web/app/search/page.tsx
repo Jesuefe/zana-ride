@@ -1,15 +1,31 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, MapPin } from 'lucide-react';
+import { ArrowLeft, MapPin, Loader2 } from 'lucide-react';
 import { landmarks, Place } from '../../lib/places';
+import { getStoredPickup } from '../../lib/location';
+import { reverseGeocode } from '../../lib/geocode';
+import { createRide } from '../../lib/api/trips';
+import { ApiError } from '../../lib/api/client';
 
 function SearchContent() {
   const router = useRouter();
   const params = useSearchParams();
   const preselectedService = params.get('service');
+  const isMoto = preselectedService === 'BIKE';
+
   const [query, setQuery] = useState('');
+  const [currentAddress, setCurrentAddress] = useState('Current Location');
+  const [booking, setBooking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const pickup = getStoredPickup();
+    reverseGeocode(pickup.lat, pickup.lng).then((address) => {
+      if (address) setCurrentAddress(address);
+    });
+  }, []);
 
   const results = useMemo(() => {
     if (!query.trim()) return landmarks;
@@ -20,15 +36,38 @@ function SearchContent() {
     );
   }, [query]);
 
-  const handleSelect = (place: Place) => {
-    const params = new URLSearchParams({
+  const handleSelect = async (place: Place) => {
+    // Moto has no vehicle choice to make — skip straight to booking.
+    if (isMoto) {
+      setBooking(true);
+      setError(null);
+      const pickup = getStoredPickup();
+      try {
+        const trip = await createRide({
+          serviceType: 'BIKE',
+          pickupAddress: currentAddress,
+          pickupLat: pickup.lat,
+          pickupLng: pickup.lng,
+          destinationAddress: place.address,
+          destinationLat: place.lat,
+          destinationLng: place.lng,
+        });
+        router.push(`/tracking?tripId=${trip.id}`);
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
+        setBooking(false);
+      }
+      return;
+    }
+
+    const urlParams = new URLSearchParams({
       name: place.name,
       address: place.address,
       lat: String(place.lat),
       lng: String(place.lng),
     });
-    if (preselectedService) params.set('service', preselectedService);
-    router.push(`/ride-options?${params.toString()}`);
+    if (preselectedService) urlParams.set('service', preselectedService);
+    router.push(`/ride-options?${urlParams.toString()}`);
   };
 
   return (
@@ -39,7 +78,8 @@ function SearchContent() {
         </button>
         <div className="flex-1 bg-gray-100 rounded-xl px-3 py-2">
           <div className="flex items-center gap-2 text-xs text-zana-muted pb-1.5 border-b border-gray-200">
-            <span className="w-2 h-2 rounded-full bg-zana-primary" /> Current Location
+            <span className="w-2 h-2 rounded-full bg-zana-primary shrink-0" />
+            <span className="truncate">{currentAddress}</span>
           </div>
           <input
             value={query}
@@ -51,13 +91,21 @@ function SearchContent() {
         </div>
       </div>
 
+      {booking && (
+        <div className="flex items-center gap-2 text-sm text-zana-muted mb-4">
+          <Loader2 size={16} className="animate-spin" /> Booking your moto…
+        </div>
+      )}
+      {error && <p className="text-xs text-zana-error mb-4">{error}</p>}
+
       <p className="text-[11px] uppercase tracking-wide text-zana-muted mb-2 px-1">Popular in Kigali</p>
       <div className="space-y-1">
         {results.map((p, i) => (
           <button
             key={p.id}
             onClick={() => handleSelect(p)}
-            className={`animate-fade-slide-up stagger-${Math.min(i + 1, 6)} w-full flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-gray-50 text-left transition-colors`}
+            disabled={booking}
+            className={`animate-fade-slide-up stagger-${Math.min(i + 1, 6)} w-full flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-gray-50 text-left transition-colors disabled:opacity-50`}
           >
             <div className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0">
               <MapPin size={15} className="text-zana-primary" />

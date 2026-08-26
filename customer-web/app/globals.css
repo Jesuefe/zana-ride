@@ -37,13 +37,27 @@ body {
   color: var(--foreground);
 }
 
-/* Keeps the whole app feeling like a phone screen even on desktop browsers */
+/* Phone-width by default; grows on larger screens instead of staying
+   locked to a narrow column, so the app feels native on tablet/desktop too. */
 .app-shell {
   max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
   background: var(--zana-surface);
   position: relative;
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    max-width: 640px;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    max-width: 760px;
+  }
 }
 
 @keyframes fadeSlideUp {

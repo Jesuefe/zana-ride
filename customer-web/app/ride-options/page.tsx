@@ -2,16 +2,15 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Bike, Car, Clock } from 'lucide-react';
+import { ArrowLeft, Car, Clock } from 'lucide-react';
 import { estimateRide, createRide, ServiceType } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
 import DirectionsMap from '../../components/DirectionsMap';
 import { getStoredPickup, requestLiveLocation } from '../../lib/location';
 
-const options: { service: ServiceType; label: string; icon: typeof Bike; comingSoon?: boolean; recommended?: boolean }[] = [
-  { service: 'BIKE', label: 'Zana Moto', icon: Bike, recommended: true },
-  { service: 'ECONOMY', label: 'Zana Car', icon: Car },
-  { service: 'COMFORT', label: 'Zana Comfort', icon: Car, comingSoon: true },
+const options: { service: ServiceType; label: string; icon: typeof Car; comingSoon?: boolean; recommended?: boolean }[] = [
+  { service: 'ECONOMY', label: 'Basic', icon: Car, recommended: true },
+  { service: 'COMFORT', label: 'Premium', icon: Car },
 ];
 
 function RideOptionsContent() {
@@ -25,7 +24,7 @@ function RideOptionsContent() {
   const preselected = params.get('service') as ServiceType | null;
   const [pickup, setPickup] = useState(getStoredPickup());
   const [fares, setFares] = useState<Record<ServiceType, number>>({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
-  const [selected, setSelected] = useState<ServiceType>(preselected ?? 'BIKE');
+  const [selected, setSelected] = useState<ServiceType>(preselected === 'COMFORT' ? 'COMFORT' : 'ECONOMY');
   const [loadingFares, setLoadingFares] = useState(true);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,11 +38,11 @@ function RideOptionsContent() {
   useEffect(() => {
     (async () => {
       try {
-        const [bike, economy] = await Promise.all([
-          estimateRide(pickup, { lat: destLat, lng: destLng }, 'BIKE'),
+        const [economy, comfort] = await Promise.all([
           estimateRide(pickup, { lat: destLat, lng: destLng }, 'ECONOMY'),
+          estimateRide(pickup, { lat: destLat, lng: destLng }, 'COMFORT'),
         ]);
-        setFares({ BIKE: bike.fare, ECONOMY: economy.fare, COMFORT: 0 });
+        setFares({ BIKE: 0, ECONOMY: economy.fare, COMFORT: comfort.fare });
       } catch {
         // leave fares at 0 if estimate fails — booking will still work
       } finally {
