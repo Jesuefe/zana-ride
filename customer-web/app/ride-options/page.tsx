@@ -22,9 +22,10 @@ function RideOptionsContent() {
   const destLat = Number(params.get('lat'));
   const destLng = Number(params.get('lng'));
 
+  const preselected = params.get('service') as ServiceType | null;
   const [pickup, setPickup] = useState(getStoredPickup());
   const [fares, setFares] = useState<Record<ServiceType, number>>({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
-  const [selected, setSelected] = useState<ServiceType>('BIKE');
+  const [selected, setSelected] = useState<ServiceType>(preselected ?? 'BIKE');
   const [loadingFares, setLoadingFares] = useState(true);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +76,7 @@ function RideOptionsContent() {
   const selectedOption = options.find((o) => o.service === selected)!;
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <div className="relative">
         <DirectionsMap origin={pickup} destination={{ lat: destLat, lng: destLng }} height={200} />
         <button
@@ -95,7 +96,7 @@ function RideOptionsContent() {
       <div className="px-4">
         <h2 className="font-semibold text-gray-900 mb-3">Choose a ride</h2>
         <div className="space-y-2">
-          {options.map((opt) => {
+          {options.map((opt, i) => {
             const Icon = opt.icon;
             const isSelected = selected === opt.service;
             return (
@@ -108,8 +109,8 @@ function RideOptionsContent() {
                   }
                   setSelected(opt.service);
                 }}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border-1.5 text-left ${
-                  isSelected ? 'border-zana-primary bg-zana-primary-light' : 'border-zana-border'
+                className={`animate-fade-slide-up stagger-${i + 1} w-full flex items-center gap-3 p-3 rounded-xl border-1.5 text-left transition-all ${
+                  isSelected ? 'border-zana-primary bg-zana-primary-light scale-[1.01]' : 'border-zana-border'
                 } ${opt.comingSoon ? 'opacity-50' : ''}`}
                 style={{ borderWidth: 1.5 }}
               >
@@ -142,7 +143,7 @@ function RideOptionsContent() {
         <button
           onClick={handleBook}
           disabled={booking || loadingFares}
-          className="w-full mt-6 bg-zana-primary text-white font-semibold py-3.5 rounded-xl disabled:opacity-50"
+          className="w-full mt-6 bg-zana-primary text-white font-semibold py-3.5 rounded-xl disabled:opacity-50 transition-transform active:scale-[0.98]"
         >
           {booking ? 'Booking…' : `Book ${selectedOption.label} · ${fares[selected].toLocaleString()} RWF`}
         </button>

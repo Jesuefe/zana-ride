@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Car } from 'lucide-react';
+import Image from 'next/image';
 import { requestOtp } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
 
@@ -29,8 +29,10 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="bg-zana-primary-light flex-1 flex items-center justify-center">
-        <Car size={80} className="text-zana-primary" strokeWidth={1.25} />
+      <div className="bg-zana-primary-light flex-1 flex items-center justify-center animate-fade-in">
+        <div className="w-32 h-32 rounded-3xl bg-white shadow-lg flex items-center justify-center overflow-hidden animate-fade-slide-up">
+          <Image src="/logo.png" alt="Zana" width={128} height={128} className="object-cover" priority />
+        </div>
       </div>
       <div className="p-6">
         <h1 className="text-2xl font-bold text-gray-900">What's your number?</h1>

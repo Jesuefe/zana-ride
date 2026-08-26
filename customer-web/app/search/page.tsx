@@ -1,12 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, MapPin, Star } from 'lucide-react';
+import { Suspense, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, MapPin } from 'lucide-react';
 import { landmarks, Place } from '../../lib/places';
 
-export default function SearchPage() {
+function SearchContent() {
   const router = useRouter();
+  const params = useSearchParams();
+  const preselectedService = params.get('service');
   const [query, setQuery] = useState('');
 
   const results = useMemo(() => {
@@ -25,11 +27,12 @@ export default function SearchPage() {
       lat: String(place.lat),
       lng: String(place.lng),
     });
+    if (preselectedService) params.set('service', preselectedService);
     router.push(`/ride-options?${params.toString()}`);
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 animate-fade-in">
       <div className="flex items-center gap-3 mb-4">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />
@@ -50,11 +53,11 @@ export default function SearchPage() {
 
       <p className="text-[11px] uppercase tracking-wide text-zana-muted mb-2 px-1">Popular in Kigali</p>
       <div className="space-y-1">
-        {results.map((p) => (
+        {results.map((p, i) => (
           <button
             key={p.id}
             onClick={() => handleSelect(p)}
-            className="w-full flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-gray-50 text-left"
+            className={`animate-fade-slide-up stagger-${Math.min(i + 1, 6)} w-full flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-gray-50 text-left transition-colors`}
           >
             <div className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0">
               <MapPin size={15} className="text-zana-primary" />
@@ -68,5 +71,13 @@ export default function SearchPage() {
         {results.length === 0 && <p className="text-sm text-zana-muted px-2 py-4">No matching places.</p>}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={null}>
+      <SearchContent />
+    </Suspense>
   );
 }
