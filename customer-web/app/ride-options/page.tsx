@@ -4,9 +4,9 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Bike, Car, Clock } from 'lucide-react';
 import { estimateRide, createRide, ServiceType } from '../../lib/api/trips';
-import { KIGALI_CENTER } from '../../lib/places';
 import { ApiError } from '../../lib/api/client';
 import DirectionsMap from '../../components/DirectionsMap';
+import { getStoredPickup, requestLiveLocation } from '../../lib/location';
 
 const options: { service: ServiceType; label: string; icon: typeof Bike; comingSoon?: boolean; recommended?: boolean }[] = [
   { service: 'BIKE', label: 'Zana Moto', icon: Bike, recommended: true },
@@ -22,6 +22,7 @@ function RideOptionsContent() {
   const destLat = Number(params.get('lat'));
   const destLng = Number(params.get('lng'));
 
+  const [pickup, setPickup] = useState(getStoredPickup());
   const [fares, setFares] = useState<Record<ServiceType, number>>({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
   const [selected, setSelected] = useState<ServiceType>('BIKE');
   const [loadingFares, setLoadingFares] = useState(true);
@@ -29,11 +30,17 @@ function RideOptionsContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Refresh with a live GPS read in case the user's moved since the Home
+    // screen first requested location (or if it wasn't granted yet then).
+    requestLiveLocation().then(setPickup);
+  }, []);
+
+  useEffect(() => {
     (async () => {
       try {
         const [bike, economy] = await Promise.all([
-          estimateRide(KIGALI_CENTER, { lat: destLat, lng: destLng }, 'BIKE'),
-          estimateRide(KIGALI_CENTER, { lat: destLat, lng: destLng }, 'ECONOMY'),
+          estimateRide(pickup, { lat: destLat, lng: destLng }, 'BIKE'),
+          estimateRide(pickup, { lat: destLat, lng: destLng }, 'ECONOMY'),
         ]);
         setFares({ BIKE: bike.fare, ECONOMY: economy.fare, COMFORT: 0 });
       } catch {
@@ -42,7 +49,7 @@ function RideOptionsContent() {
         setLoadingFares(false);
       }
     })();
-  }, [destLat, destLng]);
+  }, [destLat, destLng, pickup]);
 
   const handleBook = async () => {
     setBooking(true);
@@ -51,8 +58,8 @@ function RideOptionsContent() {
       const trip = await createRide({
         serviceType: selected,
         pickupAddress: 'Current Location',
-        pickupLat: KIGALI_CENTER.lat,
-        pickupLng: KIGALI_CENTER.lng,
+        pickupLat: pickup.lat,
+        pickupLng: pickup.lng,
         destinationAddress: destAddress,
         destinationLat: destLat,
         destinationLng: destLng,
@@ -70,7 +77,7 @@ function RideOptionsContent() {
   return (
     <div>
       <div className="relative">
-        <DirectionsMap origin={KIGALI_CENTER} destination={{ lat: destLat, lng: destLng }} height={200} />
+        <DirectionsMap origin={pickup} destination={{ lat: destLat, lng: destLng }} height={200} />
         <button
           onClick={() => router.back()}
           className="absolute top-3 left-3 w-9 h-9 rounded-full bg-white shadow flex items-center justify-center"

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Menu, Bell, Wallet as WalletIcon, Plus, Car, Package, Gift, UtensilsCrossed, ShoppingBag, ArrowRight, Clock } from 'lucide-react';
 import { fetchMe } from '../lib/api/auth';
 import { ApiError } from '../lib/api/client';
+import { requestLiveLocation } from '../lib/location';
 
 const services = [
   { id: 'ride', title: 'Ride', subtitle: 'Book a ride in seconds', icon: Car, bg: '#E3F5F1', comingSoon: false },
@@ -28,6 +29,7 @@ export default function HomePage() {
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) router.replace('/login');
       });
+    requestLiveLocation();
   }, [router]);
 
   const handleServiceClick = (id: string, comingSoon: boolean) => {
