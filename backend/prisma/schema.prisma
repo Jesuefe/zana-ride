@@ -1,0 +1,201 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  DRIVER
+  ADMIN
+  MERCHANT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+model User {
+  id          String     @id @default(uuid())
+  phone       String     @unique
+  email       String?
+  firstName   String?
+  lastName    String?
+  role        UserRole   @default(CUSTOMER)
+  status      UserStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  driver      Driver?
+  merchant    Merchant?
+  wallet      Wallet?
+  tripsAsCustomer Trip[]  @relation("CustomerTrips")
+  ratingsGiven    Rating[] @relation("RatingsGiven")
+  ratingsReceived Rating[] @relation("RatingsReceived")
+}
+
+enum DriverApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum DriverOnlineStatus {
+  OFFLINE
+  ONLINE
+  BUSY
+}
+
+enum ServiceType {
+  BIKE
+  ECONOMY
+  COMFORT
+}
+
+model Driver {
+  id               String                @id @default(uuid())
+  userId           String                @unique
+  user             User                  @relation(fields: [userId], references: [id])
+  vehicle          String
+  plate            String
+  serviceType      ServiceType
+  approvalStatus   DriverApprovalStatus  @default(PENDING)
+  onlineStatus     DriverOnlineStatus    @default(OFFLINE)
+  rating           Float                 @default(0)
+  totalTrips       Int                   @default(0)
+  acceptanceRate   Float                 @default(0)
+  cancellationRate Float                 @default(0)
+  lastLat          Float?
+  lastLng          Float?
+  lastLocationAt   DateTime?
+  createdAt        DateTime              @default(now())
+
+  trips            Trip[]                @relation("DriverTrips")
+  documents        DriverDocument[]
+}
+
+model DriverDocument {
+  id        String   @id @default(uuid())
+  driverId  String
+  driver    Driver   @relation(fields: [driverId], references: [id])
+  label     String
+  fileUrl   String?
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Merchant {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  businessName  String
+  branch        String?
+  whatsappPhone String?
+  createdAt     DateTime @default(now())
+
+  deliveries    Delivery[]
+}
+
+enum TripStatus {
+  REQUESTED
+  SEARCHING_DRIVER
+  DRIVER_ASSIGNED
+  DRIVER_EN_ROUTE
+  DRIVER_ARRIVED
+  RIDE_IN_PROGRESS
+  RIDE_COMPLETED
+  CUSTOMER_CANCELLED
+  DRIVER_CANCELLED
+  NO_DRIVER_FOUND
+}
+
+model Trip {
+  id                 String     @id @default(uuid())
+  customerId         String
+  customer           User       @relation("CustomerTrips", fields: [customerId], references: [id])
+  driverId           String?
+  driver             Driver?    @relation("DriverTrips", fields: [driverId], references: [id])
+  serviceType        ServiceType
+
+  pickupAddress      String
+  pickupLat          Float
+  pickupLng          Float
+  destinationAddress String
+  destinationLat     Float
+  destinationLng     Float
+
+  distanceKm         Float?
+  estimatedFare      Int
+  finalFare          Int?
+  status             TripStatus @default(REQUESTED)
+
+  requestedAt        DateTime   @default(now())
+  acceptedAt         DateTime?
+  arrivedAt          DateTime?
+  startedAt          DateTime?
+  completedAt         DateTime?
+
+  ratings            Rating[]
+}
+
+model Rating {
+  id         String   @id @default(uuid())
+  tripId     String
+  trip       Trip     @relation(fields: [tripId], references: [id])
+  fromUserId String
+  fromUser   User     @relation("RatingsGiven", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User     @relation("RatingsReceived", fields: [toUserId], references: [id])
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id            String   @id @default(uuid())
+  walletId      String
+  wallet        Wallet   @relation(fields: [walletId], references: [id])
+  amount        Int
+  balanceBefore Int
+  balanceAfter  Int
+  reference     String?
+  createdAt     DateTime @default(now())
+}
+
+enum DeliveryStatus {
+  REQUESTED
+  COURIER_ASSIGNED
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+model Delivery {
+  id              String         @id @default(uuid())
+  merchantId      String
+  merchant        Merchant       @relation(fields: [merchantId], references: [id])
+  receiverName    String
+  receiverPhone   String
+  dropoffAddress  String
+  packageType     String
+  status          DeliveryStatus @default(REQUESTED)
+  fee             Int
+  createdAt       DateTime       @default(now())
+}

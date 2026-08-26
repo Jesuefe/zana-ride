@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zana
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-zana_dev_password}
+      POSTGRES_DB: zana_db
+    volumes:
+      - zana_postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U zana']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://zana:${DB_PASSWORD:-zana_dev_password}@postgres:5432/zana_db?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_EXPIRES_IN: '30d'
+      PORT: 4000
+    ports:
+      - '4000:4000'
+
+volumes:
+  zana_postgres_data:
