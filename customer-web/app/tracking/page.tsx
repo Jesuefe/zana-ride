@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Phone, Star, User } from 'lucide-react';
 import { fetchTrip, cancelRide, ApiTrip } from '../../lib/api/trips';
+import DirectionsMap from '../../components/DirectionsMap';
 
 const STATUS_COPY: Record<string, string> = {
   SEARCHING_DRIVER: 'Finding your driver…',
@@ -51,7 +52,16 @@ function TrackingContent() {
 
   return (
     <div>
-      <div className="h-56 bg-zana-primary-light relative">
+      <div className="relative">
+        {trip ? (
+          <DirectionsMap
+            origin={{ lat: trip.pickupLat, lng: trip.pickupLng }}
+            destination={{ lat: trip.destinationLat, lng: trip.destinationLng }}
+            height={224}
+          />
+        ) : (
+          <div className="h-56 bg-zana-primary-light" />
+        )}
         <button
           onClick={() => alert('This alerts the Zana safety team and shares your live trip details.')}
           className="absolute top-4 right-4 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full text-xs font-bold text-zana-error shadow"

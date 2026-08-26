@@ -6,6 +6,7 @@ import { ArrowLeft, Bike, Car, Clock } from 'lucide-react';
 import { estimateRide, createRide, ServiceType } from '../../lib/api/trips';
 import { KIGALI_CENTER } from '../../lib/places';
 import { ApiError } from '../../lib/api/client';
+import DirectionsMap from '../../components/DirectionsMap';
 
 const options: { service: ServiceType; label: string; icon: typeof Bike; comingSoon?: boolean; recommended?: boolean }[] = [
   { service: 'BIKE', label: 'Zana Moto', icon: Bike, recommended: true },
@@ -68,10 +69,16 @@ function RideOptionsContent() {
 
   return (
     <div>
-      <div className="p-4 flex items-center gap-3">
-        <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+      <div className="relative">
+        <DirectionsMap origin={KIGALI_CENTER} destination={{ lat: destLat, lng: destLng }} height={200} />
+        <button
+          onClick={() => router.back()}
+          className="absolute top-3 left-3 w-9 h-9 rounded-full bg-white shadow flex items-center justify-center"
+        >
           <ArrowLeft size={16} />
         </button>
+      </div>
+      <div className="p-4 flex items-center gap-3 -mt-1">
         <div>
           <p className="text-sm font-medium text-gray-900">{destName}</p>
           <p className="text-xs text-zana-muted">{destAddress}</p>

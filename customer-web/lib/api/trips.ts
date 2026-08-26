@@ -17,6 +17,10 @@ export type ApiTrip = {
   status: string;
   estimatedFare: number;
   driverId: string | null;
+  pickupLat: number;
+  pickupLng: number;
+  destinationLat: number;
+  destinationLng: number;
   driver?: { id: string; user: { firstName: string | null }; vehicle: string; plate: string; rating: number } | null;
 };
 
