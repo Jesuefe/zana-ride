@@ -11,7 +11,23 @@ type Step = {
   instruction: string;
   distanceText: string;
   maneuver: string;
+  endLocation: LatLng;
 };
+
+// How close (in km) the driver needs to get to a turn before we advance
+// to the next instruction — this is the actual mechanic that makes it
+// "turn-by-turn" instead of just showing the first step forever.
+const STEP_ADVANCE_THRESHOLD_KM = 0.04;
+
+function haversineKm(a: LatLng, b: LatLng): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const x =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(x));
+}
 
 // A simple top-down car silhouette (rounded body, pointed windshield end)
 // used as the driver's live marker — rotates to match travel heading.
@@ -55,6 +71,7 @@ export default function DriverMap({
   const [ready, setReady] = useState(false);
   const [heading, setHeading] = useState(0);
   const [steps, setSteps] = useState<Step[]>([]);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [eta, setEta] = useState<{ duration: string; distance: string } | null>(null);
   const [showRecenter, setShowRecenter] = useState(false);
   const [voiceOn, setVoiceOn] = useState(true);
@@ -147,6 +164,7 @@ export default function DriverMap({
     if (!target) {
       directionsRenderer.current?.set('directions', null);
       setSteps([]);
+      setCurrentStepIndex(0);
       setEta(null);
       return;
     }
@@ -179,8 +197,10 @@ export default function DriverMap({
                   instruction: stripHtml(s.instructions),
                   distanceText: s.distance?.text ?? '',
                   maneuver: (s as any).maneuver ?? '',
+                  endLocation: { lat: s.end_location.lat(), lng: s.end_location.lng() },
                 })),
               );
+              setCurrentStepIndex(0);
             }
           }
         },
@@ -196,16 +216,29 @@ export default function DriverMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, target?.lat, target?.lng]);
 
+  // Advances to the next instruction once the driver gets close to the end
+  // of the current step — this is what actually makes it "turn-by-turn"
+  // instead of freezing on the first instruction for the whole trip.
+  useEffect(() => {
+    if (!position || steps.length === 0) return;
+    const current = steps[currentStepIndex];
+    if (!current) return;
+    const distanceToStepEnd = haversineKm(position, current.endLocation);
+    if (distanceToStepEnd < STEP_ADVANCE_THRESHOLD_KM && currentStepIndex < steps.length - 1) {
+      setCurrentStepIndex((i) => i + 1);
+    }
+  }, [position?.lat, position?.lng, steps, currentStepIndex]);
+
   // Speaks the current turn instruction aloud the moment it changes — using
   // the browser's built-in speech engine, no external service needed.
   useEffect(() => {
     if (!navigationMode || !voiceOn || typeof window === 'undefined' || !window.speechSynthesis) return;
-    const instruction = steps[0]?.instruction;
+    const instruction = steps[currentStepIndex]?.instruction;
     if (!instruction || instruction === lastSpokenInstruction.current) return;
     lastSpokenInstruction.current = instruction;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(new SpeechSynthesisUtterance(instruction));
-  }, [steps, navigationMode, voiceOn]);
+  }, [steps, currentStepIndex, navigationMode, voiceOn]);
 
   const handleRecenter = () => {
     followEnabled.current = true;
@@ -220,8 +253,8 @@ export default function DriverMap({
     setVoiceOn((v) => !v);
   };
 
-  const currentStep = steps[0];
-  const nextStep = steps[1];
+  const currentStep = steps[currentStepIndex];
+  const nextStep = steps[currentStepIndex + 1];
 
   return (
     <div className="relative" style={{ height }}>

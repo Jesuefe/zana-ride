@@ -2,10 +2,11 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Navigation, Phone } from 'lucide-react';
+import { MapPin, Navigation, Phone, Sparkles } from 'lucide-react';
 import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, DriverTrip } from '../../lib/api/driver';
 import { getCurrentPosition, watchPosition, Coords } from '../../lib/location';
 import DriverMap from '../../components/DriverMap';
+import Navigation3DMap from '../../components/Navigation3DMap';
 
 const STATUS_COPY: Record<string, string> = {
   DRIVER_ASSIGNED: 'Head to the pickup point',
@@ -18,6 +19,7 @@ function TripContent() {
   const [trip, setTrip] = useState<DriverTrip | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [acting, setActing] = useState(false);
+  const [use3d, setUse3d] = useState(false);
 
   // A driver on an active trip is inherently "on the clock" — keep tracking
   // and reporting live location the whole time, same as the Home screen
@@ -101,7 +103,19 @@ function TripContent() {
 
   return (
     <div className="animate-fade-in">
-      <DriverMap position={coords} target={navigationTarget} navigationMode height={260} />
+      {use3d ? (
+        <Navigation3DMap position={coords} target={navigationTarget} height={260} />
+      ) : (
+        <DriverMap position={coords} target={navigationTarget} navigationMode height={260} />
+      )}
+
+      <button
+        onClick={() => setUse3d((v) => !v)}
+        className="w-full flex items-center justify-center gap-1.5 bg-gray-100 text-xs font-semibold text-gray-700 py-2"
+      >
+        <Sparkles size={12} className={use3d ? 'text-amber-500' : 'text-zana-muted'} />
+        {use3d ? 'Switch back to standard view' : 'Try experimental 3D view'}
+      </button>
 
       <div className="p-4">
       <h1 className="text-lg font-bold text-gray-900 mb-1">{STATUS_COPY[trip.status] ?? trip.status}</h1>
