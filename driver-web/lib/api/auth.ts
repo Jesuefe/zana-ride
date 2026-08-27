@@ -3,17 +3,31 @@ import { api, setToken } from './client';
 export type ApiUser = {
   id: string;
   phone: string;
+  email: string | null;
   firstName: string | null;
   lastName: string | null;
   role: string;
 };
 
-export async function requestOtp(phone: string) {
-  return api.post<{ sent: boolean }>('/auth/request-otp', { phone });
+type AuthResponse = { token: string; user: ApiUser };
+
+export async function login(identifier: string, password: string) {
+  const result = await api.post<AuthResponse>('/auth/login', { identifier, password });
+  setToken(result.token);
+  return result;
 }
 
-export async function verifyOtp(phone: string, code: string) {
-  const result = await api.post<{ token: string; user: ApiUser }>('/auth/verify-otp', { phone, code });
+export async function registerDriver(data: {
+  phone: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  vehicle: string;
+  plate: string;
+  serviceType: 'BIKE' | 'ECONOMY' | 'COMFORT';
+}) {
+  const result = await api.post<AuthResponse>('/auth/register-driver', data);
   setToken(result.token);
   return result;
 }

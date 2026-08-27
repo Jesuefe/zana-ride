@@ -30,6 +30,11 @@ export default function HomePage() {
   const [loadingToggle, setLoadingToggle] = useState(false);
   const seenTripIds = useRef<Set<string>>(new Set());
 
+  const handleLogout = () => {
+    clearToken();
+    router.replace('/login');
+  };
+
   // Load profile + check for an already-active trip (e.g. app was closed mid-ride).
   useEffect(() => {
     fetchMyDriverProfile().then((p) => {
@@ -40,6 +45,27 @@ export default function HomePage() {
       if (trip) router.replace(`/trip?id=${trip.id}`);
     });
   }, [router]);
+
+  if (profile && profile.approvalStatus !== 'APPROVED') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+        <div className="w-16 h-16 rounded-full bg-zana-secondary/20 flex items-center justify-center mb-4">
+          <Wallet size={26} className="text-zana-secondary-dark" />
+        </div>
+        <h1 className="text-lg font-bold text-gray-900">
+          {profile.approvalStatus === 'REJECTED' ? 'Application not approved' : 'Application under review'}
+        </h1>
+        <p className="text-sm text-zana-muted mt-2 max-w-xs">
+          {profile.approvalStatus === 'REJECTED'
+            ? 'Your driver application was not approved. Contact support for details.'
+            : "We're reviewing your documents and vehicle details. This usually takes 1-2 business days."}
+        </p>
+        <button onClick={handleLogout} className="mt-6 text-sm font-semibold text-zana-primary">
+          Log out
+        </button>
+      </div>
+    );
+  }
 
   // Get an initial fix immediately, then keep tracking continuously while online.
   useEffect(() => {
@@ -125,11 +151,6 @@ export default function HomePage() {
     if (!incoming) return;
     await declineTrip(incoming.id).catch(() => {});
     setIncoming(null);
-  };
-
-  const handleLogout = () => {
-    clearToken();
-    router.replace('/login');
   };
 
   const distanceToPickup =
