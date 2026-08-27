@@ -6,12 +6,12 @@ import { ZANA_MAP_STYLE } from '../lib/mapStyle';
 
 type LatLng = { lat: number; lng: number };
 
-type NearbyCar = { id: string; position: LatLng; type: 'BIKE' | 'ECONOMY' };
+type NearbyCar = { id: string; position: LatLng };
 
-// Scatters a few simulated nearby drivers around the pickup point, purely
-// visual (matches the spirit of "cars nearby" seen on ride-hailing home
-// screens). Real positions would come from the backend's driver-location
-// feed once that's streamed over a websocket.
+// Scatters a few simulated nearby drivers of the SELECTED vehicle type around
+// the pickup point — purely visual (matches the spirit of "cars nearby" on
+// ride-hailing home screens). Real positions would come from the backend's
+// driver-location feed once that's streamed over a websocket.
 function generateNearbyCars(center: LatLng, count: number): NearbyCar[] {
   return Array.from({ length: count }).map((_, i) => {
     const angle = Math.random() * Math.PI * 2;
@@ -22,7 +22,6 @@ function generateNearbyCars(center: LatLng, count: number): NearbyCar[] {
     return {
       id: `car-${i}`,
       position: { lat: center.lat + dLat, lng: center.lng + dLng },
-      type: Math.random() > 0.5 ? 'BIKE' : 'ECONOMY',
     };
   });
 }
@@ -31,11 +30,13 @@ export default function BrandedMap({
   origin,
   destination,
   showNearbyCars = false,
+  vehicleType = 'BIKE',
   height = 220,
 }: {
   origin: LatLng;
   destination?: LatLng;
   showNearbyCars?: boolean;
+  vehicleType?: 'BIKE' | 'ECONOMY';
   height?: number;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -131,9 +132,9 @@ export default function BrandedMap({
             position: car.position,
             map,
             icon: {
-              url: car.type === 'BIKE' ? '/icons/motorbike.png' : '/icons/car.png',
-              scaledSize: new google.maps.Size(34, 34),
-              anchor: new google.maps.Point(17, 17),
+              url: vehicleType === 'BIKE' ? '/icons/marker-moto.png' : '/icons/marker-car.png',
+              scaledSize: new google.maps.Size(32, 32),
+              anchor: new google.maps.Point(16, 16),
             },
           });
           markersRef.current.push(marker);
@@ -141,7 +142,7 @@ export default function BrandedMap({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, origin.lat, origin.lng, destination?.lat, destination?.lng, showNearbyCars]);
+  }, [ready, origin.lat, origin.lng, destination?.lat, destination?.lng, showNearbyCars, vehicleType]);
 
   return <div ref={mapRef} style={{ width: '100%', height }} />;
 }

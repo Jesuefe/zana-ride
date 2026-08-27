@@ -45,7 +45,15 @@ export async function cancelRide(id: string) {
 }
 
 export async function fetchWallet() {
-  return api.get<{ balance: number; transactions: { id: string; amount: number; reference: string | null; createdAt: string }[] }>(
+  return api.get<{ balance: number; transactions: { id: string; amount: number; reference: string | null; createdAt: string; status: string }[] }>(
     '/wallet/me',
   );
+}
+
+export async function initiateMomoTopUp(phone: string, amount: number) {
+  return api.post<{ ref: string; status: string }>('/wallet/top-up/momo', { phone, amount });
+}
+
+export async function checkMomoTopUpStatus(ref: string) {
+  return api.get<{ status: string; balance?: number }>(`/wallet/top-up/momo/${ref}/status`);
 }

@@ -74,7 +74,12 @@ function SearchContent() {
   return (
     <div className="animate-fade-in">
       <div className="relative">
-        <BrandedMap origin={pickup} showNearbyCars height={160} />
+        <BrandedMap
+          origin={pickup}
+          showNearbyCars
+          vehicleType={preselectedService === 'BIKE' ? 'BIKE' : 'ECONOMY'}
+          height={160}
+        />
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/95 px-3 py-1 rounded-full text-[11px] text-zana-muted shadow">
           Drivers nearby, ready to pick you up
         </div>
