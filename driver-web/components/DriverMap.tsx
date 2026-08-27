@@ -1,9 +1,31 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Locate, Volume2, VolumeX } from 'lucide-react';
+import {
+  ArrowUp,
+  ArrowUpLeft,
+  ArrowUpRight,
+  CornerUpLeft,
+  CornerUpRight,
+  RotateCcw,
+  Locate,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
 import { loadGoogleMaps } from '../lib/mapsLoader';
 import { ZANA_MAP_STYLE } from '../lib/mapStyle';
+
+// Maps Google's maneuver codes to a matching arrow so the banner shows the
+// actual turn direction rather than a generic "straight ahead" every time.
+function maneuverIcon(maneuver: string) {
+  if (maneuver.includes('sharp-left') || maneuver.includes('uturn-left')) return RotateCcw;
+  if (maneuver.includes('sharp-right') || maneuver.includes('uturn-right')) return RotateCcw;
+  if (maneuver.includes('slight-left')) return ArrowUpLeft;
+  if (maneuver.includes('slight-right')) return ArrowUpRight;
+  if (maneuver.includes('left')) return CornerUpLeft;
+  if (maneuver.includes('right')) return CornerUpRight;
+  return ArrowUp;
+}
 
 type LatLng = { lat: number; lng: number };
 
@@ -262,21 +284,30 @@ export default function DriverMap({
 
       {navigationMode && currentStep && (
         <div className="absolute top-3 left-3 right-3">
-          <div className="bg-zana-primary-dark text-white rounded-2xl px-4 py-3 shadow-lg flex items-center gap-3">
-            <ArrowUp size={22} className="shrink-0" />
+          <div className="bg-zana-primary-dark text-white rounded-2xl px-4 py-4 shadow-2xl flex items-center gap-4">
+            {(() => {
+              const Icon = maneuverIcon(currentStep.maneuver);
+              return <Icon size={34} strokeWidth={2.4} className="shrink-0" />;
+            })()}
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold truncate">{currentStep.instruction}</p>
-              <p className="text-xs text-white/70">{currentStep.distanceText}</p>
+              <p className="text-base font-bold leading-snug">{currentStep.instruction}</p>
+              <p className="text-sm text-white/70 mt-0.5">{currentStep.distanceText}</p>
             </div>
-            <button onClick={toggleVoice} className="shrink-0 w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
-              {voiceOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+            <button
+              onClick={toggleVoice}
+              className="shrink-0 w-9 h-9 rounded-full bg-white/15 flex items-center justify-center"
+            >
+              {voiceOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
           </div>
           {nextStep && (
-            <div className="bg-white/95 rounded-xl px-3 py-1.5 mt-1.5 mx-3 shadow flex items-center gap-2">
-              <span className="text-[11px] font-medium text-zana-muted">Then</span>
-              <ArrowUp size={12} className="text-gray-700" />
-              <span className="text-[11px] text-gray-700 truncate">{nextStep.instruction}</span>
+            <div className="bg-white/95 rounded-xl px-3 py-2 mt-1.5 mx-3 shadow flex items-center gap-2">
+              <span className="text-xs font-medium text-zana-muted shrink-0">Then</span>
+              {(() => {
+                const NextIcon = maneuverIcon(nextStep.maneuver);
+                return <NextIcon size={14} className="text-gray-700 shrink-0" />;
+              })()}
+              <span className="text-xs text-gray-700 truncate">{nextStep.instruction}</span>
             </div>
           )}
         </div>
@@ -285,16 +316,16 @@ export default function DriverMap({
       {navigationMode && showRecenter && (
         <button
           onClick={handleRecenter}
-          className="absolute bottom-3 right-3 bg-white rounded-full p-2.5 shadow-lg"
+          className="absolute bottom-32 right-3 bg-white rounded-full p-3 shadow-lg"
         >
-          <Locate size={18} className="text-zana-primary" />
+          <Locate size={20} className="text-zana-primary" />
         </button>
       )}
 
       {navigationMode && eta && (
-        <div className="absolute bottom-3 left-3 bg-white/95 rounded-xl px-3 py-1.5 shadow text-xs">
-          <span className="font-bold text-zana-primary">{eta.duration}</span>
-          <span className="text-zana-muted"> · {eta.distance}</span>
+        <div className="absolute bottom-32 left-3 bg-white/95 rounded-xl px-3 py-2 shadow">
+          <span className="text-sm font-bold text-zana-primary">{eta.duration}</span>
+          <span className="text-xs text-zana-muted"> · {eta.distance}</span>
         </div>
       )}
     </div>
