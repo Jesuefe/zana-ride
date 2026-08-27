@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F7F8F8;
+  --foreground: #111827;
+
+  --zana-primary: #00A082;
+  --zana-primary-dark: #00806A;
+  --zana-primary-light: #E3F5F1;
+  --zana-secondary: #FFC244;
+  --zana-secondary-dark: #E6A82E;
+  --zana-surface: #FFFFFF;
+  --zana-muted: #6B7280;
+  --zana-border: #E5E7EB;
+  --zana-success: #12B76A;
+  --zana-error: #F04438;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-zana-primary: var(--zana-primary);
+  --color-zana-primary-dark: var(--zana-primary-dark);
+  --color-zana-primary-light: var(--zana-primary-light);
+  --color-zana-secondary: var(--zana-secondary);
+  --color-zana-secondary-dark: var(--zana-secondary-dark);
+  --color-zana-surface: var(--zana-surface);
+  --color-zana-muted: var(--zana-muted);
+  --color-zana-border: var(--zana-border);
+  --color-zana-success: var(--zana-success);
+  --color-zana-error: var(--zana-error);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.app-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--zana-surface);
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .app-shell { max-width: 640px; box-shadow: 0 0 40px rgba(0, 0, 0, 0.06); }
+}
+@media (min-width: 1024px) {
+  .app-shell { max-width: 760px; }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-slide-up { animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in { animation: fadeIn 0.6s ease-out both; }
