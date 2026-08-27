@@ -17,6 +17,7 @@ import {
 } from '../lib/api/driver';
 import { getCurrentPosition, watchPosition, haversineKm, Coords } from '../lib/location';
 import { clearToken } from '../lib/api/client';
+import DriverMap from '../components/DriverMap';
 
 const REQUEST_TIMEOUT_SECONDS = 15;
 
@@ -183,6 +184,18 @@ export default function HomePage() {
         >
           {loadingToggle ? '…' : online ? "You're Online" : 'Go Online'}
         </button>
+      </div>
+
+      <div className="relative">
+        <DriverMap position={coords} height={220} />
+        <div
+          className={`absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold shadow ${
+            online ? 'bg-zana-primary text-white' : 'bg-white text-zana-muted'
+          }`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${online ? 'bg-white' : 'bg-gray-400'}`} />
+          {online ? 'Live' : 'Offline'}
+        </div>
       </div>
 
       <div className="flex-1 p-4">

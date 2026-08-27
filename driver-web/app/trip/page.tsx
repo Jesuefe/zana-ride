@@ -3,7 +3,9 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Navigation, Phone } from 'lucide-react';
-import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, DriverTrip } from '../../lib/api/driver';
+import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, DriverTrip } from '../../lib/api/driver';
+import { getCurrentPosition, watchPosition, Coords } from '../../lib/location';
+import DriverMap from '../../components/DriverMap';
 
 const STATUS_COPY: Record<string, string> = {
   DRIVER_ASSIGNED: 'Head to the pickup point',
@@ -14,7 +16,27 @@ const STATUS_COPY: Record<string, string> = {
 function TripContent() {
   const router = useRouter();
   const [trip, setTrip] = useState<DriverTrip | null>(null);
+  const [coords, setCoords] = useState<Coords | null>(null);
   const [acting, setActing] = useState(false);
+
+  // A driver on an active trip is inherently "on the clock" — keep tracking
+  // and reporting live location the whole time, same as the Home screen
+  // does while online, so the customer's map keeps updating too.
+  useEffect(() => {
+    getCurrentPosition().then((c) => c && setCoords(c));
+    const stop = watchPosition((c) => setCoords(c));
+    return stop;
+  }, []);
+
+  useEffect(() => {
+    if (!coords) return;
+    updateDriverLocation(coords.lat, coords.lng).catch(() => {});
+    const interval = setInterval(() => {
+      if (coords) updateDriverLocation(coords.lat, coords.lng).catch(() => {});
+    }, 8000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coords?.lat, coords?.lng]);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,8 +89,21 @@ function TripContent() {
         ? 'Start Trip'
         : 'Complete Trip';
 
+  // Navigate toward the pickup point until the driver has arrived, then
+  // toward the destination once the trip is actually underway — same as
+  // switching waypoints in a real turn-by-turn nav app.
+  const navigationTarget =
+    trip.status === 'DRIVER_ASSIGNED'
+      ? { lat: trip.pickupLat, lng: trip.pickupLng }
+      : trip.status === 'RIDE_IN_PROGRESS'
+        ? { lat: trip.destinationLat, lng: trip.destinationLng }
+        : undefined;
+
   return (
-    <div className="p-4 animate-fade-in">
+    <div className="animate-fade-in">
+      <DriverMap position={coords} target={navigationTarget} navigationMode height={260} />
+
+      <div className="p-4">
       <h1 className="text-lg font-bold text-gray-900 mb-1">{STATUS_COPY[trip.status] ?? trip.status}</h1>
       <p className="text-xs text-zana-muted mb-5">Trip in progress with {trip.customer.firstName ?? 'passenger'}</p>
 
@@ -111,6 +146,7 @@ function TripContent() {
       >
         {acting ? '…' : buttonLabel}
       </button>
+      </div>
     </div>
   );
 }
