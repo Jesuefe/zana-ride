@@ -2,11 +2,11 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, MapPin, Loader2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Loader2, Minus, Plus, Users } from 'lucide-react';
 import { landmarks, Place } from '../../lib/places';
 import { getStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
-import { createRide } from '../../lib/api/trips';
+import { createRide, createRideGroup } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 
@@ -20,6 +20,7 @@ function SearchContent() {
   const [currentAddress, setCurrentAddress] = useState('Current Location');
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [motoCount, setMotoCount] = useState(1);
   const pickup = getStoredPickup();
 
   useEffect(() => {
@@ -43,17 +44,24 @@ function SearchContent() {
     if (isMoto) {
       setBooking(true);
       setError(null);
+      const tripData = {
+        serviceType: 'BIKE' as const,
+        pickupAddress: currentAddress,
+        pickupLat: pickup.lat,
+        pickupLng: pickup.lng,
+        destinationAddress: place.address,
+        destinationLat: place.lat,
+        destinationLng: place.lng,
+      };
       try {
-        const trip = await createRide({
-          serviceType: 'BIKE',
-          pickupAddress: currentAddress,
-          pickupLat: pickup.lat,
-          pickupLng: pickup.lng,
-          destinationAddress: place.address,
-          destinationLat: place.lat,
-          destinationLng: place.lng,
-        });
-        router.push(`/tracking?tripId=${trip.id}`);
+        if (motoCount > 1) {
+          const trips = await createRideGroup(tripData, motoCount);
+          const groupId = trips[0]?.groupId;
+          router.push(`/tracking?groupId=${groupId}`);
+        } else {
+          const trip = await createRide(tripData);
+          router.push(`/tracking?tripId=${trip.id}`);
+        }
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
         setBooking(false);
@@ -105,9 +113,36 @@ function SearchContent() {
         </div>
       </div>
 
+      {isMoto && (
+        <div className="flex items-center justify-between bg-zana-primary-light rounded-xl px-4 py-3 mb-4">
+          <div className="flex items-center gap-2">
+            <Users size={16} className="text-zana-primary" />
+            <span className="text-sm text-gray-900">How many motos?</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMotoCount((c) => Math.max(1, c - 1))}
+              disabled={motoCount <= 1}
+              className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm disabled:opacity-40"
+            >
+              <Minus size={13} />
+            </button>
+            <span className="text-sm font-semibold text-gray-900 w-4 text-center">{motoCount}</span>
+            <button
+              onClick={() => setMotoCount((c) => Math.min(8, c + 1))}
+              disabled={motoCount >= 8}
+              className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm disabled:opacity-40"
+            >
+              <Plus size={13} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {booking && (
         <div className="flex items-center gap-2 text-sm text-zana-muted mb-4">
-          <Loader2 size={16} className="animate-spin" /> Booking your moto…
+          <Loader2 size={16} className="animate-spin" />
+          {motoCount > 1 ? `Booking ${motoCount} motos…` : 'Booking your moto…'}
         </div>
       )}
       {error && <p className="text-xs text-zana-error mb-4">{error}</p>}

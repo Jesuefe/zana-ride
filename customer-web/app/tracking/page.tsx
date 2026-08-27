@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Phone, Star, User, Navigation } from 'lucide-react';
-import { fetchTrip, cancelRide, ApiTrip } from '../../lib/api/trips';
+import { fetchTrip, fetchTripGroup, cancelRide, ApiTrip } from '../../lib/api/trips';
 import BrandedMap from '../../components/BrandedMap';
 import ReportModal from '../../components/ReportModal';
 import { useShakeDetector, requestMotionPermission } from '../../lib/shake';
@@ -21,21 +21,54 @@ const STATUS_COPY: Record<string, string> = {
 
 const ACTIVE_STATUSES = ['DRIVER_ASSIGNED', 'DRIVER_EN_ROUTE', 'DRIVER_ARRIVED', 'RIDE_IN_PROGRESS'];
 
+type GroupTrip = ApiTrip & { groupSeatIndex: number | null };
+
+function DriverCard({ trip, seatLabel }: { trip: ApiTrip; seatLabel?: string }) {
+  const driver = trip.driver;
+  if (!driver || trip.status === 'RIDE_COMPLETED') return null;
+  return (
+    <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 mt-3">
+      <div className="w-11 h-11 rounded-full bg-zana-primary-light flex items-center justify-center">
+        <User size={20} className="text-zana-primary" />
+      </div>
+      <div className="flex-1">
+        {seatLabel && <p className="text-[11px] font-semibold text-zana-primary">{seatLabel}</p>}
+        <p className="text-sm text-gray-900">{driver.user.firstName ?? 'Your driver'}</p>
+        <p className="text-xs text-zana-muted">{driver.vehicle} · {driver.plate}</p>
+        <div className="flex items-center gap-1 text-xs text-zana-muted">
+          <Star size={11} className="text-zana-secondary fill-zana-secondary" /> {driver.rating.toFixed(1)}
+        </div>
+      </div>
+      <button className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center">
+        <Phone size={16} className="text-zana-primary" />
+      </button>
+    </div>
+  );
+}
+
 function TrackingContent() {
   const router = useRouter();
   const params = useSearchParams();
   const tripId = params.get('tripId');
+  const groupId = params.get('groupId');
+
   const [trip, setTrip] = useState<ApiTrip | null>(null);
+  const [groupTrips, setGroupTrips] = useState<GroupTrip[]>([]);
   const [showReport, setShowReport] = useState(false);
   const motionRequested = useRef(false);
 
   useEffect(() => {
-    if (!tripId) return;
+    if (!tripId && !groupId) return;
     let cancelled = false;
     const poll = async () => {
       try {
-        const t = await fetchTrip(tripId);
-        if (!cancelled) setTrip(t);
+        if (groupId) {
+          const trips = await fetchTripGroup(groupId);
+          if (!cancelled) setGroupTrips(trips);
+        } else if (tripId) {
+          const t = await fetchTrip(tripId);
+          if (!cancelled) setTrip(t);
+        }
       } catch {
         // retry on next tick
       }
@@ -46,15 +79,23 @@ function TrackingContent() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [tripId]);
+  }, [tripId, groupId]);
 
-  const status = trip?.status ?? 'SEARCHING_DRIVER';
-  const driver = trip?.driver;
+  const isGroup = Boolean(groupId);
+  // For a group, show the "primary" status as whichever moto is furthest
+  // behind — the customer isn't fully picked up until every moto is ready.
+  const primaryTrip = isGroup
+    ? groupTrips.reduce<GroupTrip | null>((worst, t) => {
+        if (!worst) return t;
+        const order = ['SEARCHING_DRIVER', 'DRIVER_ASSIGNED', 'DRIVER_EN_ROUTE', 'DRIVER_ARRIVED', 'RIDE_IN_PROGRESS', 'RIDE_COMPLETED'];
+        return order.indexOf(t.status) < order.indexOf(worst.status) ? t : worst;
+      }, null)
+    : trip;
+
+  const status = primaryTrip?.status ?? 'SEARCHING_DRIVER';
   const rideIsActive = ACTIVE_STATUSES.includes(status);
+  const mapSource = isGroup ? groupTrips[0] : trip;
 
-  // Ask for motion sensor permission once, the first time a real driver is
-  // assigned — asking earlier (before there's anything to report on) would
-  // just be a confusing permission prompt with no context.
   useEffect(() => {
     if (rideIsActive && !motionRequested.current) {
       motionRequested.current = true;
@@ -68,19 +109,24 @@ function TrackingContent() {
   );
 
   const handleCancel = async () => {
-    if (tripId) await cancelRide(tripId).catch(() => {});
+    if (groupId) {
+      await Promise.all(groupTrips.map((t) => cancelRide(t.id).catch(() => {})));
+    } else if (tripId) {
+      await cancelRide(tripId).catch(() => {});
+    }
     router.push('/');
   };
 
   const showRouteBanner = status === 'DRIVER_EN_ROUTE' || status === 'RIDE_IN_PROGRESS';
+  const allCompleted = isGroup && groupTrips.length > 0 && groupTrips.every((t) => t.status === 'RIDE_COMPLETED');
 
   return (
     <div>
       <div className="relative">
-        {trip ? (
+        {mapSource ? (
           <BrandedMap
-            origin={{ lat: trip.pickupLat, lng: trip.pickupLng }}
-            destination={{ lat: trip.destinationLat, lng: trip.destinationLng }}
+            origin={{ lat: mapSource.pickupLat, lng: mapSource.pickupLng }}
+            destination={{ lat: mapSource.destinationLat, lng: mapSource.destinationLng }}
             height={224}
           />
         ) : (
@@ -103,38 +149,29 @@ function TrackingContent() {
       </div>
 
       <div className="p-5">
-        <h2 className="font-semibold text-lg text-gray-900">{STATUS_COPY[status] ?? status}</h2>
+        <h2 className="font-semibold text-lg text-gray-900">
+          {isGroup && !allCompleted ? `${groupTrips.length} motos · ` : ''}
+          {allCompleted ? 'All trips completed' : STATUS_COPY[status] ?? status}
+        </h2>
         {rideIsActive && (
           <p className="text-xs text-zana-muted mt-1">Shake your phone anytime to report a safety concern.</p>
         )}
 
-        {driver && status !== 'RIDE_COMPLETED' && (
-          <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 mt-4">
-            <div className="w-11 h-11 rounded-full bg-zana-primary-light flex items-center justify-center">
-              <User size={20} className="text-zana-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-gray-900">{driver.user.firstName ?? 'Your driver'}</p>
-              <p className="text-xs text-zana-muted">{driver.vehicle} · {driver.plate}</p>
-              <div className="flex items-center gap-1 text-xs text-zana-muted">
-                <Star size={11} className="text-zana-secondary fill-zana-secondary" /> {driver.rating.toFixed(1)}
-              </div>
-            </div>
-            <button className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center">
-              <Phone size={16} className="text-zana-primary" />
-            </button>
-          </div>
-        )}
+        {isGroup
+          ? groupTrips.map((t) => (
+              <DriverCard key={t.id} trip={t} seatLabel={`Moto ${t.groupSeatIndex} · ${STATUS_COPY[t.status] ?? t.status}`} />
+            ))
+          : trip && <DriverCard trip={trip} />}
 
         <button
           onClick={handleCancel}
           className={`w-full mt-6 py-3.5 rounded-xl font-semibold transition-transform active:scale-[0.98] ${
-            status === 'RIDE_COMPLETED'
+            status === 'RIDE_COMPLETED' || allCompleted
               ? 'bg-zana-primary text-white'
               : 'border border-zana-primary text-zana-primary'
           }`}
         >
-          {status === 'RIDE_COMPLETED' ? 'Rate your trip' : 'Cancel Ride'}
+          {status === 'RIDE_COMPLETED' || allCompleted ? 'Rate your trip' : 'Cancel Ride'}
         </button>
       </div>
 

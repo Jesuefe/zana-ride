@@ -36,6 +36,31 @@ export async function createRide(data: {
   return api.post<ApiTrip>('/rides', data);
 }
 
+// Books multiple motos at once for a group — each gets its own independent
+// trip and driver, but they share a groupId so the tracking screen can show
+// them together.
+export async function createRideGroup(
+  data: {
+    serviceType: ServiceType;
+    pickupAddress: string;
+    pickupLat: number;
+    pickupLng: number;
+    destinationAddress: string;
+    destinationLat: number;
+    destinationLng: number;
+  },
+  count: number,
+) {
+  return api.post<(ApiTrip & { groupId: string | null; groupSeatIndex: number | null })[]>('/rides', {
+    ...data,
+    count,
+  });
+}
+
+export async function fetchTripGroup(groupId: string) {
+  return api.get<(ApiTrip & { groupId: string | null; groupSeatIndex: number | null })[]>(`/rides/group/${groupId}`);
+}
+
 export async function fetchTrip(id: string) {
   return api.get<ApiTrip>(`/rides/${id}`);
 }
