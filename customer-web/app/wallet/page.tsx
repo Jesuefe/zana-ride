@@ -29,7 +29,7 @@ export default function WalletPage() {
   const handleStartTopUp = async () => {
     setError(null);
     try {
-      const { ref } = await initiateMomoTopUp(`+250${phone.replace(/\D/g, '')}`, Number(amount));
+      const { ref } = await initiateMomoTopUp(phone, Number(amount));
       setStage('waiting');
 
       const interval = setInterval(async () => {
@@ -109,16 +109,13 @@ export default function WalletPage() {
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-medium text-zana-muted block mb-1.5">Mobile money number</label>
-                    <div className="flex gap-2">
-                      <div className="border border-zana-border rounded-lg px-3 flex items-center text-sm">+250</div>
-                      <input
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
-                        placeholder="788 123 456"
-                        inputMode="numeric"
-                        className="flex-1 border border-zana-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
-                      />
-                    </div>
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="0788 123 456"
+                      inputMode="numeric"
+                      className="w-full border border-zana-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-zana-muted block mb-1.5">Amount (RWF)</label>
@@ -134,7 +131,7 @@ export default function WalletPage() {
                 {error && <p className="text-xs text-zana-error mt-3">{error}</p>}
                 <button
                   onClick={handleStartTopUp}
-                  disabled={phone.length < 9 || !amount || Number(amount) < 100}
+                  disabled={phone.length < 10 || !amount || Number(amount) < 100}
                   className="w-full mt-5 bg-zana-primary text-white font-semibold py-3 rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
                 >
                   Request payment
@@ -147,7 +144,7 @@ export default function WalletPage() {
                 <Loader2 size={32} className="animate-spin text-zana-primary mx-auto mb-4" />
                 <p className="font-semibold text-gray-900">Check your phone</p>
                 <p className="text-sm text-zana-muted mt-1">
-                  Approve the {Number(amount).toLocaleString()} RWF mobile money request sent to +250{phone}.
+                  Approve the {Number(amount).toLocaleString()} RWF mobile money request sent to {phone}.
                 </p>
               </div>
             )}
