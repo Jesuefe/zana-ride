@@ -1,20 +1,23 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Locate } from 'lucide-react';
+import { ArrowUp, Locate, Volume2, VolumeX } from 'lucide-react';
 import { loadGoogleMaps } from '../lib/mapsLoader';
 import { ZANA_MAP_STYLE } from '../lib/mapStyle';
 
 type LatLng = { lat: number; lng: number };
 
 type Step = {
-  instruction: string; // plain text, HTML stripped
+  instruction: string;
   distanceText: string;
-  maneuver: string; // e.g. "turn-right", "" for straight
+  maneuver: string;
 };
 
-// Strips Google's HTML-formatted instructions ("Turn <b>right</b> onto...")
-// down to plain text for display.
+// A simple top-down car silhouette (rounded body, pointed windshield end)
+// used as the driver's live marker — rotates to match travel heading.
+const CAR_ICON_PATH =
+  'M 0,-7 C 1.8,-7 3,-5.6 3,-4 L 3,4.5 C 3,5.7 2.1,6.5 0,6.5 C -2.1,6.5 -3,5.7 -3,4.5 L -3,-4 C -3,-5.6 -1.8,-7 0,-7 Z';
+
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '');
 }
@@ -48,11 +51,13 @@ export default function DriverMap({
   const directionsRenderer = useRef<google.maps.DirectionsRenderer | null>(null);
   const lastPosition = useRef<LatLng | null>(null);
   const followEnabled = useRef(true);
+  const lastSpokenInstruction = useRef<string | null>(null);
   const [ready, setReady] = useState(false);
   const [heading, setHeading] = useState(0);
   const [steps, setSteps] = useState<Step[]>([]);
   const [eta, setEta] = useState<{ duration: string; distance: string } | null>(null);
   const [showRecenter, setShowRecenter] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +67,7 @@ export default function DriverMap({
         center: position ?? { lat: -1.9536, lng: 30.0605 },
         zoom: navigationMode ? 18 : 15,
         tilt: navigationMode ? 45 : 0,
+        renderingType: google.maps.RenderingType.VECTOR,
         styles: ZANA_MAP_STYLE,
         disableDefaultUI: true,
         zoomControl: !navigationMode,
@@ -74,8 +80,6 @@ export default function DriverMap({
         polylineOptions: { strokeColor: '#00A082', strokeWeight: 6 },
       });
 
-      // Any manual drag pauses auto-follow until the driver taps re-centre —
-      // same behaviour as real nav apps.
       if (navigationMode) {
         mapInstance.current.addListener('dragstart', () => {
           followEnabled.current = false;
@@ -90,9 +94,6 @@ export default function DriverMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update the driver's marker, compute a travel bearing from consecutive
-  // GPS fixes, and — in navigation mode — keep the camera locked to a
-  // rotated "chase cam" view following that bearing.
   useEffect(() => {
     if (!ready || !mapInstance.current || !position) return;
     const map = mapInstance.current;
@@ -112,13 +113,14 @@ export default function DriverMap({
         position,
         map,
         icon: {
-          path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-          scale: 6,
+          path: CAR_ICON_PATH,
+          scale: 1.4,
           fillColor: '#00A082',
           fillOpacity: 1,
           strokeColor: '#FFFFFF',
-          strokeWeight: 2,
+          strokeWeight: 1.5,
           rotation: currentHeading,
+          anchor: new google.maps.Point(0, 0),
         },
       });
     } else {
@@ -133,8 +135,6 @@ export default function DriverMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, position?.lat, position?.lng, navigationMode]);
 
-  // Draw the route to the current target and pull real turn-by-turn steps
-  // out of Google's own routing result for the instruction banner.
   useEffect(() => {
     if (!ready || !mapInstance.current) return;
     const map = mapInstance.current;
@@ -196,12 +196,28 @@ export default function DriverMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, target?.lat, target?.lng]);
 
+  // Speaks the current turn instruction aloud the moment it changes — using
+  // the browser's built-in speech engine, no external service needed.
+  useEffect(() => {
+    if (!navigationMode || !voiceOn || typeof window === 'undefined' || !window.speechSynthesis) return;
+    const instruction = steps[0]?.instruction;
+    if (!instruction || instruction === lastSpokenInstruction.current) return;
+    lastSpokenInstruction.current = instruction;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(instruction));
+  }, [steps, navigationMode, voiceOn]);
+
   const handleRecenter = () => {
     followEnabled.current = true;
     setShowRecenter(false);
     if (mapInstance.current && position) {
       mapInstance.current.moveCamera({ center: position, heading, tilt: 45, zoom: 18 });
     }
+  };
+
+  const toggleVoice = () => {
+    if (voiceOn) window.speechSynthesis?.cancel();
+    setVoiceOn((v) => !v);
   };
 
   const currentStep = steps[0];
@@ -215,10 +231,13 @@ export default function DriverMap({
         <div className="absolute top-3 left-3 right-3">
           <div className="bg-zana-primary-dark text-white rounded-2xl px-4 py-3 shadow-lg flex items-center gap-3">
             <ArrowUp size={22} className="shrink-0" />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold truncate">{currentStep.instruction}</p>
               <p className="text-xs text-white/70">{currentStep.distanceText}</p>
             </div>
+            <button onClick={toggleVoice} className="shrink-0 w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
+              {voiceOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+            </button>
           </div>
           {nextStep && (
             <div className="bg-white/95 rounded-xl px-3 py-1.5 mt-1.5 mx-3 shadow flex items-center gap-2">
