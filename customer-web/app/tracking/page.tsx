@@ -55,6 +55,7 @@ function TrackingContent() {
   const [trip, setTrip] = useState<ApiTrip | null>(null);
   const [groupTrips, setGroupTrips] = useState<GroupTrip[]>([]);
   const [showReport, setShowReport] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
   const motionRequested = useRef(false);
 
   useEffect(() => {
@@ -127,6 +128,13 @@ function TrackingContent() {
           <BrandedMap
             origin={{ lat: mapSource.pickupLat, lng: mapSource.pickupLng }}
             destination={{ lat: mapSource.destinationLat, lng: mapSource.destinationLng }}
+            driverPosition={
+              primaryTrip?.driver?.lastLat != null && primaryTrip?.driver?.lastLng != null
+                ? { lat: primaryTrip.driver.lastLat, lng: primaryTrip.driver.lastLng }
+                : null
+            }
+            vehicleType={mapSource.serviceType === 'BIKE' ? 'BIKE' : 'ECONOMY'}
+            onRouteInfo={setRouteInfo}
             height={224}
           />
         ) : (
@@ -153,6 +161,12 @@ function TrackingContent() {
           {isGroup && !allCompleted ? `${groupTrips.length} motos · ` : ''}
           {allCompleted ? 'All trips completed' : STATUS_COPY[status] ?? status}
         </h2>
+        {rideIsActive && routeInfo && (
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-sm font-bold text-zana-primary">{routeInfo.durationText}</span>
+            <span className="text-xs text-zana-muted">· {routeInfo.distanceText} remaining</span>
+          </div>
+        )}
         {rideIsActive && (
           <p className="text-xs text-zana-muted mt-1">Shake your phone anytime to report a safety concern.</p>
         )}

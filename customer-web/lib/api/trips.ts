@@ -15,13 +15,22 @@ export async function estimateRide(
 export type ApiTrip = {
   id: string;
   status: string;
+  serviceType: ServiceType;
   estimatedFare: number;
   driverId: string | null;
   pickupLat: number;
   pickupLng: number;
   destinationLat: number;
   destinationLng: number;
-  driver?: { id: string; user: { firstName: string | null }; vehicle: string; plate: string; rating: number } | null;
+  driver?: {
+    id: string;
+    user: { firstName: string | null };
+    vehicle: string;
+    plate: string;
+    rating: number;
+    lastLat: number | null;
+    lastLng: number | null;
+  } | null;
 };
 
 export async function createRide(data: {
@@ -81,4 +90,37 @@ export async function initiateMomoTopUp(phone: string, amount: number) {
 
 export async function checkMomoTopUpStatus(ref: string) {
   return api.get<{ status: string; balance?: number }>(`/wallet/top-up/momo/${ref}/status`);
+}
+
+export type NearbyDriver = {
+  id: string;
+  lat: number;
+  lng: number;
+  serviceType: ServiceType;
+  distanceKm: number;
+};
+
+// Real available drivers near the passenger, straight from the database —
+// replaces the simulated markers we were scattering on the map before.
+export async function fetchNearbyDrivers(lat: number, lng: number, serviceType: ServiceType, radiusKm = 5) {
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lng: String(lng),
+    serviceType,
+    radiusKm: String(radiusKm),
+  });
+  return api.get<NearbyDriver[]>(`/drivers/nearby?${params.toString()}`);
+}
+
+export type FareConfig = {
+  serviceType: ServiceType;
+  base: number;
+  perKm: number;
+  perMin: number;
+  bookingFee: number;
+  minimum: number;
+};
+
+export async function fetchFares() {
+  return api.get<FareConfig[]>('/fares');
 }

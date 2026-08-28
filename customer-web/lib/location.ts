@@ -17,6 +17,11 @@ export function getStoredPickup(): Coords {
   return KIGALI_CENTER;
 }
 
+export function setStoredPickup(coords: Coords) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(PICKUP_KEY, JSON.stringify(coords));
+}
+
 function storePickup(coords: Coords) {
   window.localStorage.setItem(PICKUP_KEY, JSON.stringify(coords));
 }

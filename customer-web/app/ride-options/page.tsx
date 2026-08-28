@@ -6,7 +6,7 @@ import { ArrowLeft, Car, Clock } from 'lucide-react';
 import { estimateRide, createRide, ServiceType } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
-import { getStoredPickup, requestLiveLocation } from '../../lib/location';
+import { getStoredPickup } from '../../lib/location';
 
 const options: { service: ServiceType; label: string; icon: typeof Car; comingSoon?: boolean; recommended?: boolean }[] = [
   { service: 'ECONOMY', label: 'Basic', icon: Car, recommended: true },
@@ -22,18 +22,21 @@ function RideOptionsContent() {
   const destLng = Number(params.get('lng'));
 
   const preselected = params.get('service') as ServiceType | null;
-  const [pickup, setPickup] = useState(getStoredPickup());
+  // The search page may have let the passenger drag the pickup pin, so trust
+  // what it passed over rather than re-reading a possibly-inaccurate GPS fix.
+  const passedPickupLat = Number(params.get('pickupLat'));
+  const passedPickupLng = Number(params.get('pickupLng'));
+  const passedPickupAddress = params.get('pickupAddress') ?? 'Current Location';
+  const [pickup, setPickup] = useState(
+    Number.isFinite(passedPickupLat) && passedPickupLat !== 0
+      ? { lat: passedPickupLat, lng: passedPickupLng }
+      : getStoredPickup(),
+  );
   const [fares, setFares] = useState<Record<ServiceType, number>>({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
   const [selected, setSelected] = useState<ServiceType>(preselected === 'COMFORT' ? 'COMFORT' : 'ECONOMY');
   const [loadingFares, setLoadingFares] = useState(true);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Refresh with a live GPS read in case the user's moved since the Home
-    // screen first requested location (or if it wasn't granted yet then).
-    requestLiveLocation().then(setPickup);
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -57,7 +60,7 @@ function RideOptionsContent() {
     try {
       const trip = await createRide({
         serviceType: selected,
-        pickupAddress: 'Current Location',
+        pickupAddress: passedPickupAddress,
         pickupLat: pickup.lat,
         pickupLng: pickup.lng,
         destinationAddress: destAddress,
