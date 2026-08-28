@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Menu, Bell, Wallet as WalletIcon, Plus, ArrowRight, Clock } from 'lucide-react';
+import { Menu, Bell, Wallet as WalletIcon, Plus, ArrowRight, Clock, MapPin } from 'lucide-react';
 import { fetchMe } from '../lib/api/auth';
 import { ApiError } from '../lib/api/client';
 import { requestLiveLocation } from '../lib/location';
@@ -11,7 +11,7 @@ import { requestLiveLocation } from '../lib/location';
 const services = [
   { id: 'car', title: 'Car Ride', subtitle: 'Comfortable rides, any distance', image: '/icons/car.png', bg: '#E3F5F1', comingSoon: false, service: 'ECONOMY' },
   { id: 'moto', title: 'Moto Ride', subtitle: 'Fast & affordable', image: '/icons/motorbike.png', bg: '#FBF1DD', comingSoon: false, service: 'BIKE' },
-  { id: 'package', title: 'Send a Package', subtitle: 'Parcels & express drop-offs', image: '/icons/package-box.png', bg: '#FBF1DD', comingSoon: true },
+  { id: 'package', title: 'Send a Package', subtitle: 'Parcels & express drop-offs', image: '/icons/package-box.png', bg: '#FBF1DD', comingSoon: false, route: '/deliver' },
   { id: 'food', title: 'Buy Food', subtitle: 'Meals from top kitchens', image: '/icons/burger-drink.png', bg: '#E3F5F1', comingSoon: true },
   { id: 'shop', title: 'Shop & Deliver', subtitle: 'We shop, you relax', image: '/icons/grocery-bag.png', bg: '#FBF1DD', comingSoon: true },
   { id: 'gift', title: 'Send a Gift', subtitle: 'Roses & surprises', image: '/icons/flower-bouquet.png', bg: '#E3F5F1', comingSoon: true },
@@ -34,13 +34,17 @@ export default function HomePage() {
     requestLiveLocation();
   }, [router]);
 
-  const handleServiceClick = (id: string, comingSoon: boolean, service?: string) => {
-    if (comingSoon) {
+  const handleServiceClick = (s: { id: string; comingSoon: boolean; service?: string; route?: string }) => {
+    if (s.comingSoon) {
       alert("Coming soon to Zana. We'll notify you when it launches.");
       return;
     }
-    if (service) {
-      router.push(`/search?service=${service}`);
+    if (s.route) {
+      router.push(s.route);
+      return;
+    }
+    if (s.service) {
+      router.push(`/search?service=${s.service}`);
     }
   };
 
@@ -90,7 +94,7 @@ export default function HomePage() {
           {services.map((s, i) => (
             <button
               key={s.id}
-              onClick={() => handleServiceClick(s.id, s.comingSoon, s.service)}
+              onClick={() => handleServiceClick(s)}
               className={`service-card animate-fade-slide-up stagger-${Math.min(i + 1, 6)} bg-white rounded-2xl p-4 text-left shadow-sm relative min-h-[150px] overflow-hidden`}
             >
               <div
@@ -113,6 +117,22 @@ export default function HomePage() {
             </button>
           ))}
         </div>
+
+        <button
+          onClick={() => router.push('/share-location')}
+          className="w-full flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm text-left animate-fade-slide-up stagger-6 service-card"
+        >
+          <div className="w-11 h-11 rounded-full bg-zana-secondary/20 flex items-center justify-center shrink-0">
+            <MapPin size={20} className="text-zana-secondary-dark" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-gray-900">Send My Location</p>
+            <p className="text-xs text-zana-muted mt-0.5">
+              Share a code instead of explaining your address
+            </p>
+          </div>
+          <ArrowRight size={16} className="text-zana-muted shrink-0" />
+        </button>
 
         <div className="bg-gradient-to-br from-zana-primary-dark to-[#063D31] rounded-2xl p-5 text-white animate-fade-slide-up stagger-6">
           <p className="text-lg font-bold leading-snug">Fast. Reliable.<br />Always with you.</p>
