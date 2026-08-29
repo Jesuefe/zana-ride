@@ -2,7 +2,9 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Phone, ChevronUp, ChevronDown, MapPin, Navigation } from 'lucide-react';
+import { Phone, ChevronUp, ChevronDown, MapPin, Navigation, MessageCircle } from 'lucide-react';
+import ChatPanel from '../../components/ChatPanel';
+import { getStoredLang, dt } from '../../lib/lang';
 import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, DriverTrip } from '../../lib/api/driver';
 import { getCurrentPosition, watchPosition, Coords } from '../../lib/location';
 import DriverMap from '../../components/DriverMap';
@@ -18,6 +20,8 @@ function TripContent() {
   const [trip, setTrip] = useState<DriverTrip | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [acting, setActing] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const lang = getStoredLang();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   // A driver on an active trip is inherently "on the clock" — keep tracking
@@ -130,6 +134,12 @@ function TripContent() {
             >
               <Phone size={16} className="text-zana-primary" />
             </a>
+            <button
+              onClick={() => setShowChat(true)}
+              className="w-10 h-10 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0"
+            >
+              <MessageCircle size={16} className="text-zana-primary" />
+            </button>
           </div>
 
           {detailsOpen && (
@@ -168,6 +178,9 @@ function TripContent() {
           </button>
         </div>
       </div>
+      {showChat && trip && (
+        <ChatPanel context="trip" contextId={trip.id} onClose={() => setShowChat(false)} />
+      )}
     </div>
   );
 }

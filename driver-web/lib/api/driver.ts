@@ -71,3 +71,7 @@ export async function completeTrip(tripId: string) {
 export async function fetchEarnings() {
   return api.get<{ todayTotal: number; todayTrips: number; allTimeTotal: number }>('/driver/earnings');
 }
+
+export async function updateDriverMode(mode: 'RIDES' | 'DELIVERIES' | 'BOTH') {
+  return api.patch<{ driverMode: string }>('/driver/mode', { mode });
+}

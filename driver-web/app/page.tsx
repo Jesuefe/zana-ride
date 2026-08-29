@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, MapPin, Wallet, Star, Navigation } from 'lucide-react';
+import { LogOut, MapPin, Wallet, Star, Navigation, MessageCircle, Globe, Bike, Truck, LayoutGrid } from 'lucide-react';
+import ChatPanel from '../components/ChatPanel';
+import LanguageSelector from '../components/LanguageSelector';
+import { updateDriverMode } from '../lib/api/driver';
+import { getStoredLang, dt } from '../lib/lang';
 import {
   fetchMyDriverProfile,
   fetchMyActiveTrip,
@@ -29,6 +33,11 @@ export default function HomePage() {
   const [incoming, setIncoming] = useState<DriverTrip | null>(null);
   const [countdown, setCountdown] = useState(REQUEST_TIMEOUT_SECONDS);
   const [loadingToggle, setLoadingToggle] = useState(false);
+  const [showModeSelector, setShowModeSelector] = useState(false);
+  const [driverMode, setDriverMode] = useState<'RIDES' | 'DELIVERIES' | 'BOTH'>('BOTH');
+  const [showChat, setShowChat] = useState(false);
+  const [activeTripForChat, setActiveTripForChat] = useState<string | null>(null);
+  const lang = getStoredLang();
   const seenTripIds = useRef<Set<string>>(new Set());
 
   const handleLogout = () => {
@@ -128,11 +137,28 @@ export default function HomePage() {
         await goOffline();
         setOnline(false);
       } else {
-        await goOnline();
-        setOnline(true);
+        // Show mode selector before going online
+        setShowModeSelector(true);
+        setLoadingToggle(false);
+        return;
       }
     } catch {
       // leave state unchanged on failure
+    } finally {
+      setLoadingToggle(false);
+    }
+  };
+
+  const handleModeSelect = async (mode: 'RIDES' | 'DELIVERIES' | 'BOTH') => {
+    setDriverMode(mode);
+    setShowModeSelector(false);
+    setLoadingToggle(true);
+    try {
+      await updateDriverMode(mode);
+      await goOnline();
+      setOnline(true);
+    } catch {
+      // leave offline on failure
     } finally {
       setLoadingToggle(false);
     }
@@ -166,6 +192,7 @@ export default function HomePage() {
             <p className="text-white text-lg font-bold">{profile?.user.firstName ?? '…'}</p>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSelector />
             <button onClick={() => router.push('/earnings')} className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-white">
               <Wallet size={16} />
             </button>
@@ -175,14 +202,23 @@ export default function HomePage() {
           </div>
         </div>
 
+        {online && (
+          <div className="flex items-center gap-2 mt-3">
+            <span className="text-white/70 text-xs">Mode:</span>
+            <span className="text-white text-xs font-semibold bg-white/20 px-2 py-0.5 rounded-full">
+              {driverMode === 'RIDES' ? dt('Rides only', lang) : driverMode === 'DELIVERIES' ? dt('Deliveries only', lang) : dt('Both', lang)}
+            </span>
+          </div>
+        )}
+
         <button
           onClick={handleToggle}
           disabled={loadingToggle}
-          className={`w-full mt-5 py-4 rounded-2xl font-bold text-center transition-colors ${
+          className={`w-full mt-4 py-4 rounded-2xl font-bold text-center transition-colors ${
             online ? 'bg-zana-secondary text-gray-900' : 'bg-white/15 text-white'
           }`}
         >
-          {loadingToggle ? '…' : online ? "You're Online" : 'Go Online'}
+          {loadingToggle ? '…' : online ? dt('Go Offline', lang) : dt('Go Online', lang)}
         </button>
       </div>
 
@@ -277,6 +313,42 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Mode selector — shown before going online */}
+      {showModeSelector && (
+        <div className="fixed inset-0 z-50 flex items-end">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowModeSelector(false)} />
+          <div className="relative w-full bg-white rounded-t-2xl p-6 animate-fade-slide-up">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">{dt('What do you want to receive?', lang)}</h2>
+            <p className="text-sm text-zana-muted mb-5">You can change this later from the mode badge.</p>
+            <div className="space-y-3">
+              {([
+                { mode: 'RIDES', icon: Navigation, label: dt('Rides only', lang), sub: 'Passenger ride requests only' },
+                { mode: 'DELIVERIES', icon: Truck, label: dt('Deliveries only', lang), sub: 'Package delivery requests only' },
+                { mode: 'BOTH', icon: LayoutGrid, label: dt('Both', lang), sub: 'Rides and deliveries' },
+              ] as const).map(({ mode, icon: Icon, label, sub }) => (
+                <button
+                  key={mode}
+                  onClick={() => handleModeSelect(mode)}
+                  className="w-full flex items-center gap-4 bg-gray-50 hover:bg-zana-primary-light rounded-xl px-4 py-3.5 text-left transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0">
+                    <Icon size={18} className="text-zana-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">{label}</p>
+                    <p className="text-xs text-zana-muted">{sub}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showChat && activeTripForChat && (
+        <ChatPanel context="trip" contextId={activeTripForChat} onClose={() => setShowChat(false)} />
       )}
     </div>
   );
