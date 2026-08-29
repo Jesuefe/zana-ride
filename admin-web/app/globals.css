@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+:root {
+  --zana-primary: #00A082;
+  --zana-primary-dark: #00806A;
+  --zana-primary-light: #E3F5F1;
+  --zana-secondary: #FFC244;
+  --zana-muted: #6B7280;
+  --zana-border: #E5E7EB;
+  --zana-error: #F04438;
+  --zana-success: #12B76A;
+}
+
+@theme inline {
+  --color-zana-primary: var(--zana-primary);
+  --color-zana-primary-dark: var(--zana-primary-dark);
+  --color-zana-primary-light: var(--zana-primary-light);
+  --color-zana-secondary: var(--zana-secondary);
+  --color-zana-muted: var(--zana-muted);
+  --color-zana-border: var(--zana-border);
+  --color-zana-error: var(--zana-error);
+  --color-zana-success: var(--zana-success);
+}
+
+body { background: #F3F4F6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
