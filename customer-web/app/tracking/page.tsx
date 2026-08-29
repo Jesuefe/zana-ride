@@ -2,7 +2,8 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { AlertTriangle, Phone, Star, User, Navigation } from 'lucide-react';
+import { AlertTriangle, Phone, Star, User, Navigation, MessageCircle } from 'lucide-react';
+import ChatPanel from '../../components/ChatPanel';
 import { fetchTrip, fetchTripGroup, cancelRide, ApiTrip } from '../../lib/api/trips';
 import BrandedMap from '../../components/BrandedMap';
 import ReportModal from '../../components/ReportModal';
@@ -55,6 +56,7 @@ function TrackingContent() {
   const [trip, setTrip] = useState<ApiTrip | null>(null);
   const [groupTrips, setGroupTrips] = useState<GroupTrip[]>([]);
   const [showReport, setShowReport] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
   const motionRequested = useRef(false);
 
@@ -190,6 +192,9 @@ function TrackingContent() {
       </div>
 
       {showReport && <ReportModal onClose={() => setShowReport(false)} />}
+      {showChat && primaryTrip && (
+        <ChatPanel context="trip" contextId={primaryTrip.id} onClose={() => setShowChat(false)} />
+      )}
     </div>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Settings, ShieldCheck, FileText, CircleHelp, LogOut, ChevronRight } from 'lucide-react';
+import { User, Settings, ShieldCheck, FileText, CircleHelp, LogOut, ChevronRight, Globe } from 'lucide-react';
+import LanguageSelector from '../../components/LanguageSelector';
 import { fetchMe, ApiUser } from '../../lib/api/auth';
 import { clearToken } from '../../lib/api/client';
 
