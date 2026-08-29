@@ -124,3 +124,44 @@ export type FareConfig = {
 export async function fetchFares() {
   return api.get<FareConfig[]>('/fares');
 }
+
+// Marketplace types for food/gifts ordering
+export type MarketplaceMerchant = {
+  id: string;
+  businessName: string;
+  branch: string | null;
+  category: string;
+  products: MarketplaceProduct[];
+};
+
+export type MarketplaceProduct = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  imageUrl: string | null;
+  category: string;
+  available: boolean;
+};
+
+export async function fetchMarketplace(category?: string) {
+  const q = category ? `?category=${category}` : '';
+  return api.get<MarketplaceMerchant[]>(`/marketplace${q}`);
+}
+
+export async function createOrder(data: {
+  merchantId: string;
+  items: { productId: string; quantity: number }[];
+  dropoffAddress?: string;
+  dropoffLat?: number;
+  dropoffLng?: number;
+  locationCode?: string;
+  receiverPhone?: string;
+  note?: string;
+}) {
+  return api.post<any>('/orders', data);
+}
+
+export async function fetchMyOrders() {
+  return api.get<any[]>('/orders');
+}

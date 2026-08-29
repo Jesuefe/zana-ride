@@ -1,5 +1,7 @@
 import { api, setToken } from './client';
 
+export type MerchantCategory = 'FOOD' | 'GIFTS' | 'GOODS';
+
 export type MerchantProfile = {
   id: string;
   businessName: string;
@@ -111,3 +113,49 @@ export type ApiWallet = {
   balance: number;
   transactions: { id: string; amount: number; reference: string | null; createdAt: string }[];
 };
+
+export type Product = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  imageUrl: string | null;
+  category: MerchantCategory;
+  status: string;
+  stock: number;
+  available: boolean;
+  adminNote: string | null;
+};
+
+export async function createProduct(data: {
+  name: string;
+  description?: string;
+  price: number;
+  category: MerchantCategory;
+  imageBase64?: string;
+  stock?: number;
+}) {
+  return api.post<Product>('/merchant/products', data);
+}
+
+export async function fetchMyProducts() {
+  return api.get<Product[]>('/merchant/products');
+}
+
+export async function updateProduct(id: string, data: Partial<{
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  available: boolean;
+}>) {
+  return api.patch<Product>(`/merchant/products/${id}`, data);
+}
+
+export async function fetchMyOrders() {
+  return api.get<any[]>('/merchant/orders');
+}
+
+export async function updateOrderStatus(id: string, status: string) {
+  return api.patch(`/merchant/orders/${id}/status`, { status });
+}

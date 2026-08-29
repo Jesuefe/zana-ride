@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, PackagePlus, PackageSearch, Wallet } from 'lucide-react';
+import { LayoutDashboard, PackagePlus, PackageSearch, Wallet, Package, ShoppingBag } from 'lucide-react';
 import { fetchMyMerchant, ApiMerchant } from '../lib/api/merchant';
 
 const navItems = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
   { href: '/new-delivery', label: 'New Delivery', icon: PackagePlus },
   { href: '/deliveries', label: 'Deliveries', icon: PackageSearch },
+  { href: '/products', label: 'My Products', icon: Package },
+  { href: '/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/wallet', label: 'Wallet', icon: Wallet },
 ];
 

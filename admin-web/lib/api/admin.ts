@@ -60,3 +60,24 @@ export async function getFares() { return api.get<any[]>('/admin/fares'); }
 export async function updateFare(serviceType: string, data: any) {
   return api.patch(`/admin/fares/${serviceType}`, data);
 }
+
+export async function getFinancial() { return api.get<any>('/admin/financial'); }
+export async function getCommissions() { return api.get<any[]>('/admin/commissions'); }
+export async function getCommissionSummary() { return api.get<any>('/admin/commissions/summary'); }
+
+export async function getExpenses() { return api.get<any[]>('/admin/expenses'); }
+export async function createExpense(data: any) { return api.post('/admin/expenses', data); }
+export async function deleteExpense(id: string) {
+  const token = (await import('./client')).getToken();
+  await fetch(`https://zana.ajumalink.com/api/v1/admin/expenses/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+}
+
+export async function getStaff() { return api.get<any[]>('/admin/staff'); }
+export async function createStaff(data: any) { return api.post('/admin/staff', data); }
+export async function updateStaff(id: string, data: any) { return api.patch(`/admin/staff/${id}`, data); }
+
+export async function getSalaryPayments(month?: string) {
+  return api.get<any[]>(`/admin/salary-payments${month ? `?month=${month}` : ''}`);
+}
+export async function recordSalaryPayment(data: any) { return api.post('/admin/salary-payments', data); }
+export async function getOrders() { return api.get<any[]>('/admin/orders'); }
