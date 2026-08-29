@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import AdminShell from '../../../components/AdminShell';
 import { getTrips } from '../../../lib/api/admin';
 
@@ -14,7 +15,7 @@ export default function RidesPage() {
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="border-b border-gray-100 text-left">
-              {['Customer','Driver','Type','From','To','Fare','Status','Date'].map(h => <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}
+              {['Customer','Driver','Type','From','To','Fare','Status','Date',''].map(h => <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}
             </tr></thead>
             <tbody>
               {trips.map(t => (
@@ -27,6 +28,7 @@ export default function RidesPage() {
                   <td className="px-4 py-3">{(t.finalFare ?? t.estimatedFare)?.toLocaleString()} RWF</td>
                   <td className="px-4 py-3 text-xs">{t.status}</td>
                   <td className="px-4 py-3 text-xs text-gray-500">{new Date(t.requestedAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-3"><Link href={`/dashboard/rides/detail?id=${t.id}`} className="text-xs text-zana-primary font-semibold hover:underline">View</Link></td>
                 </tr>
               ))}
             </tbody>
