@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
 import { LogOut, MapPin, Wallet, Star, Navigation, MessageCircle, Globe, Bike, Truck, LayoutGrid } from 'lucide-react';
 import ChatPanel from '../components/ChatPanel';
 import LanguageSelector from '../components/LanguageSelector';
@@ -204,6 +206,12 @@ export default function HomePage() {
               <LogOut size={16} />
             </button>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 mt-3">
+          <Link href="/deliveries" className="flex items-center gap-1.5 bg-white/15 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+            📦 Browse Deliveries
+          </Link>
         </div>
 
         {online && (

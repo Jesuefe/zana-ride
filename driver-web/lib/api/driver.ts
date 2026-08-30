@@ -80,6 +80,7 @@ export type PendingDelivery = {
   id: string;
   itemDescription: string;
   weight: string;
+  imageUrl: string | null;
   pickupAddress: string;
   pickupLat: number;
   pickupLng: number;

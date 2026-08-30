@@ -3,15 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Settings, ShieldCheck, FileText, CircleHelp, LogOut, ChevronRight, Globe } from 'lucide-react';
+import Link from 'next/link';
 import LanguageSelector from '../../components/LanguageSelector';
 import { fetchMe, ApiUser } from '../../lib/api/auth';
 import { clearToken } from '../../lib/api/client';
 
 const menuItems = [
-  { icon: Settings, label: 'Account settings' },
-  { icon: ShieldCheck, label: 'Safety' },
-  { icon: FileText, label: 'Payment methods' },
-  { icon: CircleHelp, label: 'Help & support' },
+  { icon: Settings, label: 'Account settings', href: '/profile/settings' },
+  { icon: ShieldCheck, label: 'Safety', href: '/profile/safety' },
+  { icon: FileText, label: 'Payment methods', href: '/wallet' },
+  { icon: CircleHelp, label: 'Help & support', href: '/profile/help' },
 ];
 
 export default function ProfilePage() {
@@ -41,11 +42,11 @@ export default function ProfilePage() {
 
       <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
         {menuItems.map((item, i) => (
-          <button key={i} className="w-full flex items-center gap-3 px-4 py-3.5 text-left">
+          <Link key={i} href={item.href} className="w-full flex items-center gap-3 px-4 py-3.5 text-left bg-white rounded-xl shadow-sm">
             <item.icon size={18} className="text-gray-700" />
             <span className="flex-1 text-sm text-gray-900">{item.label}</span>
             <ChevronRight size={15} className="text-zana-muted" />
-          </button>
+          </Link>
         ))}
       </div>
 
