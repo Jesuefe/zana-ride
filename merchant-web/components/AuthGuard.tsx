@@ -12,27 +12,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const isLoginPage = pathname === '/login';
 
   useEffect(() => {
-    if (isLoginPage) {
-      setChecked(true);
-      return;
-    }
-    if (!getToken()) {
-      router.replace('/login');
-    } else {
-      setChecked(true);
-    }
+    if (isLoginPage) { setChecked(true); return; }
+    if (!getToken()) { router.replace('/login'); } else { setChecked(true); }
   }, [isLoginPage, router]);
 
-  if (isLoginPage) {
-    return <>{children}</>;
-  }
-
+  if (isLoginPage) return <>{children}</>;
   if (!checked) return null;
 
   return (
-    <div className="min-h-full flex">
+    <div className="min-h-screen flex overflow-x-hidden">
       <Sidebar />
-      <div className="flex-1 min-w-0">{children}</div>
+      <main className="flex-1 min-w-0 overflow-auto p-4 md:p-6 bg-gray-50 pt-16 md:pt-6">
+        {children}
+      </main>
     </div>
   );
 }

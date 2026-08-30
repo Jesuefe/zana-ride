@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LangProvider } from "../lib/LangContext";
 
@@ -7,12 +7,21 @@ export const metadata: Metadata = {
   description: "Zana Driver App",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className="overflow-x-hidden">
         <LangProvider>
-          {children}
+          <div className="min-h-screen w-full max-w-[480px] mx-auto overflow-x-hidden">
+            {children}
+          </div>
         </LangProvider>
       </body>
     </html>

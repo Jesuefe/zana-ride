@@ -70,7 +70,7 @@ export default function StaffPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b border-gray-100 text-left">
               {['Name','Role','Phone','Monthly Salary',`${month} Status`,'Action'].map(h => <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}
