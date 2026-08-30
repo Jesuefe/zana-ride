@@ -95,14 +95,12 @@ function TripContent() {
         ? 'Start Trip'
         : 'Complete Trip';
 
-  // Navigate toward the pickup point until the driver has arrived, then
-  // toward the destination once the trip is actually underway.
+  // Navigate toward pickup until trip starts, then toward destination.
+  // Keep showing the pickup during DRIVER_ARRIVED so the map stays active.
   const navigationTarget =
-    trip.status === 'DRIVER_ASSIGNED'
-      ? { lat: trip.pickupLat, lng: trip.pickupLng }
-      : trip.status === 'RIDE_IN_PROGRESS'
-        ? { lat: trip.destinationLat, lng: trip.destinationLng }
-        : undefined;
+    trip.status === 'RIDE_IN_PROGRESS'
+      ? { lat: trip.destinationLat, lng: trip.destinationLng }
+      : { lat: trip.pickupLat, lng: trip.pickupLng };
 
   const targetLabel =
     trip.status === 'RIDE_IN_PROGRESS' ? trip.destinationAddress : trip.pickupAddress;
@@ -111,7 +109,7 @@ function TripContent() {
     // Fixed full-viewport shell so the map genuinely fills the screen,
     // with the nav UI floating over it — like a real navigation app.
     <div className="fixed inset-0 z-40 bg-black">
-      <DriverMap position={coords} target={navigationTarget} navigationMode height="100%" />
+      <DriverMap position={coords} target={navigationTarget} navigationMode height="100%" lang={lang} />
 
       {/* Bottom action sheet, collapsed by default so the map stays dominant */}
       <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl">

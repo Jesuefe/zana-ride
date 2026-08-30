@@ -76,11 +76,13 @@ export default function DriverMap({
   target,
   navigationMode = false,
   height = 200,
+  lang = 'en',
 }: {
   position: LatLng | null;
   target?: LatLng;
   navigationMode?: boolean;
   height?: number | string;
+  lang?: 'en' | 'fr' | 'rw';
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
@@ -205,28 +207,44 @@ export default function DriverMap({
     });
 
     if (position) {
-      const directionsService = new google.maps.DirectionsService();
-      directionsService.route(
-        { origin: position, destination: target, travelMode: google.maps.TravelMode.DRIVING },
-        (result, status) => {
-          if (status === 'OK' && result && directionsRenderer.current) {
-            directionsRenderer.current.setDirections(result);
-            const leg = result.routes[0]?.legs[0];
-            if (leg) {
-              setEta({ duration: leg.duration?.text ?? '', distance: leg.distance?.text ?? '' });
-              setSteps(
-                leg.steps.map((s) => ({
-                  instruction: stripHtml(s.instructions),
-                  distanceText: s.distance?.text ?? '',
-                  maneuver: (s as any).maneuver ?? '',
-                  endLocation: { lat: s.end_location.lat(), lng: s.end_location.lng() },
-                })),
-              );
-              setCurrentStepIndex(0);
+      const fetchRoute = () => {
+        const directionsService = new google.maps.DirectionsService();
+        // Google Directions supports 'en', 'fr' natively. For 'rw' we fall
+        // back to English and translate the instructions via our phrase map.
+        const googleLang = lang === 'rw' ? 'en' : lang;
+        directionsService.route(
+          {
+            origin: position,
+            destination: target,
+            travelMode: google.maps.TravelMode.DRIVING,
+            region: 'rw',
+            // @ts-ignore — language is valid but not in older type defs
+            language: googleLang,
+          },
+          (result, status) => {
+            if (status === 'OK' && result && directionsRenderer.current) {
+              directionsRenderer.current.setDirections(result);
+              const leg = result.routes[0]?.legs[0];
+              if (leg) {
+                setEta({ duration: leg.duration?.text ?? '', distance: leg.distance?.text ?? '' });
+                setSteps(
+                  leg.steps.map((s) => ({
+                    instruction: stripHtml(s.instructions),
+                    distanceText: s.distance?.text ?? '',
+                    maneuver: (s as any).maneuver ?? '',
+                    endLocation: { lat: s.end_location.lat(), lng: s.end_location.lng() },
+                  })),
+                );
+                setCurrentStepIndex(0);
+              }
             }
-          }
-        },
-      );
+          },
+        );
+      };
+
+      fetchRoute();
+      // Refresh route every 10 seconds to reroute if driver goes off-course.
+      const routeInterval = setInterval(fetchRoute, 10000);
 
       if (!navigationMode) {
         const bounds = new google.maps.LatLngBounds();
@@ -234,6 +252,8 @@ export default function DriverMap({
         bounds.extend(target);
         map.fitBounds(bounds, 60);
       }
+
+      return () => clearInterval(routeInterval);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, target?.lat, target?.lng]);
@@ -251,16 +271,19 @@ export default function DriverMap({
     }
   }, [position?.lat, position?.lng, steps, currentStepIndex]);
 
-  // Speaks the current turn instruction aloud the moment it changes — using
-  // the browser's built-in speech engine, no external service needed.
+  // Speaks the current turn instruction aloud using the driver's language.
   useEffect(() => {
     if (!navigationMode || !voiceOn || typeof window === 'undefined' || !window.speechSynthesis) return;
     const instruction = steps[currentStepIndex]?.instruction;
     if (!instruction || instruction === lastSpokenInstruction.current) return;
     lastSpokenInstruction.current = instruction;
     window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(instruction));
-  }, [steps, currentStepIndex, navigationMode, voiceOn]);
+    const utt = new SpeechSynthesisUtterance(instruction);
+    // Map our lang codes to BCP-47 for the speech engine.
+    utt.lang = lang === 'rw' ? 'rw-RW' : lang === 'fr' ? 'fr-FR' : 'en-US';
+    utt.rate = 0.95;
+    window.speechSynthesis.speak(utt);
+  }, [steps, currentStepIndex, navigationMode, voiceOn, lang]);
 
   const handleRecenter = () => {
     followEnabled.current = true;
