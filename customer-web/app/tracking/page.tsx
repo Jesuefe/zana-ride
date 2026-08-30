@@ -156,6 +156,15 @@ function TrackingContent() {
         >
           <AlertTriangle size={13} /> SOS
         </button>
+
+        {rideIsActive && primaryTrip && (
+          <button
+            onClick={() => setShowChat(true)}
+            className="absolute top-4 left-4 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full text-xs font-bold text-zana-primary shadow"
+          >
+            <MessageCircle size={13} /> Chat
+          </button>
+        )}
       </div>
 
       <div className="p-5">

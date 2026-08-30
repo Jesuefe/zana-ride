@@ -16,8 +16,11 @@ import {
   goOnline,
   goOffline,
   updateDriverLocation,
+  fetchPendingDeliveries,
+  acceptDelivery,
   DriverProfile,
   DriverTrip,
+  PendingDelivery,
 } from '../lib/api/driver';
 import { getCurrentPosition, watchPosition, haversineKm, Coords } from '../lib/location';
 import { clearToken } from '../lib/api/client';
@@ -33,6 +36,7 @@ export default function HomePage() {
   const [incoming, setIncoming] = useState<DriverTrip | null>(null);
   const [countdown, setCountdown] = useState(REQUEST_TIMEOUT_SECONDS);
   const [loadingToggle, setLoadingToggle] = useState(false);
+  const [incomingDelivery, setIncomingDelivery] = useState<PendingDelivery | null>(null);
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [driverMode, setDriverMode] = useState<'RIDES' | 'DELIVERIES' | 'BOTH'>('BOTH');
   const [showChat, setShowChat] = useState(false);
@@ -311,6 +315,40 @@ export default function HomePage() {
                 Accept
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Incoming delivery request */}
+      {incomingDelivery && !incoming && (
+        <div className="fixed inset-x-4 bottom-6 z-40 bg-white rounded-2xl shadow-2xl p-4 animate-fade-slide-up">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs font-bold text-amber-600 uppercase tracking-wide">📦 Delivery Request</p>
+              <p className="font-semibold text-gray-900 mt-0.5">{incomingDelivery.itemDescription}</p>
+              <p className="text-xs text-zana-muted">{incomingDelivery.pickupAddress}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-bold text-zana-primary">{incomingDelivery.fee?.toLocaleString()} RWF</p>
+              <p className="text-xs text-zana-muted">{incomingDelivery.distanceKm} km away</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIncomingDelivery(null)}
+              className="flex-1 border border-gray-200 text-gray-600 font-semibold py-3 rounded-xl text-sm"
+            >
+              Decline
+            </button>
+            <button
+              onClick={async () => {
+                await acceptDelivery(incomingDelivery.id);
+                setIncomingDelivery(null);
+              }}
+              className="flex-1 bg-zana-primary text-white font-semibold py-3 rounded-xl text-sm"
+            >
+              Accept
+            </button>
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ import { getStoredPickup, setStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
 import { createRide, createRideGroup, fetchNearbyDrivers, NearbyDriver } from '../../lib/api/trips';
+import { resolveLocationCode } from '../../lib/api/deliveries';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 
@@ -25,6 +26,9 @@ function SearchContent() {
   const [nearby, setNearby] = useState<NearbyDriver[]>([]);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [codeInput, setCodeInput] = useState('');
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [resolvingCode, setResolvingCode] = useState(false);
   const [motoCount, setMotoCount] = useState(1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -73,6 +77,31 @@ function SearchContent() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query]);
+
+  const handleResolveCode = async () => {
+    setResolvingCode(true);
+    setCodeError(null);
+    try {
+      const resolved = await resolveLocationCode(codeInput);
+      // Use the resolved location as the destination
+      const urlParams = new URLSearchParams({
+        name: resolved.address ?? resolved.code,
+        address: resolved.address ?? `Shared location (${resolved.code})`,
+        lat: String(resolved.lat),
+        lng: String(resolved.lng),
+        pickupLat: String(pickup.lat),
+        pickupLng: String(pickup.lng),
+        pickupAddress,
+        locationCode: codeInput,
+      });
+      if (preselectedService) urlParams.set('service', preselectedService);
+      router.push(`/ride-options?${urlParams.toString()}`);
+    } catch {
+      setCodeError('That code was not found or has expired.');
+    } finally {
+      setResolvingCode(false);
+    }
+  };
 
   const handlePickupDrag = (coords: { lat: number; lng: number }) => {
     setPickup(coords);
@@ -206,6 +235,30 @@ function SearchContent() {
         )}
 
         {searching && <p className="text-xs text-zana-muted px-1 py-2">Searching…</p>}
+
+        {!query && suggestions.length === 0 && (
+          <div className="bg-gray-50 rounded-xl p-3 mt-2">
+            <p className="text-[11px] text-zana-muted mb-2">
+              Receiver shared a Zana location code? Enter it as your destination.
+            </p>
+            <div className="flex gap-2">
+              <input
+                value={codeInput}
+                onChange={e => setCodeInput(e.target.value.toUpperCase())}
+                placeholder="ZANA-8XK29"
+                className="flex-1 border border-zana-border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none"
+              />
+              <button
+                onClick={handleResolveCode}
+                disabled={!codeInput.trim() || resolvingCode}
+                className="bg-zana-primary text-white text-xs font-semibold px-4 rounded-lg disabled:opacity-40"
+              >
+                {resolvingCode ? '…' : 'Use'}
+              </button>
+            </div>
+            {codeError && <p className="text-[11px] text-zana-error mt-1.5">{codeError}</p>}
+          </div>
+        )}
 
         <div className="space-y-1">
           {suggestions.map((s, i) => (

@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import AuthGuard from "../components/AuthGuard";
-import BottomNav from "../components/BottomNav";
+import { LangProvider } from "../lib/LangContext";
 
 export const metadata: Metadata = {
-  title: "Zana Ride",
-  description: "Book a ride across Kigali",
+  title: "Zana",
+  description: "Rides, deliveries, and more in Kigali",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-gray-100 font-sans">
-        <div className="app-shell pb-16">
-          <AuthGuard>{children}</AuthGuard>
-        </div>
-        <BottomNav />
+    <html lang="en">
+      <body>
+        <LangProvider>
+          {children}
+        </LangProvider>
       </body>
     </html>
   );

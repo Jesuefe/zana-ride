@@ -75,3 +75,25 @@ export async function fetchEarnings() {
 export async function updateDriverMode(mode: 'RIDES' | 'DELIVERIES' | 'BOTH') {
   return api.patch<{ driverMode: string }>('/driver/mode', { mode });
 }
+
+export type PendingDelivery = {
+  id: string;
+  itemDescription: string;
+  weight: string;
+  pickupAddress: string;
+  pickupLat: number;
+  pickupLng: number;
+  dropoffAddress: string;
+  fee: number;
+  distanceKm: number;
+  customer?: { firstName: string | null } | null;
+  merchant?: { businessName: string } | null;
+};
+
+export async function fetchPendingDeliveries(lat: number, lng: number) {
+  return api.get<PendingDelivery[]>(`/driver/deliveries/pending?lat=${lat}&lng=${lng}`);
+}
+
+export async function acceptDelivery(id: string) {
+  return api.post(`/driver/deliveries/${id}/accept`);
+}

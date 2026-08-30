@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import AuthGuard from "../components/AuthGuard";
+import { LangProvider } from "../lib/LangContext";
 
 export const metadata: Metadata = {
   title: "Zana Driver",
-  description: "Drive with Zana",
+  description: "Zana Driver App",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-gray-100 font-sans">
-        <div className="app-shell">
-          <AuthGuard>{children}</AuthGuard>
-        </div>
+    <html lang="en">
+      <body>
+        <LangProvider>
+          {children}
+        </LangProvider>
       </body>
     </html>
   );
