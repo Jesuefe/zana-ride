@@ -90,7 +90,7 @@ export default function DriverHome() {
   const [showMode, setShowMode] = useState(false);
   const [driverMode, setDriverMode] = useState<'RIDES' | 'DELIVERIES' | 'BOTH'>('BOTH');
   const [incomingDelivery, setIncomingDelivery] = useState<PendingDelivery | null>(null);
-  const [earnings, setEarnings] = useState<{ todayTotal: number; todayTrips: number } | null>(null);
+  const [earnings, setEarnings] = useState<{ todayEarnings: number; totalTrips: number; walletBalance: number } | null>(null);
   const [notifications] = useState(3);
   const [showMenu, setShowMenu] = useState(false);
   const seenIds = useRef(new Set<string>());
@@ -138,11 +138,14 @@ export default function DriverHome() {
   // Load profile and earnings
   useEffect(() => {
     fetchMyDriverProfile().then(p => {
+      if (!p) return;
       setProfile(p);
       setOnline(p.onlineStatus === 'ONLINE');
       setDriverMode((p as any).driverMode ?? 'BOTH');
     }).catch(() => {});
-    fetchEarnings().then(e => setEarnings(e)).catch(() => {});
+    fetchEarnings().then(e => {
+      if (e && typeof e === 'object') setEarnings(e);
+    }).catch(() => {});
   }, []);
 
   // GPS watch
@@ -386,7 +389,7 @@ export default function DriverHome() {
               {[
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="#00A082" strokeWidth="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#E6A82E" strokeWidth="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#00A082" strokeWidth="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#E6A82E" strokeWidth="2"/></svg>,
-                  bg: '#E3F5F1', value: earnings?.todayTrips ?? 0, label: 'Completed'
+                  bg: '#E3F5F1', value: earnings?.totalTrips ?? 0, label: 'Completed'
                 },
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#E6A82E" strokeWidth="2"/><path d="M12 7v5l3 3" stroke="#E6A82E" strokeWidth="2" strokeLinecap="round"/></svg>,
@@ -394,11 +397,11 @@ export default function DriverHome() {
                 },
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="3" stroke="#4F9EF8" strokeWidth="2"/><path d="M2 9h20" stroke="#4F9EF8" strokeWidth="2"/></svg>,
-                  bg: '#E8F0FE', value: earnings ? `${earnings.todayTotal.toLocaleString()}` : '0', label: 'RWF Earnings', small: true
+                  bg: '#E8F0FE', value: earnings ? `${(earnings.todayEarnings ?? 0).toLocaleString()}` : '0', label: 'RWF Earnings', small: true
                 },
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><polygon points="12,2 15,8.5 22,9.5 17,14.2 18.2,21 12,17.7 5.8,21 7,14.2 2,9.5 9,8.5" stroke="#9B59B6" strokeWidth="2" fill="none"/></svg>,
-                  bg: '#F3E8FF', value: profile?.rating?.toFixed(1) ?? '0.0', label: 'Rating'
+                  bg: '#F3E8FF', value: (profile?.rating ?? 0).toFixed(1), label: 'Rating'
                 },
               ].map(({ icon, bg, value, label, small }, i) => (
                 <div key={i} className="bg-white rounded-2xl p-3 flex flex-col items-center gap-1.5 shadow-sm">
@@ -497,7 +500,7 @@ export default function DriverHome() {
 
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-2xl font-black text-zana-primary">{incoming.estimatedFare?.toLocaleString()} RWF</p>
+                  <p className="text-2xl font-black text-zana-primary">{(incoming.estimatedFare ?? 0).toLocaleString()} RWF</p>
                   <p className="text-xs text-gray-400">{incoming.serviceType} · {(incoming as any).paymentMethod ?? 'Cash'}</p>
                 </div>
                 <button onClick={handleDeclineTrip} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
@@ -519,7 +522,7 @@ export default function DriverHome() {
             <p className="font-bold text-gray-900">{incomingDelivery.itemDescription}</p>
             <p className="text-xs text-gray-400 mt-0.5 mb-3">{incomingDelivery.pickupAddress}</p>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-2xl font-black text-zana-primary">{incomingDelivery.fee?.toLocaleString()} RWF</p>
+              <p className="text-2xl font-black text-zana-primary">{(incomingDelivery.fee ?? 0).toLocaleString()} RWF</p>
               <p className="text-xs text-gray-400">{incomingDelivery.distanceKm} km away</p>
             </div>
             <div className="flex gap-2">
