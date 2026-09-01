@@ -17,11 +17,16 @@ export type ApiTrip = {
   status: string;
   serviceType: ServiceType;
   estimatedFare: number;
+  finalFare?: number | null;
   driverId: string | null;
+  pickupAddress: string;
   pickupLat: number;
   pickupLng: number;
+  destinationAddress: string;
   destinationLat: number;
   destinationLng: number;
+  requestedAt: string;
+  completedAt?: string | null;
   driver?: {
     id: string;
     user: { firstName: string | null; phone?: string | null };
@@ -41,6 +46,7 @@ export async function createRide(data: {
   destinationAddress: string;
   destinationLat: number;
   destinationLng: number;
+  paymentMethod?: string;
 }) {
   return api.post<ApiTrip>('/rides', data);
 }

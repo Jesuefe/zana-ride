@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Settings, ShieldCheck, FileText, CircleHelp, LogOut, ChevronRight, Globe } from 'lucide-react';
+import { User, Settings, ShieldCheck, FileText, CircleHelp, LogOut, ChevronRight, Globe, MapPin, Star } from 'lucide-react';
 import Link from 'next/link';
 import LanguageSelector from '../../components/LanguageSelector';
 import { fetchMe, ApiUser } from '../../lib/api/auth';
@@ -10,8 +10,10 @@ import { clearToken } from '../../lib/api/client';
 
 const menuItems = [
   { icon: Settings, label: 'Account settings', href: '/profile/settings' },
+  { icon: MapPin, label: 'Saved places', href: '/profile/places' },
+  { icon: FileText, label: 'Ride history', href: '/history' },
+  { icon: Star, label: 'Zana Points', href: '/points' },
   { icon: ShieldCheck, label: 'Safety', href: '/profile/safety' },
-  { icon: FileText, label: 'Payment methods', href: '/wallet' },
   { icon: CircleHelp, label: 'Help & support', href: '/profile/help' },
 ];
 

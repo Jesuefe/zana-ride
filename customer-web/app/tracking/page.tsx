@@ -4,7 +4,9 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Phone, Star, User, Navigation, MessageCircle } from 'lucide-react';
 import ChatPanel from '../../components/ChatPanel';
+import RatingModal from '../../components/RatingModal';
 import { fetchTrip, fetchTripGroup, cancelRide, ApiTrip } from '../../lib/api/trips';
+import { api } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 import ReportModal from '../../components/ReportModal';
 import { useShakeDetector, requestMotionPermission } from '../../lib/shake';
@@ -34,10 +36,11 @@ function DriverCard({ trip, seatLabel, onChat }: { trip: ApiTrip; seatLabel?: st
       </div>
       <div className="flex-1">
         {seatLabel && <p className="text-[11px] font-semibold text-zana-primary">{seatLabel}</p>}
-        <p className="text-sm text-gray-900">{driver.user.firstName ?? 'Your driver'}</p>
+        <p className="text-sm font-semibold text-gray-900">{driver.user.firstName ?? 'Your driver'}</p>
         <p className="text-xs text-zana-muted">{driver.vehicle} · {driver.plate}</p>
-        <div className="flex items-center gap-1 text-xs text-zana-muted">
-          <Star size={11} className="text-zana-secondary fill-zana-secondary" /> {driver.rating.toFixed(1)}
+        <div className="flex items-center gap-2 text-xs text-zana-muted">
+          <span className="flex items-center gap-0.5"><Star size={11} className="text-zana-secondary fill-zana-secondary" /> {driver.rating.toFixed(1)}</span>
+          {(driver as any).totalTrips && <span>· {(driver as any).totalTrips} rides</span>}
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -67,8 +70,29 @@ function TrackingContent() {
   const [groupTrips, setGroupTrips] = useState<GroupTrip[]>([]);
   const [showReport, setShowReport] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [sosSent, setSosSent] = useState(false);
+  const [showRating, setShowRating] = useState(false);
+  const [receiptShown, setReceiptShown] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
   const motionRequested = useRef(false);
+
+  const triggerSOS = () => {
+    setShowReport(true);
+    if (sosSent) return;
+    setSosSent(true);
+    // Fire immediately without waiting for GPS permission
+    api.post('/sos', { tripId: primaryTrip?.id }).catch(() => setSosSent(false));
+    // Also try to get GPS and update with coordinates
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        api.post('/sos', {
+          tripId: primaryTrip?.id,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        }).catch(() => {});
+      }, () => {});
+    }
+  };
 
   useEffect(() => {
     if (!tripId && !groupId) return;
@@ -133,6 +157,16 @@ function TrackingContent() {
   const showRouteBanner = status === 'DRIVER_EN_ROUTE' || status === 'RIDE_IN_PROGRESS';
   const allCompleted = isGroup && groupTrips.length > 0 && groupTrips.every((t) => t.status === 'RIDE_COMPLETED');
 
+  // Auto-redirect to receipt 3 seconds after trip completes
+  useEffect(() => {
+    if ((status === 'RIDE_COMPLETED' || allCompleted) && !receiptShown && primaryTrip) {
+      setReceiptShown(true);
+      setTimeout(() => {
+        router.push(`/receipt?tripId=${primaryTrip.id}`);
+      }, 3000);
+    }
+  }, [status, allCompleted, receiptShown, primaryTrip?.id]);
+
   return (
     <div>
       <div className="relative">
@@ -161,7 +195,7 @@ function TrackingContent() {
         )}
 
         <button
-          onClick={() => setShowReport(true)}
+          onClick={triggerSOS}
           className="absolute top-4 right-4 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full text-xs font-bold text-zana-error shadow"
         >
           <AlertTriangle size={13} /> SOS
@@ -193,18 +227,25 @@ function TrackingContent() {
           : trip && <DriverCard trip={trip} onChat={() => setShowChat(true)} />}
 
         <button
-          onClick={handleCancel}
+          onClick={status === 'RIDE_COMPLETED' || allCompleted ? () => setShowRating(true) : handleCancel}
           className={`w-full mt-6 py-3.5 rounded-xl font-semibold transition-transform active:scale-[0.98] ${
             status === 'RIDE_COMPLETED' || allCompleted
               ? 'bg-zana-primary text-white'
               : 'border border-zana-primary text-zana-primary'
           }`}
         >
-          {status === 'RIDE_COMPLETED' || allCompleted ? 'Rate your trip' : 'Cancel Ride'}
+          {status === 'RIDE_COMPLETED' || allCompleted ? '⭐ Rate your ride' : 'Cancel Ride'}
         </button>
       </div>
 
       {showReport && <ReportModal onClose={() => setShowReport(false)} />}
+      {showRating && primaryTrip && (
+        <RatingModal
+          tripId={primaryTrip.id}
+          driverName={primaryTrip.driver?.user?.firstName ?? 'your driver'}
+          onClose={() => { setShowRating(false); }}
+        />
+      )}
       {showChat && primaryTrip && (
         <ChatPanel context="trip" contextId={primaryTrip.id} onClose={() => setShowChat(false)} />
       )}

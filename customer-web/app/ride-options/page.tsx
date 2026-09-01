@@ -37,6 +37,7 @@ function RideOptionsContent() {
   const [loadingFares, setLoadingFares] = useState(true);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('CASH');
 
   useEffect(() => {
     (async () => {
@@ -66,6 +67,7 @@ function RideOptionsContent() {
         destinationAddress: destAddress,
         destinationLat: destLat,
         destinationLng: destLng,
+        paymentMethod,
       });
       router.push(`/tracking?tripId=${trip.id}`);
     } catch (err) {
@@ -142,10 +144,44 @@ function RideOptionsContent() {
 
         {error && <p className="text-xs text-zana-error mt-4">{error}</p>}
 
+        {/* Payment method */}
+        <div className="mt-5">
+          <p className="text-xs font-semibold text-gray-500 mb-2">Payment method</p>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { id: 'CASH', label: 'Cash', icon: '💵' },
+              { id: 'WALLET', label: 'Zana Wallet', icon: '👜' },
+              { id: 'MOBILE_MONEY', label: 'MoMo', icon: '📱' },
+            ] as const).map(({ id, label, icon }) => (
+              <button
+                key={id}
+                onClick={() => setPaymentMethod(id)}
+                className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 text-xs font-semibold transition-colors ${
+                  paymentMethod === id
+                    ? 'border-zana-primary bg-zana-primary-light text-zana-primary'
+                    : 'border-gray-100 text-gray-500'
+                }`}
+              >
+                <span className="text-xl">{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+          {paymentMethod === 'MOBILE_MONEY' && (
+            <p className="text-[11px] text-gray-400 mt-1.5">You'll receive a MoMo payment request when the trip ends.</p>
+          )}
+          {paymentMethod === 'WALLET' && (
+            <p className="text-[11px] text-gray-400 mt-1.5">Fare deducted from your Zana wallet at trip end.</p>
+          )}
+          {paymentMethod === 'CASH' && (
+            <p className="text-[11px] text-gray-400 mt-1.5">Pay the driver directly in cash.</p>
+          )}
+        </div>
+
         <button
           onClick={handleBook}
           disabled={booking || loadingFares}
-          className="w-full mt-6 bg-zana-primary text-white font-semibold py-3.5 rounded-xl disabled:opacity-50 transition-transform active:scale-[0.98]"
+          className="w-full mt-5 bg-zana-primary text-white font-semibold py-3.5 rounded-xl disabled:opacity-50 transition-transform active:scale-[0.98]"
         >
           {booking ? 'Booking…' : `Book ${selectedOption.label} · ${fares[selected].toLocaleString()} RWF`}
         </button>
