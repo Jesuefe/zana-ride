@@ -13,7 +13,6 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { loadGoogleMaps } from '../lib/mapsLoader';
-import { ZANA_MAP_STYLE } from '../lib/mapStyle';
 
 // Maps Google's maneuver codes to a matching arrow so the banner shows the
 // actual turn direction rather than a generic "straight ahead" every time.
@@ -86,8 +85,8 @@ export default function DriverMap({
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
-  const positionMarker = useRef<google.maps.Marker | null>(null);
-  const targetMarker = useRef<google.maps.Marker | null>(null);
+  const positionMarker = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const targetMarker = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const directionsRenderer = useRef<google.maps.DirectionsRenderer | null>(null);
   const lastPosition = useRef<LatLng | null>(null);
   const followEnabled = useRef(true);
@@ -109,7 +108,7 @@ export default function DriverMap({
         zoom: navigationMode ? 18 : 15,
         tilt: navigationMode ? 45 : 0,
         renderingType: google.maps.RenderingType.VECTOR,
-        styles: ZANA_MAP_STYLE,
+        mapId: 'zana_driver_map',
         disableDefaultUI: true,
         zoomControl: !navigationMode,
         clickableIcons: false,
@@ -150,24 +149,24 @@ export default function DriverMap({
     lastPosition.current = position;
 
     if (!positionMarker.current) {
-      positionMarker.current = new google.maps.Marker({
+      // Use AdvancedMarkerElement with a custom SVG car icon.
+      const carDiv = document.createElement('div');
+      carDiv.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" style="transform:rotate(${currentHeading}deg);transition:transform 0.3s"><circle cx="12" cy="12" r="10" fill="#00A082" stroke="white" stroke-width="2"/><path d="M12 5 L17 18 L12 15 L7 18 Z" fill="white"/></svg>`;
+      carDiv.style.cursor = 'pointer';
+      positionMarker.current = new google.maps.marker.AdvancedMarkerElement({
         position,
         map,
-        icon: {
-          path: CAR_ICON_PATH,
-          scale: 1.4,
-          fillColor: '#00A082',
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 1.5,
-          rotation: currentHeading,
-          anchor: new google.maps.Point(0, 0),
-        },
+        content: carDiv,
+        zIndex: 10,
       });
+      (positionMarker.current as any)._carDiv = carDiv;
     } else {
-      positionMarker.current.setPosition(position);
-      const icon = positionMarker.current.getIcon() as google.maps.Symbol;
-      positionMarker.current.setIcon({ ...icon, rotation: currentHeading });
+      positionMarker.current.position = position;
+      const carDiv = (positionMarker.current as any)._carDiv as HTMLDivElement;
+      if (carDiv) {
+        const svg = carDiv.querySelector('svg');
+        if (svg) svg.style.transform = `rotate(${currentHeading}deg)`;
+      }
     }
 
     if (navigationMode && followEnabled.current) {
@@ -181,7 +180,7 @@ export default function DriverMap({
     const map = mapInstance.current;
 
     if (targetMarker.current) {
-      targetMarker.current.setMap(null);
+      targetMarker.current.map = null;
       targetMarker.current = null;
     }
 
@@ -193,17 +192,12 @@ export default function DriverMap({
       return;
     }
 
-    targetMarker.current = new google.maps.Marker({
+    const pinDiv = document.createElement('div');
+    pinDiv.innerHTML = '<div style="width:18px;height:18px;border-radius:50%;background:#E6A82E;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>';
+    targetMarker.current = new google.maps.marker.AdvancedMarkerElement({
       position: target,
       map,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: '#E6A82E',
-        fillOpacity: 1,
-        strokeColor: '#FFFFFF',
-        strokeWeight: 2,
-      },
+      content: pinDiv,
     });
 
     if (position) {
