@@ -24,7 +24,7 @@ const ACTIVE_STATUSES = ['DRIVER_ASSIGNED', 'DRIVER_EN_ROUTE', 'DRIVER_ARRIVED',
 
 type GroupTrip = ApiTrip & { groupSeatIndex: number | null };
 
-function DriverCard({ trip, seatLabel }: { trip: ApiTrip; seatLabel?: string }) {
+function DriverCard({ trip, seatLabel, onChat }: { trip: ApiTrip; seatLabel?: string; onChat?: () => void }) {
   const driver = trip.driver;
   if (!driver || trip.status === 'RIDE_COMPLETED') return null;
   return (
@@ -40,9 +40,19 @@ function DriverCard({ trip, seatLabel }: { trip: ApiTrip; seatLabel?: string }) 
           <Star size={11} className="text-zana-secondary fill-zana-secondary" /> {driver.rating.toFixed(1)}
         </div>
       </div>
-      <button className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center">
-        <Phone size={16} className="text-zana-primary" />
-      </button>
+      <div className="flex items-center gap-2">
+        {onChat && (
+          <button
+            onClick={onChat}
+            className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center"
+          >
+            <MessageCircle size={16} className="text-zana-primary" />
+          </button>
+        )}
+        <button className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center">
+          <Phone size={16} className="text-zana-primary" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -156,15 +166,6 @@ function TrackingContent() {
         >
           <AlertTriangle size={13} /> SOS
         </button>
-
-        {rideIsActive && primaryTrip && (
-          <button
-            onClick={() => setShowChat(true)}
-            className="absolute top-4 left-4 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full text-xs font-bold text-zana-primary shadow"
-          >
-            <MessageCircle size={13} /> Chat
-          </button>
-        )}
       </div>
 
       <div className="p-5">
@@ -174,9 +175,12 @@ function TrackingContent() {
         </h2>
         {rideIsActive && routeInfo && (
           <div className="flex items-center gap-2 mt-2">
-            <span className="text-sm font-bold text-zana-primary">{routeInfo.durationText}</span>
+            <span className="text-lg font-bold text-zana-primary">{routeInfo.durationText}</span>
             <span className="text-xs text-zana-muted">· {routeInfo.distanceText} remaining</span>
           </div>
+        )}
+        {rideIsActive && !routeInfo && primaryTrip?.driver && (
+          <p className="text-sm text-zana-primary font-semibold mt-1">Calculating ETA…</p>
         )}
         {rideIsActive && (
           <p className="text-xs text-zana-muted mt-1">Shake your phone anytime to report a safety concern.</p>
@@ -184,9 +188,9 @@ function TrackingContent() {
 
         {isGroup
           ? groupTrips.map((t) => (
-              <DriverCard key={t.id} trip={t} seatLabel={`Moto ${t.groupSeatIndex} · ${STATUS_COPY[t.status] ?? t.status}`} />
+              <DriverCard key={t.id} trip={t} seatLabel={`Moto ${t.groupSeatIndex} · ${STATUS_COPY[t.status] ?? t.status}`} onChat={() => setShowChat(true)} />
             ))
-          : trip && <DriverCard trip={trip} />}
+          : trip && <DriverCard trip={trip} onChat={() => setShowChat(true)} />}
 
         <button
           onClick={handleCancel}

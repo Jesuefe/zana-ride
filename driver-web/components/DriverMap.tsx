@@ -107,7 +107,6 @@ export default function DriverMap({
         center: position ?? { lat: -1.9536, lng: 30.0605 },
         zoom: navigationMode ? 18 : 15,
         tilt: navigationMode ? 45 : 0,
-        renderingType: google.maps.RenderingType.VECTOR,
         mapId: 'zana_driver_map',
         disableDefaultUI: true,
         zoomControl: !navigationMode,
