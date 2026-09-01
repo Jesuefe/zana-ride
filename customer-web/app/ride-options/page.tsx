@@ -149,9 +149,9 @@ function RideOptionsContent() {
           <p className="text-xs font-semibold text-gray-500 mb-2">Payment method</p>
           <div className="grid grid-cols-3 gap-2">
             {([
-              { id: 'CASH', label: 'Cash', icon: '💵' },
-              { id: 'WALLET', label: 'Zana Wallet', icon: '👜' },
-              { id: 'MOBILE_MONEY', label: 'MoMo', icon: '📱' },
+              { id: 'CASH', label: 'Cash', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/></svg> },
+              { id: 'WALLET', label: 'Wallet', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" stroke="currentColor" strokeWidth="2"/><path d="M16 2H8L4 7h16l-4-5z" stroke="currentColor" strokeWidth="2"/><circle cx="17" cy="13" r="1.5" fill="currentColor"/></svg> },
+              { id: 'MOBILE_MONEY', label: 'MoMo', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="5" y="2" width="14" height="20" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M9 18h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg> },
             ] as const).map(({ id, label, icon }) => (
               <button
                 key={id}

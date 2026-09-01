@@ -1,32 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import {
-  ArrowUp,
-  ArrowUpLeft,
-  ArrowUpRight,
-  CornerUpLeft,
-  CornerUpRight,
-  RotateCcw,
-  Locate,
-  Volume2,
-  VolumeX,
-} from 'lucide-react';
 import { loadGoogleMaps } from '../lib/mapsLoader';
 
-// Maps Google's maneuver codes to a matching arrow so the banner shows the
-// actual turn direction rather than a generic "straight ahead" every time.
-function maneuverIcon(maneuver: string) {
-  if (maneuver.includes('sharp-left') || maneuver.includes('uturn-left')) return RotateCcw;
-  if (maneuver.includes('sharp-right') || maneuver.includes('uturn-right')) return RotateCcw;
-  if (maneuver.includes('slight-left')) return ArrowUpLeft;
-  if (maneuver.includes('slight-right')) return ArrowUpRight;
-  if (maneuver.includes('left')) return CornerUpLeft;
-  if (maneuver.includes('right')) return CornerUpRight;
-  return ArrowUp;
-}
-
 type LatLng = { lat: number; lng: number };
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+}
 
 type Step = {
   instruction: string;
@@ -35,39 +16,25 @@ type Step = {
   endLocation: LatLng;
 };
 
-// How close (in km) the driver needs to get to a turn before we advance
-// to the next instruction — this is the actual mechanic that makes it
-// "turn-by-turn" instead of just showing the first step forever.
-const STEP_ADVANCE_THRESHOLD_KM = 0.04;
-
-function haversineKm(a: LatLng, b: LatLng): number {
-  const R = 6371;
+function haversineM(a: LatLng, b: LatLng): number {
+  const R = 6371000;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
   const dLng = ((b.lng - a.lng) * Math.PI) / 180;
   const x =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    Math.cos((a.lat * Math.PI) / 180) *
+      Math.cos((b.lat * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.asin(Math.sqrt(x));
 }
 
-// A simple top-down car silhouette (rounded body, pointed windshield end)
-// used as the driver's live marker — rotates to match travel heading.
-const CAR_ICON_PATH =
-  'M 0,-7 C 1.8,-7 3,-5.6 3,-4 L 3,4.5 C 3,5.7 2.1,6.5 0,6.5 C -2.1,6.5 -3,5.7 -3,4.5 L -3,-4 C -3,-5.6 -1.8,-7 0,-7 Z';
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '');
-}
-
-function bearingBetween(a: LatLng, b: LatLng): number {
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const toDeg = (r: number) => (r * 180) / Math.PI;
-  const dLng = toRad(b.lng - a.lng);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
+function bearingDeg(a: LatLng, b: LatLng): number {
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
   const y = Math.sin(dLng) * Math.cos(lat2);
   const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
-  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
 export default function DriverMap({
@@ -83,265 +50,271 @@ export default function DriverMap({
   height?: number | string;
   lang?: 'en' | 'fr' | 'rw';
 }) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<google.maps.Map | null>(null);
-  const positionMarker = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
-  const targetMarker = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
-  const directionsRenderer = useRef<google.maps.DirectionsRenderer | null>(null);
-  const lastPosition = useRef<LatLng | null>(null);
-  const followEnabled = useRef(true);
-  const lastSpokenInstruction = useRef<string | null>(null);
-  const [ready, setReady] = useState(false);
-  const [heading, setHeading] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const polylineRef = useRef<any>(null);
+  const targetMarkerRef = useRef<any>(null);
+  const lastPosRef = useRef<LatLng | null>(null);
+  const lastSpokenRef = useRef('');
+
   const [steps, setSteps] = useState<Step[]>([]);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
   const [eta, setEta] = useState<{ duration: string; distance: string } | null>(null);
-  const [showRecenter, setShowRecenter] = useState(false);
   const [voiceOn, setVoiceOn] = useState(true);
+  const [heading, setHeading] = useState(0);
 
+  // Init map
   useEffect(() => {
-    let cancelled = false;
     loadGoogleMaps().then(() => {
-      if (cancelled || !mapRef.current) return;
-      mapInstance.current = new google.maps.Map(mapRef.current, {
-        center: position ?? { lat: -1.9536, lng: 30.0605 },
-        zoom: navigationMode ? 18 : 15,
-        tilt: navigationMode ? 45 : 0,
-        mapId: 'zana_driver_map',
-        disableDefaultUI: true,
-        zoomControl: !navigationMode,
-        clickableIcons: false,
-        gestureHandling: 'greedy',
-      });
-      directionsRenderer.current = new google.maps.DirectionsRenderer({
-        map: mapInstance.current,
-        suppressMarkers: true,
-        polylineOptions: { strokeColor: '#00A082', strokeWeight: 6 },
-      });
+      if (!containerRef.current || mapRef.current) return;
+      const G = (window as any).google.maps;
 
-      if (navigationMode) {
-        mapInstance.current.addListener('dragstart', () => {
-          followEnabled.current = false;
-          setShowRecenter(true);
-        });
-      }
-      setReady(true);
+      mapRef.current = new G.Map(containerRef.current, {
+        center: position ?? { lat: -1.9536, lng: 30.0605 },
+        zoom: navigationMode ? 17 : 14,
+        // Use mapId for vector map support — NO tilt/heading on raster maps
+        mapId: 'zana_driver_nav',
+        disableDefaultUI: true,
+        gestureHandling: 'greedy',
+        zoomControl: !navigationMode,
+      });
     });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Update driver marker position and heading
   useEffect(() => {
-    if (!ready || !mapInstance.current || !position) return;
-    const map = mapInstance.current;
+    if (!position || !mapRef.current) return;
+    const G = (window as any).google?.maps;
+    if (!G) return;
 
-    let currentHeading = heading;
-    if (lastPosition.current) {
-      const dist = Math.hypot(position.lat - lastPosition.current.lat, position.lng - lastPosition.current.lng);
-      if (dist > 0.00003) {
-        currentHeading = bearingBetween(lastPosition.current, position);
-        setHeading(currentHeading);
+    // Calculate heading from previous position
+    if (lastPosRef.current) {
+      const dist = haversineM(lastPosRef.current, position);
+      if (dist > 3) {
+        const newHeading = bearingDeg(lastPosRef.current, position);
+        setHeading(newHeading);
       }
     }
-    lastPosition.current = position;
+    lastPosRef.current = position;
 
-    if (!positionMarker.current) {
-      // Use AdvancedMarkerElement with a custom SVG car icon.
-      const carDiv = document.createElement('div');
-      carDiv.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" style="transform:rotate(${currentHeading}deg);transition:transform 0.3s"><circle cx="12" cy="12" r="10" fill="#00A082" stroke="white" stroke-width="2"/><path d="M12 5 L17 18 L12 15 L7 18 Z" fill="white"/></svg>`;
-      carDiv.style.cursor = 'pointer';
-      positionMarker.current = new google.maps.marker.AdvancedMarkerElement({
-        position,
-        map,
-        content: carDiv,
-        zIndex: 10,
-      });
-      (positionMarker.current as any)._carDiv = carDiv;
+    // Update or create driver marker using AdvancedMarkerElement
+    const pos = position;
+    if (!markerRef.current) {
+      const div = document.createElement('div');
+      div.id = 'driver-marker';
+      div.innerHTML = `<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="18" fill="#00A082" stroke="white" stroke-width="3" opacity="0.9"/>
+        <circle cx="20" cy="20" r="7" fill="white"/>
+      </svg>`;
+      div.style.transform = `rotate(${heading}deg)`;
+      div.style.transition = 'transform 0.5s ease';
+      try {
+        markerRef.current = new G.marker.AdvancedMarkerElement({
+          position: pos, map: mapRef.current, content: div, zIndex: 10,
+        });
+      } catch {
+        markerRef.current = new G.Marker({ position: pos, map: mapRef.current });
+      }
     } else {
-      positionMarker.current.position = position;
-      const carDiv = (positionMarker.current as any)._carDiv as HTMLDivElement;
-      if (carDiv) {
-        const svg = carDiv.querySelector('svg');
-        if (svg) svg.style.transform = `rotate(${currentHeading}deg)`;
+      try {
+        markerRef.current.position = pos;
+        const div = document.getElementById('driver-marker');
+        if (div) div.style.transform = `rotate(${heading}deg)`;
+      } catch {
+        markerRef.current.setPosition(pos);
       }
     }
 
-    if (navigationMode && followEnabled.current) {
-      map.moveCamera({ center: position, heading: currentHeading, tilt: 45, zoom: 18 });
+    // Pan map to driver — no tilt or heading rotation on raster
+    if (navigationMode && mapRef.current) {
+      mapRef.current.panTo(pos);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, position?.lat, position?.lng, navigationMode]);
 
+    // Check step advancement
+    if (steps.length > 0 && currentStep < steps.length) {
+      const step = steps[currentStep];
+      const dist = haversineM(position, step.endLocation);
+      if (dist < 40 && currentStep < steps.length - 1) {
+        setCurrentStep(c => c + 1);
+      }
+    }
+  }, [position?.lat, position?.lng]);
+
+  // Fetch route when target changes — using Routes API (not deprecated DirectionsService)
   useEffect(() => {
-    if (!ready || !mapInstance.current) return;
-    const map = mapInstance.current;
+    if (!position || !target || !mapRef.current) return;
+    const G = (window as any).google?.maps;
+    if (!G) return;
 
-    if (targetMarker.current) {
-      targetMarker.current.map = null;
-      targetMarker.current = null;
-    }
+    const fetchRoute = async () => {
+      try {
+        // Use Routes API via fetch (not deprecated DirectionsService)
+        const body = {
+          origin: { location: { latLng: { latitude: position.lat, longitude: position.lng } } },
+          destination: { location: { latLng: { latitude: target.lat, longitude: target.lng } } },
+          travelMode: 'DRIVE',
+          routingPreference: 'TRAFFIC_AWARE',
+          computeAlternativeRoutes: false,
+          languageCode: lang === 'rw' ? 'en' : lang,
+          regionCode: 'RW',
+        };
 
-    if (!target) {
-      directionsRenderer.current?.set('directions', null);
-      setSteps([]);
-      setCurrentStepIndex(0);
-      setEta(null);
-      return;
-    }
-
-    const pinDiv = document.createElement('div');
-    pinDiv.innerHTML = '<div style="width:18px;height:18px;border-radius:50%;background:#E6A82E;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>';
-    targetMarker.current = new google.maps.marker.AdvancedMarkerElement({
-      position: target,
-      map,
-      content: pinDiv,
-    });
-
-    if (position) {
-      const fetchRoute = () => {
-        const directionsService = new google.maps.DirectionsService();
-        // Google Directions supports 'en', 'fr' natively. For 'rw' we fall
-        // back to English and translate the instructions via our phrase map.
-        const googleLang = lang === 'rw' ? 'en' : lang;
-        directionsService.route(
+        const apiKey = 'AIzaSyD4o-fXIpmGozrClaP1niC407cgRCrzSTI';
+        const res = await fetch(
+          `https://routes.googleapis.com/directions/v2:computeRoutes?key=${apiKey}`,
           {
-            origin: position,
-            destination: target,
-            travelMode: google.maps.TravelMode.DRIVING,
-            region: 'rw',
-            // @ts-ignore — language is valid but not in older type defs
-            language: googleLang,
-          },
-          (result, status) => {
-            if (status === 'OK' && result && directionsRenderer.current) {
-              directionsRenderer.current.setDirections(result);
-              const leg = result.routes[0]?.legs[0];
-              if (leg) {
-                setEta({ duration: leg.duration?.text ?? '', distance: leg.distance?.text ?? '' });
-                setSteps(
-                  leg.steps.map((s) => ({
-                    instruction: stripHtml(s.instructions),
-                    distanceText: s.distance?.text ?? '',
-                    maneuver: (s as any).maneuver ?? '',
-                    endLocation: { lat: s.end_location.lat(), lng: s.end_location.lng() },
-                  })),
-                );
-                setCurrentStepIndex(0);
-              }
-            }
-          },
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline,routes.legs.steps',
+            },
+            body: JSON.stringify(body),
+          }
         );
-      };
 
-      fetchRoute();
-      // Refresh route every 10 seconds to reroute if driver goes off-course.
-      const routeInterval = setInterval(fetchRoute, 10000);
+        if (!res.ok) throw new Error('Routes API error');
+        const data = await res.json();
+        const route = data.routes?.[0];
+        if (!route) return;
 
-      if (!navigationMode) {
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(position);
-        bounds.extend(target);
-        map.fitBounds(bounds, 60);
+        // Decode polyline and draw it
+        const encodedPolyline = route.polyline?.encodedPolyline;
+        if (encodedPolyline && G.geometry?.encoding) {
+          const path = G.geometry.encoding.decodePath(encodedPolyline);
+
+          if (polylineRef.current) polylineRef.current.setMap(null);
+          polylineRef.current = new G.Polyline({
+            path,
+            strokeColor: '#00A082',
+            strokeOpacity: 0.9,
+            strokeWeight: 5,
+            map: mapRef.current,
+          });
+        }
+
+        // Set ETA
+        const durationSecs = parseInt(route.duration?.replace('s', '') ?? '0');
+        const mins = Math.round(durationSecs / 60);
+        const distKm = ((route.distanceMeters ?? 0) / 1000).toFixed(1);
+        setEta({ duration: `${mins} min`, distance: `${distKm} km` });
+
+        // Extract steps for turn-by-turn
+        const leg = route.legs?.[0];
+        if (leg?.steps) {
+          const newSteps: Step[] = leg.steps.map((s: any) => ({
+            instruction: stripHtml(s.navigationInstruction?.instructions ?? s.localizedValues?.distance?.text ?? ''),
+            distanceText: s.localizedValues?.distance?.text ?? '',
+            maneuver: s.navigationInstruction?.maneuver ?? '',
+            endLocation: {
+              lat: s.endLocation?.latLng?.latitude ?? target.lat,
+              lng: s.endLocation?.latLng?.longitude ?? target.lng,
+            },
+          }));
+          setSteps(newSteps);
+          setCurrentStep(0);
+        }
+      } catch {
+        // Fallback: just draw a straight line
+        if (polylineRef.current) polylineRef.current.setMap(null);
+        polylineRef.current = new G.Polyline({
+          path: [position, target],
+          strokeColor: '#00A082',
+          strokeOpacity: 0.5,
+          strokeWeight: 3,
+          map: mapRef.current,
+        });
       }
+    };
 
-      return () => clearInterval(routeInterval);
+    fetchRoute();
+    const interval = setInterval(fetchRoute, 10000);
+
+    // Target marker
+    if (!targetMarkerRef.current) {
+      const div = document.createElement('div');
+      div.innerHTML = '<div style="width:16px;height:16px;border-radius:50%;background:#E6A82E;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>';
+      try {
+        targetMarkerRef.current = new G.marker.AdvancedMarkerElement({
+          position: target, map: mapRef.current, content: div,
+        });
+      } catch {
+        targetMarkerRef.current = new G.Marker({ position: target, map: mapRef.current });
+      }
+    } else {
+      try { targetMarkerRef.current.position = target; }
+      catch { targetMarkerRef.current.setPosition(target); }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, target?.lat, target?.lng]);
 
-  // Advances to the next instruction once the driver gets close to the end
-  // of the current step — this is what actually makes it "turn-by-turn"
-  // instead of freezing on the first instruction for the whole trip.
-  useEffect(() => {
-    if (!position || steps.length === 0) return;
-    const current = steps[currentStepIndex];
-    if (!current) return;
-    const distanceToStepEnd = haversineKm(position, current.endLocation);
-    if (distanceToStepEnd < STEP_ADVANCE_THRESHOLD_KM && currentStepIndex < steps.length - 1) {
-      setCurrentStepIndex((i) => i + 1);
+    if (!navigationMode) {
+      const bounds = new G.LatLngBounds();
+      bounds.extend(position);
+      bounds.extend(target);
+      mapRef.current.fitBounds(bounds, 60);
     }
-  }, [position?.lat, position?.lng, steps, currentStepIndex]);
 
-  // Speaks the current turn instruction aloud using the driver's language.
+    return () => clearInterval(interval);
+  }, [target?.lat, target?.lng, lang]);
+
+  // Voice — speak current step instruction
   useEffect(() => {
     if (!navigationMode || !voiceOn || typeof window === 'undefined' || !window.speechSynthesis) return;
-    const instruction = steps[currentStepIndex]?.instruction;
-    if (!instruction || instruction === lastSpokenInstruction.current) return;
-    lastSpokenInstruction.current = instruction;
+    const instruction = steps[currentStep]?.instruction;
+    if (!instruction || instruction === lastSpokenRef.current) return;
+    lastSpokenRef.current = instruction;
     window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(instruction);
-    // Map our lang codes to BCP-47 for the speech engine.
     utt.lang = lang === 'rw' ? 'rw-RW' : lang === 'fr' ? 'fr-FR' : 'en-US';
     utt.rate = 0.95;
     window.speechSynthesis.speak(utt);
-  }, [steps, currentStepIndex, navigationMode, voiceOn, lang]);
+  }, [steps, currentStep, navigationMode, voiceOn, lang]);
 
-  const handleRecenter = () => {
-    followEnabled.current = true;
-    setShowRecenter(false);
-    if (mapInstance.current && position) {
-      mapInstance.current.moveCamera({ center: position, heading, tilt: 45, zoom: 18 });
-    }
-  };
+  const currentInstruction = steps[currentStep]?.instruction;
+  const maneuver = steps[currentStep]?.maneuver ?? '';
 
-  const toggleVoice = () => {
-    if (voiceOn) window.speechSynthesis?.cancel();
-    setVoiceOn((v) => !v);
-  };
-
-  const currentStep = steps[currentStepIndex];
-  const nextStep = steps[currentStepIndex + 1];
+  // Arrow direction from maneuver
+  const arrow = maneuver.includes('left') ? '←' : maneuver.includes('right') ? '→' : '↑';
 
   return (
-    <div className="relative" style={{ height }}>
-      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+    <div style={{ position: 'relative', width: '100%', height }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
-      {navigationMode && currentStep && (
-        <div className="absolute top-3 left-3 right-3">
-          <div className="bg-zana-primary-dark text-white rounded-2xl px-4 py-4 shadow-2xl flex items-center gap-4">
-            {(() => {
-              const Icon = maneuverIcon(currentStep.maneuver);
-              return <Icon size={34} strokeWidth={2.4} className="shrink-0" />;
-            })()}
-            <div className="min-w-0 flex-1">
-              <p className="text-base font-bold leading-snug">{currentStep.instruction}</p>
-              <p className="text-sm text-white/70 mt-0.5">{currentStep.distanceText}</p>
-            </div>
-            <button
-              onClick={toggleVoice}
-              className="shrink-0 w-9 h-9 rounded-full bg-white/15 flex items-center justify-center"
-            >
-              {voiceOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            </button>
+      {/* Turn-by-turn banner */}
+      {navigationMode && currentInstruction && (
+        <div className="absolute top-0 left-0 right-0 z-10 bg-zana-primary-dark/90 backdrop-blur-sm px-4 py-3 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+            <span className="text-white text-lg font-bold">{arrow}</span>
           </div>
-          {nextStep && (
-            <div className="bg-white/95 rounded-xl px-3 py-2 mt-1.5 mx-3 shadow flex items-center gap-2">
-              <span className="text-xs font-medium text-zana-muted shrink-0">Then</span>
-              {(() => {
-                const NextIcon = maneuverIcon(nextStep.maneuver);
-                return <NextIcon size={14} className="text-gray-700 shrink-0" />;
-              })()}
-              <span className="text-xs text-gray-700 truncate">{nextStep.instruction}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-sm font-semibold leading-tight truncate">{currentInstruction}</p>
+            {steps[currentStep]?.distanceText && (
+              <p className="text-white/60 text-xs mt-0.5">in {steps[currentStep].distanceText}</p>
+            )}
+          </div>
+          {eta && (
+            <div className="text-right shrink-0">
+              <p className="text-white font-bold text-sm">{eta.duration}</p>
+              <p className="text-white/50 text-[10px]">{eta.distance}</p>
             </div>
           )}
         </div>
       )}
 
-      {navigationMode && showRecenter && (
+      {/* Voice toggle */}
+      {navigationMode && (
         <button
-          onClick={handleRecenter}
-          className="absolute bottom-32 right-3 bg-white rounded-full p-3 shadow-lg"
+          onClick={() => setVoiceOn(v => !v)}
+          className="absolute bottom-16 right-3 z-10 w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"
         >
-          <Locate size={20} className="text-zana-primary" />
+          <span className="text-base">{voiceOn ? '🔊' : '🔇'}</span>
         </button>
       )}
 
-      {navigationMode && eta && (
-        <div className="absolute bottom-32 left-3 bg-white/95 rounded-xl px-3 py-2 shadow">
-          <span className="text-sm font-bold text-zana-primary">{eta.duration}</span>
-          <span className="text-xs text-zana-muted"> · {eta.distance}</span>
+      {/* ETA badge (non-navigation mode) */}
+      {!navigationMode && eta && (
+        <div className="absolute bottom-3 left-3 z-10 bg-white rounded-xl px-3 py-2 shadow text-xs">
+          <span className="font-bold text-zana-primary">{eta.duration}</span>
+          <span className="text-gray-400 ml-1">· {eta.distance}</span>
         </div>
       )}
     </div>

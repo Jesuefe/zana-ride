@@ -1,244 +1,174 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { loadGoogleMaps } from '../lib/mapsLoader';
-import { ZANA_MAP_STYLE } from '../lib/mapStyle';
 
 type LatLng = { lat: number; lng: number };
 
-export type NearbyMarker = { id: string; lat: number; lng: number };
+const MAPS_KEY = 'AIzaSyD4o-fXIpmGozrClaP1niC407cgRCrzSTI';
 
-// How long a marker takes to glide to its new position. Real driver location
-// updates arrive every few seconds; without this the marker teleports, which
-// looks broken. Interpolating between fixes makes movement feel continuous.
-const MARKER_ANIMATION_MS = 1200;
-
-function animateMarker(marker: google.maps.Marker, to: LatLng, durationMs = MARKER_ANIMATION_MS) {
-  const from = marker.getPosition();
-  if (!from) {
-    marker.setPosition(to);
-    return;
+async function fetchRoutePolyline(origin: LatLng, destination: LatLng): Promise<any[]> {
+  try {
+    const res = await fetch(
+      `https://routes.googleapis.com/directions/v2:computeRoutes?key=${MAPS_KEY}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-FieldMask': 'routes.polyline,routes.duration,routes.distanceMeters',
+        },
+        body: JSON.stringify({
+          origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lng } } },
+          destination: { location: { latLng: { latitude: destination.lat, longitude: destination.lng } } },
+          travelMode: 'TWO_WHEELER',
+          routingPreference: 'TRAFFIC_AWARE',
+          regionCode: 'RW',
+        }),
+      }
+    );
+    const data = await res.json();
+    const encoded = data.routes?.[0]?.polyline?.encodedPolyline;
+    if (!encoded) return [];
+    const G = (window as any).google.maps;
+    return G.geometry?.encoding?.decodePath(encoded) ?? [];
+  } catch {
+    return [];
   }
-  const startLat = from.lat();
-  const startLng = from.lng();
-  const start = performance.now();
-
-  const step = (now: number) => {
-    const t = Math.min(1, (now - start) / durationMs);
-    // Ease-out so the marker settles rather than stopping abruptly.
-    const eased = 1 - Math.pow(1 - t, 3);
-    marker.setPosition({
-      lat: startLat + (to.lat - startLat) * eased,
-      lng: startLng + (to.lng - startLng) * eased,
-    });
-    if (t < 1) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
 }
+
+type NearbyDriver = { lat: number; lng: number; id: string };
 
 export default function BrandedMap({
   origin,
   destination,
-  nearbyDrivers,
-  vehicleType = 'BIKE',
   driverPosition,
-  draggablePickup = false,
+  height = 200,
+  nearbyDrivers,
+  vehicleType,
+  draggablePickup,
   onPickupChange,
   onRouteInfo,
-  height = 220,
 }: {
-  origin: LatLng;
+  origin?: LatLng;
   destination?: LatLng;
-  nearbyDrivers?: NearbyMarker[];
-  vehicleType?: 'BIKE' | 'ECONOMY';
   driverPosition?: LatLng | null;
+  height?: number | string;
+  nearbyDrivers?: NearbyDriver[];
+  vehicleType?: string;
   draggablePickup?: boolean;
   onPickupChange?: (coords: LatLng) => void;
-  onRouteInfo?: (info: { distanceText: string; durationText: string }) => void;
-  height?: number | string;
+  onRouteInfo?: (info: { distanceText: string; durationText: string } | null) => void;
 }) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<google.maps.Map | null>(null);
-  const originMarker = useRef<google.maps.Marker | null>(null);
-  const destMarker = useRef<google.maps.Marker | null>(null);
-  const driverMarker = useRef<google.maps.Marker | null>(null);
-  const nearbyMarkers = useRef<Map<string, google.maps.Marker>>(new Map());
-  const directionsRenderer = useRef<google.maps.DirectionsRenderer | null>(null);
-  const [ready, setReady] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const polylineRef = useRef<any>(null);
+  const driverMarkerRef = useRef<any>(null);
+  const originMarkerRef = useRef<any>(null);
+  const destMarkerRef = useRef<any>(null);
+  const initDone = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
-    loadGoogleMaps().then(() => {
-      if (cancelled || !mapRef.current) return;
-      mapInstance.current = new google.maps.Map(mapRef.current, {
-        center: origin,
+    loadGoogleMaps().then(async () => {
+      if (!containerRef.current || initDone.current) return;
+      initDone.current = true;
+      const G = (window as any).google.maps;
+
+      const center = origin ?? driverPosition ?? { lat: -1.9536, lng: 30.0605 };
+      mapRef.current = new G.Map(containerRef.current, {
+        center,
         zoom: 14,
-        styles: ZANA_MAP_STYLE,
+        mapId: 'zana_customer_map',
         disableDefaultUI: true,
-        zoomControl: true,
-        clickableIcons: false,
+        gestureHandling: 'none',
+        // No tilt or heading — not supported on raster maps
       });
-      directionsRenderer.current = new google.maps.DirectionsRenderer({
-        map: mapInstance.current,
-        suppressMarkers: true,
-        polylineOptions: { strokeColor: '#00A082', strokeWeight: 4 },
-      });
-      setReady(true);
+
+      // Draw route polyline if we have both points
+      if (origin && destination) {
+        const path = await fetchRoutePolyline(origin, destination);
+        if (path.length > 0) {
+          polylineRef.current = new G.Polyline({
+            path,
+            strokeColor: '#00A082',
+            strokeOpacity: 0.9,
+            strokeWeight: 4,
+            map: mapRef.current,
+          });
+        } else {
+          // Fallback straight line
+          polylineRef.current = new G.Polyline({
+            path: [origin, destination],
+            strokeColor: '#00A082',
+            strokeOpacity: 0.5,
+            strokeWeight: 3,
+            map: mapRef.current,
+          });
+        }
+
+        // Fit bounds
+        const bounds = new G.LatLngBounds();
+        bounds.extend(origin);
+        bounds.extend(destination);
+        if (driverPosition) bounds.extend(driverPosition);
+        mapRef.current.fitBounds(bounds, 48);
+      }
+
+      // Origin marker (green dot)
+      if (origin) {
+        const div = document.createElement('div');
+        div.innerHTML = '<div style="width:14px;height:14px;border-radius:50%;background:#00A082;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>';
+        try {
+          originMarkerRef.current = new G.marker.AdvancedMarkerElement({
+            position: origin, map: mapRef.current, content: div,
+          });
+        } catch {
+          originMarkerRef.current = new G.Marker({ position: origin, map: mapRef.current });
+        }
+      }
+
+      // Destination marker (amber dot)
+      if (destination) {
+        const div = document.createElement('div');
+        div.innerHTML = '<div style="width:14px;height:14px;border-radius:50%;background:#E6A82E;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>';
+        try {
+          destMarkerRef.current = new G.marker.AdvancedMarkerElement({
+            position: destination, map: mapRef.current, content: div,
+          });
+        } catch {
+          destMarkerRef.current = new G.Marker({ position: destination, map: mapRef.current });
+        }
+      }
+
+      // Driver marker (pulsing green circle)
+      if (driverPosition) {
+        const div = document.createElement('div');
+        div.id = 'driver-dot';
+        div.innerHTML = `<div style="position:relative;width:20px;height:20px">
+          <div style="position:absolute;inset:0;border-radius:50%;background:#00A082;opacity:0.3;animation:pulse 2s infinite"></div>
+          <div style="position:absolute;inset:4px;border-radius:50%;background:#00A082;border:2px solid white"></div>
+        </div>`;
+        try {
+          driverMarkerRef.current = new G.marker.AdvancedMarkerElement({
+            position: driverPosition, map: mapRef.current, content: div,
+          });
+        } catch {
+          driverMarkerRef.current = new G.Marker({ position: driverPosition, map: mapRef.current });
+        }
+      }
     });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Pickup marker — draggable during booking so the passenger can correct
-  // an inaccurate GPS fix (common in dense areas or indoors).
+  // Update driver position
   useEffect(() => {
-    if (!ready || !mapInstance.current) return;
-    const map = mapInstance.current;
+    if (!driverMarkerRef.current || !driverPosition) return;
+    try { driverMarkerRef.current.position = driverPosition; }
+    catch { driverMarkerRef.current.setPosition(driverPosition); }
+  }, [driverPosition?.lat, driverPosition?.lng]);
 
-    if (!originMarker.current) {
-      originMarker.current = new google.maps.Marker({
-        position: origin,
-        map,
-        draggable: draggablePickup,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#00A082',
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 2,
-        },
-      });
-      if (draggablePickup && onPickupChange) {
-        originMarker.current.addListener('dragend', (e: google.maps.MapMouseEvent) => {
-          if (e.latLng) onPickupChange({ lat: e.latLng.lat(), lng: e.latLng.lng() });
-        });
-      }
-    } else {
-      originMarker.current.setPosition(origin);
-      originMarker.current.setDraggable(draggablePickup);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, origin.lat, origin.lng, draggablePickup]);
-
-  // Route + destination marker, with live distance/duration reported back
-  // so the caller can show "3.2 km · 9 min remaining".
-  useEffect(() => {
-    if (!ready || !mapInstance.current) return;
-    const map = mapInstance.current;
-
-    if (!destination) {
-      destMarker.current?.setMap(null);
-      destMarker.current = null;
-      directionsRenderer.current?.set('directions', null);
-      return;
-    }
-
-    if (!destMarker.current) {
-      destMarker.current = new google.maps.Marker({
-        position: destination,
-        map,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#E6A82E',
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 2,
-        },
-      });
-    } else {
-      destMarker.current.setPosition(destination);
-    }
-
-    // Route from the driver's live position when there is one (so the line
-    // shrinks as they approach), otherwise from the pickup point.
-    const routeStart = driverPosition ?? origin;
-    const directionsService = new google.maps.DirectionsService();
-    directionsService.route(
-      { origin: routeStart, destination, travelMode: google.maps.TravelMode.DRIVING },
-      (result, status) => {
-        if (status === 'OK' && result && directionsRenderer.current) {
-          directionsRenderer.current.setDirections(result);
-          const leg = result.routes[0]?.legs[0];
-          if (leg && onRouteInfo) {
-            onRouteInfo({
-              distanceText: leg.distance?.text ?? '',
-              durationText: leg.duration?.text ?? '',
-            });
-          }
-        }
-      },
-    );
-
-    const bounds = new google.maps.LatLngBounds();
-    bounds.extend(routeStart);
-    bounds.extend(destination);
-    map.fitBounds(bounds, 60);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, destination?.lat, destination?.lng, driverPosition?.lat, driverPosition?.lng]);
-
-  // The assigned driver's live position, glided smoothly between updates.
-  useEffect(() => {
-    if (!ready || !mapInstance.current) return;
-    const map = mapInstance.current;
-
-    if (!driverPosition) {
-      driverMarker.current?.setMap(null);
-      driverMarker.current = null;
-      return;
-    }
-
-    const iconUrl = vehicleType === 'BIKE' ? '/icons/marker-moto.png' : '/icons/marker-car.png';
-    if (!driverMarker.current) {
-      driverMarker.current = new google.maps.Marker({
-        position: driverPosition,
-        map,
-        zIndex: 999,
-        icon: { url: iconUrl, scaledSize: new google.maps.Size(36, 36), anchor: new google.maps.Point(18, 18) },
-      });
-    } else {
-      animateMarker(driverMarker.current, driverPosition);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, driverPosition?.lat, driverPosition?.lng, vehicleType]);
-
-  // Nearby available drivers — real records from the backend. Markers are
-  // reused by driver id so each one glides to its new position rather than
-  // being destroyed and recreated (which is what made them "jump").
-  useEffect(() => {
-    if (!ready || !mapInstance.current) return;
-    const map = mapInstance.current;
-    const iconUrl = vehicleType === 'BIKE' ? '/icons/marker-moto.png' : '/icons/marker-car.png';
-    const incoming = nearbyDrivers ?? [];
-    const seen = new Set(incoming.map((d) => d.id));
-
-    for (const [id, marker] of nearbyMarkers.current.entries()) {
-      if (!seen.has(id)) {
-        marker.setMap(null);
-        nearbyMarkers.current.delete(id);
-      }
-    }
-
-    for (const d of incoming) {
-      const existing = nearbyMarkers.current.get(d.id);
-      if (existing) {
-        animateMarker(existing, { lat: d.lat, lng: d.lng });
-      } else {
-        nearbyMarkers.current.set(
-          d.id,
-          new google.maps.Marker({
-            position: { lat: d.lat, lng: d.lng },
-            map,
-            icon: { url: iconUrl, scaledSize: new google.maps.Size(30, 30), anchor: new google.maps.Point(15, 15) },
-          }),
-        );
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, nearbyDrivers, vehicleType]);
-
-  return <div ref={mapRef} style={{ width: '100%', height }} />;
+  return (
+    <div style={{ position: 'relative', width: '100%', height }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <style>{`@keyframes pulse{0%,100%{transform:scale(1);opacity:0.3}50%{transform:scale(1.8);opacity:0}}`}</style>
+    </div>
+  );
 }

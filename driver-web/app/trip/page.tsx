@@ -131,7 +131,7 @@ function TripContent() {
               <p className="text-sm font-semibold text-gray-900 truncate">{targetLabel}</p>
             </div>
             <a
-              href={`tel:${trip.customer.phone}`}
+              href={`tel:${trip.customer?.phone ?? ''}`}
               className="w-10 h-10 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0"
             >
               <Phone size={16} className="text-zana-primary" />
