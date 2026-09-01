@@ -1,147 +1,137 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Menu, Bell, Wallet as WalletIcon, Plus, ArrowRight, Clock, MapPin } from 'lucide-react';
-import { fetchMe } from '../lib/api/auth';
-import { ApiError } from '../lib/api/client';
-import { requestLiveLocation } from '../lib/location';
+import { MapPin, Calendar } from 'lucide-react';
+import { fetchMe, ApiUser } from '../lib/api/auth';
+import { fetchWallet } from '../lib/api/trips';
+import LanguageSelector from '../components/LanguageSelector';
+import { useLang } from '../lib/LangContext';
 
-const services = [
-  { id: 'car', title: 'Car Ride', subtitle: 'Comfortable rides, any distance', image: '/icons/car.png', bg: '#E3F5F1', comingSoon: false, service: 'ECONOMY' },
-  { id: 'moto', title: 'Moto Ride', subtitle: 'Fast & affordable', image: '/icons/motorbike.png', bg: '#FBF1DD', comingSoon: false, service: 'BIKE' },
-  { id: 'package', title: 'Send a Package', subtitle: 'Parcels & express drop-offs', image: '/icons/package-box.png', bg: '#FBF1DD', comingSoon: false, route: '/deliver' },
-  { id: 'food', title: 'Order Food', subtitle: 'Meals from top kitchens', image: '/icons/burger-drink.png', bg: '#E3F5F1', comingSoon: false, route: '/food' },
+type Service = {
+  id: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  bg: string;
+  comingSoon?: boolean;
+  route?: string;
+};
+
+const services: Service[] = [
+  { id: 'car', title: 'Car Ride', subtitle: 'Comfortable rides, any distance', image: '/icons/car.png', bg: '#E3F5F1', route: '/search?service=ECONOMY' },
+  { id: 'moto', title: 'Moto Ride', subtitle: 'Fast & affordable', image: '/icons/motorbike.png', bg: '#FBF1DD', route: '/search?service=BIKE' },
+  { id: 'package', title: 'Send a Package', subtitle: 'Parcels & express drop-offs', image: '/icons/package-box.png', bg: '#E3F5F1', route: '/deliver' },
+  { id: 'food', title: 'Order Food', subtitle: 'Meals from top kitchens', image: '/icons/burger-drink.png', bg: '#E3F5F1', route: '/food' },
   { id: 'shop', title: 'Shop & Deliver', subtitle: 'We shop, you relax', image: '/icons/grocery-bag.png', bg: '#FBF1DD', comingSoon: true },
-  { id: 'schedule', title: 'Schedule Ride', subtitle: 'Book up to 24hrs ahead', image: '/icons/package-box.png', bg: '#F3F0FF', comingSoon: false, route: '/schedule' },
-  { id: 'gift', title: 'Send a Gift', subtitle: 'Roses & surprises', image: '/icons/flower-bouquet.png', bg: '#E3F5F1', comingSoon: false, route: '/gifts' },
+  { id: 'gift', title: 'Send a Gift', subtitle: 'Roses & surprises', image: '/icons/flower-bouquet.png', bg: '#E3F5F1', route: '/gifts' },
 ];
 
 export default function HomePage() {
   const router = useRouter();
-  const [name, setName] = useState('there');
-  const [balance, setBalance] = useState<number | null>(null);
+  const { t } = useLang();
+  const [user, setUser] = useState<ApiUser | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchMe()
-      .then((u) => {
-        if (u.firstName) setName(u.firstName);
-        setBalance(u.wallet?.balance ?? 0);
-      })
-      .catch((err) => {
-        if (err instanceof ApiError && err.status === 401) router.replace('/login');
-      });
-    requestLiveLocation();
-  }, [router]);
+    fetchMe().then(setUser).catch(() => {});
+    fetchWallet().then(w => setWalletBalance(w.balance)).catch(() => {});
+  }, []);
 
-  const handleServiceClick = (s: { id: string; comingSoon: boolean; service?: string; route?: string }) => {
-    if (s.comingSoon) {
-      alert("Coming soon to Zana. We'll notify you when it launches.");
-      return;
-    }
-    if (s.route) {
-      router.push(s.route);
-      return;
-    }
-    if (s.service) {
-      router.push(`/search?service=${s.service}`);
-    }
+  const handleService = (s: Service) => {
+    if (s.comingSoon) return;
+    if (s.route) router.push(s.route);
   };
 
   return (
-    <div>
-      <div className="relative bg-gradient-to-br from-zana-primary-dark to-zana-primary px-4 pt-4 pb-16 rounded-b-3xl overflow-hidden animate-fade-in">
-        <div className="relative z-10 flex items-center justify-between">
-          <button className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-white">
-            <Menu size={18} />
-          </button>
-          <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-md">
-            <Image src="/logo.png" alt="Zana" width={44} height={44} className="object-cover" priority />
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Header */}
+      <div className="bg-zana-primary px-4 pt-10 pb-16 relative overflow-hidden">
+        <Image src="/icons/kigali-building.png" alt="" width={120} height={120}
+          className="absolute right-0 top-0 opacity-20" />
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <p className="text-white/70 text-sm">
+              {t('What do you need today?')}
+            </p>
+            <p className="text-white font-bold text-xl">
+              Hello, {user?.firstName ?? 'there'}
+            </p>
           </div>
-          <button
-            onClick={() => router.push('/orders')}
-            className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-white"
-          >
-            <Bell size={18} />
-          </button>
-        </div>
-        <div className="relative z-10 mt-6">
-          <p className="text-white/80 text-sm">Hello, {name}</p>
-          <h1 className="text-white text-2xl font-bold mt-1 max-w-[200px]">What do you need today?</h1>
+          <LanguageSelector />
         </div>
 
-        {/* Real photo of Kigali Convention Centre, faded into the hero backdrop */}
-        <div className="absolute right-[-20px] bottom-[-10px] w-40 h-40 opacity-90 pointer-events-none">
-          <Image src="/icons/kigali-building.png" alt="" width={220} height={220} className="object-contain" />
+        {/* Wallet card */}
+        <div className="mt-4 bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="5" width="20" height="15" rx="3" stroke="white" strokeWidth="2"/>
+                <path d="M16 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0z" fill="white"/>
+                <path d="M2 9h20" stroke="white" strokeWidth="2"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-white/60 text-[10px] font-medium uppercase tracking-wide">Wallet Balance</p>
+              <p className="text-white font-bold text-lg">
+                {walletBalance !== null ? `${walletBalance.toLocaleString()} RWF` : '0 RWF'}
+              </p>
+            </div>
+          </div>
+          <button onClick={() => router.push('/wallet')}
+            className="bg-zana-secondary text-gray-900 font-bold text-xs px-4 py-2 rounded-xl">
+            Top Up +
+          </button>
         </div>
       </div>
 
-      <div className="px-4 -mt-8 space-y-4">
-        <div className="bg-zana-primary-dark rounded-2xl p-4 flex items-center gap-3 shadow-lg animate-fade-slide-up">
-          <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-            <WalletIcon size={18} className="text-white" />
-          </div>
-          <div className="flex-1">
-            <p className="text-white/75 text-xs">Wallet Balance</p>
-            <p className="text-white text-lg font-bold">{balance !== null ? `${balance.toLocaleString()} RWF` : '…'}</p>
-          </div>
-          <button className="flex items-center gap-1 bg-zana-secondary text-gray-900 text-xs font-bold px-3 py-2 rounded-full transition-transform active:scale-95">
-            Top Up <Plus size={12} />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {services.map((s, i) => (
-            <button
-              key={s.id}
-              onClick={() => handleServiceClick(s)}
-              className={`service-card animate-fade-slide-up stagger-${Math.min(i + 1, 6)} bg-white rounded-2xl p-4 text-left shadow-sm relative min-h-[150px] overflow-hidden`}
-            >
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-2 overflow-hidden"
-                style={{ backgroundColor: s.bg }}
-              >
-                <Image src={s.image} alt={s.title} width={64} height={64} className="object-contain w-14 h-14" />
+      {/* Service grid */}
+      <div className="px-4 -mt-8">
+        <div className="grid grid-cols-2 gap-3">
+          {services.map(s => (
+            <button key={s.id} onClick={() => handleService(s)}
+              className="bg-white rounded-2xl p-4 text-left shadow-sm relative overflow-hidden active:scale-[0.98] transition-transform">
+              <div className="w-14 h-14 rounded-2xl mb-3 flex items-center justify-center overflow-hidden"
+                style={{ background: s.bg }}>
+                <Image src={s.image} alt={s.title} width={48} height={48} className="object-contain" />
               </div>
-              <p className="font-semibold text-sm text-gray-900">{s.title}</p>
-              <p className="text-xs text-zana-muted mt-0.5">{s.subtitle}</p>
-              {s.comingSoon ? (
-                <span className="absolute bottom-3 right-3 flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                  <Clock size={10} /> Soon
-                </span>
-              ) : (
-                <span className="absolute bottom-3 right-3 w-6 h-6 rounded-full bg-zana-primary flex items-center justify-center">
-                  <ArrowRight size={13} className="text-white" />
-                </span>
+              <p className="font-bold text-sm text-gray-900">{s.title}</p>
+              <p className="text-xs text-gray-400 mt-0.5 leading-tight">{s.subtitle}</p>
+              {s.comingSoon && (
+                <div className="absolute top-3 right-3 bg-amber-100 text-amber-700 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke="white" strokeWidth="2" fill="none"/>
+                  </svg>
+                  Soon
+                </div>
+              )}
+              {!s.comingSoon && (
+                <div className="absolute bottom-4 right-4 w-7 h-7 rounded-full bg-zana-primary flex items-center justify-center">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                </div>
               )}
             </button>
           ))}
         </div>
+      </div>
 
-        <button
-          onClick={() => router.push('/share-location')}
-          className="w-full flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm text-left animate-fade-slide-up stagger-6 service-card"
-        >
-          <div className="w-11 h-11 rounded-full bg-zana-secondary/20 flex items-center justify-center shrink-0">
-            <MapPin size={20} className="text-zana-secondary-dark" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-gray-900">Send My Location</p>
-            <p className="text-xs text-zana-muted mt-0.5">
-              Share a code instead of explaining your address
-            </p>
-          </div>
-          <ArrowRight size={16} className="text-zana-muted shrink-0" />
+      {/* Floating action buttons — Schedule and Share Location */}
+      <div className="fixed bottom-20 right-4 flex flex-col gap-3 z-30">
+        {/* Schedule a ride */}
+        <button onClick={() => router.push('/schedule')}
+          className="w-14 h-14 rounded-full bg-zana-primary shadow-lg flex flex-col items-center justify-center gap-0.5">
+          <Calendar size={18} className="text-white" />
+          <span className="text-[8px] text-white font-bold leading-tight">Schedule</span>
         </button>
-
-        <div className="bg-gradient-to-br from-zana-primary-dark to-[#063D31] rounded-2xl p-5 text-white animate-fade-slide-up stagger-6">
-          <p className="text-lg font-bold leading-snug">Fast. Reliable.<br />Always with you.</p>
-          <p className="text-white/80 text-xs mt-2">One app for all your everyday needs.</p>
-          <button className="mt-4 bg-zana-secondary text-gray-900 text-xs font-bold px-4 py-2 rounded-full transition-transform active:scale-95">
-            Learn More
-          </button>
-        </div>
+        {/* Share location */}
+        <button onClick={() => router.push('/share-location')}
+          className="w-14 h-14 rounded-full bg-white border-2 border-zana-primary shadow-lg flex flex-col items-center justify-center gap-0.5">
+          <MapPin size={18} className="text-zana-primary" />
+          <span className="text-[8px] text-zana-primary font-bold leading-tight">Location</span>
+        </button>
       </div>
     </div>
   );

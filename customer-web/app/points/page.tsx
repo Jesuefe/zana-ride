@@ -56,10 +56,10 @@ export default function PointsPage() {
         <p className="font-semibold text-gray-900 mb-3 text-sm">How to earn points</p>
         <div className="space-y-2">
           {[
-            ['🚗', 'Per ride', '1 point per 100 RWF spent'],
+            ['', 'Per ride', '1 point per 100 RWF spent'],
             ['📦', 'Per delivery', '1 point per 200 RWF spent'],
-            ['⭐', 'Rate a driver', '+2 bonus points'],
-            ['🎉', 'First ride ever', '+5 bonus points'],
+            ['', 'Rate a driver', '+2 bonus points'],
+            ['', 'First ride ever', '+5 bonus points'],
           ].map(([icon, title, sub]) => (
             <div key={title} className="flex items-center gap-3">
               <span className="text-lg">{icon}</span>

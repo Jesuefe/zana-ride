@@ -1,21 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Home, Briefcase, MapPin, Plus, Trash2, Loader2 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
+import { loadGoogleMaps } from '../../../lib/mapsLoader';
+import { GOOGLE_MAPS_EMBED_KEY } from '../../../lib/config';
 
 type SavedPlace = { id: string; label: string; address: string; lat: number; lng: number };
-
 const QUICK_LABELS = ['Home', 'Work', 'Gym', 'School', 'Other'];
 const LABEL_ICONS: Record<string, any> = { Home, Work: Briefcase };
 
 export default function SavedPlacesPage() {
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<any>(null);
   const [places, setPlaces] = useState<SavedPlace[]>([]);
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState('Home');
-  const [address, setAddress] = useState('');
+  const [selectedPlace, setSelectedPlace] = useState<{ address: string; lat: number; lng: number } | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -23,22 +26,36 @@ export default function SavedPlacesPage() {
     api.get<SavedPlace[]>('/users/saved-places').then(setPlaces).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!adding) return;
+    loadGoogleMaps().then(() => {
+      if (!inputRef.current) return;
+      const G = (window as any).google.maps.places;
+      autocompleteRef.current = new G.Autocomplete(inputRef.current, {
+        componentRestrictions: { country: 'rw' },
+        fields: ['formatted_address', 'geometry'],
+      });
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current.getPlace();
+        if (place?.geometry?.location) {
+          setSelectedPlace({
+            address: place.formatted_address,
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          });
+        }
+      });
+    });
+  }, [adding]);
+
   const handleAdd = async () => {
-    if (!address.trim()) return;
+    if (!selectedPlace) return;
     setSaving(true);
     try {
-      // Geocode the address using Google Maps
-      const geo = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=AIzaSyD4o-fXIpmGozrClaP1niC407cgRCrzSTI`
-      ).then(r => r.json());
-      const loc = geo.results[0]?.geometry?.location;
-      const newPlace = await api.post<SavedPlace>('/users/saved-places', {
-        label, address: geo.results[0]?.formatted_address ?? address,
-        lat: loc?.lat ?? 0, lng: loc?.lng ?? 0,
-      });
+      const newPlace = await api.post<SavedPlace>('/users/saved-places', { label, ...selectedPlace });
       setPlaces(p => [...p, newPlace]);
       setAdding(false);
-      setAddress('');
+      setSelectedPlace(null);
     } catch (e: any) {
       alert(e.message ?? 'Could not save place');
     } finally { setSaving(false); }
@@ -63,7 +80,7 @@ export default function SavedPlacesPage() {
 
       <div className="space-y-2 mb-4">
         {places.length === 0 && !adding && (
-          <p className="text-sm text-gray-400 text-center py-6">No saved places yet. Add your home or work address.</p>
+          <p className="text-sm text-gray-400 text-center py-6">No saved places yet.</p>
         )}
         {places.map(place => {
           const Icon = LABEL_ICONS[place.label] ?? MapPin;
@@ -95,29 +112,34 @@ export default function SavedPlacesPage() {
       {adding && (
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
           <p className="font-semibold text-sm text-gray-900">New saved place</p>
-          <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1.5">Label</label>
-            <div className="flex gap-2 flex-wrap">
-              {QUICK_LABELS.map(l => (
-                <button key={l} onClick={() => setLabel(l)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${label === l ? 'bg-zana-primary text-white border-zana-primary' : 'border-gray-200 text-gray-600'}`}>
-                  {l}
-                </button>
-              ))}
-            </div>
+          <div className="flex gap-2 flex-wrap">
+            {QUICK_LABELS.map(l => (
+              <button key={l} onClick={() => setLabel(l)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${label === l ? 'bg-zana-primary text-white border-zana-primary' : 'border-gray-200 text-gray-600'}`}>
+                {l}
+              </button>
+            ))}
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1.5">Address</label>
-            <input value={address} onChange={e => setAddress(e.target.value)}
-              placeholder="Enter address or place name"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30" />
+            <label className="text-xs font-medium text-gray-500 block mb-1.5">Search address</label>
+            <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-zana-primary/30">
+              <MapPin size={14} className="text-gray-400 shrink-0" />
+              <input ref={inputRef} placeholder="Type an address..." 
+                className="flex-1 text-sm outline-none" />
+            </div>
+            {selectedPlace && (
+              <p className="text-xs text-zana-primary mt-1.5 flex items-center gap-1">
+                <MapPin size={10} /> {selectedPlace.address}
+              </p>
+            )}
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setAdding(false)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-semibold">Cancel</button>
-            <button onClick={handleAdd} disabled={saving || !address.trim()}
+            <button onClick={() => { setAdding(false); setSelectedPlace(null); }} 
+              className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-semibold">Cancel</button>
+            <button onClick={handleAdd} disabled={saving || !selectedPlace}
               className="flex-1 bg-zana-primary text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-1">
               {saving ? <Loader2 size={14} className="animate-spin" /> : null}
-              {saving ? 'Saving…' : 'Save'}
+              {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>

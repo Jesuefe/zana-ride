@@ -6,15 +6,15 @@ import { ArrowLeft, Calendar, MapPin, Clock, Loader2, Star } from 'lucide-react'
 import { api } from '../../lib/api/client';
 
 const SPECIAL_REQUESTS = [
-  '✈️ Airport Drop-off', '✈️ Airport Pick-up', '🏦 Bank Visit',
-  '🏥 Hospital', '🏨 Hotel', '💍 Wedding', '🛍️ Shopping Trip',
-  '🎓 School Run', '✏️ Custom',
+  'Airport Drop-off', 'Airport Pick-up', 'Bank Visit',
+  'Hospital', 'Hotel', 'Wedding', 'Shopping Trip',
+  'School Run', 'Custom',
 ];
 
 const SERVICE_TYPES = [
-  { id: 'ECONOMY', label: 'Economy', icon: '🚗', sub: 'Standard car' },
-  { id: 'COMFORT', label: 'Comfort', icon: '🚙', sub: 'Premium car' },
-  { id: 'BIKE', label: 'Moto', icon: '🏍️', sub: 'Fast & affordable' },
+  { id: 'ECONOMY', label: 'Economy', icon: '', sub: 'Standard car' },
+  { id: 'COMFORT', label: 'Comfort', icon: '', sub: 'Premium car' },
+  { id: 'BIKE', label: 'Moto', icon: '', sub: 'Fast & affordable' },
 ];
 
 export default function ScheduleRidePage() {
@@ -50,7 +50,7 @@ export default function ScheduleRidePage() {
 
   if (success) return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-      <div className="text-5xl mb-4">🎉</div>
+      <div className="text-5xl mb-4"></div>
       <h2 className="text-xl font-bold text-gray-900 mb-2">Ride Scheduled!</h2>
       <p className="text-sm text-gray-500 mb-1">Your ride is confirmed for</p>
       <p className="font-semibold text-zana-primary">{new Date(scheduledFor).toLocaleString()}</p>
@@ -141,7 +141,7 @@ export default function ScheduleRidePage() {
         <div>
           <label className="text-xs font-semibold text-gray-500 block mb-1.5">Payment method</label>
           <div className="grid grid-cols-3 gap-2">
-            {([['CASH','💵','Cash'],['WALLET','👜','Wallet'],['MOBILE_MONEY','📱','MoMo']] as const).map(([id, icon, label]) => (
+            {([['CASH','Cash','Cash'],['WALLET','Wallet','Wallet'],['MOBILE_MONEY','MoMo','MoMo']] as const).map(([id, icon, label]) => (
               <button key={id} onClick={() => setPaymentMethod(id)}
                 className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 text-xs font-semibold transition-colors ${
                   paymentMethod === id ? 'border-zana-primary bg-zana-primary-light text-zana-primary' : 'border-gray-100 text-gray-500'

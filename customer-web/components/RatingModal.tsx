@@ -47,7 +47,7 @@ export default function RatingModal({
 
         {done ? (
           <div className="text-center py-4">
-            <p className="text-4xl mb-2">🎉</p>
+            <p className="text-2xl mb-2 font-bold text-zana-primary">Thank you!</p>
             <p className="font-semibold text-gray-900">Thanks for rating {driverName}!</p>
           </div>
         ) : (

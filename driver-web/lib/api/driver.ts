@@ -15,6 +15,7 @@ export type DriverTrip = {
   id: string;
   status: string;
   estimatedFare: number;
+  serviceType?: string;
   pickupAddress: string;
   pickupLat: number;
   pickupLng: number;

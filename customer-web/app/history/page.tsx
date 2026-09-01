@@ -20,7 +20,7 @@ export default function HistoryPage() {
   const [totalSpent, setTotalSpent] = useState(0);
 
   useEffect(() => {
-    api.get<TripSummary[]>('/rides').then(data => {
+    api.get<TripSummary[]>('/rides/history').then(data => {
       setTrips(data);
       const spent = data
         .filter(t => t.status === 'RIDE_COMPLETED')

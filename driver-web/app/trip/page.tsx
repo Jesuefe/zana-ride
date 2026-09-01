@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Phone, ChevronUp, ChevronDown, MapPin, Navigation, MessageCircle } from 'lucide-react';
 import ChatPanel from '../../components/ChatPanel';
+import RatingModal from '../../components/RatingModal';
 import { getStoredLang, dt } from '../../lib/lang';
 import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, DriverTrip } from '../../lib/api/driver';
 import { getCurrentPosition, watchPosition, Coords } from '../../lib/location';
@@ -21,6 +22,7 @@ function TripContent() {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [acting, setActing] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showRating, setShowRating] = useState(false);
   const lang = getStoredLang();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -176,6 +178,20 @@ function TripContent() {
           </button>
         </div>
       </div>
+      {trip?.status === 'RIDE_COMPLETED' && !showRating && (
+        <div className="absolute bottom-24 left-4 right-4">
+          <button onClick={() => setShowRating(true)} className="w-full bg-zana-secondary text-gray-900 font-bold py-3 rounded-xl text-sm">
+            ⭐ Rate this passenger
+          </button>
+        </div>
+      )}
+      {showRating && trip && (
+        <RatingModal
+          tripId={trip.id}
+          driverName={trip.customer?.firstName ?? 'passenger'}
+          onClose={() => setShowRating(false)}
+        />
+      )}
       {showChat && trip && (
         <ChatPanel context="trip" contextId={trip.id} onClose={() => setShowChat(false)} />
       )}

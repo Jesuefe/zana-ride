@@ -6,7 +6,7 @@ import { MapPin, Navigation, Star, Car, Clock, CreditCard, Download, Home } from
 import { fetchTrip, ApiTrip } from '../../lib/api/trips';
 
 const PAYMENT_LABELS: Record<string, string> = {
-  CASH: '💵 Cash', WALLET: '👜 Zana Wallet', MOBILE_MONEY: '📱 Mobile Money',
+  CASH: 'Cash Cash', WALLET: 'Wallet Zana Wallet', MOBILE_MONEY: 'MoMo Mobile Money',
 };
 
 function ReceiptContent() {
@@ -109,7 +109,7 @@ function ReceiptContent() {
             <span className="text-sm text-gray-700">Payment</span>
           </div>
           <span className="text-sm font-semibold text-gray-900">
-            {PAYMENT_LABELS[(trip as any).paymentMethod] ?? '💵 Cash'}
+            {PAYMENT_LABELS[(trip as any).paymentMethod] ?? 'Cash Cash'}
           </span>
         </div>
 
@@ -134,7 +134,7 @@ function ReceiptContent() {
 
         {/* Points earned */}
         <div className="bg-zana-primary-light rounded-2xl p-4 flex items-center gap-3">
-          <span className="text-2xl">🌟</span>
+          <span className="text-2xl"></span>
           <div>
             <p className="font-semibold text-zana-primary text-sm">+{Math.floor(fare / 100)} Zana Points earned</p>
             <p className="text-xs text-gray-500">Points added to your account</p>

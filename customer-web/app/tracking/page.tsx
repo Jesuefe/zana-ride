@@ -157,13 +157,12 @@ function TrackingContent() {
   const showRouteBanner = status === 'DRIVER_EN_ROUTE' || status === 'RIDE_IN_PROGRESS';
   const allCompleted = isGroup && groupTrips.length > 0 && groupTrips.every((t) => t.status === 'RIDE_COMPLETED');
 
-  // Auto-redirect to receipt 3 seconds after trip completes
+  // Show rating first when trip completes, then go to receipt
   useEffect(() => {
     if ((status === 'RIDE_COMPLETED' || allCompleted) && !receiptShown && primaryTrip) {
       setReceiptShown(true);
-      setTimeout(() => {
-        router.push(`/receipt?tripId=${primaryTrip.id}`);
-      }, 3000);
+      // Show rating modal immediately
+      setShowRating(true);
     }
   }, [status, allCompleted, receiptShown, primaryTrip?.id]);
 
@@ -234,7 +233,7 @@ function TrackingContent() {
               : 'border border-zana-primary text-zana-primary'
           }`}
         >
-          {status === 'RIDE_COMPLETED' || allCompleted ? '⭐ Rate your ride' : 'Cancel Ride'}
+          {status === 'RIDE_COMPLETED' || allCompleted ? 'Rate your ride' : 'Cancel Ride'}
         </button>
       </div>
 
@@ -243,7 +242,10 @@ function TrackingContent() {
         <RatingModal
           tripId={primaryTrip.id}
           driverName={primaryTrip.driver?.user?.firstName ?? 'your driver'}
-          onClose={() => { setShowRating(false); }}
+          onClose={() => {
+            setShowRating(false);
+            router.push(`/receipt?tripId=${primaryTrip.id}`);
+          }}
         />
       )}
       {showChat && primaryTrip && (
