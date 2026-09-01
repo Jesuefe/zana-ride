@@ -4,38 +4,6 @@ import { useEffect, useRef } from 'react';
 import { loadGoogleMaps } from '../lib/mapsLoader';
 
 type LatLng = { lat: number; lng: number };
-
-const MAPS_KEY = 'AIzaSyD4o-fXIpmGozrClaP1niC407cgRCrzSTI';
-
-async function fetchRoutePolyline(origin: LatLng, destination: LatLng): Promise<any[]> {
-  try {
-    const res = await fetch(
-      `https://routes.googleapis.com/directions/v2:computeRoutes?key=${MAPS_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-FieldMask': 'routes.polyline,routes.duration,routes.distanceMeters',
-        },
-        body: JSON.stringify({
-          origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lng } } },
-          destination: { location: { latLng: { latitude: destination.lat, longitude: destination.lng } } },
-          travelMode: 'TWO_WHEELER',
-          routingPreference: 'TRAFFIC_AWARE',
-          regionCode: 'RW',
-        }),
-      }
-    );
-    const data = await res.json();
-    const encoded = data.routes?.[0]?.polyline?.encodedPolyline;
-    if (!encoded) return [];
-    const G = (window as any).google.maps;
-    return G.geometry?.encoding?.decodePath(encoded) ?? [];
-  } catch {
-    return [];
-  }
-}
-
 type NearbyDriver = { lat: number; lng: number; id: string };
 
 export default function BrandedMap({
@@ -67,8 +35,18 @@ export default function BrandedMap({
   const destMarkerRef = useRef<any>(null);
   const initDone = useRef(false);
 
+  const makeMarker = (G: any, map: any, pos: LatLng, color: string) => {
+    const div = document.createElement('div');
+    div.innerHTML = `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`;
+    try {
+      return new G.marker.AdvancedMarkerElement({ position: pos, map, content: div });
+    } catch {
+      return new G.Marker({ position: pos, map });
+    }
+  };
+
   useEffect(() => {
-    loadGoogleMaps().then(async () => {
+    loadGoogleMaps().then(() => {
       if (!containerRef.current || initDone.current) return;
       initDone.current = true;
       const G = (window as any).google.maps;
@@ -80,82 +58,65 @@ export default function BrandedMap({
         mapId: 'zana_customer_map',
         disableDefaultUI: true,
         gestureHandling: 'none',
-        // No tilt or heading — not supported on raster maps
       });
 
-      // Draw route polyline if we have both points
-      if (origin && destination) {
-        const path = await fetchRoutePolyline(origin, destination);
-        if (path.length > 0) {
-          polylineRef.current = new G.Polyline({
-            path,
-            strokeColor: '#00A082',
-            strokeOpacity: 0.9,
-            strokeWeight: 4,
-            map: mapRef.current,
-          });
-        } else {
-          // Fallback straight line
-          polylineRef.current = new G.Polyline({
-            path: [origin, destination],
-            strokeColor: '#00A082',
-            strokeOpacity: 0.5,
-            strokeWeight: 3,
-            map: mapRef.current,
-          });
-        }
+      if (origin) originMarkerRef.current = makeMarker(G, mapRef.current, origin, '#00A082');
+      if (destination) destMarkerRef.current = makeMarker(G, mapRef.current, destination, '#E6A82E');
 
-        // Fit bounds
-        const bounds = new G.LatLngBounds();
-        bounds.extend(origin);
-        bounds.extend(destination);
-        if (driverPosition) bounds.extend(driverPosition);
-        mapRef.current.fitBounds(bounds, 48);
-      }
-
-      // Origin marker (green dot)
-      if (origin) {
-        const div = document.createElement('div');
-        div.innerHTML = '<div style="width:14px;height:14px;border-radius:50%;background:#00A082;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>';
-        try {
-          originMarkerRef.current = new G.marker.AdvancedMarkerElement({
-            position: origin, map: mapRef.current, content: div,
-          });
-        } catch {
-          originMarkerRef.current = new G.Marker({ position: origin, map: mapRef.current });
-        }
-      }
-
-      // Destination marker (amber dot)
-      if (destination) {
-        const div = document.createElement('div');
-        div.innerHTML = '<div style="width:14px;height:14px;border-radius:50%;background:#E6A82E;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>';
-        try {
-          destMarkerRef.current = new G.marker.AdvancedMarkerElement({
-            position: destination, map: mapRef.current, content: div,
-          });
-        } catch {
-          destMarkerRef.current = new G.Marker({ position: destination, map: mapRef.current });
-        }
-      }
-
-      // Driver marker (pulsing green circle)
       if (driverPosition) {
         const div = document.createElement('div');
         div.id = 'driver-dot';
         div.innerHTML = `<div style="position:relative;width:20px;height:20px">
-          <div style="position:absolute;inset:0;border-radius:50%;background:#00A082;opacity:0.3;animation:pulse 2s infinite"></div>
+          <div style="position:absolute;inset:0;border-radius:50%;background:#00A082;opacity:0.25;animation:zpulse 2s infinite"></div>
           <div style="position:absolute;inset:4px;border-radius:50%;background:#00A082;border:2px solid white"></div>
         </div>`;
         try {
-          driverMarkerRef.current = new G.marker.AdvancedMarkerElement({
-            position: driverPosition, map: mapRef.current, content: div,
-          });
+          driverMarkerRef.current = new G.marker.AdvancedMarkerElement({ position: driverPosition, map: mapRef.current, content: div });
         } catch {
           driverMarkerRef.current = new G.Marker({ position: driverPosition, map: mapRef.current });
         }
       }
+
+      // Draw route using DirectionsService (already enabled on the key)
+      if (origin && destination) {
+        const svc = new G.DirectionsService();
+        const renderer = new G.DirectionsRenderer({
+          suppressMarkers: true,
+          polylineOptions: { strokeColor: '#00A082', strokeWeight: 4, strokeOpacity: 0.9 },
+        });
+        renderer.setMap(mapRef.current);
+        svc.route({
+          origin: new G.LatLng(origin.lat, origin.lng),
+          destination: new G.LatLng(destination.lat, destination.lng),
+          travelMode: G.TravelMode.DRIVING,
+        }, (result: any, status: any) => {
+          if (status === 'OK') {
+            renderer.setDirections(result);
+            polylineRef.current = renderer;
+            const leg = result.routes[0]?.legs[0];
+            if (leg && onRouteInfo) {
+              onRouteInfo({ distanceText: leg.distance.text, durationText: leg.duration.text });
+            }
+          } else {
+            // Fallback straight line
+            polylineRef.current = new G.Polyline({
+              path: [origin, destination],
+              strokeColor: '#00A082',
+              strokeOpacity: 0.5,
+              strokeWeight: 3,
+              map: mapRef.current,
+            });
+          }
+          // Fit bounds
+          const bounds = new G.LatLngBounds();
+          bounds.extend(origin);
+          bounds.extend(destination);
+          if (driverPosition) bounds.extend(driverPosition);
+          mapRef.current.fitBounds(bounds, 48);
+        });
+      }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update driver position
@@ -168,7 +129,7 @@ export default function BrandedMap({
   return (
     <div style={{ position: 'relative', width: '100%', height }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-      <style>{`@keyframes pulse{0%,100%{transform:scale(1);opacity:0.3}50%{transform:scale(1.8);opacity:0}}`}</style>
+      <style>{`@keyframes zpulse{0%,100%{transform:scale(1);opacity:0.25}50%{transform:scale(2);opacity:0}}`}</style>
     </div>
   );
 }

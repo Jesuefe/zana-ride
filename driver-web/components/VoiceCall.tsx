@@ -3,13 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { api } from '../lib/api/client';
-import {
-  Room,
-  RoomEvent,
-  Track,
-  createLocalTracks,
-  ConnectionState,
-} from 'livekit-client';
+import { Room, RoomEvent, createLocalTracks, ConnectionState } from 'livekit-client';
 
 type CallState = 'ringing' | 'connecting' | 'connected' | 'ended';
 
@@ -20,41 +14,50 @@ type Props = {
   onClose: () => void;
 };
 
-// Simple ringtone using Web Audio API
-function useRingtone(active: boolean) {
-  const ctxRef = useRef<AudioContext | null>(null);
-  const intervalRef = useRef<any>(null);
+// Ringtone using Web Audio — plays a phone ring pattern
+function startRingtone(): () => void {
+  let stopped = false;
+  let ctx: AudioContext | null = null;
 
-  const playRing = useCallback(() => {
+  const ring = () => {
+    if (stopped) return;
     try {
-      if (!ctxRef.current) ctxRef.current = new AudioContext();
-      const ctx = ctxRef.current;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.setValueAtTime(480, ctx.currentTime);
-      osc.frequency.setValueAtTime(620, ctx.currentTime + 0.5);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 1.2);
+      ctx = new AudioContext();
+      const playTone = (freq: number, start: number, dur: number) => {
+        const osc = ctx!.createOscillator();
+        const gain = ctx!.createGain();
+        osc.connect(gain);
+        gain.connect(ctx!.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0, ctx!.currentTime + start);
+        gain.gain.linearRampToValueAtTime(0.4, ctx!.currentTime + start + 0.01);
+        gain.gain.setValueAtTime(0.4, ctx!.currentTime + start + dur - 0.05);
+        gain.gain.linearRampToValueAtTime(0, ctx!.currentTime + start + dur);
+        osc.start(ctx!.currentTime + start);
+        osc.stop(ctx!.currentTime + start + dur);
+      };
+      // Classic double-ring pattern: 0.4s on, 0.2s off, 0.4s on, 2s off
+      playTone(480, 0, 0.4);
+      playTone(440, 0, 0.4);
+      playTone(480, 0.6, 0.4);
+      playTone(440, 0.6, 0.4);
+      // Schedule next ring cycle
+      setTimeout(() => {
+        ctx?.close();
+        ctx = null;
+        if (!stopped) ring();
+      }, 3000);
     } catch {}
-  }, []);
+  };
 
-  useEffect(() => {
-    if (!active) {
-      clearInterval(intervalRef.current);
-      return;
-    }
-    playRing();
-    intervalRef.current = setInterval(playRing, 2500);
-    return () => {
-      clearInterval(intervalRef.current);
-      ctxRef.current?.close();
-      ctxRef.current = null;
-    };
-  }, [active, playRing]);
+  // Start after a short delay to allow page to settle
+  const t = setTimeout(ring, 300);
+  return () => {
+    stopped = true;
+    clearTimeout(t);
+    ctx?.close();
+  };
 }
 
 export default function VoiceCall({ context, contextId, participantLabel, onClose }: Props) {
@@ -65,40 +68,68 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState('');
   const timerRef = useRef<any>(null);
+  const stopRingRef = useRef<(() => void) | null>(null);
 
-  // Ring until connected or ended
-  useRingtone(callState === 'ringing');
+  // Start ringing immediately
+  useEffect(() => {
+    stopRingRef.current = startRingtone();
+    return () => stopRingRef.current?.();
+  }, []);
 
   const startCall = useCallback(async () => {
+    // Stop ring when connecting
+    stopRingRef.current?.();
+    stopRingRef.current = null;
     setCallState('connecting');
+
     try {
       const { token, wsUrl } = await api.post<{ token: string; wsUrl: string; roomId: string }>(
         '/calls/token',
         { context, contextId }
       );
 
-      const room = new Room({ adaptiveStream: true, dynacast: true });
+      const room = new Room({
+        adaptiveStream: true,
+        dynacast: true,
+        // Keep connection alive even if other party hasn't joined
+        disconnectOnPageLeave: false,
+      });
       roomRef.current = room;
 
       room.on(RoomEvent.ParticipantConnected, () => {
         setCallState('connected');
-        timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+        if (!timerRef.current) timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
       });
 
-      room.on(RoomEvent.ParticipantDisconnected, handleEnd);
-      room.on(RoomEvent.Disconnected, handleEnd);
+      room.on(RoomEvent.ParticipantDisconnected, () => {
+        // Only end if we were connected (other party left)
+        setCallState(prev => {
+          if (prev === 'connected') {
+            handleEnd();
+          }
+          return prev;
+        });
+      });
+
+      room.on(RoomEvent.Disconnected, () => handleEnd());
 
       room.on(RoomEvent.ConnectionStateChanged, (state: ConnectionState) => {
         if (state === ConnectionState.Connected) {
-          setCallState('connected');
-          if (!timerRef.current) timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+          // We're in the room — stay connected even if no one else is there yet
+          setCallState(prev => prev === 'connecting' ? 'ringing' : prev);
         }
       });
 
       await room.connect(wsUrl, token);
+
+      // Publish audio — this is what the other party hears
       const tracks = await createLocalTracks({ audio: true, video: false });
-      for (const track of tracks) await room.localParticipant.publishTrack(track);
-      setCallState('connected');
+      for (const track of tracks) {
+        await room.localParticipant.publishTrack(track);
+      }
+
+      // Stay in "ringing" state until other party joins
+      setCallState('ringing');
 
     } catch (err: any) {
       setError(err?.message ?? 'Could not connect call');
@@ -107,9 +138,9 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
     }
   }, [context, contextId]);
 
-  // Start ringing immediately, connect after 2s (simulates outgoing call UX)
+  // Auto-connect after 1 second
   useEffect(() => {
-    const t = setTimeout(startCall, 2000);
+    const t = setTimeout(startCall, 1000);
     return () => {
       clearTimeout(t);
       clearInterval(timerRef.current);
@@ -117,12 +148,13 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
     };
   }, []);
 
-  const handleEnd = () => {
+  const handleEnd = useCallback(() => {
+    stopRingRef.current?.();
     clearInterval(timerRef.current);
     roomRef.current?.disconnect();
     setCallState('ended');
     setTimeout(onClose, 800);
-  };
+  }, [onClose]);
 
   const toggleMute = async () => {
     if (!roomRef.current) return;
@@ -143,20 +175,18 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-between py-16 px-6"
       style={{ background: 'linear-gradient(160deg, #00A082 0%, #004D3E 100%)' }}>
 
-      {/* Pulsing avatar */}
       <div className="flex flex-col items-center gap-4 mt-8">
-        <div className="relative">
-          {callState === 'ringing' && (
+        <div className="relative flex items-center justify-center">
+          {(callState === 'ringing') && (
             <>
-              <div className="absolute inset-0 rounded-full bg-white/10 animate-ping" style={{ transform: 'scale(1.4)' }} />
-              <div className="absolute inset-0 rounded-full bg-white/10 animate-ping" style={{ transform: 'scale(1.8)', animationDelay: '0.3s' }} />
+              <div className="absolute w-36 h-36 rounded-full bg-white/10 animate-ping" />
+              <div className="absolute w-48 h-48 rounded-full bg-white/5 animate-ping" style={{ animationDelay: '0.4s' }} />
             </>
           )}
-          <div className="w-28 h-28 rounded-full bg-white/20 flex items-center justify-center relative z-10">
+          <div className="w-28 h-28 rounded-full bg-white/20 flex items-center justify-center z-10">
             <div className="w-20 h-20 rounded-full bg-white/30 flex items-center justify-center">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-                <path d="M20 10.999h2C22 5.869 18.127 2 12.99 2v2C17.052 4 20 6.943 20 10.999z" fill="white"/>
-                <path d="M13 8c2.103 0 3 .897 3 3h2c0-3.225-1.775-5-5-5v2zm3.422 5.443a1.001 1.001 0 0 0-1.391.043l-2.393 2.461c-.576-.11-1.734-.471-2.926-1.66-1.192-1.193-1.553-2.354-1.66-2.926l2.459-2.394a1 1 0 0 0 .043-1.391L6.859 3.513a1 1 0 0 0-1.391-.087l-2.17 1.861a1 1 0 0 0-.29.649c-.015.25-.301 6.172 4.291 10.766C11.305 20.707 16.323 21 17.705 21c.202 0 .326-.006.359-.008a.992.992 0 0 0 .648-.291l1.86-2.171a1 1 0 0 0-.086-1.391l-4.064-3.696z" fill="white"/>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
               </svg>
             </div>
           </div>
@@ -167,24 +197,22 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
           {callState === 'connecting' && <Loader2 size={14} className="text-white/60 animate-spin" />}
           <p className="text-white/70 text-sm">{stateLabel}</p>
         </div>
-        {error && <p className="text-red-300 text-xs text-center">{error}</p>}
+        {callState === 'ringing' && roomRef.current && (
+          <p className="text-white/40 text-xs">Waiting for {participantLabel} to answer...</p>
+        )}
+        {error && <p className="text-red-300 text-xs text-center mt-1">{error}</p>}
       </div>
 
-      {/* Controls */}
       {callState !== 'ended' && (
         <div className="flex items-end justify-center gap-10">
-          {/* Mute */}
           <div className="flex flex-col items-center gap-2">
             <button onClick={toggleMute}
               className={`w-16 h-16 rounded-full flex items-center justify-center ${muted ? 'bg-white' : 'bg-white/20'}`}>
-              {muted
-                ? <MicOff size={24} className="text-zana-primary" />
-                : <Mic size={24} className="text-white" />}
+              {muted ? <MicOff size={24} className="text-zana-primary" /> : <Mic size={24} className="text-white" />}
             </button>
             <p className="text-white/60 text-xs">{muted ? 'Unmute' : 'Mute'}</p>
           </div>
 
-          {/* End call */}
           <div className="flex flex-col items-center gap-2">
             <button onClick={handleEnd}
               className="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
@@ -193,13 +221,10 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
             <p className="text-white/60 text-xs">End</p>
           </div>
 
-          {/* Speaker */}
           <div className="flex flex-col items-center gap-2">
             <button onClick={() => setSpeakerOff(s => !s)}
               className={`w-16 h-16 rounded-full flex items-center justify-center ${speakerOff ? 'bg-white' : 'bg-white/20'}`}>
-              {speakerOff
-                ? <VolumeX size={24} className="text-zana-primary" />
-                : <Volume2 size={24} className="text-white" />}
+              {speakerOff ? <VolumeX size={24} className="text-zana-primary" /> : <Volume2 size={24} className="text-white" />}
             </button>
             <p className="text-white/60 text-xs">{speakerOff ? 'Speaker off' : 'Speaker'}</p>
           </div>
