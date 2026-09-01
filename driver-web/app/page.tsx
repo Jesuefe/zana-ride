@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
-  LogOut, Wallet, Navigation, Truck, LayoutGrid, X, Check,
-  User, MapPin, Clock, ChevronRight, Package,
+  Navigation, Truck, LayoutGrid, X, Check, MapPin, Package,
 } from 'lucide-react';
 import ChatPanel from '../components/ChatPanel';
 import LanguageSelector from '../components/LanguageSelector';
@@ -17,7 +15,6 @@ import {
   DriverProfile, DriverTrip, PendingDelivery,
 } from '../lib/api/driver';
 import { getCurrentPosition, watchPosition, Coords } from '../lib/location';
-import { clearToken } from '../lib/api/client';
 import { loadGoogleMaps } from '../lib/mapsLoader';
 
 const TIMEOUT = 15;
@@ -177,35 +174,13 @@ export default function DriverHome() {
     <div className="h-screen flex flex-col overflow-hidden bg-gray-900">
       {/* Map fills most of screen */}
       <div ref={mapRef} className="flex-1 relative">
-        {/* Top bar overlaid on map */}
-        <div className="absolute top-0 left-0 right-0 z-10 px-3 pt-10 pb-3 bg-gradient-to-b from-black/60 to-transparent">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <User size={16} className="text-white" />
-              </div>
-              <div>
-                <p className="text-white font-bold text-sm leading-tight">{profile?.user?.firstName ?? 'Driver'}</p>
-                <div className="flex items-center gap-1.5">
-                  <div className={`w-2 h-2 rounded-full ${online ? 'bg-green-400' : 'bg-gray-400'}`} />
-                  <p className="text-white/70 text-[10px]">{online ? `Online · ${driverMode}` : 'Offline'}</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <LanguageSelector />
-              <Link href="/earnings" className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <Wallet size={15} className="text-white" />
-              </Link>
-              <Link href="/profile" className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <User size={15} className="text-white" />
-              </Link>
-              <button onClick={() => { clearToken(); router.push('/login'); }}
-                className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <LogOut size={15} className="text-white" />
-              </button>
-            </div>
+        {/* Minimal status indicator on map */}
+        <div className="absolute top-10 left-3 right-3 z-10 flex items-center justify-between">
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${online ? 'bg-green-500 text-white' : 'bg-gray-800 text-white'}`}>
+            <div className={`w-2 h-2 rounded-full bg-white`} />
+            {online ? `Online · ${driverMode}` : 'Offline'}
           </div>
+          <LanguageSelector />
         </div>
 
         {/* Current location label */}
@@ -233,10 +208,7 @@ export default function DriverHome() {
               <p className="text-sm font-semibold text-gray-900">{profile.vehicle} · {profile.plate}</p>
               <p className="text-xs text-gray-400">Rating: {profile.rating?.toFixed(1) ?? '0.0'} / 5.0</p>
             </div>
-            <Link href="/deliveries"
-              className="flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-semibold px-3 py-2 rounded-lg">
-              <Package size={13} /> Browse
-            </Link>
+  
           </div>
         )}
 

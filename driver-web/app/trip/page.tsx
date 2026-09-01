@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Phone, ChevronUp, ChevronDown, MapPin, Navigation, MessageCircle } from 'lucide-react';
 import ChatPanel from '../../components/ChatPanel';
+import VoiceCall from '../../components/VoiceCall';
 import RatingModal from '../../components/RatingModal';
 import { getStoredLang, dt } from '../../lib/lang';
 import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, DriverTrip } from '../../lib/api/driver';
@@ -22,6 +23,7 @@ function TripContent() {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [acting, setActing] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showCall, setShowCall] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const lang = getStoredLang();
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -140,6 +142,12 @@ function TripContent() {
             >
               <MessageCircle size={16} className="text-zana-primary" />
             </button>
+            <button
+              onClick={() => setShowCall(true)}
+              className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0"
+            >
+              <Phone size={16} className="text-green-600" />
+            </button>
           </div>
 
           {detailsOpen && (
@@ -190,6 +198,14 @@ function TripContent() {
           tripId={trip.id}
           driverName={trip.customer?.firstName ?? 'passenger'}
           onClose={() => setShowRating(false)}
+        />
+      )}
+      {showCall && trip && (
+        <VoiceCall
+          context="trip"
+          contextId={trip.id}
+          participantLabel={trip.customer?.firstName ?? 'Passenger'}
+          onClose={() => setShowCall(false)}
         />
       )}
       {showChat && trip && (

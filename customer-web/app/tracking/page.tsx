@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Phone, Star, User, Navigation, MessageCircle } from 'lucide-react';
 import ChatPanel from '../../components/ChatPanel';
 import RatingModal from '../../components/RatingModal';
+import VoiceCall from '../../components/VoiceCall';
 import { fetchTrip, fetchTripGroup, cancelRide, ApiTrip } from '../../lib/api/trips';
 import { api } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
@@ -26,7 +27,7 @@ const ACTIVE_STATUSES = ['DRIVER_ASSIGNED', 'DRIVER_EN_ROUTE', 'DRIVER_ARRIVED',
 
 type GroupTrip = ApiTrip & { groupSeatIndex: number | null };
 
-function DriverCard({ trip, seatLabel, onChat }: { trip: ApiTrip; seatLabel?: string; onChat?: () => void }) {
+function DriverCard({ trip, seatLabel, onChat, onCall }: { trip: ApiTrip; seatLabel?: string; onChat?: () => void; onCall?: () => void }) {
   const driver = trip.driver;
   if (!driver || trip.status === 'RIDE_COMPLETED') return null;
   return (
@@ -52,9 +53,14 @@ function DriverCard({ trip, seatLabel, onChat }: { trip: ApiTrip; seatLabel?: st
             <MessageCircle size={16} className="text-zana-primary" />
           </button>
         )}
-        <button className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center">
-          <Phone size={16} className="text-zana-primary" />
-        </button>
+        {onCall && (
+          <button
+            onClick={onCall}
+            className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center"
+          >
+            <Phone size={16} className="text-green-600" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -72,6 +78,7 @@ function TrackingContent() {
   const [showChat, setShowChat] = useState(false);
   const [sosSent, setSosSent] = useState(false);
   const [showRating, setShowRating] = useState(false);
+  const [showCall, setShowCall] = useState(false);
   const [receiptShown, setReceiptShown] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
   const motionRequested = useRef(false);
@@ -221,9 +228,9 @@ function TrackingContent() {
 
         {isGroup
           ? groupTrips.map((t) => (
-              <DriverCard key={t.id} trip={t} seatLabel={`Moto ${t.groupSeatIndex} · ${STATUS_COPY[t.status] ?? t.status}`} onChat={() => setShowChat(true)} />
+              <DriverCard key={t.id} trip={t} seatLabel={`Moto ${t.groupSeatIndex} · ${STATUS_COPY[t.status] ?? t.status}`} onChat={() => setShowChat(true)} onCall={() => setShowCall(true)} />
             ))
-          : trip && <DriverCard trip={trip} onChat={() => setShowChat(true)} />}
+          : trip && <DriverCard trip={trip} onChat={() => setShowChat(true)} onCall={() => setShowCall(true)} />}
 
         <button
           onClick={status === 'RIDE_COMPLETED' || allCompleted ? () => setShowRating(true) : handleCancel}
@@ -246,6 +253,14 @@ function TrackingContent() {
             setShowRating(false);
             router.push(`/receipt?tripId=${primaryTrip.id}`);
           }}
+        />
+      )}
+      {showCall && primaryTrip && (
+        <VoiceCall
+          context="trip"
+          contextId={primaryTrip.id}
+          participantLabel={primaryTrip.driver?.user?.firstName ?? 'Driver'}
+          onClose={() => setShowCall(false)}
         />
       )}
       {showChat && primaryTrip && (
