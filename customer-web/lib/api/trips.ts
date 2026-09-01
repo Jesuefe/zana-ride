@@ -24,7 +24,7 @@ export type ApiTrip = {
   destinationLng: number;
   driver?: {
     id: string;
-    user: { firstName: string | null };
+    user: { firstName: string | null; phone?: string | null };
     vehicle: string;
     plate: string;
     rating: number;
