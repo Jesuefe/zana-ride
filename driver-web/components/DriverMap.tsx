@@ -92,10 +92,15 @@ export default function DriverMap({
       // Set up DirectionsRenderer once
       rendererRef.current = new G.DirectionsRenderer({
         suppressMarkers: true,
+        preserveViewport: navigationMode, // CRITICAL: prevents renderer from zooming out
         polylineOptions: { strokeColor: '#00A082', strokeWeight: 6, strokeOpacity: 0.9 },
       });
       rendererRef.current.setMap(mapRef.current);
 
+      // In navigation mode force zoom immediately on map load
+      if (navigationMode) {
+        mapRef.current.setZoom(18);
+      }
       setMapsReady(true);
     });
   }, []);

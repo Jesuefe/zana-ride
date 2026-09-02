@@ -24,6 +24,7 @@ function TripContent() {
   const [acting, setActing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showCall, setShowCall] = useState(false);
+  const [showCallOptions, setShowCallOptions] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const lang = getStoredLang();
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -130,24 +131,53 @@ function TripContent() {
               <p className="text-[11px] text-zana-muted">{STATUS_COPY[trip.status] ?? trip.status}</p>
               <p className="text-sm font-semibold text-gray-900 truncate">{targetLabel}</p>
             </div>
-            <a
-              href={`tel:${trip.customer?.phone ?? ''}`}
-              className="w-10 h-10 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0"
-            >
-              <Phone size={16} className="text-zana-primary" />
-            </a>
+            {/* Chat */}
             <button
               onClick={() => setShowChat(true)}
               className="w-10 h-10 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0"
             >
               <MessageCircle size={16} className="text-zana-primary" />
             </button>
-            <button
-              onClick={() => setShowCall(true)}
-              className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0"
-            >
-              <Phone size={16} className="text-green-600" />
-            </button>
+
+            {/* Smart call button — tap for options */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setShowCallOptions(v => !v)}
+                className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center"
+              >
+                <Phone size={16} className="text-green-600" />
+              </button>
+              {showCallOptions && (
+                <div className="absolute bottom-12 right-0 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-44 z-50">
+                  <button
+                    onClick={() => { setShowCall(true); setShowCallOptions(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                      <Phone size={14} className="text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">Free Call</p>
+                      <p className="text-[10px] text-gray-400">Via Zana (internet)</p>
+                    </div>
+                  </button>
+                  <div className="h-px bg-gray-100" />
+                  <a
+                    href={`tel:${trip.customer?.phone ?? ''}`}
+                    onClick={() => setShowCallOptions(false)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                      <Phone size={14} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">Regular Call</p>
+                      <p className="text-[10px] text-gray-400">Dial {trip.customer?.phone}</p>
+                    </div>
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
 
           {detailsOpen && (
