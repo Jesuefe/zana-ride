@@ -117,33 +117,18 @@ export default function HomePage() {
             className="text-sm font-semibold text-zana-primary">See all</button>
         </div>
 
-        {/* Row 1 — 4 services */}
-        <div className="grid grid-cols-4 gap-3 mb-3">
-          {SERVICES.slice(0, 4).map(s => (
+        {/* Horizontal scroll — all 6 services, swipe to see more */}
+        <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
+          {SERVICES.map(s => (
             <button key={s.id} onClick={() => router.push(s.route)}
-              className="flex flex-col items-center gap-2 active:scale-95 transition-transform">
-              <div className="w-full aspect-square rounded-2xl flex items-center justify-center overflow-hidden"
+              className="flex flex-col items-center gap-2 active:scale-95 transition-transform shrink-0 snap-start"
+              style={{ width: 72 }}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden"
                 style={{ background: s.bg }}>
                 <Image src={s.image} alt={s.title} width={44} height={44} className="object-contain" />
               </div>
-              <p className="text-[11px] font-bold text-gray-900 text-center leading-tight">{s.title}</p>
-              <p className="text-[9px] text-gray-400 text-center leading-tight -mt-1">{s.sub}</p>
-            </button>
-          ))}
-        </div>
-
-        {/* Row 2 — 2 services centered */}
-        <div className="flex justify-center gap-3">
-          {SERVICES.slice(4).map(s => (
-            <button key={s.id} onClick={() => router.push(s.route)}
-              className="flex flex-col items-center gap-2 active:scale-95 transition-transform"
-              style={{ width: 'calc(25% - 6px)' }}>
-              <div className="w-full aspect-square rounded-2xl flex items-center justify-center overflow-hidden"
-                style={{ background: s.bg }}>
-                <Image src={s.image} alt={s.title} width={44} height={44} className="object-contain" />
-              </div>
-              <p className="text-[11px] font-bold text-gray-900 text-center leading-tight">{s.title}</p>
-              <p className="text-[9px] text-gray-400 text-center leading-tight -mt-1">{s.sub}</p>
+              <p className="text-[11px] font-bold text-gray-900 text-center leading-tight w-full">{s.title}</p>
+              <p className="text-[9px] text-gray-400 text-center leading-tight -mt-1 w-full">{s.sub}</p>
             </button>
           ))}
         </div>
