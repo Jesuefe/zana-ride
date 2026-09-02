@@ -188,7 +188,7 @@ export default function ActiveDeliveryPage() {
           )}
         </div>
       </div>
+      <DriverBottomNav />
     </div>
-    <DriverBottomNav />
   );
 }
