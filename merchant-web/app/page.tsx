@@ -17,16 +17,16 @@ export default function OverviewPage() {
   const [settingLocation, setSettingLocation] = useState(false);
 
   const handleSetLocation = async () => {
-    if (!navigator.geolocation) { alert('Geolocation not available'); return; }
+    if (!navigator.geolocation) { setError && setError('Geolocation not available'); return; }
     setSettingLocation(true);
     navigator.geolocation.getCurrentPosition(async pos => {
       try {
         const { api } = await import('../lib/api/client');
         await api.patch('/merchant/location', { lat: pos.coords.latitude, lng: pos.coords.longitude });
-        alert('Business location updated! Delivery fees will now be calculated from your location.');
-      } catch (e: any) { alert(e.message ?? 'Failed to update location'); }
+        // location saved - banner will disappear on next load
+      } catch (e: any) { console.error('Failed to update location', e); }
       finally { setSettingLocation(false); }
-    }, () => { setSettingLocation(false); alert('Could not get location.'); });
+    }, () => { setSettingLocation(false); console.error('Could not get location'); });
   };
 
   useEffect(() => {

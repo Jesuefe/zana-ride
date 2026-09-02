@@ -1,79 +1,131 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, ArrowDownLeft, ArrowUpRight, Download, Loader2 } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Loader2, Check, X } from 'lucide-react';
 import Topbar from '../../components/Topbar';
 import { fetchWallet, ApiWallet } from '../../lib/api/merchant';
-import { ApiError } from '../../lib/api/client';
+import { api } from '../../lib/api/client';
 
 export default function WalletPage() {
   const [wallet, setWallet] = useState<ApiWallet | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [phone, setPhone] = useState('');
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setWallet(await fetchWallet());
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const load = () => fetchWallet().then(setWallet).catch(() => {}).finally(() => setLoading(false));
+  useEffect(() => { load(); }, []);
+
+  const handleWithdraw = async () => {
+    const amt = Number(amount);
+    if (!amt || amt < 1000) { setError('Minimum withdrawal is 1,000 RWF'); return; }
+    if (amt > (wallet?.balance ?? 0)) { setError('Insufficient balance'); return; }
+    if (!phone.trim()) { setError('Enter your MoMo phone number'); return; }
+    setWithdrawing(true); setError('');
+    try {
+      await api.post('/merchant/wallet/withdraw', { amount: amt, phone: `+250${phone.replace(/\D/g,'')}` });
+      setSuccess(`${amt.toLocaleString()} RWF sent to ${phone}`);
+      setAmount(''); setPhone(''); setShowWithdraw(false);
+      load();
+    } catch (e: any) {
+      setError(e.message ?? 'Withdrawal failed');
+    } finally { setWithdrawing(false); }
+  };
 
   return (
     <>
-      <Topbar title="Wallet & Invoices" />
-      <div className="p-8 space-y-6">
-        <div className="bg-zana-primary-dark text-white rounded-xl p-6 max-w-md">
-          <p className="text-white/70 text-sm">Available balance</p>
-          <p className="text-3xl font-semibold mt-1">{(wallet?.balance ?? 0).toLocaleString()} RWF</p>
-          <div className="flex gap-2 mt-4">
-            <button className="flex items-center gap-1.5 bg-zana-secondary text-gray-900 text-sm font-semibold px-4 py-2 rounded-lg">
-              <Plus size={14} /> Add funds
-            </button>
-            <button className="flex items-center gap-1.5 bg-white/10 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-white/15 transition-colors">
-              <Download size={14} /> Download report
-            </button>
-          </div>
+      <Topbar title="Wallet" />
+      <div className="p-6 space-y-5 max-w-2xl">
+        {/* Balance card */}
+        <div className="bg-zana-primary-dark text-white rounded-2xl p-6">
+          <p className="text-white/60 text-sm">Available balance</p>
+          <p className="text-4xl font-black mt-1">{loading ? '…' : (wallet?.balance ?? 0).toLocaleString()} RWF</p>
+          <button
+            onClick={() => setShowWithdraw(true)}
+            className="mt-4 flex items-center gap-2 bg-zana-secondary text-gray-900 font-bold text-sm px-5 py-2.5 rounded-xl"
+          >
+            <ArrowUpRight size={16} /> Withdraw to MoMo
+          </button>
         </div>
 
-        <div className="bg-zana-surface border border-zana-border rounded-xl p-6 max-w-2xl">
-          <h2 className="font-semibold text-gray-900 mb-4">Recent transactions</h2>
-          {loading && (
-            <div className="flex items-center gap-2 text-sm text-zana-muted py-4">
-              <Loader2 size={16} className="animate-spin" /> Loading…
-            </div>
-          )}
-          {error && <p className="text-sm text-zana-error">{error}</p>}
-          {!loading && !error && wallet && (
-            <div className="space-y-3">
-              {wallet.transactions.length === 0 && (
-                <p className="text-sm text-zana-muted">No transactions yet.</p>
-              )}
-              {wallet.transactions.map((t) => (
-                <div key={t.id} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${t.amount > 0 ? 'bg-[#EAF3DE] text-zana-success' : 'bg-[#FCEBEB] text-zana-error'}`}>
-                      {t.amount > 0 ? <ArrowDownLeft size={14} /> : <ArrowUpRight size={14} />}
-                    </div>
-                    <div>
-                      <div className="text-gray-900">{t.reference ?? 'Transaction'}</div>
-                      <div className="text-xs text-zana-muted">{new Date(t.createdAt).toLocaleString()}</div>
-                    </div>
+        {/* Success toast */}
+        {success && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2 text-green-800 text-sm">
+            <Check size={15} /> {success}
+          </div>
+        )}
+
+        {/* Transactions */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <p className="font-bold text-gray-900">Transaction History</p>
+          </div>
+          {!wallet?.transactions?.length ? (
+            <p className="text-sm text-gray-400 text-center py-8">No transactions yet.</p>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {wallet.transactions.map((t: any) => (
+                <div key={t.id} className="flex items-center gap-3 px-5 py-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${t.amount > 0 ? 'bg-green-100' : 'bg-red-50'}`}>
+                    {t.amount > 0
+                      ? <ArrowDownLeft size={16} className="text-green-600" />
+                      : <ArrowUpRight size={16} className="text-red-500" />}
                   </div>
-                  <span className={`font-medium ${t.amount > 0 ? 'text-zana-success' : 'text-zana-error'}`}>
-                    {t.amount > 0 ? '+' : ''}
-                    {t.amount.toLocaleString()} RWF
-                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">{t.description ?? (t.amount > 0 ? 'Credit' : 'Withdrawal')}</p>
+                    <p className="text-xs text-gray-400">{new Date(t.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <p className={`font-bold text-sm ${t.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    {t.amount > 0 ? '+' : ''}{t.amount?.toLocaleString()} RWF
+                  </p>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Withdraw sheet */}
+      {showWithdraw && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/50">
+          <div className="w-full bg-white rounded-t-3xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-black text-lg text-gray-900">Withdraw Funds</h2>
+              <button onClick={() => { setShowWithdraw(false); setError(''); }}>
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">
+              Available: <strong>{(wallet?.balance ?? 0).toLocaleString()} RWF</strong> · Minimum: 1,000 RWF
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1.5">Amount (RWF)</label>
+                <input value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g,''))}
+                  placeholder="e.g. 5000" inputMode="numeric"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-zana-primary/30" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1.5">MoMo phone number</label>
+                <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3">
+                  <span className="text-sm text-gray-500">+250</span>
+                  <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g,''))}
+                    placeholder="78XXXXXXX" inputMode="tel"
+                    className="flex-1 text-sm outline-none" />
+                </div>
+              </div>
+              {error && <p className="text-xs text-red-600">{error}</p>}
+              <button onClick={handleWithdraw} disabled={withdrawing}
+                className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">
+                {withdrawing ? <><Loader2 size={16} className="animate-spin" /> Processing...</> : 'Withdraw'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

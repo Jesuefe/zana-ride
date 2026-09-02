@@ -22,10 +22,27 @@ export default function NewDeliveryPage() {
 
   const [pickup, setPickup] = useState<Point>(null);
   const [pickupQuery, setPickupQuery] = useState('');
+
+  // Auto-fill pickup from merchant's registered business location
+  useEffect(() => {
+    import('../../lib/api/merchant').then(({ fetchMyMerchant }) => {
+      fetchMyMerchant().then((m: any) => {
+        if (m?.businessLat && m?.businessLng) {
+          setPickup({
+            lat: m.businessLat,
+            lng: m.businessLng,
+            address: m.businessAddress ?? m.businessName,
+          });
+          setPickupQuery(m.businessAddress ?? m.businessName);
+        }
+      }).catch(() => {});
+    });
+  }, []);
   const [pickupSuggestions, setPickupSuggestions] = useState<PlaceSuggestion[]>([]);
 
   const [dropoff, setDropoff] = useState<Point>(null);
   const [destQuery, setDestQuery] = useState('');
+  const [isZanaCode, setIsZanaCode] = useState(false);
   const [destSuggestions, setDestSuggestions] = useState<PlaceSuggestion[]>([]);
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -59,6 +76,13 @@ export default function NewDeliveryPage() {
       setDestSuggestions([]);
       return;
     }
+    // Detect ZANA location code
+    if (destQuery.toUpperCase().startsWith('ZANA-') && destQuery.length >= 10) {
+      setIsZanaCode(true);
+      setCodeInput(destQuery.toUpperCase());
+      return;
+    }
+    setIsZanaCode(false);
     destDebounce.current = setTimeout(async () => {
       setDestSuggestions(await searchPlaces(destQuery));
     }, 350);

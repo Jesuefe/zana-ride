@@ -25,6 +25,7 @@ const SENIOR_NAV = [
   { label: 'Agents', href: '/dashboard/agents', icon: UserCheck },
   { label: 'Fares', href: '/dashboard/fares', icon: BarChart2 },
   { label: 'Merchant Invites', href: '/dashboard/invites', icon: ShieldCheck },
+  { label: 'Expenses', href: '/dashboard/expenses', icon: DollarSign },
 ];
 
 const WORKER_NAV = [

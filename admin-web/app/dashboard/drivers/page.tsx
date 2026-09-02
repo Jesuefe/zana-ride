@@ -18,7 +18,15 @@ export default function DriversPage() {
   const load = () => getDrivers(filter || undefined).then(setDrivers).catch(() => {});
   useEffect(() => { load(); }, [filter]);
 
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const act = async (fn: () => Promise<any>) => { await fn(); load(); };
+
+  const handleReject = async (id: string) => {
+    await rejectDriver(id).catch(() => {});
+    setRejectId(null); setRejectReason('');
+    load();
+  };
 
   return (
     <AdminShell>

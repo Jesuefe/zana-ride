@@ -41,7 +41,6 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
   const addToCart = (product: MarketplaceProduct, merchantId: string) => {
     const existing = cart[0];
     if (existing && existing.merchantId !== merchantId) {
-      if (!confirm(`Your cart has items from another ${category === 'FOOD' ? 'restaurant' : 'store'}. Start a new cart?`)) return;
       setCart([{ product, quantity: 1, merchantId }]);
       return;
     }
