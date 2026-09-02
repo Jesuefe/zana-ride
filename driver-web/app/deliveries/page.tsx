@@ -76,7 +76,7 @@ export default function DeliveryMarketplace() {
     setError('');
     try {
       await Promise.all(selected.map(d => acceptDelivery(d.id)));
-      router.push('/');
+      router.push('/delivery');
     } catch (e: any) {
       setError(e.message ?? 'Could not accept deliveries.');
     } finally {
