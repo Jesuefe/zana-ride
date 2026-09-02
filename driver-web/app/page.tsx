@@ -84,6 +84,19 @@ export default function DriverHome() {
 
   const [profile, setProfile] = useState<DriverProfile | null>(null);
   const [activeDelivery, setActiveDelivery] = useState<any>(null);
+  const [battery, setBattery] = useState<{ level: number; charging: boolean } | null>(null);
+
+  // Real phone battery
+  useEffect(() => {
+    const nav = navigator as any;
+    if (!nav.getBattery) return;
+    nav.getBattery().then((b: any) => {
+      const update = () => setBattery({ level: Math.round(b.level * 100), charging: b.charging });
+      update();
+      b.addEventListener('levelchange', update);
+      b.addEventListener('chargingchange', update);
+    }).catch(() => {});
+  }, []);
   const [online, setOnline] = useState(false);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [incoming, setIncoming] = useState<DriverTrip | null>(null);
@@ -313,10 +326,10 @@ export default function DriverHome() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <rect x="2" y="7" width="18" height="10" rx="2" stroke="#00A082" strokeWidth="2"/>
                 <path d="M20 11v2" stroke="#00A082" strokeWidth="2" strokeLinecap="round"/>
-                <rect x="4" y="9" width="10" height="6" rx="1" fill="#00A082"/>
+                <rect x="4" y="9" width={`${battery ? battery.level / 10 : 8.5}`} height="6" rx="1" fill={battery && battery.level < 20 ? '#EF4444' : '#00A082'}/>
               </svg>
               <div>
-                <p className="text-sm font-bold text-gray-900">85%</p>
+                <p className={`text-sm font-bold ${battery && battery.level < 20 ? 'text-red-500' : 'text-gray-900'}`}>{battery ? `${battery.level}%` : '--'}{battery?.charging ? ' ⚡' : ''}</p>
                 <p className="text-[9px] text-gray-400">Battery</p>
               </div>
             </div>

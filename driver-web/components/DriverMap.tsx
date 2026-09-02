@@ -80,7 +80,7 @@ export default function DriverMap({
       const G = (window as any).google.maps;
       mapRef.current = new G.Map(containerRef.current, {
         center: position ?? { lat: -1.9536, lng: 30.0605 },
-        zoom: navigationMode ? 17 : 14,
+        zoom: navigationMode ? 18 : 14,
         mapId: 'zana_driver_nav',
         disableDefaultUI: true,
         gestureHandling: 'greedy',
@@ -137,6 +137,7 @@ export default function DriverMap({
       setCurrentStep(0);
 
       if (navigationMode) {
+        // Nav mode — don't touch zoom/bounds, position update handles it
         map.setCenter(new G.LatLng(pos.lat, pos.lng));
         map.setZoom(18);
       } else if (pos && tgt) {
@@ -224,9 +225,10 @@ export default function DriverMap({
       }
     }
 
-    // Keep map centered on driver in navigation mode
+    // Keep map centered on driver in navigation mode — enforce zoom 18
     if (navigationMode) {
-      map.panTo(pos);
+      map.setCenter(pos);
+      if (map.getZoom() < 16) map.setZoom(18);
       map.setHeading?.(heading);
     }
 
