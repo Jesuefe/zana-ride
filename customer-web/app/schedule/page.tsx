@@ -89,7 +89,7 @@ export default function ScheduleRidePage() {
   const [serviceType, setServiceType] = useState<'BIKE' | 'ECONOMY' | 'COMFORT'>('ECONOMY');
   const [scheduledFor, setScheduledFor] = useState('');
   const [specialRequest, setSpecialRequest] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);

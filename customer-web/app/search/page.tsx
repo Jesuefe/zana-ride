@@ -7,6 +7,12 @@ import { getStoredPickup, setStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
 import { createRide, createRideGroup, fetchNearbyDrivers, NearbyDriver } from '../../lib/api/trips';
+
+const MOTO_PAYMENT_OPTIONS = [
+  { id: 'WALLET' as const, label: 'Zana Wallet', icon: '💳' },
+  { id: 'MOBILE_MONEY' as const, label: 'Mobile Money', icon: '📱' },
+  { id: 'CASH' as const, label: 'Cash', icon: '💵' },
+];
 import { resolveLocationCode } from '../../lib/api/deliveries';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
@@ -26,6 +32,9 @@ function SearchContent() {
   const [pickupAddress, setPickupAddress] = useState('Locating…');
   const [nearby, setNearby] = useState<NearbyDriver[]>([]);
   const [booking, setBooking] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('WALLET');
+  const [showPaymentPicker, setShowPaymentPicker] = useState(false);
+  const [pendingPlace, setPendingPlace] = useState<{address:string;lat:number;lng:number}|null>(null);
   const [error, setError] = useState<string | null>(null);
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -109,6 +118,35 @@ function SearchContent() {
     setStoredPickup(coords);
   };
 
+  const bookMoto = async () => {
+    if (!pendingPlace) return;
+    setShowPaymentPicker(false);
+    setBooking(true);
+    setError(null);
+    const tripData = {
+      serviceType: 'BIKE' as const,
+      pickupAddress,
+      pickupLat: pickup.lat,
+      pickupLng: pickup.lng,
+      destinationAddress: pendingPlace.address,
+      destinationLat: pendingPlace.lat,
+      destinationLng: pendingPlace.lng,
+      paymentMethod,
+    };
+    try {
+      if (motoCount > 1) {
+        const trips = await createRideGroup(tripData, motoCount);
+        router.push(`/tracking?groupId=${trips[0]?.groupId}`);
+      } else {
+        const trip = await createRide(tripData);
+        router.push(`/tracking?tripId=${trip.id}`);
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
+      setBooking(false);
+    }
+  };
+
   const handleSelect = async (suggestion: PlaceSuggestion) => {
     const place = await getPlaceCoordinates(suggestion.placeId);
     if (!place) {
@@ -116,31 +154,10 @@ function SearchContent() {
       return;
     }
 
-    // Moto has no vehicle choice to make — skip straight to booking.
+    // Moto — show payment picker before booking
     if (isMoto) {
-      setBooking(true);
-      setError(null);
-      const tripData = {
-        serviceType: 'BIKE' as const,
-        pickupAddress,
-        pickupLat: pickup.lat,
-        pickupLng: pickup.lng,
-        destinationAddress: place.address,
-        destinationLat: place.lat,
-        destinationLng: place.lng,
-      };
-      try {
-        if (motoCount > 1) {
-          const trips = await createRideGroup(tripData, motoCount);
-          router.push(`/tracking?groupId=${trips[0]?.groupId}`);
-        } else {
-          const trip = await createRide(tripData);
-          router.push(`/tracking?tripId=${trip.id}`);
-        }
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
-        setBooking(false);
-      }
+      setPendingPlace({ address: place.address, lat: place.lat, lng: place.lng });
+      setShowPaymentPicker(true);
       return;
     }
 
@@ -283,6 +300,49 @@ function SearchContent() {
           )}
         </div>
       </div>
+
+      {/* Moto payment picker modal */}
+      {showPaymentPicker && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/50">
+          <div className="w-full bg-white rounded-t-3xl p-5">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+            <h2 className="font-black text-lg text-gray-900 mb-1">How will you pay?</h2>
+            <p className="text-xs text-gray-400 mb-5">
+              {motoCount > 1 ? `${motoCount} seats` : '1 seat'} · Moto ride
+            </p>
+            <div className="space-y-2 mb-5">
+              {MOTO_PAYMENT_OPTIONS.map(({ id, label, icon }) => (
+                <button key={id} onClick={() => setPaymentMethod(id)}
+                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all ${
+                    paymentMethod === id
+                      ? 'border-zana-primary bg-zana-primary-light'
+                      : 'border-gray-100 bg-white'
+                  }`}>
+                  <span className="text-2xl">{icon}</span>
+                  <span className={`font-semibold text-sm ${paymentMethod === id ? 'text-zana-primary' : 'text-gray-800'}`}>
+                    {label}
+                  </span>
+                  {paymentMethod === id && (
+                    <div className="ml-auto w-5 h-5 rounded-full bg-zana-primary flex items-center justify-center">
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+            <button onClick={bookMoto} disabled={booking}
+              className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 disabled:opacity-50">
+              {booking
+                ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : 'Confirm & Book'}
+            </button>
+            <button onClick={() => setShowPaymentPicker(false)}
+              className="w-full text-center text-sm text-gray-400 mt-3 py-1">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
