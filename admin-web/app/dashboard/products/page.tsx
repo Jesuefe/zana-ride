@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, Trash2 } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
-import { getProducts, reviewProduct } from '../../../lib/api/admin';
+import { getProducts, reviewProduct, deleteProduct } from '../../../lib/api/admin';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -44,7 +44,8 @@ export default function ProductsPage() {
                   </div>
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${p.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : p.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.status}</span>
                 </div>
-                {p.status === 'PENDING' && (
+                <button onClick={async () => { if(confirm('Delete this product?')) { await deleteProduct(p.id); load(); } }} className="mt-2 flex items-center gap-1 text-[10px] text-red-400 hover:text-red-600"><Trash2 size={10}/> Delete</button>
+              {p.status === 'PENDING' && (
                   <div className="flex items-center gap-2 mt-3">
                     <input value={note} onChange={e => setNote(e.target.value)} placeholder="Optional rejection note…" className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs" />
                     <button onClick={() => act(p.id, 'APPROVED')} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold"><Check size={12} /> Approve</button>

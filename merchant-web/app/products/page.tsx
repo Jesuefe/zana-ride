@@ -126,3 +126,4 @@ export default function ProductsPage() {
     </div>
   );
 }
+// Note: deleteProduct added to api layer

@@ -24,7 +24,7 @@ const services: Service[] = [
   { id: 'moto', title: 'Moto Ride', subtitle: 'Fast & affordable', image: '/icons/motorbike.png', bg: '#FBF1DD', route: '/search?service=BIKE' },
   { id: 'package', title: 'Send a Package', subtitle: 'Parcels & express drop-offs', image: '/icons/package-box.png', bg: '#E3F5F1', route: '/deliver' },
   { id: 'food', title: 'Order Food', subtitle: 'Meals from top kitchens', image: '/icons/burger-drink.png', bg: '#E3F5F1', route: '/food' },
-  { id: 'shop', title: 'Shop & Deliver', subtitle: 'We shop, you relax', image: '/icons/grocery-bag.png', bg: '#FBF1DD', comingSoon: true },
+  { id: 'shop', title: 'Shop & Deliver', subtitle: 'Supermarket & goods delivered', image: '/icons/grocery-bag.png', bg: '#FBF1DD', route: '/shop' },
   { id: 'gift', title: 'Send a Gift', subtitle: 'Roses & surprises', image: '/icons/flower-bouquet.png', bg: '#E3F5F1', route: '/gifts' },
 ];
 

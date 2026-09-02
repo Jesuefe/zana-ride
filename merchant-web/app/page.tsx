@@ -14,6 +14,20 @@ export default function OverviewPage() {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [settingLocation, setSettingLocation] = useState(false);
+
+  const handleSetLocation = async () => {
+    if (!navigator.geolocation) { alert('Geolocation not available'); return; }
+    setSettingLocation(true);
+    navigator.geolocation.getCurrentPosition(async pos => {
+      try {
+        const { api } = await import('../lib/api/client');
+        await api.patch('/merchant/location', { lat: pos.coords.latitude, lng: pos.coords.longitude });
+        alert('Business location updated! Delivery fees will now be calculated from your location.');
+      } catch (e: any) { alert(e.message ?? 'Failed to update location'); }
+      finally { setSettingLocation(false); }
+    }, () => { setSettingLocation(false); alert('Could not get location.'); });
+  };
 
   useEffect(() => {
     (async () => {
@@ -78,7 +92,23 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {/* Quick actions */}
+      {/* Set business location */}
+        {!(merchant as any)?.businessLat && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-amber-800">Set your business location</p>
+              <p className="text-xs text-amber-600 mt-0.5">This lets us calculate delivery fees for your customers accurately.</p>
+              <button onClick={handleSetLocation} disabled={settingLocation}
+                className="mt-2 bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-50">
+                {settingLocation ? 'Locating...' : 'Use my current location'}
+              </button>
+            </div>
+          </div>
+        )}
+        {/* Quick actions */}
       <h2 className="font-semibold text-gray-900 mb-3">Quick Actions</h2>
       <div className="space-y-2">
         <Link href="/new-delivery" className="flex items-center gap-3 bg-zana-primary text-white rounded-xl px-4 py-3.5">
