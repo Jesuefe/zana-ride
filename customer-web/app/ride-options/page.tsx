@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronRight, Clock, MapPin, Check } from 'lucide-react';
-import { estimateRide, createRide, ServiceType } from '../../lib/api/trips';
+import { estimateRide, createRide, ServiceType, fetchWallet } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 import { getStoredPickup } from '../../lib/location';
@@ -74,6 +74,7 @@ function RideOptionsContent() {
 
   const [fares, setFares] = useState<Record<ServiceType, number>>({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
   const [loadingFares, setLoadingFares] = useState(true);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [selected, setSelected] = useState<ServiceType | null>(preselected ?? null);
   const [step, setStep] = useState<'select' | 'confirm'>('select');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('WALLET');
@@ -96,12 +97,17 @@ function RideOptionsContent() {
         setLoadingFares(false);
       }
     })();
+    // Also fetch wallet balance to warn if insufficient
+    fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(() => {});
   }, []);
 
   const handleSelect = (service: ServiceType) => {
     setSelected(service);
     setStep('confirm');
   };
+
+  const selectedFare = selected ? fares[selected] : 0;
+  const walletInsufficient = paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < selectedFare;
 
   const handleBook = async () => {
     if (!selected) return;
@@ -314,33 +320,61 @@ function RideOptionsContent() {
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">💳 How will you pay?</p>
             <div className="space-y-2">
-              {PAYMENT_OPTIONS.map(({ id, label, sub, icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setPaymentMethod(id)}
-                  className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 border-2 transition-all ${
-                    paymentMethod === id
-                      ? 'border-zana-primary bg-zana-primary-light'
-                      : 'border-gray-100 bg-white'
-                  }`}
-                >
-                  <div className={`shrink-0 ${paymentMethod === id ? 'text-zana-primary' : 'text-gray-400'}`}>
-                    {icon}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className={`text-sm font-semibold ${paymentMethod === id ? 'text-zana-primary' : 'text-gray-800'}`}>
-                      {label}
-                    </p>
-                    <p className="text-xs text-gray-400">{sub}</p>
-                  </div>
-                  {paymentMethod === id && (
-                    <div className="w-6 h-6 rounded-full bg-zana-primary flex items-center justify-center shrink-0">
-                      <Check size={13} className="text-white" />
+              {PAYMENT_OPTIONS.map(({ id, label, sub, icon }) => {
+                const isWallet = id === 'WALLET';
+                const insufficient = isWallet && walletBalance !== null && walletBalance < selectedFare;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setPaymentMethod(id)}
+                    className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 border-2 transition-all ${
+                      paymentMethod === id
+                        ? insufficient ? 'border-red-400 bg-red-50' : 'border-zana-primary bg-zana-primary-light'
+                        : 'border-gray-100 bg-white'
+                    }`}
+                  >
+                    <div className={`shrink-0 ${paymentMethod === id ? insufficient ? 'text-red-500' : 'text-zana-primary' : 'text-gray-400'}`}>
+                      {icon}
                     </div>
-                  )}
-                </button>
-              ))}
+                    <div className="flex-1 text-left">
+                      <p className={`text-sm font-semibold ${paymentMethod === id ? insufficient ? 'text-red-600' : 'text-zana-primary' : 'text-gray-800'}`}>
+                        {label}
+                      </p>
+                      {isWallet && walletBalance !== null ? (
+                        <p className={`text-xs ${insufficient ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                          {insufficient
+                            ? `Balance: ${walletBalance.toLocaleString()} RWF — need ${(selectedFare - walletBalance).toLocaleString()} more`
+                            : `Balance: ${walletBalance.toLocaleString()} RWF`}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-400">{sub}</p>
+                      )}
+                    </div>
+                    {paymentMethod === id && !insufficient && (
+                      <div className="w-6 h-6 rounded-full bg-zana-primary flex items-center justify-center shrink-0">
+                        <Check size={13} className="text-white" />
+                      </div>
+                    )}
+                    {insufficient && paymentMethod === id && (
+                      <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shrink-0 text-white text-xs font-bold">!</div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
+            {/* Insufficient funds banner */}
+            {walletInsufficient && (
+              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2">
+                <span className="text-amber-500 text-base shrink-0">⚠️</span>
+                <div>
+                  <p className="text-xs font-bold text-amber-800">Insufficient wallet balance</p>
+                  <p className="text-xs text-amber-600 mt-0.5">
+                    Your wallet has {walletBalance?.toLocaleString()} RWF but this ride costs {selectedFare.toLocaleString()} RWF.
+                    Please choose Mobile Money or Cash, or top up your wallet first.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Fare breakdown note */}
@@ -356,7 +390,7 @@ function RideOptionsContent() {
           {/* Book button */}
           <button
             onClick={handleBook}
-            disabled={booking || loadingFares}
+            disabled={booking || loadingFares || walletInsufficient}
             className="w-full bg-zana-primary text-white font-black text-base py-4 rounded-2xl disabled:opacity-40 transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
           >
             {booking ? (

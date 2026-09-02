@@ -7,6 +7,7 @@ import { getStoredPickup, setStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
 import { createRide, createRideGroup, fetchNearbyDrivers, NearbyDriver } from '../../lib/api/trips';
+import { fetchWallet } from '../../lib/api/trips';
 
 const MOTO_PAYMENT_OPTIONS = [
   { id: 'WALLET' as const, label: 'Zana Wallet', icon: '💳' },
@@ -35,6 +36,7 @@ function SearchContent() {
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [showPaymentPicker, setShowPaymentPicker] = useState(false);
   const [pendingPlace, setPendingPlace] = useState<{address:string;lat:number;lng:number}|null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -44,6 +46,10 @@ function SearchContent() {
 
   // Resolve the pickup point to a human-readable address whenever it moves
   // (either from GPS or because the passenger dragged the pin).
+  useEffect(() => {
+    fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(() => {});
+  }, []);
+
   useEffect(() => {
     reverseGeocode(pickup.lat, pickup.lng).then((address) => {
       setPickupAddress(address ?? 'Current location');
@@ -319,9 +325,14 @@ function SearchContent() {
                       : 'border-gray-100 bg-white'
                   }`}>
                   <span className="text-2xl">{icon}</span>
-                  <span className={`font-semibold text-sm ${paymentMethod === id ? 'text-zana-primary' : 'text-gray-800'}`}>
-                    {label}
-                  </span>
+                  <div className="flex-1 text-left">
+                    <span className={`font-semibold text-sm ${paymentMethod === id ? 'text-zana-primary' : 'text-gray-800'}`}>
+                      {label}
+                    </span>
+                    {id === 'WALLET' && walletBalance !== null && (
+                      <p className="text-xs text-gray-400">Balance: {walletBalance.toLocaleString()} RWF</p>
+                    )}
+                  </div>
                   {paymentMethod === id && (
                     <div className="ml-auto w-5 h-5 rounded-full bg-zana-primary flex items-center justify-center">
                       <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>

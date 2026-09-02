@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Calendar, Clock, MapPin, Loader2, Check } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { fetchWallet } from '../../lib/api/trips';
 import { loadGoogleMaps } from '../../lib/mapsLoader';
 import { getStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
@@ -92,6 +93,11 @@ export default function ScheduleRidePage() {
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState('');
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(() => {});
+  }, []);
   const [success, setSuccess] = useState(false);
 
   const minTime = new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16);
