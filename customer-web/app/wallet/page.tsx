@@ -7,7 +7,7 @@ import { ApiError } from '../../lib/api/client';
 
 type WalletData = {
   balance: number;
-  transactions: { id: string; amount: number; reference: string | null; createdAt: string; status: string }[];
+  transactions: { id: string; amount: number; reference: string | null; description?: string; balanceBefore?: number; balanceAfter?: number; createdAt: string; status: string }[];
 };
 
 type TopUpStage = 'form' | 'waiting' | 'success' | 'failed';
@@ -74,24 +74,40 @@ export default function WalletPage() {
       <h2 className="text-sm font-semibold text-gray-900 mt-6 mb-2">Recent transactions</h2>
       <div className="space-y-2">
         {wallet?.transactions.length === 0 && <p className="text-sm text-zana-muted">No transactions yet.</p>}
-        {wallet?.transactions.map((t) => (
-          <div key={t.id} className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm">
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center ${t.amount > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
-              {t.amount > 0 ? <ArrowDownLeft size={15} /> : <ArrowUpRight size={15} />}
+        {wallet?.transactions.map((t: any) => {
+          const isCredit = t.amount > 0;
+          const isDebit = t.amount < 0;
+          const isInfo = t.amount === 0; // cash/momo rides — recorded for history but no balance change
+          return (
+            <div key={t.id} className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                isCredit ? 'bg-green-50 text-green-600' :
+                isDebit ? 'bg-red-50 text-red-500' :
+                'bg-gray-100 text-gray-500'
+              }`}>
+                {isCredit ? <ArrowDownLeft size={15} /> : isDebit ? <ArrowUpRight size={15} /> : <span className="text-xs font-bold">✓</span>}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-900 truncate">
+                  {t.description ?? (isCredit ? 'Top up' : isDebit ? 'Payment' : 'Ride recorded')}
+                </p>
+                <p className="text-xs text-zana-muted">
+                  {new Date(t.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {t.status === 'PENDING' && ' · Pending'}
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <span className={`text-sm font-bold ${isCredit ? 'text-green-600' : isDebit ? 'text-red-500' : 'text-gray-500'}`}>
+                  {isCredit ? '+' : ''}{t.amount.toLocaleString()} RWF
+                </span>
+                {isInfo && <p className="text-[10px] text-gray-400">No charge</p>}
+                {(isCredit || isDebit) && t.balanceAfter !== undefined && (
+                  <p className="text-[10px] text-gray-400">Bal: {t.balanceAfter?.toLocaleString()} RWF</p>
+                )}
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-900 truncate">{t.reference ?? 'Transaction'}</p>
-              <p className="text-xs text-zana-muted">
-                {new Date(t.createdAt).toLocaleDateString()}
-                {t.status === 'PENDING' && ' · Pending'}
-              </p>
-            </div>
-            <span className={`text-sm font-semibold ${t.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
-              {t.amount > 0 ? '+' : ''}
-              {t.amount.toLocaleString()} RWF
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {showTopUp && (
