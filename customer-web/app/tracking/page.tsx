@@ -79,6 +79,11 @@ function TrackingContent() {
   const [sosSent, setSosSent] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [showCall, setShowCall] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(false);
+  const incomingRingRef = useRef<any>(null);
+  const callCheckRef = useRef<any>(null);
+
+  // [call polling moved below primaryTrip declaration]
   const [receiptShown, setReceiptShown] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
   const motionRequested = useRef(false);
@@ -136,7 +141,54 @@ function TrackingContent() {
       }, null)
     : trip;
 
-  const status = primaryTrip?.status ?? 'SEARCHING_DRIVER';
+
+
+  // Poll for incoming call — check if driver has joined the LiveKit room
+  useEffect(() => {
+    const tripId = primaryTrip?.id;
+    if (!tripId || showCall) return;
+
+    const checkForCall = async () => {
+      try {
+        const res = await api.post<{ token: string; wsUrl: string; roomId: string }>(
+          '/calls/token',
+          { context: 'trip', contextId: tripId }
+        );
+        if (!res?.token) return;
+        const { Room } = await import('livekit-client');
+        const tempRoom = new Room();
+        await tempRoom.connect(res.wsUrl, res.token, { autoSubscribe: false });
+        const hasDriver = tempRoom.remoteParticipants.size > 0;
+        await tempRoom.disconnect();
+        if (hasDriver && !showCall) {
+          setIncomingCall(true);
+          try {
+            const ctx = new AudioContext();
+            const playTone = (freq: number, t: number, dur: number) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain); gain.connect(ctx.destination);
+              osc.frequency.value = freq; osc.type = 'sine';
+              gain.gain.setValueAtTime(0.3, ctx.currentTime + t);
+              gain.gain.setValueAtTime(0, ctx.currentTime + t + dur);
+              osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + dur + 0.1);
+            };
+            playTone(880, 0, 0.3); playTone(660, 0.4, 0.3);
+            incomingRingRef.current = setInterval(() => {
+              playTone(880, 0, 0.3); playTone(660, 0.4, 0.3);
+            }, 2000);
+          } catch {}
+          clearInterval(callCheckRef.current);
+        }
+      } catch {}
+    };
+
+    callCheckRef.current = setInterval(checkForCall, 3000);
+    return () => {
+      clearInterval(callCheckRef.current);
+      clearInterval(incomingRingRef.current);
+    };
+  }, [primaryTrip?.id, showCall]);  const status = primaryTrip?.status ?? 'SEARCHING_DRIVER';
   const rideIsActive = ACTIVE_STATUSES.includes(status);
   const mapSource = isGroup ? groupTrips[0] : trip;
 
@@ -255,6 +307,39 @@ function TrackingContent() {
           }}
         />
       )}
+      {/* Incoming call banner */}
+      {incomingCall && !showCall && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-zana-primary px-4 py-4 flex items-center justify-between shadow-2xl animate-fade-slide-up">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center animate-pulse">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+                <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-white font-black text-base">Incoming call</p>
+              <p className="text-white/70 text-xs">Your driver is calling</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setIncomingCall(false); clearInterval(incomingRingRef.current); }}
+              className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                <path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4l5.6 5.6L5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4z"/>
+              </svg>
+            </button>
+            <button
+              onClick={() => { setIncomingCall(false); clearInterval(incomingRingRef.current); setShowCall(true); }}
+              className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#00A082">
+                <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {showCall && primaryTrip && (
         <VoiceCall
           context="trip"
