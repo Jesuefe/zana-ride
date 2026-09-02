@@ -138,6 +138,24 @@ export default function DriverHome() {
   }, [coords?.lat, coords?.lng]);
 
   // Load profile and earnings
+
+  // Request screen wake lock so GPS keeps running while driver is online
+  useEffect(() => {
+    let wakeLock: any = null;
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+        }
+      } catch { /* not supported */ }
+    };
+    requestWakeLock();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    });
+    return () => { wakeLock?.release?.(); };
+  }, []);
+
   useEffect(() => {
     // Check for active delivery on load
     api.get('/driver/deliveries/active').then((d: any) => setActiveDelivery(d)).catch(() => {});

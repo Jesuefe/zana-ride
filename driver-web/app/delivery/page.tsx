@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Navigation, Phone, Package, ChevronRight, Check } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import DriverBottomNav from '../../components/DriverBottomNav';
 import DriverMap from '../../components/DriverMap';
 import { watchPosition, Coords } from '../../lib/location';
 import { updateDriverLocation } from '../../lib/api/driver';
@@ -188,5 +189,6 @@ export default function ActiveDeliveryPage() {
         </div>
       </div>
     </div>
+    <DriverBottomNav />
   );
 }
