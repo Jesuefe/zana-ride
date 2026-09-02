@@ -76,7 +76,7 @@ function RideOptionsContent() {
   const [loadingFares, setLoadingFares] = useState(true);
   const [selected, setSelected] = useState<ServiceType | null>(preselected ?? null);
   const [step, setStep] = useState<'select' | 'confirm'>('select');
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
@@ -217,6 +217,31 @@ function RideOptionsContent() {
                 </button>
               ))}
             </div>
+
+            {/* Payment method — shown on step 1 so customer sees it before confirming */}
+            <div className="mt-5">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Payment method</p>
+              <div className="grid grid-cols-3 gap-2">
+                {PAYMENT_OPTIONS.map(({ id, label, icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => setPaymentMethod(id)}
+                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 transition-all ${
+                      paymentMethod === id
+                        ? 'border-zana-primary bg-zana-primary-light'
+                        : 'border-gray-100 bg-white'
+                    }`}
+                  >
+                    <div className={paymentMethod === id ? 'text-zana-primary' : 'text-gray-400'}>
+                      {icon}
+                    </div>
+                    <p className={`text-[11px] font-bold ${paymentMethod === id ? 'text-zana-primary' : 'text-gray-600'}`}>
+                      {label}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -287,7 +312,7 @@ function RideOptionsContent() {
 
           {/* Payment method */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Payment method</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">💳 How will you pay?</p>
             <div className="space-y-2">
               {PAYMENT_OPTIONS.map(({ id, label, sub, icon }) => (
                 <button
