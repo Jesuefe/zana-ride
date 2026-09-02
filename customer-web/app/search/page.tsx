@@ -21,6 +21,7 @@ function SearchContent() {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
+  const [isZanaCode, setIsZanaCode] = useState(false);
   const [pickup, setPickup] = useState(getStoredPickup());
   const [pickupAddress, setPickupAddress] = useState('Locating…');
   const [nearby, setNearby] = useState<NearbyDriver[]>([]);

@@ -1,30 +1,95 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, MapPin, Clock, Loader2, Star } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, Loader2, Check } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { loadGoogleMaps } from '../../lib/mapsLoader';
+import { getStoredPickup } from '../../lib/location';
+import { reverseGeocode } from '../../lib/geocode';
 
 const SPECIAL_REQUESTS = [
   'Airport Drop-off', 'Airport Pick-up', 'Bank Visit',
-  'Hospital', 'Hotel', 'Wedding', 'Shopping Trip',
-  'School Run', 'Custom',
+  'Hospital', 'Hotel', 'Wedding', 'Shopping Trip', 'School Run', 'Custom',
 ];
 
 const SERVICE_TYPES = [
-  { id: 'ECONOMY', label: 'Economy', icon: '', sub: 'Standard car' },
-  { id: 'COMFORT', label: 'Comfort', icon: '', sub: 'Premium car' },
-  { id: 'BIKE', label: 'Moto', icon: '', sub: 'Fast & affordable' },
+  { id: 'BIKE', label: 'Moto', sub: 'Fast & affordable' },
+  { id: 'ECONOMY', label: 'Basic Car', sub: 'Up to 4 passengers' },
+  { id: 'COMFORT', label: 'Premium Car', sub: 'Top-rated drivers' },
+] as const;
+
+const PAYMENT_OPTIONS = [
+  { id: 'CASH' as const, label: 'Cash', sub: 'Pay driver directly' },
+  { id: 'WALLET' as const, label: 'Zana Wallet', sub: 'Deducted at trip end' },
+  { id: 'MOBILE_MONEY' as const, label: 'Mobile Money', sub: 'MoMo request at trip end' },
 ];
+
+type PlaceResult = { address: string; lat: number; lng: number };
+
+function PlaceInput({
+  label,
+  placeholder,
+  value,
+  onSelect,
+  color = '#00A082',
+}: {
+  label: string;
+  placeholder: string;
+  value: PlaceResult | null;
+  onSelect: (p: PlaceResult) => void;
+  color?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const acRef = useRef<any>(null);
+
+  useEffect(() => {
+    loadGoogleMaps().then(() => {
+      if (!inputRef.current || acRef.current) return;
+      const G = (window as any).google.maps.places;
+      acRef.current = new G.Autocomplete(inputRef.current, {
+        componentRestrictions: { country: 'rw' },
+        fields: ['formatted_address', 'geometry'],
+      });
+      acRef.current.addListener('place_changed', () => {
+        const place = acRef.current.getPlace();
+        if (place?.geometry?.location) {
+          onSelect({
+            address: place.formatted_address,
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          });
+        }
+      });
+    });
+  }, []);
+
+  return (
+    <div>
+      <label className="text-xs font-semibold text-gray-500 block mb-1.5">{label}</label>
+      <div className={`flex items-center gap-2 border-2 rounded-xl px-3 py-3 focus-within:border-zana-primary transition-colors ${value ? 'border-zana-primary/30 bg-zana-primary-light' : 'border-gray-200'}`}>
+        <MapPin size={15} style={{ color }} className="shrink-0" />
+        <input
+          ref={inputRef}
+          defaultValue={value?.address ?? ''}
+          placeholder={placeholder}
+          className="flex-1 text-sm outline-none bg-transparent"
+        />
+        {value && <Check size={14} className="text-zana-primary shrink-0" />}
+      </div>
+      {value && <p className="text-[10px] text-zana-primary mt-1 truncate px-1">{value.address}</p>}
+    </div>
+  );
+}
 
 export default function ScheduleRidePage() {
   const router = useRouter();
-  const [pickup, setPickup] = useState('');
-  const [destination, setDestination] = useState('');
-  const [serviceType, setServiceType] = useState('ECONOMY');
+  const [pickup, setPickup] = useState<PlaceResult | null>(null);
+  const [destination, setDestination] = useState<PlaceResult | null>(null);
+  const [serviceType, setServiceType] = useState<'BIKE' | 'ECONOMY' | 'COMFORT'>('ECONOMY');
   const [scheduledFor, setScheduledFor] = useState('');
   const [specialRequest, setSpecialRequest] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'CASH'|'WALLET'|'MOBILE_MONEY'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('CASH');
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -32,91 +97,120 @@ export default function ScheduleRidePage() {
   const minTime = new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16);
   const maxTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
 
+  // Pre-fill pickup from stored GPS
+  useEffect(() => {
+    const stored = getStoredPickup();
+    reverseGeocode(stored.lat, stored.lng).then(addr => {
+      setPickup({ address: addr ?? 'Current location', lat: stored.lat, lng: stored.lng });
+    });
+  }, []);
+
   const handleBook = async () => {
-    if (!pickup || !destination || !scheduledFor) { setError('Please fill all required fields.'); return; }
-    setBooking(true); setError('');
+    if (!pickup || !destination || !scheduledFor) {
+      setError('Please fill pickup, destination and time.');
+      return;
+    }
+    setBooking(true);
+    setError('');
     try {
       await api.post('/scheduled-rides', {
-        pickupAddress: pickup, pickupLat: -1.9536, pickupLng: 30.0605,
-        destinationAddress: destination, destinationLat: -1.97, destinationLng: 30.12,
-        serviceType, scheduledFor,
+        pickupAddress: pickup.address,
+        pickupLat: pickup.lat,
+        pickupLng: pickup.lng,
+        destinationAddress: destination.address,
+        destinationLat: destination.lat,
+        destinationLng: destination.lng,
+        serviceType,
+        scheduledFor,
         specialRequest: specialRequest || undefined,
         paymentMethod,
       });
       setSuccess(true);
-    } catch (e: any) { setError(e.message ?? 'Could not schedule ride.'); }
-    finally { setBooking(false); }
+    } catch (e: any) {
+      setError(e.message ?? 'Could not schedule ride.');
+    } finally {
+      setBooking(false);
+    }
   };
 
   if (success) return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-      <div className="text-5xl mb-4"></div>
-      <h2 className="text-xl font-bold text-gray-900 mb-2">Ride Scheduled!</h2>
-      <p className="text-sm text-gray-500 mb-1">Your ride is confirmed for</p>
-      <p className="font-semibold text-zana-primary">{new Date(scheduledFor).toLocaleString()}</p>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-gray-50">
+      <div className="w-20 h-20 rounded-full bg-zana-primary-light flex items-center justify-center mb-4">
+        <Check size={36} className="text-zana-primary" />
+      </div>
+      <h2 className="text-xl font-black text-gray-900 mb-2">Ride Scheduled</h2>
+      <p className="text-sm text-gray-500 mb-1">Confirmed for</p>
+      <p className="font-bold text-zana-primary">{new Date(scheduledFor).toLocaleString()}</p>
       {specialRequest && <p className="text-xs text-gray-400 mt-1">{specialRequest}</p>}
-      <p className="text-xs text-gray-400 mt-4">You'll be notified 45 minutes before pickup.</p>
-      <button onClick={() => router.push('/')} className="mt-6 bg-zana-primary text-white font-semibold px-8 py-3 rounded-xl">
+      <p className="text-xs text-gray-400 mt-4 max-w-xs">
+        You will be notified 45 minutes before pickup. Your driver will be assigned automatically.
+      </p>
+      <button onClick={() => router.push('/')}
+        className="mt-8 bg-zana-primary text-white font-bold px-10 py-3.5 rounded-2xl">
         Back to Home
       </button>
     </div>
   );
 
   return (
-    <div className="p-4 pb-8">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-50 pb-10">
+      <div className="bg-white px-4 pt-12 pb-4 flex items-center gap-3 border-b border-gray-100">
+        <button onClick={() => router.back()}
+          className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
           <ArrowLeft size={16} />
         </button>
         <div>
-          <h1 className="text-lg font-bold text-gray-900">Schedule a Ride</h1>
+          <h1 className="text-lg font-black text-gray-900">Schedule a Ride</h1>
           <p className="text-xs text-gray-400">Book up to 24 hours in advance</p>
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="px-4 pt-5 space-y-4">
         {/* Pickup */}
-        <div>
-          <label className="text-xs font-semibold text-gray-500 block mb-1.5">Pickup location</label>
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-zana-primary/30">
-            <MapPin size={15} className="text-zana-primary shrink-0" />
-            <input value={pickup} onChange={e => setPickup(e.target.value)} placeholder="Enter pickup address"
-              className="flex-1 text-sm outline-none" />
-          </div>
-        </div>
+        <PlaceInput
+          label="Pickup location"
+          placeholder="Where should we pick you up?"
+          value={pickup}
+          onSelect={setPickup}
+          color="#00A082"
+        />
 
         {/* Destination */}
-        <div>
-          <label className="text-xs font-semibold text-gray-500 block mb-1.5">Destination</label>
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-zana-primary/30">
-            <MapPin size={15} className="text-amber-500 shrink-0" />
-            <input value={destination} onChange={e => setDestination(e.target.value)} placeholder="Enter destination"
-              className="flex-1 text-sm outline-none" />
-          </div>
-        </div>
+        <PlaceInput
+          label="Destination"
+          placeholder="Where are you going?"
+          value={destination}
+          onSelect={setDestination}
+          color="#E6A82E"
+        />
 
-        {/* Date/time */}
+        {/* Date & Time */}
         <div>
           <label className="text-xs font-semibold text-gray-500 block mb-1.5">Pickup time</label>
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-zana-primary/30">
+          <div className="flex items-center gap-2 border-2 border-gray-200 rounded-xl px-3 py-3 focus-within:border-zana-primary transition-colors">
             <Clock size={15} className="text-gray-400 shrink-0" />
-            <input type="datetime-local" value={scheduledFor} onChange={e => setScheduledFor(e.target.value)}
-              min={minTime} max={maxTime} className="flex-1 text-sm outline-none" />
+            <input
+              type="datetime-local"
+              value={scheduledFor}
+              onChange={e => setScheduledFor(e.target.value)}
+              min={minTime}
+              max={maxTime}
+              className="flex-1 text-sm outline-none bg-transparent"
+            />
           </div>
         </div>
 
         {/* Service type */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 block mb-1.5">Service type</label>
+          <label className="text-xs font-semibold text-gray-500 block mb-1.5">Ride type</label>
           <div className="grid grid-cols-3 gap-2">
             {SERVICE_TYPES.map(s => (
               <button key={s.id} onClick={() => setServiceType(s.id)}
                 className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition-colors ${
-                  serviceType === s.id ? 'border-zana-primary bg-zana-primary-light' : 'border-gray-100'
+                  serviceType === s.id ? 'border-zana-primary bg-zana-primary-light' : 'border-gray-100 bg-white'
                 }`}>
-                <span className="text-xl">{s.icon}</span>
-                <span className="text-xs font-semibold text-gray-900">{s.label}</span>
-                <span className="text-[10px] text-gray-400">{s.sub}</span>
+                <p className={`text-sm font-bold ${serviceType === s.id ? 'text-zana-primary' : 'text-gray-800'}`}>{s.label}</p>
+                <p className="text-[10px] text-gray-400 text-center leading-tight">{s.sub}</p>
               </button>
             ))}
           </div>
@@ -129,7 +223,9 @@ export default function ScheduleRidePage() {
             {SPECIAL_REQUESTS.map(req => (
               <button key={req} onClick={() => setSpecialRequest(r => r === req ? '' : req)}
                 className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                  specialRequest === req ? 'bg-zana-primary text-white border-zana-primary' : 'border-gray-200 text-gray-600'
+                  specialRequest === req
+                    ? 'bg-zana-primary text-white border-zana-primary'
+                    : 'border-gray-200 text-gray-600 bg-white'
                 }`}>
                 {req}
               </button>
@@ -137,27 +233,36 @@ export default function ScheduleRidePage() {
           </div>
         </div>
 
-        {/* Payment */}
+        {/* Payment method */}
         <div>
           <label className="text-xs font-semibold text-gray-500 block mb-1.5">Payment method</label>
-          <div className="grid grid-cols-3 gap-2">
-            {([['CASH','Cash','Cash'],['WALLET','Wallet','Wallet'],['MOBILE_MONEY','MoMo','MoMo']] as const).map(([id, icon, label]) => (
+          <div className="space-y-2">
+            {PAYMENT_OPTIONS.map(({ id, label, sub }) => (
               <button key={id} onClick={() => setPaymentMethod(id)}
-                className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 text-xs font-semibold transition-colors ${
-                  paymentMethod === id ? 'border-zana-primary bg-zana-primary-light text-zana-primary' : 'border-gray-100 text-gray-500'
+                className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 border-2 transition-colors ${
+                  paymentMethod === id ? 'border-zana-primary bg-zana-primary-light' : 'border-gray-100 bg-white'
                 }`}>
-                <span className="text-xl">{icon}</span>{label}
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                  paymentMethod === id ? 'border-zana-primary' : 'border-gray-300'
+                }`}>
+                  {paymentMethod === id && <div className="w-2.5 h-2.5 rounded-full bg-zana-primary" />}
+                </div>
+                <div className="text-left">
+                  <p className={`text-sm font-semibold ${paymentMethod === id ? 'text-zana-primary' : 'text-gray-800'}`}>{label}</p>
+                  <p className="text-xs text-gray-400">{sub}</p>
+                </div>
               </button>
             ))}
           </div>
         </div>
 
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {error && <p className="text-xs text-red-600 text-center">{error}</p>}
 
-        <button onClick={handleBook} disabled={booking}
-          className="w-full bg-zana-primary text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40">
-          {booking ? <Loader2 size={16} className="animate-spin" /> : <Calendar size={16} />}
-          {booking ? 'Scheduling…' : 'Schedule Ride'}
+        <button onClick={handleBook} disabled={booking || !pickup || !destination || !scheduledFor}
+          className="w-full bg-zana-primary text-white font-black text-base py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">
+          {booking
+            ? <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Scheduling...</>
+            : <><Calendar size={18} /> Schedule Ride</>}
         </button>
       </div>
     </div>

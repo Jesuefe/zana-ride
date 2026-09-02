@@ -16,6 +16,7 @@ export default function FoodPage() {
   const [loading, setLoading] = useState(true);
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [showCart, setShowCart] = useState(false);
   const pickup = getStoredPickup();
 
@@ -56,6 +57,7 @@ export default function FoodPage() {
         dropoffLat: pickup.lat,
         dropoffLng: pickup.lng,
         dropoffAddress: 'Current location',
+        paymentMethod,
       });
       router.push(`/orders?highlight=${order.id}`);
     } catch (err) {

@@ -164,6 +164,7 @@ export async function createOrder(data: {
   locationCode?: string;
   receiverPhone?: string;
   note?: string;
+  paymentMethod?: string;
 }) {
   return api.post<any>('/orders', data);
 }
