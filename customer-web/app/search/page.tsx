@@ -6,7 +6,7 @@ import { ArrowLeft, MapPin, Loader2, Minus, Plus, Users, Move } from 'lucide-rea
 import { getStoredPickup, setStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
-import { createRide, createRideGroup, fetchNearbyDrivers, NearbyDriver } from '../../lib/api/trips';
+import { createRide, createRideGroup, fetchNearbyDrivers, NearbyDriver, estimateRide } from '../../lib/api/trips';
 import { fetchWallet } from '../../lib/api/trips';
 
 const MOTO_PAYMENT_OPTIONS = [
@@ -37,6 +37,8 @@ function SearchContent() {
   const [showPaymentPicker, setShowPaymentPicker] = useState(false);
   const [pendingPlace, setPendingPlace] = useState<{address:string;lat:number;lng:number}|null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [estimatedFare, setEstimatedFare] = useState<number | null>(null);
+  const [fetchingFare, setFetchingFare] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -160,9 +162,20 @@ function SearchContent() {
       return;
     }
 
-    // Moto — show payment picker before booking
+    // Moto — fetch fare estimate then show payment picker
     if (isMoto) {
-      setPendingPlace({ address: place.address, lat: place.lat, lng: place.lng });
+      const pending = { address: place.address, lat: place.lat, lng: place.lng };
+      setPendingPlace(pending);
+      setFetchingFare(true);
+      try {
+        const estimate = await estimateRide(
+          { lat: pickup.lat, lng: pickup.lng },
+          { lat: place.lat, lng: place.lng },
+          'BIKE'
+        );
+        setEstimatedFare((estimate as any).BIKE ?? (estimate as any).fare ?? (estimate as any).estimatedFare ?? null);
+      } catch { setEstimatedFare(null); }
+      finally { setFetchingFare(false); }
       setShowPaymentPicker(true);
       return;
     }
@@ -308,52 +321,94 @@ function SearchContent() {
       </div>
 
       {/* Moto payment picker modal */}
-      {showPaymentPicker && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/50">
-          <div className="w-full bg-white rounded-t-3xl p-5">
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-            <h2 className="font-black text-lg text-gray-900 mb-1">How will you pay?</h2>
-            <p className="text-xs text-gray-400 mb-5">
-              {motoCount > 1 ? `${motoCount} seats` : '1 seat'} · Moto ride
-            </p>
-            <div className="space-y-2 mb-5">
-              {MOTO_PAYMENT_OPTIONS.map(({ id, label, icon }) => (
-                <button key={id} onClick={() => setPaymentMethod(id)}
-                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all ${
-                    paymentMethod === id
-                      ? 'border-zana-primary bg-zana-primary-light'
-                      : 'border-gray-100 bg-white'
-                  }`}>
-                  <span className="text-2xl">{icon}</span>
-                  <div className="flex-1 text-left">
-                    <span className={`font-semibold text-sm ${paymentMethod === id ? 'text-zana-primary' : 'text-gray-800'}`}>
-                      {label}
-                    </span>
-                    {id === 'WALLET' && walletBalance !== null && (
-                      <p className="text-xs text-gray-400">Balance: {walletBalance.toLocaleString()} RWF</p>
-                    )}
-                  </div>
-                  {paymentMethod === id && (
-                    <div className="ml-auto w-5 h-5 rounded-full bg-zana-primary flex items-center justify-center">
-                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
-                    </div>
+      {showPaymentPicker && (() => {
+        const totalFare = estimatedFare ? estimatedFare * motoCount : null;
+        const walletInsufficient = paymentMethod === 'WALLET' && walletBalance !== null && totalFare !== null && walletBalance < totalFare;
+        return (
+          <div className="fixed inset-0 z-50 flex items-end bg-black/50">
+            <div className="w-full bg-white rounded-t-3xl p-5">
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+
+              {/* Header with fare */}
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="font-black text-lg text-gray-900">How will you pay?</h2>
+                  <p className="text-xs text-gray-400">
+                    {motoCount > 1 ? `${motoCount} seats` : '1 seat'} · Moto ride
+                  </p>
+                </div>
+                <div className="text-right bg-zana-primary-light rounded-2xl px-4 py-2">
+                  {fetchingFare ? (
+                    <div className="w-4 h-4 border-2 border-zana-primary border-t-transparent rounded-full animate-spin" />
+                  ) : totalFare ? (
+                    <>
+                      <p className="text-xl font-black text-zana-primary">{totalFare.toLocaleString()}</p>
+                      <p className="text-[10px] text-gray-500">RWF total</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-gray-400">Calculating...</p>
                   )}
-                </button>
-              ))}
+                </div>
+              </div>
+
+              {/* Insufficient wallet warning */}
+              {walletInsufficient && (
+                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
+                  <span className="text-red-500 shrink-0">⚠️</span>
+                  <p className="text-xs text-red-700">
+                    <strong>Insufficient balance.</strong> Your wallet has {walletBalance?.toLocaleString()} RWF but this ride costs {totalFare?.toLocaleString()} RWF. Choose another payment method or top up.
+                  </p>
+                </div>
+              )}
+
+              {/* Payment options */}
+              <div className="space-y-2 mb-5">
+                {MOTO_PAYMENT_OPTIONS.map(({ id, label, icon }) => {
+                  const isWallet = id === 'WALLET';
+                  const insufficient = isWallet && walletInsufficient;
+                  return (
+                    <button key={id} onClick={() => setPaymentMethod(id)}
+                      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all ${
+                        paymentMethod === id
+                          ? insufficient ? 'border-red-400 bg-red-50' : 'border-zana-primary bg-zana-primary-light'
+                          : 'border-gray-100 bg-white'
+                      }`}>
+                      <span className="text-2xl">{icon}</span>
+                      <div className="flex-1 text-left">
+                        <p className={`font-semibold text-sm ${paymentMethod === id ? insufficient ? 'text-red-600' : 'text-zana-primary' : 'text-gray-800'}`}>
+                          {label}
+                        </p>
+                        {isWallet && walletBalance !== null && (
+                          <p className={`text-xs ${insufficient ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                            Balance: {walletBalance.toLocaleString()} RWF
+                            {insufficient && totalFare ? ` · need ${(totalFare - walletBalance).toLocaleString()} more` : ''}
+                          </p>
+                        )}
+                      </div>
+                      {paymentMethod === id && !insufficient && (
+                        <div className="w-5 h-5 rounded-full bg-zana-primary flex items-center justify-center shrink-0">
+                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button onClick={bookMoto} disabled={booking || walletInsufficient || fetchingFare}
+                className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 disabled:opacity-50">
+                {booking
+                  ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : `Confirm & Book${totalFare ? ` · ${totalFare.toLocaleString()} RWF` : ''}`}
+              </button>
+              <button onClick={() => { setShowPaymentPicker(false); setEstimatedFare(null); }}
+                className="w-full text-center text-sm text-gray-400 mt-3 py-1">
+                Cancel
+              </button>
             </div>
-            <button onClick={bookMoto} disabled={booking}
-              className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 disabled:opacity-50">
-              {booking
-                ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : 'Confirm & Book'}
-            </button>
-            <button onClick={() => setShowPaymentPicker(false)}
-              className="w-full text-center text-sm text-gray-400 mt-3 py-1">
-              Cancel
-            </button>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
