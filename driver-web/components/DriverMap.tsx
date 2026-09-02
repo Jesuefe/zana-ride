@@ -136,7 +136,10 @@ export default function DriverMap({
       })));
       setCurrentStep(0);
 
-      if (!navigationMode && pos && tgt) {
+      if (navigationMode) {
+        map.setCenter(new G.LatLng(pos.lat, pos.lng));
+        map.setZoom(18);
+      } else if (pos && tgt) {
         const bounds = new G.LatLngBounds();
         bounds.extend(new G.LatLng(pos.lat, pos.lng));
         bounds.extend(new G.LatLng(tgt.lat, tgt.lng));
