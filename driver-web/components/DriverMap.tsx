@@ -83,9 +83,10 @@ export default function DriverMap({
         zoom: navigationMode ? 18 : 14,
         mapId: 'zana_driver_nav',
         disableDefaultUI: true,
-        gestureHandling: 'greedy',
-        zoomControl: !navigationMode,
-        tilt: navigationMode ? 45 : 0,
+        gestureHandling: navigationMode ? 'none' : 'greedy',
+        zoomControl: false,
+        tilt: navigationMode ? 60 : 0,
+        heading: 0,
       });
 
       // Set up DirectionsRenderer once
@@ -203,15 +204,21 @@ export default function DriverMap({
       const div = document.createElement('div');
       div.id = 'zana-driver-dot';
       div.style.cssText = `
-        width: 48px; height: 48px; border-radius: 50%;
-        background: #00A082; border: 3px solid white;
-        box-shadow: 0 2px 12px rgba(0,160,130,0.6);
+        width: 52px; height: 52px;
         display: flex; align-items: center; justify-content: center;
-        transition: transform 0.4s ease;
+        filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));
+        transition: transform 0.3s ease;
+        transform: rotate(${heading}deg);
       `;
-      div.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2L19 21L12 17L5 21L12 2Z"/></svg>`;
+      div.innerHTML = `<svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="26" cy="26" r="20" fill="white" opacity="0.9"/>
+        <path d="M26 8 L34 38 L26 32 L18 38 Z" fill="#00A082"/>
+      </svg>`;
       try {
-        markerRef.current = new G.marker.AdvancedMarkerElement({ position: pos, map, content: div });
+        markerRef.current = new G.marker.AdvancedMarkerElement({
+          position: pos, map, content: div,
+          collisionBehavior: 'OPTIONAL_AND_HIDES_LOWER_PRIORITY',
+        });
       } catch {
         markerRef.current = new G.Marker({ position: pos, map });
       }
@@ -225,11 +232,25 @@ export default function DriverMap({
       }
     }
 
-    // Keep map centered on driver in navigation mode — enforce zoom 18
+    // Navigation mode — rotate map to face direction, offset camera so driver is in lower third
     if (navigationMode) {
-      map.setCenter(pos);
-      if (map.getZoom() < 16) map.setZoom(18);
-      map.setHeading?.(heading);
+      const AHEAD_OFFSET = 0.0005; // ~55m ahead in direction of travel
+      const rad = (heading * Math.PI) / 180;
+      const offsetLat = pos.lat + AHEAD_OFFSET * Math.cos(rad);
+      const offsetLng = pos.lng + AHEAD_OFFSET * Math.sin(rad);
+      if (map.moveCamera) {
+        map.moveCamera({
+          center: new G.LatLng(offsetLat, offsetLng),
+          zoom: 18,
+          heading: heading,
+          tilt: 60,
+        });
+      } else {
+        map.setCenter(new G.LatLng(offsetLat, offsetLng));
+        map.setZoom(18);
+        map.setHeading?.(heading);
+        map.setTilt?.(60);
+      }
     }
 
     // Advance to next step when driver reaches step end point
