@@ -1,133 +1,140 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Shield, Phone, MapPin, User, Clock, LogOut, RefreshCw, AlertTriangle, X, Navigation } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Shield, Phone, MapPin, LogOut, RefreshCw, AlertTriangle, X, CheckCircle, Bell } from 'lucide-react';
 import { api, getToken, clearToken, setToken } from '../../lib/api/client';
 
 const MAPS_KEY = 'AIzaSyD4o-fXIpmGozrClaP1niC407cgRCrzSTI';
 
-type LiveTrip = {
+type SosAlert = {
   id: string;
-  customerId: string;
-  customerName: string;
-  customerPhone: string;
-  driverName: string;
-  driverPhone: string;
-  vehicle: string;
-  plate: string;
-  pickupAddress: string;
-  destinationAddress: string;
-  pickupLat: number;
-  pickupLng: number;
-  destinationLat: number;
-  destinationLng: number;
-  driverLat: number | null;
-  driverLng: number | null;
+  tripId?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   status: string;
-  estimatedFare: number;
-  requestedAt: string;
-  sosReported?: boolean;
+  createdAt: string;
+  acknowledgedAt?: string | null;
+  customer: { firstName: string | null; lastName: string | null; phone: string };
+  trip?: {
+    pickupAddress: string;
+    destinationAddress: string;
+    pickupLat: number;
+    pickupLng: number;
+    estimatedFare: number;
+    driver?: {
+      vehicle: string;
+      plate: string;
+      lastLat?: number | null;
+      lastLng?: number | null;
+      user: { firstName: string | null; lastName: string | null; phone: string };
+    } | null;
+  } | null;
 };
 
 function loadMaps(): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
-  if ((window as any).__mapsReady) return Promise.resolve();
+  if ((window as any).google?.maps?.Map) return Promise.resolve();
   return new Promise(resolve => {
-    (window as any).__safetyMapCb = () => { (window as any).__mapsReady = true; resolve(); };
-    const s = document.createElement('script');
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&callback=__safetyMapCb&v=weekly`;
-    s.async = true; s.defer = true;
-    document.head.appendChild(s);
+    if ((window as any).__safetyMapPromise) {
+      (window as any).__safetyMapPromise.then(resolve);
+      return;
+    }
+    const p = new Promise<void>(res => {
+      (window as any).__safetyMapCb = () => res();
+      const s = document.createElement('script');
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=marker&callback=__safetyMapCb&v=weekly`;
+      s.async = true; s.defer = true;
+      document.head.appendChild(s);
+    });
+    (window as any).__safetyMapPromise = p;
+    p.then(resolve);
   });
 }
 
-function TripMap({ trip }: { trip: LiveTrip }) {
+function SosMap({ alert }: { alert: SosAlert }) {
   const ref = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const driverMarker = useRef<any>(null);
-  const [eta1, setEta1] = useState<string | null>(null);
-  const [eta2, setEta2] = useState<string | null>(null);
 
   useEffect(() => {
+    const lat = alert.lat ?? alert.trip?.pickupLat;
+    const lng = alert.lng ?? alert.trip?.pickupLng;
+    if (!lat || !lng) return;
+
     loadMaps().then(() => {
       if (!ref.current) return;
-      const center = { lat: trip.pickupLat, lng: trip.pickupLng };
-      mapRef.current = new (window as any).google.maps.Map(ref.current, {
-        center, zoom: 13,
-        mapId: 'zana_safety_map',
+      const G = (window as any).google.maps;
+      const map = new G.Map(ref.current, {
+        center: { lat, lng }, zoom: 15,
+        mapId: 'zana_sos_map',
         disableDefaultUI: true,
         zoomControl: true,
       });
 
-      // Pickup marker
-      const pickupDiv = document.createElement('div');
-      pickupDiv.innerHTML = '<div style="width:14px;height:14px;border-radius:50%;background:#00A082;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>';
-      new (window as any).google.maps.marker.AdvancedMarkerElement({ position: { lat: trip.pickupLat, lng: trip.pickupLng }, map: mapRef.current, content: pickupDiv });
+      // Customer location marker (red pulse)
+      const div = document.createElement('div');
+      div.innerHTML = `<div style="width:20px;height:20px;border-radius:50%;background:#E53E3E;border:3px solid white;box-shadow:0 0 0 4px rgba(229,62,62,0.3);animation:pulse 1s infinite"></div>`;
+      new G.marker.AdvancedMarkerElement({ position: { lat, lng }, map, content: div });
 
-      // Destination marker
-      const destDiv = document.createElement('div');
-      destDiv.innerHTML = '<div style="width:14px;height:14px;border-radius:50%;background:#E6A82E;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>';
-      new (window as any).google.maps.marker.AdvancedMarkerElement({ position: { lat: trip.destinationLat, lng: trip.destinationLng }, map: mapRef.current, content: destDiv });
-
-      // Route line
-      new (window as any).google.maps.Polyline({
-        path: [{ lat: trip.pickupLat, lng: trip.pickupLng }, { lat: trip.destinationLat, lng: trip.destinationLng }],
-        geodesic: true, strokeColor: '#00A082', strokeOpacity: 0.4, strokeWeight: 2, map: mapRef.current,
-      });
-
-      // Compute ETAs
-      const svc = new (window as any).google.maps.DistanceMatrixService();
-      if (trip.driverLat && trip.driverLng) {
-        svc.getDistanceMatrix({
-          origins: [{ lat: trip.driverLat, lng: trip.driverLng }],
-          destinations: [{ lat: trip.pickupLat, lng: trip.pickupLng }],
-          travelMode: (window as any).google.maps.TravelMode.DRIVING,
-        }, (res: any) => {
-          const dur = res?.rows[0]?.elements[0]?.duration?.text;
-          if (dur) setEta1(dur);
-        });
+      // Driver marker if available
+      const dLat = alert.trip?.driver?.lastLat;
+      const dLng = alert.trip?.driver?.lastLng;
+      if (dLat && dLng) {
+        const dDiv = document.createElement('div');
+        dDiv.innerHTML = '<div style="width:14px;height:14px;border-radius:50%;background:#3182CE;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>';
+        new G.marker.AdvancedMarkerElement({ position: { lat: dLat, lng: dLng }, map, content: dDiv });
       }
-      svc.getDistanceMatrix({
-        origins: [{ lat: trip.pickupLat, lng: trip.pickupLng }],
-        destinations: [{ lat: trip.destinationLat, lng: trip.destinationLng }],
-        travelMode: (window as any).google.maps.TravelMode.DRIVING,
-      }, (res: any) => {
-        const dur = res?.rows[0]?.elements[0]?.duration?.text;
-        if (dur) setEta2(dur);
-      });
     });
   }, []);
 
-  // Update driver marker position
-  useEffect(() => {
-    if (!mapRef.current || !trip.driverLat || !trip.driverLng) return;
-    const pos = { lat: trip.driverLat, lng: trip.driverLng };
-    if (!driverMarker.current) {
-      const div = document.createElement('div');
-      div.innerHTML = '<div style="width:18px;height:18px;border-radius:50%;background:#E53E3E;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.5)"><div style="width:6px;height:6px;border-radius:50%;background:white;margin:3px auto"></div></div>';
-      driverMarker.current = new (window as any).google.maps.marker.AdvancedMarkerElement({ position: pos, map: mapRef.current, content: div });
-    } else {
-      driverMarker.current.position = pos;
-    }
-  }, [trip.driverLat, trip.driverLng]);
+  const lat = alert.lat ?? alert.trip?.pickupLat;
+  const lng = alert.lng ?? alert.trip?.pickupLng;
+  if (!lat || !lng) return <div className="bg-gray-800 rounded-xl h-40 flex items-center justify-center text-gray-600 text-sm">No location data</div>;
 
   return (
-    <div>
-      <div ref={ref} style={{ width: '100%', height: '200px', borderRadius: '12px', overflow: 'hidden' }} />
-      <div className="flex gap-3 mt-2 text-xs">
-        {eta1 && (
-          <div className="flex items-center gap-1 bg-red-900/40 text-red-300 px-2 py-1 rounded-lg">
-            <Navigation size={10} /> Driver → Pickup: <strong>{eta1}</strong>
-          </div>
-        )}
-        {eta2 && (
-          <div className="flex items-center gap-1 bg-gray-800 text-gray-300 px-2 py-1 rounded-lg">
-            <MapPin size={10} /> Pickup → Dest: <strong>{eta2}</strong>
-          </div>
-        )}
-      </div>
-    </div>
+    <>
+      <style>{`@keyframes pulse { 0%,100%{box-shadow:0 0 0 4px rgba(229,62,62,0.3)} 50%{box-shadow:0 0 0 10px rgba(229,62,62,0)} }`}</style>
+      <div ref={ref} style={{ width: '100%', height: '180px', borderRadius: '12px', overflow: 'hidden' }} />
+      <a
+        href={`https://maps.google.com/?q=${lat},${lng}`}
+        target="_blank"
+        rel="noreferrer"
+        className="text-xs text-blue-400 mt-1 flex items-center gap-1"
+      >
+        <MapPin size={10} /> Open in Google Maps
+      </a>
+    </>
   );
+}
+
+function AlarmSound({ active }: { active: boolean }) {
+  const ctx = useRef<AudioContext | null>(null);
+  const interval = useRef<any>(null);
+
+  const beep = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (!ctx.current) ctx.current = new AudioContext();
+      const osc = ctx.current.createOscillator();
+      const gain = ctx.current.createGain();
+      osc.connect(gain); gain.connect(ctx.current.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.3, ctx.current.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.current.currentTime + 0.4);
+      osc.start(ctx.current.currentTime);
+      osc.stop(ctx.current.currentTime + 0.4);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (active) {
+      beep();
+      interval.current = setInterval(beep, 1200);
+    } else {
+      clearInterval(interval.current);
+    }
+    return () => clearInterval(interval.current);
+  }, [active, beep]);
+
+  return null;
 }
 
 export default function SafetyDashboard() {
@@ -136,57 +143,37 @@ export default function SafetyDashboard() {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [logging, setLogging] = useState(false);
-  const [trips, setTrips] = useState<LiveTrip[]>([]);
-  const [focusTrip, setFocusTrip] = useState<LiveTrip | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [alerts, setAlerts] = useState<SosAlert[]>([]);
+  const [focused, setFocused] = useState<SosAlert | null>(null);
+  const [alarmActive, setAlarmActive] = useState(false);
+  const [lastCount, setLastCount] = useState(0);
+  const [acknowledged, setAcknowledging] = useState<string | null>(null);
 
   useEffect(() => {
     if (getToken()) setAuthed(true);
   }, []);
 
+  const poll = useCallback(async () => {
+    try {
+      const data = await api.get<SosAlert[]>('/sos/active');
+      setAlerts(data);
+      // New alert arrived — sound alarm
+      if (data.length > lastCount && lastCount >= 0) {
+        setAlarmActive(true);
+        // Auto-focus the newest alert
+        if (data[0]) setFocused(data[0]);
+      }
+      if (data.length === 0) setAlarmActive(false);
+      setLastCount(data.length);
+    } catch {}
+  }, [lastCount]);
+
   useEffect(() => {
     if (!authed) return;
-    loadData();
-    const interval = setInterval(loadData, 8000); // refresh every 8s
+    poll();
+    const interval = setInterval(poll, 3000); // poll every 3s
     return () => clearInterval(interval);
-  }, [authed]);
-
-  const loadData = async () => {
-    try {
-      const data = await api.get<any[]>('/admin/trips');
-      const active = data
-        .filter((t: any) => !['RIDE_COMPLETED','CUSTOMER_CANCELLED','DRIVER_CANCELLED','NO_DRIVER_FOUND'].includes(t.status))
-        .map((t: any) => ({
-          id: t.id,
-          customerId: t.customerId,
-          customerName: `${t.customer?.firstName ?? ''} ${t.customer?.lastName ?? ''}`.trim() || 'Customer',
-          customerPhone: t.customer?.phone ?? '',
-          driverName: `${t.driver?.user?.firstName ?? ''} ${t.driver?.user?.lastName ?? ''}`.trim() || 'Driver',
-          driverPhone: t.driver?.user?.phone ?? '',
-          vehicle: t.driver?.vehicle ?? '',
-          plate: t.driver?.plate ?? '',
-          pickupAddress: t.pickupAddress,
-          destinationAddress: t.destinationAddress,
-          pickupLat: t.pickupLat,
-          pickupLng: t.pickupLng,
-          destinationLat: t.destinationLat,
-          destinationLng: t.destinationLng,
-          driverLat: t.driver?.lastLat ?? null,
-          driverLng: t.driver?.lastLng ?? null,
-          status: t.status,
-          estimatedFare: t.estimatedFare,
-          requestedAt: t.requestedAt,
-        }));
-      setTrips(active);
-      // Update focused trip if open
-      if (focusTrip) {
-        const updated = active.find(t => t.id === focusTrip.id);
-        if (updated) setFocusTrip(updated);
-      }
-      setLastRefresh(new Date());
-    } catch {}
-  };
+  }, [authed, poll]);
 
   const handleLogin = async () => {
     setLogging(true); setLoginError('');
@@ -199,15 +186,27 @@ export default function SafetyDashboard() {
     finally { setLogging(false); }
   };
 
-  const statusColor = (s: string) => {
-    if (s === 'RIDE_IN_PROGRESS') return 'bg-green-500';
-    if (s.includes('ARRIVED')) return 'bg-blue-500';
-    if (s.includes('ASSIGNED') || s.includes('EN_ROUTE')) return 'bg-amber-500';
-    return 'bg-gray-500';
+  const acknowledge = async (id: string) => {
+    setAcknowledging(id);
+    try {
+      await api.patch(`/sos/${id}/acknowledge`);
+      setAlarmActive(false);
+      await poll();
+    } catch {}
+    finally { setAcknowledging(null); }
+  };
+
+  const resolve = async (id: string) => {
+    try {
+      await api.patch(`/sos/${id}/resolve`);
+      setFocused(null);
+      await poll();
+    } catch {}
   };
 
   if (!authed) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+      <style>{`@keyframes alertPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }`}</style>
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-3 mb-8 justify-center">
           <div className="w-12 h-12 rounded-2xl bg-red-600 flex items-center justify-center">
@@ -229,7 +228,7 @@ export default function SafetyDashboard() {
             placeholder="Password" />
           {loginError && <p className="text-xs text-red-400">{loginError}</p>}
           <button onClick={handleLogin} disabled={logging}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-sm disabled:opacity-40">
+            className="w-full bg-red-600 text-white font-bold py-3 rounded-xl text-sm disabled:opacity-40">
             {logging ? 'Signing in…' : 'Access Safety Center'}
           </button>
         </div>
@@ -239,6 +238,13 @@ export default function SafetyDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
+      <style>{`
+        @keyframes alertPulse { 0%,100%{background:rgba(229,62,62,0.15)} 50%{background:rgba(229,62,62,0.35)} }
+        @keyframes pulse { 0%,100%{box-shadow:0 0 0 4px rgba(229,62,62,0.3)} 50%{box-shadow:0 0 0 12px rgba(229,62,62,0)} }
+      `}</style>
+
+      <AlarmSound active={alarmActive} />
+
       {/* Header */}
       <div className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
@@ -246,16 +252,17 @@ export default function SafetyDashboard() {
             <Shield size={16} className="text-white" />
           </div>
           <div>
-            <p className="font-bold text-sm">Safety Center</p>
-            <p className="text-[10px] text-gray-500">
-              {trips.length} active · {lastRefresh ? `Updated ${lastRefresh.toLocaleTimeString()}` : '…'}
-            </p>
+            <p className="font-bold text-sm">Zana Safety Center</p>
+            <p className="text-[10px] text-gray-500">Polling every 3s</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={loadData} className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center">
-            <RefreshCw size={13} className={loading ? 'animate-spin text-green-400' : 'text-gray-400'} />
-          </button>
+        <div className="flex items-center gap-2">
+          {alarmActive && (
+            <button onClick={() => setAlarmActive(false)}
+              className="flex items-center gap-1 bg-red-700 text-white text-xs px-2 py-1 rounded-lg animate-pulse">
+              <Bell size={12} /> Mute alarm
+            </button>
+          )}
           <button onClick={() => { clearToken(); setAuthed(false); }}
             className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center">
             <LogOut size={13} className="text-gray-400" />
@@ -263,56 +270,46 @@ export default function SafetyDashboard() {
         </div>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-2 p-3">
-        {[
-          { label: 'Active rides', value: trips.length, color: 'text-green-400' },
-          { label: 'In progress', value: trips.filter(t => t.status === 'RIDE_IN_PROGRESS').length, color: 'text-blue-400' },
-          { label: 'Picking up', value: trips.filter(t => t.status.includes('ASSIGNED') || t.status.includes('ARRIVED')).length, color: 'text-amber-400' },
-        ].map(s => (
-          <div key={s.label} className="bg-gray-900 rounded-xl p-3 text-center">
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-[10px] text-gray-600 mt-0.5">{s.label}</p>
+      {/* Standby state */}
+      {alerts.length === 0 && (
+        <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
+          <div className="w-20 h-20 rounded-full bg-green-900/30 flex items-center justify-center mb-4">
+            <Shield size={36} className="text-green-500" />
           </div>
-        ))}
-      </div>
+          <p className="text-lg font-bold text-green-400">All Clear</p>
+          <p className="text-sm text-gray-600 mt-1">No active SOS alerts</p>
+          <p className="text-xs text-gray-700 mt-4">This page will sound an alarm when a passenger triggers SOS</p>
+        </div>
+      )}
 
-      {/* Trip list */}
-      <div className="px-3 pb-24 space-y-2">
-        {trips.length === 0 && (
-          <div className="text-center py-16">
-            <Shield size={36} className="text-gray-800 mx-auto mb-3" />
-            <p className="text-sm text-gray-600">No active rides right now</p>
+      {/* Active alerts */}
+      {alerts.length > 0 && (
+        <div className="p-4 space-y-3">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle size={16} className="text-red-500" />
+            <p className="text-sm font-bold text-red-400">{alerts.length} ACTIVE SOS ALERT{alerts.length > 1 ? 'S' : ''}</p>
           </div>
-        )}
-        {trips.map(t => (
-          <button key={t.id} onClick={() => setFocusTrip(t)}
-            className="w-full text-left bg-gray-900 rounded-xl p-4 border border-gray-800 hover:border-gray-600 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${statusColor(t.status)}`} />
-                <span className="text-xs text-gray-400">{t.status.replace(/_/g, ' ')}</span>
+          {alerts.map(alert => (
+            <button key={alert.id} onClick={() => setFocused(alert)}
+              className="w-full text-left rounded-2xl p-4 border-2 border-red-600"
+              style={{ animation: 'alertPulse 1.5s infinite' }}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={16} className="text-red-500" />
+                  <span className="font-bold text-red-400 text-sm">SOS ALERT</span>
+                </div>
+                <span className="text-[10px] text-gray-500">{new Date(alert.createdAt).toLocaleTimeString()}</span>
               </div>
-              <span className="text-xs font-bold text-zana-primary">{t.estimatedFare.toLocaleString()} RWF</span>
-            </div>
-            <div className="flex items-center gap-2 mb-1">
-              <User size={12} className="text-gray-600 shrink-0" />
-              <span className="text-sm font-semibold truncate">{t.customerName}</span>
-              <span className="text-gray-600 text-xs">{t.customerPhone}</span>
-            </div>
-            <div className="flex items-start gap-1.5 mb-0.5">
-              <MapPin size={10} className="text-green-500 mt-0.5 shrink-0" />
-              <p className="text-[11px] text-gray-500 truncate">{t.pickupAddress}</p>
-            </div>
-            <div className="flex items-start gap-1.5">
-              <MapPin size={10} className="text-amber-500 mt-0.5 shrink-0" />
-              <p className="text-[11px] text-gray-500 truncate">{t.destinationAddress}</p>
-            </div>
-          </button>
-        ))}
-      </div>
+              <p className="font-semibold text-white">{alert.customer.firstName} {alert.customer.lastName}</p>
+              <p className="text-sm text-gray-400">{alert.customer.phone}</p>
+              {alert.trip && <p className="text-xs text-gray-600 mt-1 truncate">{alert.trip.pickupAddress}</p>}
+              <p className="text-xs text-red-400 mt-2 font-semibold">Tap to respond →</p>
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Emergency button */}
+      {/* Emergency line always at bottom */}
       <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 px-4 py-3">
         <a href="tel:112"
           className="flex items-center justify-center gap-2 bg-red-600 text-white font-bold py-3 rounded-xl text-sm">
@@ -320,86 +317,82 @@ export default function SafetyDashboard() {
         </a>
       </div>
 
-      {/* Trip detail panel */}
-      {focusTrip && (
+      {/* Full alert detail panel */}
+      {focused && (
         <div className="fixed inset-0 z-50 bg-gray-950 overflow-auto">
-          <div className="sticky top-0 bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+          <div className="sticky top-0 bg-red-900 px-4 py-3 flex items-center justify-between" style={{ animation: 'alertPulse 1.5s infinite' }}>
             <div className="flex items-center gap-2">
-              <div className={`w-2.5 h-2.5 rounded-full ${statusColor(focusTrip.status)}`} />
-              <p className="font-bold text-sm">{focusTrip.status.replace(/_/g, ' ')}</p>
+              <AlertTriangle size={18} className="text-red-300" />
+              <p className="font-bold text-white">SOS — {focused.customer.firstName} {focused.customer.lastName}</p>
             </div>
-            <button onClick={() => setFocusTrip(null)} className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center">
-              <X size={16} />
+            <button onClick={() => setFocused(null)} className="w-8 h-8 rounded-full bg-red-800 flex items-center justify-center">
+              <X size={16} className="text-white" />
             </button>
           </div>
 
-          <div className="p-4 space-y-4">
-            {/* Map with live driver position */}
-            <TripMap trip={focusTrip} />
+          <div className="p-4 space-y-4 pb-24">
+            {/* Live map */}
+            <SosMap alert={focused} />
 
-            {/* Customer */}
+            {/* Customer contact */}
             <div className="bg-gray-900 rounded-xl p-4">
-              <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">Customer</p>
-              <p className="font-semibold text-white">{focusTrip.customerName}</p>
-              <a href={`tel:${focusTrip.customerPhone}`}
-                className="flex items-center gap-1.5 text-green-400 text-sm mt-1">
-                <Phone size={13} /> {focusTrip.customerPhone}
+              <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">Passenger in distress</p>
+              <p className="font-bold text-white text-lg">{focused.customer.firstName} {focused.customer.lastName}</p>
+              <a href={`tel:${focused.customer.phone}`}
+                className="flex items-center gap-2 bg-green-700 text-white font-semibold py-3 px-4 rounded-xl text-sm mt-3">
+                <Phone size={16} /> Call {focused.customer.phone}
               </a>
             </div>
 
-            {/* Driver */}
-            <div className="bg-gray-900 rounded-xl p-4">
-              <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">Driver</p>
-              <p className="font-semibold text-white">{focusTrip.driverName}</p>
-              <p className="text-xs text-gray-500">{focusTrip.vehicle} · {focusTrip.plate}</p>
-              {focusTrip.driverPhone && (
-                <a href={`tel:${focusTrip.driverPhone}`}
-                  className="flex items-center gap-1.5 text-green-400 text-sm mt-1">
-                  <Phone size={13} /> {focusTrip.driverPhone}
+            {/* Driver contact */}
+            {focused.trip?.driver && (
+              <div className="bg-gray-900 rounded-xl p-4">
+                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">Driver on the trip</p>
+                <p className="font-semibold text-white">{focused.trip.driver.user.firstName} {focused.trip.driver.user.lastName}</p>
+                <p className="text-xs text-gray-500">{focused.trip.driver.vehicle} · {focused.trip.driver.plate}</p>
+                <a href={`tel:${focused.trip.driver.user.phone}`}
+                  className="flex items-center gap-2 bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl text-sm mt-3">
+                  <Phone size={16} /> Call Driver {focused.trip.driver.user.phone}
                 </a>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Route */}
-            <div className="bg-gray-900 rounded-xl p-4 space-y-2">
-              <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">Route</p>
-              <div className="flex items-start gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 mt-1 shrink-0" />
-                <p className="text-sm text-gray-300">{focusTrip.pickupAddress}</p>
+            {/* Trip info */}
+            {focused.trip && (
+              <div className="bg-gray-900 rounded-xl p-4 space-y-2">
+                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-1">Trip Location</p>
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 mt-1 shrink-0" />
+                  <p className="text-sm text-gray-300">{focused.trip.pickupAddress}</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-500 mt-1 shrink-0" />
+                  <p className="text-sm text-gray-300">{focused.trip.destinationAddress}</p>
+                </div>
               </div>
-              <div className="flex items-start gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-500 mt-1 shrink-0" />
-                <p className="text-sm text-gray-300">{focusTrip.destinationAddress}</p>
-              </div>
-            </div>
+            )}
 
-            {/* Fare + time */}
-            <div className="bg-gray-900 rounded-xl p-4 flex justify-between">
-              <div>
-                <p className="text-[10px] text-gray-500">Fare</p>
-                <p className="text-lg font-bold text-zana-primary">{focusTrip.estimatedFare.toLocaleString()} RWF</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-gray-500">Started</p>
-                <p className="text-sm text-gray-300">{new Date(focusTrip.requestedAt).toLocaleTimeString()}</p>
-              </div>
-            </div>
-
-            {/* Emergency actions */}
+            {/* Actions */}
             <div className="space-y-2">
-              <a href={`tel:${focusTrip.customerPhone}`}
-                className="flex items-center justify-center gap-2 bg-green-700 text-white font-semibold py-3 rounded-xl text-sm">
-                <Phone size={15} /> Call Customer
-              </a>
-              {focusTrip.driverPhone && (
-                <a href={`tel:${focusTrip.driverPhone}`}
-                  className="flex items-center justify-center gap-2 bg-blue-700 text-white font-semibold py-3 rounded-xl text-sm">
-                  <Phone size={15} /> Call Driver
-                </a>
+              {focused.status === 'ACTIVE' && (
+                <button
+                  onClick={() => acknowledge(focused.id)}
+                  disabled={acknowledged === focused.id}
+                  className="w-full flex items-center justify-center gap-2 bg-amber-600 text-white font-bold py-3 rounded-xl text-sm disabled:opacity-40"
+                >
+                  <CheckCircle size={16} />
+                  {acknowledged === focused.id ? 'Acknowledging…' : 'Acknowledge — I\'m responding'}
+                </button>
               )}
+              <button
+                onClick={() => resolve(focused.id)}
+                className="w-full flex items-center justify-center gap-2 bg-green-700 text-white font-semibold py-3 rounded-xl text-sm"
+              >
+                <CheckCircle size={16} /> Mark Resolved
+              </button>
               <a href="tel:112"
                 className="flex items-center justify-center gap-2 bg-red-600 text-white font-bold py-3 rounded-xl text-sm">
-                <AlertTriangle size={15} /> Emergency — 112
+                <Phone size={16} /> Emergency — 112
               </a>
             </div>
           </div>
