@@ -112,57 +112,62 @@ export default function DriverMap({
   // Fetch route using DirectionsService (enabled on this key)
   useEffect(() => {
     if (!position || !target) return;
-    const G = (window as any).google?.maps;
-    if (!G || !mapRef.current) return;
 
-    const svc = new G.DirectionsService();
+    // Wait for map to be initialized — retry up to 3 seconds
+    let attempts = 0;
+    const tryFetch = () => {
+      const G = (window as any).google?.maps;
+      if (!G || !mapRef.current) {
+        if (attempts++ < 30) setTimeout(tryFetch, 100);
+        return;
+      }
 
-    if (!rendererRef.current) {
-      rendererRef.current = new G.DirectionsRenderer({
-        suppressMarkers: true,
-        polylineOptions: { strokeColor: '#00A082', strokeWeight: 5, strokeOpacity: 0.9 },
-      });
-      rendererRef.current.setMap(mapRef.current);
-    }
+      const svc = new G.DirectionsService();
 
-    const fetchRoute = () => {
-      svc.route({
-        origin: new G.LatLng(position.lat, position.lng),
-        destination: new G.LatLng(target.lat, target.lng),
-        travelMode: G.TravelMode.DRIVING,
-        provideRouteAlternatives: false,
-        drivingOptions: { departureTime: new Date(), trafficModel: G.TrafficModel.BEST_GUESS },
-      }, (result: any, status: any) => {
-        if (status !== 'OK') return;
-        rendererRef.current.setDirections(result);
-        const leg = result.routes[0]?.legs[0];
-        if (!leg) return;
-        setEta({ duration: leg.duration.text, distance: leg.distance.text });
+      if (!rendererRef.current) {
+        rendererRef.current = new G.DirectionsRenderer({
+          suppressMarkers: true,
+          polylineOptions: { strokeColor: '#00A082', strokeWeight: 5, strokeOpacity: 0.9 },
+        });
+        rendererRef.current.setMap(mapRef.current);
+      }
 
-        const newSteps = leg.steps.map((s: any) => ({
-          instruction: stripHtml(s.instructions),
-          distanceText: s.distance.text,
-          maneuver: s.maneuver ?? '',
-          endLocation: { lat: s.end_location.lat(), lng: s.end_location.lng() },
-        }));
-        setSteps(newSteps);
-        setCurrentStep(0);
+      const fetchRoute = () => {
+        svc.route({
+          origin: new G.LatLng(position.lat, position.lng),
+          destination: new G.LatLng(target.lat, target.lng),
+          travelMode: G.TravelMode.DRIVING,
+          provideRouteAlternatives: false,
+        }, (result: any, status: any) => {
+          if (status !== 'OK') return;
+          rendererRef.current.setDirections(result);
+          const leg = result.routes[0]?.legs[0];
+          if (!leg) return;
+          setEta({ duration: leg.duration.text, distance: leg.distance.text });
 
-        if (!navigationMode) {
-          const bounds = new G.LatLngBounds();
-          bounds.extend(position);
-          bounds.extend(target);
-          mapRef.current.fitBounds(bounds, 60);
-        }
-      });
-    };
+          const newSteps = leg.steps.map((s: any) => ({
+            instruction: stripHtml(s.instructions),
+            distanceText: s.distance.text,
+            maneuver: s.maneuver ?? '',
+            endLocation: { lat: s.end_location.lat(), lng: s.end_location.lng() },
+          }));
+          setSteps(newSteps);
+          setCurrentStep(0);
 
-    fetchRoute();
-    const interval = setInterval(fetchRoute, 10000);
+          if (!navigationMode) {
+            const bounds = new G.LatLngBounds();
+            bounds.extend(position);
+            bounds.extend(target);
+            mapRef.current.fitBounds(bounds, 60);
+          }
+        });
+      };
 
-    // Target marker
-    if (!targetMarkerRef.current) {
-      try {
+      fetchRoute();
+
+      // Target marker
+      if (!targetMarkerRef.current) {
+        try {
         const div = document.createElement('div');
         div.innerHTML = `<div style="width:16px;height:16px;border-radius:50%;background:#E6A82E;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>`;
         targetMarkerRef.current = new G.marker.AdvancedMarkerElement({ position: target, map: mapRef.current, content: div });
@@ -173,7 +178,14 @@ export default function DriverMap({
       try { targetMarkerRef.current.position = target; } catch { targetMarkerRef.current.setPosition(target); }
     }
 
-    return () => clearInterval(interval);
+      clearInterval(routeInterval);
+      routeInterval = setInterval(fetchRoute, 10000);
+    };
+
+    let routeInterval: any;
+    tryFetch();
+
+    return () => clearInterval(routeInterval);
   }, [target?.lat, target?.lng, lang]);
 
   // Voice instructions

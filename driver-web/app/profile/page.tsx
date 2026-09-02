@@ -23,12 +23,23 @@ export default function DriverProfilePage() {
   useEffect(() => {
     fetchMyDriverProfile().then(async p => {
       setProfile(p);
-      const [s, d] = await Promise.all([
-        api.get<DriverStats>(`/ratings/driver/${p.id}/stats`),
-        api.get<Debt>(`/driver/debt`).catch(() => ({ totalDebt: 0, debtCount: 0 })),
-      ]);
-      setStats(s);
-      setDebt(d);
+      // Fetch stats and debt independently so one failure doesn't block the other
+      api.get<DriverStats>(`/ratings/driver/${p.id}/stats`)
+        .then(setStats)
+        .catch(() => {
+          // Show profile data even if ratings endpoint fails
+          setStats({
+            rating: p.rating ?? 0,
+            totalTrips: 0,
+            totalDeliveries: 0,
+            memberSince: new Date().toISOString(),
+            walletBalance: 0,
+            recentRatings: [],
+          });
+        });
+      api.get<Debt>(`/driver/debt`)
+        .then(setDebt)
+        .catch(() => setDebt({ totalDebt: 0, debtCount: 0 }));
     }).catch(() => {});
   }, []);
 
