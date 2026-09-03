@@ -52,6 +52,16 @@ function TripContent() {
     });
 
     socket.on('call:cancelled', () => { try { (window as any).__zanaRingtone?.pause(); } catch {} setIncomingCall(null); });
+
+    // Customer cancelled the ride — close everything and go home
+    socket.on('trip:cancelled', (data: { message: string }) => {
+      try { (window as any).__zanaRingtone?.pause(); } catch {}
+      try { window.speechSynthesis?.cancel(); } catch {}
+      setShowCall(false);
+      setIncomingCall(null);
+      setCancelledNotice(data?.message ?? 'The customer cancelled this ride');
+      setTimeout(() => router.replace('/'), 3500);
+    });
     socket.on('call:ended', () => { setIncomingCall(null); setShowCall(false); });
 
     return () => { socket.disconnect(); };
@@ -62,6 +72,11 @@ function TripContent() {
   const [showChat, setShowChat] = useState(false);
   const [showCall, setShowCall] = useState(false);
   const [showCallOptions, setShowCallOptions] = useState(false);
+  const [cancelledNotice, setCancelledNotice] = useState<string | null>(null);
+  const [momoState, setMomoState] = useState<'idle'|'prompt'|'sending'|'waiting'|'paid'|'failed'>('idle');
+  const [momoPhone, setMomoPhone] = useState('');
+  const [momoError, setMomoError] = useState('');
+  const momoPollRef = useRef<any>(null);
   const [outgoingCallId, setOutgoingCallId] = useState<string | null>(null);
   const [outgoingToken, setOutgoingToken] = useState<string | null>(null);
   const [outgoingWsUrl, setOutgoingWsUrl] = useState<string | null>(null);
@@ -125,12 +140,56 @@ function TripContent() {
         setTrip(updated);
       } else if (trip.status === 'RIDE_IN_PROGRESS') {
         await completeTrip(trip.id);
-        router.replace('/');
+        const pm = (trip as any).paymentMethod ?? 'CASH';
+        if (pm === 'MOBILE_MONEY') {
+          // Prefill with the customer's registered number, driver can correct it
+          setMomoPhone((trip as any).customer?.phone ?? '');
+          setMomoState('prompt');
+        } else {
+          router.replace('/');
+        }
       }
     } finally {
       setActing(false);
     }
   };
+
+  // ── MoMo charge ──────────────────────────────────────────────────────────
+  const sendMomoPrompt = async () => {
+    if (!trip) return;
+    setMomoState('sending');
+    setMomoError('');
+    try {
+      await api.post(`/driver/rides/${trip.id}/momo-charge`, { phone: momoPhone });
+      setMomoState('waiting');
+      // Poll for payment confirmation every 4s, give up after 2 minutes
+      let ticks = 0;
+      clearInterval(momoPollRef.current);
+      momoPollRef.current = setInterval(async () => {
+        ticks++;
+        try {
+          const res = await api.get<{ status: string; paid: boolean }>(
+            `/driver/rides/${trip.id}/momo-status`
+          );
+          if (res.paid) {
+            clearInterval(momoPollRef.current);
+            setMomoState('paid');
+            setTimeout(() => router.replace('/'), 2000);
+          }
+        } catch {}
+        if (ticks > 30) {
+          clearInterval(momoPollRef.current);
+          setMomoState('failed');
+          setMomoError('Payment not confirmed. Ask the customer to check their phone.');
+        }
+      }, 4000);
+    } catch (e: any) {
+      setMomoState('failed');
+      setMomoError(e?.message ?? 'Could not send the payment request');
+    }
+  };
+
+  useEffect(() => () => clearInterval(momoPollRef.current), []);
 
   if (!trip) {
     return <div className="p-6 text-center text-zana-muted text-sm">Loading trip…</div>;
@@ -257,6 +316,103 @@ function TripContent() {
           onClose={() => setShowRating(false)}
         />
       )}
+      {/* ── Ride cancelled by customer ────────────────────────────────── */}
+      {cancelledNotice && (
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-8 bg-white">
+          <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mb-5">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" />
+            </svg>
+          </div>
+          <p className="text-xl font-black text-gray-900 mb-2">Ride cancelled</p>
+          <p className="text-sm text-gray-500 text-center mb-6">{cancelledNotice}</p>
+          <button onClick={() => router.replace('/')}
+            className="bg-zana-primary text-white font-bold px-8 py-3 rounded-2xl">
+            Back to home
+          </button>
+        </div>
+      )}
+
+      {/* ── MoMo payment ───────────────────────────────────────────────── */}
+      {momoState !== 'idle' && trip && (
+        <div className="fixed inset-0 z-[60] flex items-end bg-black/50">
+          <div className="w-full bg-white rounded-t-3xl p-6 pb-8">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
+
+            {momoState === 'prompt' || momoState === 'failed' ? (
+              <>
+                <p className="text-xl font-black text-gray-900 mb-1">Collect payment</p>
+                <p className="text-sm text-gray-500 mb-5">
+                  Send a Mobile Money request for{' '}
+                  <span className="font-bold text-zana-primary">
+                    {((trip as any).finalFare ?? trip.estimatedFare)?.toLocaleString()} RWF
+                  </span>
+                </p>
+
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  Customer's MoMo number
+                </label>
+                <input
+                  value={momoPhone}
+                  onChange={e => setMomoPhone(e.target.value)}
+                  placeholder="0788123456"
+                  inputMode="tel"
+                  className="w-full mt-2 mb-4 px-4 py-3.5 rounded-2xl border-2 border-gray-100 bg-gray-50 text-base font-semibold focus:border-zana-primary focus:outline-none"
+                />
+
+                {momoError && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
+                    <p className="text-xs text-red-700">{momoError}</p>
+                  </div>
+                )}
+
+                <button onClick={sendMomoPrompt} disabled={!momoPhone.trim()}
+                  className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40">
+                  Send payment request
+                </button>
+                <button onClick={() => router.replace('/')}
+                  className="w-full text-center text-sm text-gray-400 mt-3 py-1">
+                  Collect cash instead
+                </button>
+              </>
+            ) : momoState === 'sending' ? (
+              <div className="flex flex-col items-center py-8">
+                <div className="w-10 h-10 border-3 border-zana-primary/20 border-t-zana-primary rounded-full animate-spin mb-4" />
+                <p className="font-bold text-gray-900">Sending request...</p>
+              </div>
+            ) : momoState === 'waiting' ? (
+              <div className="flex flex-col items-center py-6">
+                <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-4 animate-pulse">
+                  <span className="text-3xl">📱</span>
+                </div>
+                <p className="font-black text-lg text-gray-900 mb-1">Waiting for payment</p>
+                <p className="text-sm text-gray-500 text-center mb-1">
+                  A prompt was sent to {momoPhone}
+                </p>
+                <p className="text-xs text-gray-400 text-center mb-6">
+                  Ask the customer to enter their PIN
+                </p>
+                <div className="w-8 h-8 border-2 border-zana-primary/20 border-t-zana-primary rounded-full animate-spin" />
+                <button onClick={() => { clearInterval(momoPollRef.current); setMomoState('prompt'); }}
+                  className="text-sm text-gray-400 mt-6 py-1">
+                  Resend to a different number
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center py-8">
+                <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-4">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                </div>
+                <p className="font-black text-lg text-gray-900">Payment received</p>
+                <p className="text-sm text-gray-500 mt-1">Trip complete</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Outgoing call */}
       {showCall && outgoingCallId && outgoingRoom && outgoingWsUrl && outgoingToken && trip && (
         <VoiceCall

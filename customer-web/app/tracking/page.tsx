@@ -88,6 +88,8 @@ function TrackingContent() {
   // [call polling moved below primaryTrip declaration]
   const [receiptShown, setReceiptShown] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
+  const [driverEta, setDriverEta] = useState<{ durationText: string; distanceText: string } | null>(null);
+  const [cancelNotice, setCancelNotice] = useState<string | null>(null);
   const motionRequested = useRef(false);
 
   const triggerSOS = () => {
@@ -182,8 +184,54 @@ function TrackingContent() {
     socket.on('call:cancelled', () => { setIncomingCallInfo(null); setShowCall(false); });
     socket.on('call:ended', () => { setIncomingCallInfo(null); setShowCall(false); setCallData(null); });
 
+    // Driver cancelled the ride
+    socket.on('trip:cancelled', (data: { message: string }) => {
+      try { (window as any).__zanaRingtone?.pause(); } catch {}
+      setShowCall(false);
+      setIncomingCallInfo(null);
+      setCancelNotice(data?.message ?? 'Your driver cancelled this ride');
+    });
+
     return () => { socket.disconnect(); };
-  }, []);  const status = primaryTrip?.status ?? 'SEARCHING_DRIVER';
+  }, []);
+
+  // ── Driver → pickup ETA (only while driver is heading to the customer) ───
+  useEffect(() => {
+    const drvLat = primaryTrip?.driver?.lastLat;
+    const drvLng = primaryTrip?.driver?.lastLng;
+    const st = primaryTrip?.status;
+    const enRoute = st === 'DRIVER_ASSIGNED' || st === 'DRIVER_EN_ROUTE';
+
+    if (!enRoute || drvLat == null || drvLng == null || !primaryTrip) {
+      setDriverEta(null);
+      return;
+    }
+
+    const calc = () => {
+      const G = (window as any).google?.maps;
+      if (!G) return;
+      const svc = new G.DirectionsService();
+      svc.route(
+        {
+          origin: new G.LatLng(drvLat, drvLng),
+          destination: new G.LatLng(primaryTrip.pickupLat, primaryTrip.pickupLng),
+          travelMode: G.TravelMode.DRIVING,
+        },
+        (res: any, status: any) => {
+          if (status !== 'OK') return;
+          const leg = res.routes[0]?.legs[0];
+          if (leg) {
+            setDriverEta({ durationText: leg.duration.text, distanceText: leg.distance.text });
+          }
+        }
+      );
+    };
+
+    calc();
+    const t = setInterval(calc, 20000);
+    return () => clearInterval(t);
+  }, [primaryTrip?.driver?.lastLat, primaryTrip?.driver?.lastLng, primaryTrip?.status]);
+  const status = primaryTrip?.status ?? 'SEARCHING_DRIVER';
   const rideIsActive = ACTIVE_STATUSES.includes(status);
   const mapSource = isGroup ? groupTrips[0] : trip;
 
@@ -260,7 +308,17 @@ function TrackingContent() {
           {isGroup && !allCompleted ? `${groupTrips.length} motos · ` : ''}
           {allCompleted ? 'All trips completed' : STATUS_COPY[status] ?? status}
         </h2>
-        {rideIsActive && routeInfo && (
+        {/* Driver on the way — show how far away they are */}
+        {driverEta && (
+          <div className="flex items-center gap-2 mt-2 bg-zana-primary-light rounded-2xl px-4 py-2.5 w-fit">
+            <div className="w-2 h-2 rounded-full bg-zana-primary animate-pulse" />
+            <span className="text-base font-black text-zana-primary">
+              Driver is {driverEta.durationText} away
+            </span>
+            <span className="text-xs text-gray-500">· {driverEta.distanceText}</span>
+          </div>
+        )}
+        {rideIsActive && routeInfo && !driverEta && (
           <div className="flex items-center gap-2 mt-2">
             <span className="text-lg font-bold text-zana-primary">{routeInfo.durationText}</span>
             <span className="text-xs text-zana-muted">· {routeInfo.distanceText} remaining</span>
@@ -368,6 +426,23 @@ function TrackingContent() {
           participantLabel={primaryTrip?.driver?.user?.firstName ?? 'Driver'}
           onClose={() => { setShowCall(false); setCallData(null); }}
         />
+      )}
+
+      {/* ── Driver cancelled ────────────────────────────────────────── */}
+      {cancelNotice && (
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-8 bg-white">
+          <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mb-5">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" />
+            </svg>
+          </div>
+          <p className="text-xl font-black text-gray-900 mb-2">Ride cancelled</p>
+          <p className="text-sm text-gray-500 text-center mb-6">{cancelNotice}</p>
+          <button onClick={() => router.replace('/')}
+            className="bg-zana-primary text-white font-bold px-8 py-3 rounded-2xl">
+            Book another ride
+          </button>
+        </div>
       )}
 
       {/* Incoming call banner — driver is calling */}

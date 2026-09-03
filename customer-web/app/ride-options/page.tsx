@@ -11,7 +11,6 @@ import { getStoredPickup } from '../../lib/location';
 type Option = { service: ServiceType; label: string; sub: string; icon: string };
 
 const OPTIONS: Option[] = [
-  { service: 'BIKE', label: 'Moto', sub: 'Fast · 1 passenger', icon: '🏍️' },
   { service: 'ECONOMY', label: 'Basic Car', sub: 'Comfortable · up to 4', icon: '🚗' },
   { service: 'COMFORT', label: 'Premium Car', sub: 'Top-rated drivers · up to 4', icon: '🚙' },
 ];
@@ -85,14 +84,13 @@ function RideOptionsContent() {
   useEffect(() => {
     (async () => {
       try {
-        const [bike, economy, comfort] = await Promise.all([
-          estimateRide(pickup, { lat: destLat, lng: destLng }, 'BIKE'),
+        const [economy, comfort] = await Promise.all([
           estimateRide(pickup, { lat: destLat, lng: destLng }, 'ECONOMY'),
           estimateRide(pickup, { lat: destLat, lng: destLng }, 'COMFORT'),
         ]);
-        setFares({ BIKE: bike.fare, ECONOMY: economy.fare, COMFORT: comfort.fare });
+        setFares({ BIKE: 0, ECONOMY: economy.fare, COMFORT: comfort.fare });
       } catch {
-        setFares({ BIKE: 800, ECONOMY: 1500, COMFORT: 2500 });
+        setFares({ BIKE: 0, ECONOMY: 1500, COMFORT: 2500 });
       } finally {
         setLoadingFares(false);
       }
