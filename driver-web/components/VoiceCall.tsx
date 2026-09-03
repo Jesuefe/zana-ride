@@ -1,154 +1,193 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { PhoneOff, Mic, MicOff, Loader2 } from 'lucide-react';
 import { api } from '../lib/api/client';
-import { Room, RoomEvent, ConnectionState } from 'livekit-client';
+import {
+  Room, RoomEvent, Track, ConnectionState,
+  type RemoteParticipant, type RemoteTrackPublication,
+} from 'livekit-client';
 
-type CallState = 'connecting' | 'ringing' | 'connected' | 'ended';
+// ── Call states ──────────────────────────────────────────────────────────────
+type CallState = 'connecting' | 'ringing' | 'connected' | 'reconnecting' | 'ended' | 'failed';
 
 type Props = {
-  context: 'trip' | 'delivery';
-  contextId: string;
+  // For outgoing calls
+  rideId?: string;
+  // For incoming calls (driver receiving)
+  incomingCallId?: string;
+  roomName?: string;
+  wsUrl?: string;
+  token?: string;
   participantLabel: string;
   onClose: () => void;
 };
 
-// Simple ringtone using Web Audio API
-function useRingtone(active: boolean) {
-  const ctxRef = useRef<AudioContext | null>(null);
-  const timerRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (!active) {
-      ctxRef.current?.close();
-      clearTimeout(timerRef.current);
-      return;
-    }
-
-    const ring = () => {
-      try {
-        const ctx = new AudioContext();
-        ctxRef.current = ctx;
-
-        const playTone = (freq: number, t: number, dur: number) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.frequency.value = freq;
-          osc.type = 'sine';
-          gain.gain.setValueAtTime(0, ctx.currentTime + t);
-          gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + t + 0.02);
-          gain.gain.setValueAtTime(0.35, ctx.currentTime + t + dur - 0.05);
-          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + t + dur);
-          osc.start(ctx.currentTime + t);
-          osc.stop(ctx.currentTime + t + dur);
-        };
-
-        playTone(480, 0, 0.4);
-        playTone(440, 0, 0.4);
-        playTone(480, 0.6, 0.4);
-        playTone(440, 0.6, 0.4);
-
-        timerRef.current = setTimeout(() => {
-          ctx.close();
-          ring();
-        }, 3200);
-      } catch {}
-    };
-
-    ring();
-    return () => {
-      ctxRef.current?.close();
-      clearTimeout(timerRef.current);
-    };
-  }, [active]);
-}
-
-export default function VoiceCall({ context, contextId, participantLabel, onClose }: Props) {
+export default function VoiceCall({
+  rideId,
+  incomingCallId,
+  roomName: incomingRoom,
+  wsUrl: incomingWsUrl,
+  token: incomingToken,
+  participantLabel,
+  onClose,
+}: Props) {
   const roomRef = useRef<Room | null>(null);
-  const [state, setState] = useState<CallState>('connecting');
+  const audioElementsRef = useRef<HTMLAudioElement[]>([]);
+  const heartbeatRef = useRef<any>(null);
+  const timerRef = useRef<any>(null);
+  const callIdRef = useRef<string | null>(incomingCallId ?? null);
+
+  const [state, setState] = useState<CallState>(incomingCallId ? 'connected' : 'connecting');
   const [muted, setMuted] = useState(false);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState('');
-  const timerRef = useRef<any>(null);
 
-  useRingtone(state === 'ringing');
-
-  const handleEnd = useCallback(() => {
+  // ── Cleanup ────────────────────────────────────────────────────────────────
+  const cleanup = useCallback(() => {
+    clearInterval(heartbeatRef.current);
     clearInterval(timerRef.current);
+    audioElementsRef.current.forEach(el => { el.pause(); el.srcObject = null; el.remove(); });
+    audioElementsRef.current = [];
     roomRef.current?.disconnect();
     roomRef.current = null;
-    setState('ended');
-    setTimeout(onClose, 700);
-  }, [onClose]);
+  }, []);
 
+  // ── End call ───────────────────────────────────────────────────────────────
+  const handleEnd = useCallback(async (reason?: string) => {
+    if (callIdRef.current) {
+      await api.post(`/calls/${callIdRef.current}/end`).catch(() => {});
+    }
+    cleanup();
+    setState('ended');
+    setTimeout(onClose, 800);
+  }, [cleanup, onClose]);
+
+  // ── Connect to LiveKit room ────────────────────────────────────────────────
+  const connectToRoom = useCallback(async (wsUrl: string, token: string, callId: string) => {
+    console.log('[CALL] Creating LiveKit room');
+    const room = new Room({
+      adaptiveStream: true,
+      dynacast: true,
+      disconnectOnPageLeave: false,
+    });
+    roomRef.current = room;
+
+    // ── Event handlers ──────────────────────────────────────────────────────
+
+    room.on(RoomEvent.Connected, () => {
+      console.log('[CALL] LiveKit connected');
+    });
+
+    room.on(RoomEvent.Reconnecting, () => {
+      console.log('[CALL] Reconnecting...');
+      setState('reconnecting');
+    });
+
+    room.on(RoomEvent.Reconnected, () => {
+      console.log('[CALL] Reconnected');
+      setState('connected');
+    });
+
+    room.on(RoomEvent.Disconnected, () => {
+      console.log('[CALL] Disconnected');
+      if (state !== 'ended') handleEnd();
+    });
+
+    room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+      console.log('[CALL] Remote participant connected:', participant.identity);
+    });
+
+    room.on(RoomEvent.ParticipantDisconnected, () => {
+      console.log('[CALL] Remote participant left');
+      handleEnd();
+    });
+
+    room.on(RoomEvent.TrackSubscribed, (track, _pub, _participant) => {
+      if (track.kind === Track.Kind.Audio) {
+        console.log('[CALL] Remote audio subscribed');
+        const el = track.attach() as HTMLAudioElement;
+        el.autoplay = true;
+        el.setAttribute('playsinline', '');
+        document.body.appendChild(el);
+        audioElementsRef.current.push(el);
+
+        // Mark as media-connected
+        setState('connected');
+        clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+        api.post(`/calls/${callId}/connected`).catch(() => {});
+        console.log('[CALL] CALL CONNECTED — audio playing');
+      }
+    });
+
+    room.on(RoomEvent.TrackUnsubscribed, (track) => {
+      if (track.kind === Track.Kind.Audio) {
+        console.log('[CALL] Remote audio unsubscribed');
+        track.detach().forEach(el => el.remove());
+      }
+    });
+
+    // ── Connect ─────────────────────────────────────────────────────────────
+    console.log('[CALL] Connecting to LiveKit...');
+    await room.connect(wsUrl, token);
+    console.log('[CALL] LiveKit connected — enabling microphone');
+
+    // Request mic permission and publish
+    try {
+      await room.localParticipant.setMicrophoneEnabled(true);
+      console.log('[CALL] Microphone enabled and published');
+    } catch (err: any) {
+      console.error('[CALL] Microphone error:', err);
+      if (err?.message?.includes('Permission')) {
+        setError('Microphone permission denied');
+      }
+    }
+
+    // Heartbeat every 10s to prevent ghost calls
+    heartbeatRef.current = setInterval(() => {
+      api.post(`/calls/${callId}/heartbeat`).catch(() => {});
+    }, 10_000);
+
+  }, [handleEnd, state]);
+
+  // ── Main effect ────────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
-    const connect = async () => {
+    const init = async () => {
       try {
-        // Get token from backend
-        const res = await api.post<{ token: string; wsUrl: string; roomId: string }>(
-          '/calls/token',
-          { context, contextId }
-        );
-
-        if (cancelled) return;
-
-        const room = new Room({
-          adaptiveStream: true,
-          dynacast: true,
-          disconnectOnPageLeave: false,
-        });
-        roomRef.current = room;
-
-        // When other party joins — call is answered
-        room.on(RoomEvent.ParticipantConnected, () => {
-          if (cancelled) return;
+        if (incomingCallId && incomingRoom && incomingWsUrl && incomingToken) {
+          // Incoming call — already accepted, just connect to LiveKit
+          callIdRef.current = incomingCallId;
           setState('connected');
-          clearInterval(timerRef.current);
-          timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
-        });
+          await connectToRoom(incomingWsUrl, incomingToken, incomingCallId);
+        } else if (rideId) {
+          // Outgoing call — create via API
+          setState('connecting');
+          const res = await api.post<{
+            callId: string; roomName: string; wsUrl: string; token: string;
+          }>('/calls', { rideId });
 
-        // Other party left
-        room.on(RoomEvent.ParticipantDisconnected, () => {
           if (cancelled) return;
-          handleEnd();
-        });
 
-        // Disconnected from room
-        room.on(RoomEvent.Disconnected, () => {
-          if (cancelled) return;
-          handleEnd();
-        });
-
-        // Connect to LiveKit room
-        await room.connect(res.wsUrl, res.token);
-
-        if (cancelled) { room.disconnect(); return; }
-
-        // Enable microphone — livekit-client v2 API
-        await room.localParticipant.setMicrophoneEnabled(true);
-
-        // Show ringing — waiting for other party
-        setState('ringing');
-
+          callIdRef.current = res.callId;
+          setState('ringing');
+          await connectToRoom(res.wsUrl, res.token, res.callId);
+        }
       } catch (err: any) {
         if (cancelled) return;
+        console.error('[CALL] Init error:', err);
         setError(err?.message ?? 'Could not start call');
-        setState('ended');
-        setTimeout(onClose, 2500);
+        setState('failed');
       }
     };
 
-    connect();
+    init();
 
     return () => {
       cancelled = true;
-      clearInterval(timerRef.current);
-      roomRef.current?.disconnect();
+      cleanup();
     };
   }, []);
 
@@ -157,89 +196,103 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
     const newMuted = !muted;
     await roomRef.current.localParticipant.setMicrophoneEnabled(!newMuted);
     setMuted(newMuted);
+    console.log(`[CALL] Microphone ${newMuted ? 'muted' : 'unmuted'}`);
   };
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  const statusText = {
+  const stateLabels: Record<CallState, string> = {
     connecting: 'Connecting...',
-    ringing: 'Calling...',
+    ringing: `Calling ${participantLabel}...`,
     connected: fmt(duration),
-    ended: error || 'Call ended',
-  }[state];
+    reconnecting: 'Reconnecting...',
+    ended: 'Call ended',
+    failed: error || 'Unable to connect',
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-between py-16 px-8"
-      style={{ background: 'linear-gradient(160deg, #00A082 0%, #004D3E 100%)' }}>
+      style={{ background: 'linear-gradient(160deg, #005C4B 0%, #002D24 100%)' }}>
 
-      {/* Avatar + name */}
-      <div className="flex flex-col items-center gap-5 mt-8">
+      {/* Avatar + name + state */}
+      <div className="flex flex-col items-center gap-5 mt-10">
         <div className="relative flex items-center justify-center">
-          {state === 'ringing' && (
+          {(state === 'ringing' || state === 'connecting') && (
             <>
               <div className="absolute w-36 h-36 rounded-full bg-white/10 animate-ping" />
-              <div className="absolute w-48 h-48 rounded-full bg-white/5 animate-ping" style={{ animationDelay: '0.5s' }} />
+              <div className="absolute w-48 h-48 rounded-full bg-white/5 animate-ping" style={{ animationDelay: '0.6s' }} />
             </>
           )}
-          <div className="w-28 h-28 rounded-full bg-white/20 flex items-center justify-center z-10">
-            <div className="w-20 h-20 rounded-full bg-white/30 flex items-center justify-center">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-              </svg>
-            </div>
+          <div className="w-28 h-28 rounded-full bg-white/20 flex items-center justify-center z-10 border-2 border-white/30">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="white">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
           </div>
         </div>
 
-        <p className="text-white text-2xl font-black">{participantLabel}</p>
+        <p className="text-white text-2xl font-black tracking-tight">{participantLabel}</p>
 
-        <div className="flex items-center gap-2">
-          {state === 'connecting' && <Loader2 size={14} className="text-white/60 animate-spin" />}
-          <p className="text-white/70 text-sm tracking-wide">{statusText}</p>
-        </div>
-
-        {state === 'ringing' && (
-          <p className="text-white/40 text-xs text-center">
-            Waiting for {participantLabel} to answer...
+        <div className="flex items-center gap-2 min-h-6">
+          {(state === 'connecting' || state === 'reconnecting') && (
+            <Loader2 size={14} className="text-white/60 animate-spin" />
+          )}
+          <p className={`text-sm tracking-wide font-mono ${
+            state === 'connected' ? 'text-green-300' :
+            state === 'failed' ? 'text-red-300' :
+            state === 'reconnecting' ? 'text-amber-300' : 'text-white/60'
+          }`}>
+            {stateLabels[state]}
           </p>
-        )}
+        </div>
 
         {state === 'connected' && (
-          <div className="bg-white/10 rounded-full px-4 py-1">
-            <p className="text-white/80 text-xs">Connected · Zana Free Call</p>
+          <div className="bg-green-500/20 border border-green-500/30 rounded-full px-4 py-1">
+            <p className="text-green-300 text-xs font-semibold">Zana Free Call · Connected</p>
           </div>
         )}
 
-        {error && <p className="text-red-300 text-xs text-center mt-2">{error}</p>}
+        {state === 'failed' && (
+          <button onClick={() => { cleanup(); onClose(); }}
+            className="mt-2 bg-white/10 text-white text-sm px-6 py-2 rounded-full">
+            Try again
+          </button>
+        )}
       </div>
 
       {/* Controls */}
-      {state !== 'ended' && (
-        <div className="flex items-end justify-center gap-12">
+      {state !== 'ended' && state !== 'failed' && (
+        <div className="flex items-end justify-center gap-16 w-full">
+          {/* Mute */}
           <div className="flex flex-col items-center gap-2">
             <button onClick={toggleMute}
-              className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors ${
-                muted ? 'bg-white' : 'bg-white/20'
+              className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
+                muted ? 'bg-white scale-105' : 'bg-white/15 border border-white/20'
               }`}>
               {muted
-                ? <MicOff size={22} className="text-zana-primary" />
+                ? <MicOff size={22} className="text-gray-900" />
                 : <Mic size={22} className="text-white" />}
             </button>
-            <p className="text-white/60 text-xs">{muted ? 'Unmute' : 'Mute'}</p>
+            <p className="text-white/50 text-xs">{muted ? 'Unmute' : 'Mute'}</p>
           </div>
 
+          {/* End call */}
           <div className="flex flex-col items-center gap-2">
-            <button onClick={handleEnd}
-              className="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center shadow-xl">
+            <button onClick={() => handleEnd()}
+              className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-2xl transition-colors">
               <PhoneOff size={28} className="text-white" />
             </button>
-            <p className="text-white/60 text-xs">End call</p>
+            <p className="text-white/50 text-xs">End call</p>
           </div>
 
+          {/* Speaker placeholder */}
           <div className="flex flex-col items-center gap-2">
-            <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
-              <Volume2 size={22} className="text-white" />
+            <div className="w-16 h-16 rounded-full bg-white/15 border border-white/20 flex items-center justify-center">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14M3 9v6h4l5 5V4L7 9H3z"/>
+              </svg>
             </div>
-            <p className="text-white/60 text-xs">Speaker</p>
+            <p className="text-white/50 text-xs">Speaker</p>
           </div>
         </div>
       )}

@@ -6,6 +6,8 @@ import { AlertTriangle, Phone, Star, User, Navigation, MessageCircle } from 'luc
 import ChatPanel from '../../components/ChatPanel';
 import RatingModal from '../../components/RatingModal';
 import VoiceCall from '../../components/VoiceCall';
+import { io } from 'socket.io-client';
+import { getToken } from '../../lib/api/client';
 import { fetchTrip, fetchTripGroup, cancelRide, ApiTrip } from '../../lib/api/trips';
 import { api } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
@@ -79,9 +81,9 @@ function TrackingContent() {
   const [sosSent, setSosSent] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [showCall, setShowCall] = useState(false);
-  const [incomingCall, setIncomingCall] = useState(false);
-  const incomingRingRef = useRef<any>(null);
-  const callCheckRef = useRef<any>(null);
+  const [callData, setCallData] = useState<{callId:string;roomName:string;wsUrl:string;token:string}|null>(null);
+  const [incomingCallInfo, setIncomingCallInfo] = useState<{callId:string;driverName:string}|null>(null);
+  const socketRef = useRef<any>(null);
 
   // [call polling moved below primaryTrip declaration]
   const [receiptShown, setReceiptShown] = useState(false);
@@ -143,52 +145,47 @@ function TrackingContent() {
 
 
 
-  // Poll for incoming call — check if driver has joined the LiveKit room
+  // [WebSocket handles incoming calls — see below]
+  // WebSocket — incoming call from driver
   useEffect(() => {
-    const tripId = primaryTrip?.id;
-    if (!tripId || showCall) return;
+    const token = getToken();
+    if (!token) return;
+    const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://zana.ajumalink.com';
+    const socket = io(BASE, { auth: { token }, transports: ['websocket'] });
+    socketRef.current = socket;
 
-    const checkForCall = async () => {
+    socket.on('call:incoming', (data: { callId: string; callerName: string }) => {
+      setIncomingCallInfo({ callId: data.callId, driverName: data.callerName });
+      // Play beep
       try {
-        const res = await api.post<{ token: string; wsUrl: string; roomId: string }>(
-          '/calls/token',
-          { context: 'trip', contextId: tripId }
-        );
-        if (!res?.token) return;
-        const { Room } = await import('livekit-client');
-        const tempRoom = new Room();
-        await tempRoom.connect(res.wsUrl, res.token, { autoSubscribe: false });
-        const hasDriver = tempRoom.remoteParticipants.size > 0;
-        await tempRoom.disconnect();
-        if (hasDriver && !showCall) {
-          setIncomingCall(true);
-          try {
-            const ctx = new AudioContext();
-            const playTone = (freq: number, t: number, dur: number) => {
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
-              osc.connect(gain); gain.connect(ctx.destination);
-              osc.frequency.value = freq; osc.type = 'sine';
-              gain.gain.setValueAtTime(0.3, ctx.currentTime + t);
-              gain.gain.setValueAtTime(0, ctx.currentTime + t + dur);
-              osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + dur + 0.1);
-            };
-            playTone(880, 0, 0.3); playTone(660, 0.4, 0.3);
-            incomingRingRef.current = setInterval(() => {
-              playTone(880, 0, 0.3); playTone(660, 0.4, 0.3);
-            }, 2000);
-          } catch {}
-          clearInterval(callCheckRef.current);
-        }
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 880; gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.setValueAtTime(0, ctx.currentTime + 0.3);
+        osc.start(); osc.stop(ctx.currentTime + 0.35);
       } catch {}
-    };
+    });
 
-    callCheckRef.current = setInterval(checkForCall, 3000);
-    return () => {
-      clearInterval(callCheckRef.current);
-      clearInterval(incomingRingRef.current);
-    };
-  }, [primaryTrip?.id, showCall]);  const status = primaryTrip?.status ?? 'SEARCHING_DRIVER';
+    socket.on('call:accepted', async (data: { callId: string; roomName: string; wsUrl: string }) => {
+      // Get our token and open call
+      try {
+        const res = await api.post<{ token: string; roomName: string; wsUrl: string }>(
+          `/calls/${data.callId}/token`
+        );
+        setCallData({ callId: data.callId, roomName: res.roomName, wsUrl: res.wsUrl, token: res.token });
+        setShowCall(true);
+      } catch {}
+    });
+
+    socket.on('call:missed', () => setIncomingCallInfo(null));
+    socket.on('call:declined', () => { setIncomingCallInfo(null); setShowCall(false); });
+    socket.on('call:cancelled', () => { setIncomingCallInfo(null); setShowCall(false); });
+    socket.on('call:ended', () => { setIncomingCallInfo(null); setShowCall(false); setCallData(null); });
+
+    return () => { socket.disconnect(); };
+  }, []);  const status = primaryTrip?.status ?? 'SEARCHING_DRIVER';
   const rideIsActive = ACTIVE_STATUSES.includes(status);
   const mapSource = isGroup ? groupTrips[0] : trip;
 
@@ -280,9 +277,33 @@ function TrackingContent() {
 
         {isGroup
           ? groupTrips.map((t) => (
-              <DriverCard key={t.id} trip={t} seatLabel={`Moto ${t.groupSeatIndex} · ${STATUS_COPY[t.status] ?? t.status}`} onChat={() => setShowChat(true)} onCall={() => setShowCall(true)} />
+              <DriverCard key={t.id} trip={t} seatLabel={`Moto ${t.groupSeatIndex} · ${STATUS_COPY[t.status] ?? t.status}`} onChat={() => setShowChat(true)} onCall={async () => {
+                const tripId = primaryTrip?.id;
+                if (!tripId) return;
+                try {
+                  const res = await api.post<{callId:string;roomName:string;wsUrl:string;token:string}>(
+                    '/calls', { rideId: tripId }
+                  );
+                  setCallData({ callId: res.callId, roomName: res.roomName, wsUrl: res.wsUrl, token: res.token });
+                  setShowCall(true);
+                } catch (e: any) {
+                  console.error('[CALL] Failed to start call:', e?.message);
+                }
+              }} />
             ))
-          : trip && <DriverCard trip={trip} onChat={() => setShowChat(true)} onCall={() => setShowCall(true)} />}
+          : trip && <DriverCard trip={trip} onChat={() => setShowChat(true)} onCall={async () => {
+                const tripId = primaryTrip?.id;
+                if (!tripId) return;
+                try {
+                  const res = await api.post<{callId:string;roomName:string;wsUrl:string;token:string}>(
+                    '/calls', { rideId: tripId }
+                  );
+                  setCallData({ callId: res.callId, roomName: res.roomName, wsUrl: res.wsUrl, token: res.token });
+                  setShowCall(true);
+                } catch (e: any) {
+                  console.error('[CALL] Failed to start call:', e?.message);
+                }
+              }} />}
 
         <button
           onClick={status === 'RIDE_COMPLETED' || allCompleted ? () => setShowRating(true) : handleCancel}
@@ -308,7 +329,7 @@ function TrackingContent() {
         />
       )}
       {/* Incoming call banner */}
-      {incomingCall && !showCall && (
+      {incomingCallInfo && !showCall && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-zana-primary px-4 py-4 flex items-center justify-between shadow-2xl animate-fade-slide-up">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center animate-pulse">
@@ -323,14 +344,14 @@ function TrackingContent() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => { setIncomingCall(false); clearInterval(incomingRingRef.current); }}
+              onClick={() => setIncomingCallInfo(null)}
               className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                 <path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4l5.6 5.6L5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4z"/>
               </svg>
             </button>
             <button
-              onClick={() => { setIncomingCall(false); clearInterval(incomingRingRef.current); setShowCall(true); }}
+              onClick={() => { setIncomingCallInfo(null); setShowCall(true); }}
               className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="#00A082">
                 <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
@@ -340,13 +361,56 @@ function TrackingContent() {
         </div>
       )}
 
-      {showCall && primaryTrip && (
+      {showCall && callData && (
         <VoiceCall
-          context="trip"
-          contextId={primaryTrip.id}
-          participantLabel={primaryTrip.driver?.user?.firstName ?? 'Driver'}
-          onClose={() => setShowCall(false)}
+          incomingCallId={callData.callId}
+          roomName={callData.roomName}
+          wsUrl={callData.wsUrl}
+          token={callData.token}
+          participantLabel={primaryTrip?.driver?.user?.firstName ?? 'Driver'}
+          onClose={() => { setShowCall(false); setCallData(null); }}
         />
+      )}
+
+      {/* Incoming call banner — driver is calling */}
+      {incomingCallInfo && !showCall && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-zana-primary px-4 py-4 flex items-center justify-between shadow-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center animate-pulse">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+                <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-white font-black text-base">Incoming call</p>
+              <p className="text-white/70 text-xs">{incomingCallInfo.driverName} is calling</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={async () => {
+              await api.post(`/calls/${incomingCallInfo.callId}/decline`).catch(() => {});
+              setIncomingCallInfo(null);
+            }} className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                <path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4l5.6 5.6L5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6z"/>
+              </svg>
+            </button>
+            <button onClick={async () => {
+              try {
+                const res = await api.post<{callId:string;roomName:string;wsUrl:string;token:string}>(
+                  `/calls/${incomingCallInfo.callId}/accept`
+                );
+                setCallData(res);
+                setIncomingCallInfo(null);
+                setShowCall(true);
+              } catch {}
+            }} className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#00A082">
+                <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
       )}
       {showChat && primaryTrip && (
         <ChatPanel context="trip" contextId={primaryTrip.id} onClose={() => setShowChat(false)} />

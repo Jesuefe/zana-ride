@@ -1,10 +1,12 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Phone, ChevronUp, ChevronDown, MapPin, Navigation, MessageCircle } from 'lucide-react';
 import ChatPanel from '../../components/ChatPanel';
 import VoiceCall from '../../components/VoiceCall';
+import { io, Socket } from 'socket.io-client';
+import { api, getToken } from '../../lib/api/client';
 import RatingModal from '../../components/RatingModal';
 import { getStoredLang, dt } from '../../lib/lang';
 import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, DriverTrip } from '../../lib/api/driver';
@@ -19,12 +21,51 @@ const STATUS_COPY: Record<string, string> = {
 
 function TripContent() {
   const router = useRouter();
+
+  // Connect to WebSocket for incoming call events
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://zana.ajumalink.com';
+    const socket = io(BASE, { auth: { token }, transports: ['websocket'] });
+    socketRef.current = socket;
+
+    socket.on('call:incoming', async (data: { callId: string; callerName: string; rideId: string; expiresAt: string }) => {
+      // Accept automatically and get LiveKit token
+      try {
+        const res = await api.post<{ callId: string; roomName: string; wsUrl: string; token: string }>(
+          `/calls/${data.callId}/accept`
+        );
+        setIncomingCall({
+          callId: data.callId,
+          callerName: data.callerName,
+          rideId: data.rideId,
+          roomName: res.roomName,
+          wsUrl: res.wsUrl,
+          token: res.token,
+        });
+      } catch (e) {
+        console.error('[CALL] Could not accept incoming call:', e);
+      }
+    });
+
+    socket.on('call:cancelled', () => setIncomingCall(null));
+    socket.on('call:ended', () => { setIncomingCall(null); setShowCall(false); });
+
+    return () => { socket.disconnect(); };
+  }, []);
   const [trip, setTrip] = useState<DriverTrip | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [acting, setActing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showCall, setShowCall] = useState(false);
   const [showCallOptions, setShowCallOptions] = useState(false);
+  const [outgoingCallId, setOutgoingCallId] = useState<string | null>(null);
+  const [outgoingToken, setOutgoingToken] = useState<string | null>(null);
+  const [outgoingWsUrl, setOutgoingWsUrl] = useState<string | null>(null);
+  const [outgoingRoom, setOutgoingRoom] = useState<string | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{callId:string;callerName:string;rideId:string;roomName:string;wsUrl:string;token:string}|null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const [showRating, setShowRating] = useState(false);
   const lang = getStoredLang();
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -150,7 +191,22 @@ function TripContent() {
               {showCallOptions && (
                 <div className="absolute bottom-12 right-0 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-44 z-50">
                   <button
-                    onClick={() => { setShowCall(true); setShowCallOptions(false); }}
+                    onClick={async () => {
+                      setShowCallOptions(false);
+                      if (!trip?.id) return;
+                      try {
+                        const res = await api.post<{callId:string;roomName:string;wsUrl:string;token:string}>(
+                          '/calls', { rideId: trip.id }
+                        );
+                        setOutgoingCallId(res.callId);
+                        setOutgoingRoom(res.roomName);
+                        setOutgoingWsUrl(res.wsUrl);
+                        setOutgoingToken(res.token);
+                        setShowCall(true);
+                      } catch (e: any) {
+                        console.error('[CALL] Create call failed:', e);
+                      }
+                    }}
                     className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left"
                   >
                     <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
@@ -230,12 +286,62 @@ function TripContent() {
           onClose={() => setShowRating(false)}
         />
       )}
-      {showCall && trip && (
+      {/* Outgoing call */}
+      {showCall && outgoingCallId && outgoingRoom && outgoingWsUrl && outgoingToken && trip && (
         <VoiceCall
-          context="trip"
-          contextId={trip.id}
+          incomingCallId={outgoingCallId}
+          roomName={outgoingRoom}
+          wsUrl={outgoingWsUrl}
+          token={outgoingToken}
           participantLabel={trip.customer?.firstName ?? 'Passenger'}
-          onClose={() => setShowCall(false)}
+          onClose={() => { setShowCall(false); setOutgoingCallId(null); }}
+        />
+      )}
+
+      {/* Incoming call from customer */}
+      {incomingCall && !showCall && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6 py-12"
+          style={{ background: 'linear-gradient(160deg, #005C4B 0%, #002D24 100%)' }}>
+          <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mb-6 animate-pulse">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="white">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <p className="text-white/60 text-sm mb-1">Incoming call</p>
+          <p className="text-white text-3xl font-black mb-2">{incomingCall.callerName}</p>
+          <p className="text-white/50 text-xs mb-12">Zana Ride · Free Call</p>
+          <div className="flex items-center gap-16">
+            <div className="flex flex-col items-center gap-2">
+              <button onClick={() => { api.post(`/calls/${incomingCall.callId}/decline`); setIncomingCall(null); }}
+                className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                  <path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4l5.6 5.6L5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6z"/>
+                </svg>
+              </button>
+              <p className="text-white/50 text-xs">Decline</p>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <button onClick={() => setShowCall(true)}
+                className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                  <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+                </svg>
+              </button>
+              <p className="text-white/50 text-xs">Accept</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Accepted incoming call — connect to LiveKit */}
+      {showCall && incomingCall && (
+        <VoiceCall
+          incomingCallId={incomingCall.callId}
+          roomName={incomingCall.roomName}
+          wsUrl={incomingCall.wsUrl}
+          token={incomingCall.token}
+          participantLabel={incomingCall.callerName}
+          onClose={() => { setShowCall(false); setIncomingCall(null); }}
         />
       )}
       {showChat && trip && (
