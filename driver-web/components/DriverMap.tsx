@@ -66,6 +66,7 @@ export default function DriverMap({
   const followingRef = useRef(true);
   const spokenRef = useRef('');
   const fetchTimerRef = useRef<any>(null);
+  const boundsFittedRef = useRef(false);
 
   // ── State — only for UI ───────────────────────────────────────────────────
   const [steps, setSteps] = useState<{
@@ -83,10 +84,12 @@ export default function DriverMap({
     if (!map || !followingRef.current) return;
 
     if (navigationMode) {
+      // Center on driver at street-level zoom
       map.setCenter({ lat: dPos.lat, lng: dPos.lng });
-      map.setZoom(18);
-      map.setTilt(45);
-      map.setHeading(dPos.heading);
+      if (map.getZoom() !== 18) map.setZoom(18);
+      // Tilt and heading only work with a Cloud mapId — try, ignore if unsupported
+      try { map.setTilt?.(45); } catch {}
+      try { map.setHeading?.(dPos.heading); } catch {}
     } else {
       map.panTo({ lat: dPos.lat, lng: dPos.lng });
     }
@@ -100,35 +103,30 @@ export default function DriverMap({
 
     const pos = { lat: dPos.lat, lng: dPos.lng };
 
+    // Classic Marker with rotating arrow symbol — works without mapId
+    const icon = {
+      path: 'M 0,-12 L 8,10 L 0,5 L -8,10 Z',
+      fillColor: '#00A082',
+      fillOpacity: 1,
+      strokeColor: '#FFFFFF',
+      strokeWeight: 3,
+      scale: 1.6,
+      rotation: dPos.heading,
+      anchor: new G.Point(0, 0),
+    };
+
     if (!markerRef.current) {
-      // Create marker once
-      const el = document.createElement('div');
-      el.innerHTML = `
-        <svg width="52" height="52" viewBox="0 0 52 52" style="filter:drop-shadow(0 3px 8px rgba(0,0,0,0.35))">
-          <circle cx="26" cy="26" r="22" fill="white"/>
-          <path d="M26 8 L34 40 L26 34 L18 40 Z" fill="#00A082"/>
-        </svg>`;
-      el.style.cssText = 'width:52px;height:52px;transform-origin:center;';
-
-      try {
-        markerRef.current = new G.marker.AdvancedMarkerElement({
-          position: pos,
-          map,
-          content: el,
-          zIndex: 1000,
-        });
-      } catch {
-        markerRef.current = new G.Marker({ position: pos, map, zIndex: 1000 });
-      }
+      markerRef.current = new G.Marker({
+        position: pos,
+        map,
+        icon,
+        zIndex: 1000,
+        optimized: false,
+      });
     } else {
-      // Update existing marker position
-      try { markerRef.current.position = pos; }
-      catch { markerRef.current.setPosition(pos); }
+      markerRef.current.setPosition(pos);
+      markerRef.current.setIcon(icon);
     }
-
-    // Rotate marker SVG with heading
-    const svg = markerRef.current.content?.querySelector?.('svg') as HTMLElement | null;
-    if (svg) svg.style.transform = `rotate(${dPos.heading}deg)`;
   }, []);
 
   // ── GPS update handler — single source of truth ───────────────────────────
@@ -197,17 +195,23 @@ export default function DriverMap({
 
         // Destination marker
         if (!targetMarkerRef.current) {
-          const destEl = document.createElement('div');
-          destEl.style.cssText = 'width:16px;height:16px;border-radius:50%;background:#E6A82E;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)';
-          try {
-            targetMarkerRef.current = new G.marker.AdvancedMarkerElement({ position: to, map, content: destEl });
-          } catch {
-            targetMarkerRef.current = new G.Marker({ position: to, map });
-          }
+          targetMarkerRef.current = new G.Marker({
+            position: to,
+            map,
+            icon: {
+              path: G.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#E6A82E',
+              fillOpacity: 1,
+              strokeColor: '#FFFFFF',
+              strokeWeight: 3,
+            },
+          });
         }
 
-        // Non-nav: fit bounds ONCE to show full route
-        if (!navigationMode) {
+        // Non-nav: fit bounds ONCE only, never again
+        if (!navigationMode && !boundsFittedRef.current) {
+          boundsFittedRef.current = true;
           const bounds = new G.LatLngBounds();
           path.forEach(p => bounds.extend(p));
           map.fitBounds(bounds, { top: 60, bottom: 80, left: 30, right: 30 });
@@ -227,12 +231,14 @@ export default function DriverMap({
       const map = new G.Map(containerRef.current, {
         center: { lat: initPos.lat, lng: initPos.lng },
         zoom: navigationMode ? 18 : 14,
-        tilt: navigationMode ? 45 : 0,
-        heading: navigationMode ? (initPos.heading ?? 0) : 0,
         disableDefaultUI: true,
         gestureHandling: 'greedy',
         clickableIcons: false,
         mapTypeId: 'roadmap',
+        styles: [
+          { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+          { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+        ],
       });
 
       // Detect manual drag → stop following

@@ -24,8 +24,8 @@ export function loadGoogleMaps(): Promise<void> {
     }
 
     const script = document.createElement('script');
-    // loading=async is the recommended pattern per Google
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_EMBED_KEY}&libraries=places,marker&loading=async&callback=${callbackName}&v=weekly`;
+    // Stable v3 — no beta features, no mapId requirement
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_EMBED_KEY}&libraries=places&callback=${callbackName}&v=3`;
     script.async = true;
     script.defer = true;
     script.onerror = () => { loadPromise = null; reject(new Error('Failed to load Google Maps')); };
