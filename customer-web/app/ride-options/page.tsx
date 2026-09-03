@@ -381,7 +381,7 @@ function RideOptionsContent() {
           <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-start gap-2">
             <MapPin size={14} className="text-gray-400 mt-0.5 shrink-0" />
             <p className="text-xs text-gray-500 leading-relaxed">
-              Final fare may vary slightly based on actual route. Zana deducts a 15% platform fee from the driver — you pay the fare shown above.
+              Fare is calculated by distance and vehicle type.
             </p>
           </div>
 

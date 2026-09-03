@@ -27,7 +27,6 @@ function ReceiptContent() {
   );
 
   const fare = trip.finalFare ?? trip.estimatedFare;
-  const commission = Math.round(fare * 0.15);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
@@ -84,9 +83,7 @@ function ReceiptContent() {
           <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Fare breakdown</p>
           <div className="space-y-2">
             {[
-              { label: 'Base fare', value: fare },
-              { label: 'Zana platform (15%)', value: -commission, color: 'text-gray-400' },
-              { label: 'Driver receives', value: fare - commission, color: 'text-zana-primary font-semibold' },
+              { label: 'Base fare', value: fare, color: 'text-gray-700' },
             ].map(({ label, value, color }) => (
               <div key={label} className="flex justify-between">
                 <span className={`text-sm ${color ?? 'text-gray-700'}`}>{label}</span>
