@@ -84,8 +84,8 @@ export default function DriverMap({
         container: containerRef.current!,
         style: 'mapbox://styles/mapbox/streets-v12',
         center: position ? [position.lng, position.lat] : [30.0605, -1.9536],
-        zoom: navigationMode ? 18 : 14,
-        pitch: navigationMode ? 60 : 0,
+        zoom: navigationMode ? 17 : 14,
+        pitch: navigationMode ? 45 : 0,
         bearing: 0,
         attributionControl: false,
         logoPosition: 'bottom-right',
@@ -179,11 +179,12 @@ export default function DriverMap({
 
         // Non-nav mode: fit bounds to show full route
         if (!navigationMode && coords.length > 1) {
-          const bounds = coords.reduce(
-            (b, c) => b.extend(c as [number, number]),
-            new (require('mapbox-gl') as any).LngLatBounds(coords[0], coords[0])
+          const lngs = coords.map(c => c[0]);
+          const lats = coords.map(c => c[1]);
+          map.fitBounds(
+            [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+            { padding: { top: 80, bottom: 100, left: 40, right: 40 }, duration: 500 }
           );
-          map.fitBounds(bounds, { padding: { top: 80, bottom: 100, left: 40, right: 40 }, duration: 500 });
         }
 
         // Add destination marker
@@ -208,16 +209,18 @@ export default function DriverMap({
     const waitForGoogle = setInterval(() => {
       if ((window as any).google?.maps) {
         clearInterval(waitForGoogle);
+        // Set lastPosRef so reroute check works
+        lastPosRef.current = posRef.current;
         fetchRoute();
-        // Only re-fetch if driver goes significantly off route (>80m)
+        // Reroute check every 15s if moved >80m from last fetch point
         fetchTimerRef.current = setInterval(() => {
           const pos = posRef.current;
           const lastFetched = lastPosRef.current;
-          if (pos && lastFetched && haversineM(pos, lastFetched) > 80) {
-            fetchRoute();
+          if (pos && (!lastFetched || haversineM(pos, lastFetched) > 80)) {
             lastPosRef.current = pos;
+            fetchRoute();
           }
-        }, 10_000);
+        }, 15_000);
       }
     }, 500);
 
@@ -266,17 +269,13 @@ export default function DriverMap({
 
     // ── Camera: Mapbox easeTo — smooth, no conflicts ────────────────────────
     if (navigationMode) {
-      const AHEAD = 0.0003;
-      const rad = (hdg * Math.PI) / 180;
-      const camLat = pos.lat + AHEAD * Math.cos(rad);
-      const camLng = pos.lng + AHEAD * Math.sin(rad);
-
+      // Center directly on driver — Mapbox pitch handles the look-ahead perspective
       map.easeTo({
-        center: [camLng, camLat],
-        zoom: 18,
-        bearing: hdg,        // Map rotates with driver direction
-        pitch: 60,           // 3D tilt
-        duration: 300,       // Smooth 300ms animation
+        center: [pos.lng, pos.lat],
+        zoom: 17,
+        bearing: hdg,
+        pitch: 45,
+        duration: 400,
       });
     }
 
