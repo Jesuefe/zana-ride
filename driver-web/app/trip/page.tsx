@@ -368,7 +368,7 @@ function TripContent() {
 
                 <button onClick={sendMomoPrompt} disabled={!momoPhone.trim()}
                   className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40">
-                  Send payment request
+                  {momoState === 'failed' ? 'Send prompt again' : 'Send payment request'}
                 </button>
                 <button onClick={() => router.replace('/')}
                   className="w-full text-center text-sm text-gray-400 mt-3 py-1">
@@ -389,14 +389,21 @@ function TripContent() {
                 <p className="text-sm text-gray-500 text-center mb-1">
                   A prompt was sent to {momoPhone}
                 </p>
-                <p className="text-xs text-gray-400 text-center mb-6">
+                <p className="text-xs text-gray-400 text-center mb-5">
                   Ask the customer to enter their PIN
                 </p>
-                <div className="w-8 h-8 border-2 border-zana-primary/20 border-t-zana-primary rounded-full animate-spin" />
-                <button onClick={() => { clearInterval(momoPollRef.current); setMomoState('prompt'); }}
-                  className="text-sm text-gray-400 mt-6 py-1">
-                  Resend to a different number
-                </button>
+                <div className="w-8 h-8 border-2 border-zana-primary/20 border-t-zana-primary rounded-full animate-spin mb-6" />
+
+                <div className="w-full space-y-2">
+                  <button onClick={sendMomoPrompt}
+                    className="w-full border-2 border-zana-primary text-zana-primary font-bold py-3 rounded-2xl">
+                    Send prompt again
+                  </button>
+                  <button onClick={() => { clearInterval(momoPollRef.current); setMomoState('prompt'); }}
+                    className="w-full text-center text-sm text-gray-400 py-2">
+                    Use a different number
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center py-8">

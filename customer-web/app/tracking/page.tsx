@@ -197,12 +197,22 @@ function TrackingContent() {
 
   // ── Driver → pickup ETA (only while driver is heading to the customer) ───
   useEffect(() => {
-    const drvLat = primaryTrip?.driver?.lastLat;
-    const drvLng = primaryTrip?.driver?.lastLng;
+    const drv = primaryTrip?.driver as any;
+    const drvLat = drv?.lastLat;
+    const drvLng = drv?.lastLng;
     const st = primaryTrip?.status;
     const enRoute = st === 'DRIVER_ASSIGNED' || st === 'DRIVER_EN_ROUTE';
 
     if (!enRoute || drvLat == null || drvLng == null || !primaryTrip) {
+      setDriverEta(null);
+      return;
+    }
+
+    // Only trust the driver's location if it was reported in the last 2 minutes.
+    // A stale fix would produce a wildly wrong "X mins away".
+    const reportedAt = drv?.lastLocationAt ? new Date(drv.lastLocationAt).getTime() : 0;
+    const isFresh = reportedAt > 0 && Date.now() - reportedAt < 120_000;
+    if (!isFresh) {
       setDriverEta(null);
       return;
     }
@@ -218,7 +228,7 @@ function TrackingContent() {
           travelMode: G.TravelMode.DRIVING,
         },
         (res: any, status: any) => {
-          if (status !== 'OK') return;
+          if (status !== 'OK') { setDriverEta(null); return; }
           const leg = res.routes[0]?.legs[0];
           if (leg) {
             setDriverEta({ durationText: leg.duration.text, distanceText: leg.distance.text });
@@ -228,7 +238,7 @@ function TrackingContent() {
     };
 
     calc();
-    const t = setInterval(calc, 20000);
+    const t = setInterval(calc, 15000);
     return () => clearInterval(t);
   }, [primaryTrip?.driver?.lastLat, primaryTrip?.driver?.lastLng, primaryTrip?.status]);
   const status = primaryTrip?.status ?? 'SEARCHING_DRIVER';
@@ -312,10 +322,12 @@ function TrackingContent() {
         {driverEta && (
           <div className="flex items-center gap-2 mt-2 bg-zana-primary-light rounded-2xl px-4 py-2.5 w-fit">
             <div className="w-2 h-2 rounded-full bg-zana-primary animate-pulse" />
-            <span className="text-base font-black text-zana-primary">
-              Driver is {driverEta.durationText} away
-            </span>
-            <span className="text-xs text-gray-500">· {driverEta.distanceText}</span>
+            <div>
+              <span className="text-base font-black text-zana-primary">
+                {driverEta.durationText} to your pickup
+              </span>
+              <span className="text-xs text-gray-500 ml-1.5">· {driverEta.distanceText}</span>
+            </div>
           </div>
         )}
         {rideIsActive && routeInfo && !driverEta && (
