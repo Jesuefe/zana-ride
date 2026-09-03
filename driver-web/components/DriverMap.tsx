@@ -1,40 +1,35 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { loadGoogleMaps } from '../lib/mapsLoader';
 
 type LatLng = { lat: number; lng: number };
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiYWplc3VlZmUiLCJhIjoiY210anp1bHo5MGlwZDJ6czg5dTU1NjJ2MiJ9.Z-pUfR_-sTBechdHeRRSCg';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function haversineM(a: LatLng, b: LatLng): number {
   const R = 6371000;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
   const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const x =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((a.lat * Math.PI) / 180) *
-      Math.cos((b.lat * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
+  const x = Math.sin(dLat / 2) ** 2 +
+    Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.asin(Math.sqrt(x));
 }
 
 function bearing(a: LatLng, b: LatLng): number {
   const dLng = ((b.lng - a.lng) * Math.PI) / 180;
   const y = Math.sin(dLng) * Math.cos((b.lat * Math.PI) / 180);
-  const x =
-    Math.cos((a.lat * Math.PI) / 180) * Math.sin((b.lat * Math.PI) / 180) -
-    Math.sin((a.lat * Math.PI) / 180) *
-      Math.cos((b.lat * Math.PI) / 180) *
-      Math.cos(dLng);
+  const x = Math.cos((a.lat * Math.PI) / 180) * Math.sin((b.lat * Math.PI) / 180) -
+    Math.sin((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.cos(dLng);
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
-function stripHtml(html: string): string {
+function stripHtml(html: string) {
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
 }
 
-function maneuverArrow(m: string): string {
+function maneuverArrow(m: string) {
   if (m.includes('left')) return '↰';
   if (m.includes('right')) return '↱';
   if (m.includes('uturn')) return '↩';
@@ -42,7 +37,7 @@ function maneuverArrow(m: string): string {
   return '↑';
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function DriverMap({
   position,
@@ -61,8 +56,6 @@ export default function DriverMap({
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const targetMarkerRef = useRef<any>(null);
-  const routePolyRef = useRef<any>(null);   // raw Polyline — we own zoom completely
-  const stepMarkersRef = useRef<any[]>([]);
   const lastPosRef = useRef<LatLng | null>(null);
   const headingRef = useRef(0);
   const routeFetchedRef = useRef(false);
@@ -74,40 +67,66 @@ export default function DriverMap({
   posRef.current = position;
   tgtRef.current = target;
 
-  const [steps, setSteps] = useState<{
-    instruction: string;
-    distanceText: string;
-    maneuver: string;
-    endLocation: LatLng;
-  }[]>([]);
+  const [steps, setSteps] = useState<{ instruction: string; distanceText: string; maneuver: string; endLocation: LatLng }[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [eta, setEta] = useState<{ duration: string; distance: string } | null>(null);
   const [voiceOn, setVoiceOn] = useState(true);
   const [ready, setReady] = useState(false);
-  const [routeError, setRouteError] = useState('');
 
-  // ── Init map once ──────────────────────────────────────────────────────────
+  // ── Init Mapbox ────────────────────────────────────────────────────────────
   useEffect(() => {
-    loadGoogleMaps().then(() => {
-      if (!containerRef.current || mapRef.current) return;
-      const G = (window as any).google.maps;
+    if (!containerRef.current || mapRef.current) return;
 
-      mapRef.current = new G.Map(containerRef.current, {
-        center: position ?? { lat: -1.9536, lng: 30.0605 },
-        zoom: 18,
-        mapId: 'zana_nav',
-        disableDefaultUI: true,
-        gestureHandling: navigationMode ? 'none' : 'greedy',
-        tilt: navigationMode ? 45 : 0,
-        heading: 0,
-        clickableIcons: false,
+    import('mapbox-gl').then(({ default: mapboxgl }) => {
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+
+      const map = new mapboxgl.Map({
+        container: containerRef.current!,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: position ? [position.lng, position.lat] : [30.0605, -1.9536],
+        zoom: navigationMode ? 18 : 14,
+        pitch: navigationMode ? 60 : 0,
+        bearing: 0,
+        attributionControl: false,
+        logoPosition: 'bottom-right',
       });
 
-      setReady(true);
+      map.on('load', () => {
+        // Add route source and layer
+        map.addSource('route', {
+          type: 'geojson',
+          data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } },
+        });
+        map.addLayer({
+          id: 'route-line',
+          type: 'line',
+          source: 'route',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: { 'line-color': '#00A082', 'line-width': 6, 'line-opacity': 0.9 },
+        });
+
+        // Casing for route
+        map.addLayer({
+          id: 'route-casing',
+          type: 'line',
+          source: 'route',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: { 'line-color': '#007A63', 'line-width': 9, 'line-opacity': 0.3 },
+        }, 'route-line');
+
+        mapRef.current = map;
+        setReady(true);
+      });
     });
+
+    return () => {
+      clearInterval(fetchTimerRef.current);
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
   }, []);
 
-  // ── Fetch route from DirectionsService, draw as raw Polyline ──────────────
+  // ── Fetch route using Google DirectionsService (free tier) ─────────────────
   const fetchRoute = useCallback(() => {
     const G = (window as any).google?.maps;
     const map = mapRef.current;
@@ -121,14 +140,9 @@ export default function DriverMap({
         origin: new G.LatLng(pos.lat, pos.lng),
         destination: new G.LatLng(tgt.lat, tgt.lng),
         travelMode: G.TravelMode.DRIVING,
-        provideRouteAlternatives: false,
       },
       (result: any, status: any) => {
-        if (status !== 'OK') {
-          setRouteError(`No route (${status})`);
-          return;
-        }
-        setRouteError('');
+        if (status !== 'OK') return;
         routeFetchedRef.current = true;
 
         const leg = result.routes[0]?.legs[0];
@@ -136,12 +150,12 @@ export default function DriverMap({
 
         setEta({ duration: leg.duration.text, distance: leg.distance.text });
 
-        // Build full path from all step polylines
-        const path: LatLng[] = [];
+        // Extract coordinates for Mapbox
+        const coords: [number, number][] = [];
         const newSteps: typeof steps = [];
 
         leg.steps.forEach((s: any) => {
-          s.lat_lngs.forEach((ll: any) => path.push({ lat: ll.lat(), lng: ll.lng() }));
+          s.lat_lngs.forEach((ll: any) => coords.push([ll.lng(), ll.lat()]));
           newSteps.push({
             instruction: stripHtml(s.instructions),
             distanceText: s.distance.text,
@@ -153,126 +167,128 @@ export default function DriverMap({
         setSteps(newSteps);
         setCurrentStep(0);
 
-        // Draw raw Polyline — WE control zoom, not Google
-        if (routePolyRef.current) routePolyRef.current.setMap(null);
-        routePolyRef.current = new G.Polyline({
-          path,
-          strokeColor: '#00A082',
-          strokeWeight: 6,
-          strokeOpacity: 0.9,
-          map,
-        });
-
-        // Destination marker
-        if (!targetMarkerRef.current) {
-          const div = document.createElement('div');
-          div.innerHTML = `<div style="width:16px;height:16px;border-radius:50%;background:#E6A82E;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`;
-          try {
-            targetMarkerRef.current = new G.marker.AdvancedMarkerElement({ position: tgt, map, content: div });
-          } catch {
-            targetMarkerRef.current = new G.Marker({ position: tgt, map });
-          }
-        } else {
-          try { targetMarkerRef.current.position = tgt; }
-          catch { targetMarkerRef.current.setPosition(tgt); }
+        // Draw on Mapbox — we own the camera completely
+        const source = map.getSource('route') as any;
+        if (source) {
+          source.setData({
+            type: 'Feature',
+            properties: {},
+            geometry: { type: 'LineString', coordinates: coords },
+          });
         }
 
-        // Non-nav mode: fit bounds once
-        if (!navigationMode) {
-          const bounds = new G.LatLngBounds();
-          path.forEach(p => bounds.extend(p));
-          map.fitBounds(bounds, { top: 60, bottom: 80, left: 30, right: 30 });
+        // Non-nav mode: fit bounds to show full route
+        if (!navigationMode && coords.length > 1) {
+          const bounds = coords.reduce(
+            (b, c) => b.extend(c as [number, number]),
+            new (require('mapbox-gl') as any).LngLatBounds(coords[0], coords[0])
+          );
+          map.fitBounds(bounds, { padding: { top: 80, bottom: 100, left: 40, right: 40 }, duration: 500 });
+        }
+
+        // Add destination marker
+        if (!targetMarkerRef.current && tgt) {
+          const el = document.createElement('div');
+          el.style.cssText = 'width:16px;height:16px;border-radius:50%;background:#E6A82E;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)';
+          import('mapbox-gl').then(({ default: mapboxgl }) => {
+            targetMarkerRef.current = new mapboxgl.Marker({ element: el })
+              .setLngLat([tgt.lng, tgt.lat])
+              .addTo(map);
+          });
         }
       }
     );
   }, [navigationMode]);
 
-  // Fetch route when map + target are ready
+  // Fetch route when ready
   useEffect(() => {
     if (!ready || !target) return;
-    fetchRoute();
-    clearInterval(fetchTimerRef.current);
-    // Refetch every 20s (rerouting if driver goes off route)
-    fetchTimerRef.current = setInterval(fetchRoute, 20000);
-    return () => clearInterval(fetchTimerRef.current);
+
+    // Wait for Google Maps to load
+    const waitForGoogle = setInterval(() => {
+      if ((window as any).google?.maps) {
+        clearInterval(waitForGoogle);
+        fetchRoute();
+        // Only re-fetch if driver goes significantly off route (>80m)
+        fetchTimerRef.current = setInterval(() => {
+          const pos = posRef.current;
+          const lastFetched = lastPosRef.current;
+          if (pos && lastFetched && haversineM(pos, lastFetched) > 80) {
+            fetchRoute();
+            lastPosRef.current = pos;
+          }
+        }, 10_000);
+      }
+    }, 500);
+
+    return () => {
+      clearInterval(waitForGoogle);
+      clearInterval(fetchTimerRef.current);
+    };
   }, [ready, target?.lat, target?.lng, fetchRoute]);
 
-  // ── Update driver marker + camera on every GPS update ────────────────────
+  // ── Update driver marker + camera on GPS update ────────────────────────────
   useEffect(() => {
-    if (!position || !ready) return;
-    const G = (window as any).google?.maps;
+    if (!position || !ready || !mapRef.current) return;
+
     const map = mapRef.current;
-    if (!G || !map) return;
+    const pos = position;
 
-    const pos = { lat: position.lat, lng: position.lng };
-
-    // Calculate heading from movement
+    // Calculate heading
     if (lastPosRef.current) {
-      const dist = haversineM(lastPosRef.current, position);
-      if (dist > 1.5) {
-        headingRef.current = bearing(lastPosRef.current, position);
-      }
+      const dist = haversineM(lastPosRef.current, pos);
+      if (dist > 2) headingRef.current = bearing(lastPosRef.current, pos);
     }
-    lastPosRef.current = position;
+    lastPosRef.current = pos;
     const hdg = headingRef.current;
 
-    // ── Driver marker (arrow pointing in direction of travel) ──
-    if (!markerRef.current) {
-      const div = document.createElement('div');
-      div.id = 'zana-nav-arrow';
-      div.style.cssText = 'width:56px;height:56px;display:flex;align-items:center;justify-content:center;';
-      div.innerHTML = `
-        <svg width="56" height="56" viewBox="0 0 56 56" style="transform:rotate(${hdg}deg);transition:transform 0.4s ease;filter:drop-shadow(0 3px 8px rgba(0,0,0,0.35))">
-          <circle cx="28" cy="28" r="24" fill="white"/>
-          <path d="M28 10 L36 42 L28 36 L20 42 Z" fill="#00A082"/>
-        </svg>`;
-      try {
-        markerRef.current = new G.marker.AdvancedMarkerElement({ position: pos, map, content: div });
-      } catch {
-        markerRef.current = new G.Marker({ position: pos, map });
-      }
-    } else {
-      try {
-        markerRef.current.position = pos;
-        const svg = document.querySelector('#zana-nav-arrow svg') as HTMLElement;
-        if (svg) svg.style.transform = `rotate(${hdg}deg)`;
-      } catch {
-        markerRef.current.setPosition(pos);
-      }
-    }
-
-    // ── Camera: driver at bottom third, map rotates with heading ──
-    if (navigationMode) {
-      const LOOK_AHEAD = 0.00035; // ~39m ahead
-      const rad = (hdg * Math.PI) / 180;
-      const camLat = pos.lat + LOOK_AHEAD * Math.cos(rad);
-      const camLng = pos.lng + LOOK_AHEAD * Math.sin(rad);
-
-      if (map.moveCamera) {
-        map.moveCamera({
-          center: { lat: camLat, lng: camLng },
-          zoom: 18,
-          heading: hdg,
-          tilt: 45,
-        });
+    // Driver arrow marker
+    import('mapbox-gl').then(({ default: mapboxgl }) => {
+      if (!markerRef.current) {
+        const el = document.createElement('div');
+        el.id = 'zana-arrow';
+        el.innerHTML = `
+          <svg width="56" height="56" viewBox="0 0 56 56" style="filter:drop-shadow(0 3px 8px rgba(0,0,0,0.35))">
+            <circle cx="28" cy="28" r="24" fill="white"/>
+            <path d="M28 10 L36 42 L28 36 L20 42 Z" fill="#00A082"/>
+          </svg>`;
+        el.style.cssText = 'width:56px;height:56px;cursor:default;';
+        markerRef.current = new mapboxgl.Marker({ element: el, rotationAlignment: 'map', pitchAlignment: 'map' })
+          .setLngLat([pos.lng, pos.lat])
+          .addTo(map);
       } else {
-        map.setCenter({ lat: camLat, lng: camLng });
-        map.setZoom(18);
-        map.setHeading?.(hdg);
-        map.setTilt?.(45);
+        markerRef.current.setLngLat([pos.lng, pos.lat]);
       }
+
+      // Rotate marker with heading
+      markerRef.current.setRotation(hdg);
+    });
+
+    // ── Camera: Mapbox easeTo — smooth, no conflicts ────────────────────────
+    if (navigationMode) {
+      const AHEAD = 0.0003;
+      const rad = (hdg * Math.PI) / 180;
+      const camLat = pos.lat + AHEAD * Math.cos(rad);
+      const camLng = pos.lng + AHEAD * Math.sin(rad);
+
+      map.easeTo({
+        center: [camLng, camLat],
+        zoom: 18,
+        bearing: hdg,        // Map rotates with driver direction
+        pitch: 60,           // 3D tilt
+        duration: 300,       // Smooth 300ms animation
+      });
     }
 
-    // ── Advance step when driver reaches end of current step ──
+    // Advance to next step
     setCurrentStep(prev => {
       if (!steps.length || prev >= steps.length - 1) return prev;
-      const dist = haversineM(position, steps[prev].endLocation);
-      return dist < 30 ? prev + 1 : prev;
+      return haversineM(pos, steps[prev].endLocation) < 30 ? prev + 1 : prev;
     });
 
   }, [position?.lat, position?.lng, ready, navigationMode]);
 
-  // ── Voice instructions ────────────────────────────────────────────────────
+  // ── Voice instructions ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!navigationMode || !voiceOn || !steps[currentStep]) return;
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -283,7 +299,6 @@ export default function DriverMap({
     const u = new SpeechSynthesisUtterance(txt);
     u.lang = lang === 'fr' ? 'fr-FR' : lang === 'rw' ? 'rw-RW' : 'en-US';
     u.rate = 1.05;
-    u.volume = 1;
     window.speechSynthesis.speak(u);
   }, [currentStep, navigationMode, voiceOn, lang]);
 
@@ -291,7 +306,7 @@ export default function DriverMap({
 
   return (
     <div style={{ position: 'relative', width: '100%', height }}>
-      {/* Map canvas */}
+      {/* Mapbox container */}
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
       {/* Turn instruction banner */}
@@ -299,8 +314,7 @@ export default function DriverMap({
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
           background: 'rgba(0,80,64,0.95)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '14px 16px',
+          display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
         }}>
           <div style={{
             width: 48, height: 48, borderRadius: 12,
@@ -331,43 +345,28 @@ export default function DriverMap({
 
       {/* Voice toggle */}
       {navigationMode && (
-        <button
-          onClick={() => setVoiceOn(v => !v)}
-          style={{
-            position: 'absolute', bottom: 100, right: 12, zIndex: 10,
-            width: 44, height: 44, borderRadius: '50%',
-            background: 'white', border: 'none', cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-            fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
+        <button onClick={() => setVoiceOn(v => !v)} style={{
+          position: 'absolute', bottom: 90, right: 12, zIndex: 10,
+          width: 44, height: 44, borderRadius: '50%',
+          background: 'white', border: 'none', cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)', fontSize: 20,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
           {voiceOn ? '🔊' : '🔇'}
         </button>
       )}
 
-      {/* ETA pill — non-nav mode */}
+      {/* ETA — non-nav mode */}
       {!navigationMode && eta && (
         <div style={{
           position: 'absolute', bottom: 12, left: 12, zIndex: 10,
           background: 'white', borderRadius: 12, padding: '6px 12px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-          display: 'flex', gap: 8, alignItems: 'center',
-          fontSize: 12,
+          display: 'flex', gap: 8, alignItems: 'center', fontSize: 12,
         }}>
           <span style={{ fontWeight: 800, color: '#00A082' }}>{eta.duration}</span>
           <span style={{ color: '#9CA3AF' }}>·</span>
           <span style={{ color: '#6B7280' }}>{eta.distance}</span>
-        </div>
-      )}
-
-      {/* Route error */}
-      {routeError && (
-        <div style={{
-          position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10,
-          background: 'rgba(239,68,68,0.9)', color: 'white',
-          borderRadius: 10, padding: '8px 12px', fontSize: 12,
-        }}>
-          {routeError} — check internet
         </div>
       )}
     </div>
