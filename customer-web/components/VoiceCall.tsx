@@ -35,6 +35,7 @@ export default function VoiceCall({
   const roomRef = useRef<Room | null>(null);
   const audioElementsRef = useRef<HTMLAudioElement[]>([]);
   const heartbeatRef = useRef<any>(null);
+  const ringtoneRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<any>(null);
   const callIdRef = useRef<string | null>(incomingCallId ?? null);
 
@@ -45,6 +46,7 @@ export default function VoiceCall({
 
   // ── Cleanup ────────────────────────────────────────────────────────────────
   const cleanup = useCallback(() => {
+    if (ringtoneRef.current) { ringtoneRef.current.pause(); ringtoneRef.current = null; }
     clearInterval(heartbeatRef.current);
     clearInterval(timerRef.current);
     audioElementsRef.current.forEach(el => { el.pause(); el.srcObject = null; el.remove(); });
@@ -97,6 +99,7 @@ export default function VoiceCall({
     room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
       console.log('[CALL] Remote participant connected:', participant.identity);
       // Start timer immediately on participant connect — don't wait for audio track
+      if (ringtoneRef.current) { ringtoneRef.current.pause(); ringtoneRef.current = null; }
       setState('connected');
       clearInterval(timerRef.current);
       timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
@@ -173,6 +176,13 @@ export default function VoiceCall({
 
           callIdRef.current = res.callId;
           setState('ringing');
+          // Start ringtone
+          if (!ringtoneRef.current) {
+            const rt = new Audio('/ringtone.mp3');
+            rt.loop = true; rt.volume = 1.0;
+            rt.play().catch(() => {});
+            ringtoneRef.current = rt;
+          }
           await connectToRoom(res.wsUrl, res.token, res.callId);
         }
       } catch (err: any) {

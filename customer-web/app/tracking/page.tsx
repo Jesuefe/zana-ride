@@ -156,15 +156,13 @@ function TrackingContent() {
 
     socket.on('call:incoming', (data: { callId: string; callerName: string }) => {
       setIncomingCallInfo({ callId: data.callId, driverName: data.callerName });
-      // Play beep
+      // Play Zana ringtone
       try {
-        const ctx = new AudioContext();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.value = 880; gain.gain.setValueAtTime(0.4, ctx.currentTime);
-        gain.gain.setValueAtTime(0, ctx.currentTime + 0.3);
-        osc.start(); osc.stop(ctx.currentTime + 0.35);
+        const audio = new Audio('/ringtone.mp3');
+        audio.loop = true;
+        audio.volume = 1.0;
+        audio.play().catch(() => {});
+        (window as any).__zanaRingtone = audio;
       } catch {}
     });
 
@@ -179,7 +177,7 @@ function TrackingContent() {
       } catch {}
     });
 
-    socket.on('call:missed', () => setIncomingCallInfo(null));
+    socket.on('call:missed', () => { setIncomingCallInfo(null); try { (window as any).__zanaRingtone?.pause(); } catch {} });
     socket.on('call:declined', () => { setIncomingCallInfo(null); setShowCall(false); });
     socket.on('call:cancelled', () => { setIncomingCallInfo(null); setShowCall(false); });
     socket.on('call:ended', () => { setIncomingCallInfo(null); setShowCall(false); setCallData(null); });
@@ -390,12 +388,14 @@ function TrackingContent() {
             <button onClick={async () => {
               await api.post(`/calls/${incomingCallInfo.callId}/decline`).catch(() => {});
               setIncomingCallInfo(null);
+              try { (window as any).__zanaRingtone?.pause(); } catch {}
             }} className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                 <path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4l5.6 5.6L5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6z"/>
               </svg>
             </button>
             <button onClick={async () => {
+              try { (window as any).__zanaRingtone?.pause(); } catch {}
               try {
                 const res = await api.post<{callId:string;roomName:string;wsUrl:string;token:string}>(
                   `/calls/${incomingCallInfo.callId}/accept`

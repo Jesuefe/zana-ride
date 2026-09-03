@@ -31,25 +31,27 @@ function TripContent() {
     socketRef.current = socket;
 
     socket.on('call:incoming', async (data: { callId: string; callerName: string; rideId: string; expiresAt: string }) => {
-      // Accept automatically and get LiveKit token
+      // Play ringtone
       try {
-        const res = await api.post<{ callId: string; roomName: string; wsUrl: string; token: string }>(
-          `/calls/${data.callId}/accept`
-        );
-        setIncomingCall({
-          callId: data.callId,
-          callerName: data.callerName,
-          rideId: data.rideId,
-          roomName: res.roomName,
-          wsUrl: res.wsUrl,
-          token: res.token,
-        });
-      } catch (e) {
-        console.error('[CALL] Could not accept incoming call:', e);
-      }
+        const audio = new Audio('/ringtone.mp3');
+        audio.loop = true;
+        audio.volume = 1.0;
+        audio.play().catch(() => {});
+        (window as any).__zanaRingtone = audio;
+      } catch {}
+
+      // Store call info for manual accept/decline
+      setIncomingCall({
+        callId: data.callId,
+        callerName: data.callerName,
+        rideId: data.rideId,
+        roomName: '',
+        wsUrl: '',
+        token: '',
+      });
     });
 
-    socket.on('call:cancelled', () => setIncomingCall(null));
+    socket.on('call:cancelled', () => { try { (window as any).__zanaRingtone?.pause(); } catch {} setIncomingCall(null); });
     socket.on('call:ended', () => { setIncomingCall(null); setShowCall(false); });
 
     return () => { socket.disconnect(); };
@@ -281,7 +283,11 @@ function TripContent() {
           <p className="text-white/50 text-xs mb-12">Zana Ride · Free Call</p>
           <div className="flex items-center gap-16">
             <div className="flex flex-col items-center gap-2">
-              <button onClick={() => { api.post(`/calls/${incomingCall.callId}/decline`); setIncomingCall(null); }}
+              <button onClick={() => { 
+              try { (window as any).__zanaRingtone?.pause(); } catch {}
+              api.post(`/calls/${incomingCall.callId}/decline`); 
+              setIncomingCall(null); 
+            }}
                 className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
                   <path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4l5.6 5.6L5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6z"/>
@@ -290,7 +296,16 @@ function TripContent() {
               <p className="text-white/50 text-xs">Decline</p>
             </div>
             <div className="flex flex-col items-center gap-2">
-              <button onClick={() => setShowCall(true)}
+              <button onClick={async () => {
+              try { (window as any).__zanaRingtone?.pause(); } catch {}
+              try {
+                const res = await api.post<{callId:string;roomName:string;wsUrl:string;token:string}>(
+                  `/calls/${incomingCall!.callId}/accept`
+                );
+                setIncomingCall(prev => prev ? { ...prev, roomName: res.roomName, wsUrl: res.wsUrl, token: res.token } : null);
+                setShowCall(true);
+              } catch (e) { console.error('[CALL] Accept failed:', e); }
+            }}
                 className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
                   <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
