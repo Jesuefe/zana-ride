@@ -59,7 +59,7 @@ export default function OverviewPage() {
 
       {/* Zana logo + greeting */}
       <div className="flex items-center gap-2 mb-6">
-        <div className="w-10 h-10 bg-zana-primary rounded-xl flex items-center justify-center font-black text-white text-xl">Z</div>
+        <img src="/zana-logo-full.png" alt="Zana" className="h-10 w-auto object-contain" />
         <div>
           <p className="text-xs text-gray-500">Welcome back</p>
           <p className="font-bold text-gray-900">{merchant?.businessName ?? '—'}</p>

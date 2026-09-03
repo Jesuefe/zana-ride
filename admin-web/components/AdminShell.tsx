@@ -54,7 +54,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <div className="px-4 py-5 border-b border-white/10">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center font-black text-zana-primary-dark text-lg">Z</div>
-          <span className="text-white font-bold text-sm">Zana Admin</span>
+          <span className="flex items-center gap-2"><img src="/zana-logo-full.png" alt="Zana" className="h-7 w-auto object-contain" /><span className="text-white font-bold text-sm">Admin</span></span>
         </div>
         <div className="flex rounded-lg overflow-hidden border border-white/20">
           <button onClick={() => setMode('senior')} className={`flex-1 text-[10px] font-semibold py-1.5 ${mode === 'senior' ? 'bg-white text-zana-primary-dark' : 'text-white/70'}`}>Senior</button>
@@ -86,7 +86,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-zana-primary-dark flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center font-black text-zana-primary-dark">Z</div>
-          <span className="text-white font-bold text-sm">Zana Admin</span>
+          <span className="flex items-center gap-2"><img src="/zana-logo-full.png" alt="Zana" className="h-7 w-auto object-contain" /><span className="text-white font-bold text-sm">Admin</span></span>
         </div>
         <button onClick={() => setMobileOpen(o => !o)} className="text-white p-1">
           {mobileOpen ? <X size={22} /> : <Menu size={22} />}

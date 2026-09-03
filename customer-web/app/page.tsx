@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Clock, Home, Briefcase, ChevronRight, Search, MapPin, Calendar } from 'lucide-react';
 import { fetchMe, ApiUser } from '../lib/api/auth';
 import { fetchWallet } from '../lib/api/trips';
+import { api } from '../lib/api/client';
 import { useLang } from '../lib/LangContext';
 
 const SERVICES = [
@@ -29,10 +30,32 @@ export default function HomePage() {
   const { t } = useLang();
   const [user, setUser] = useState<ApiUser | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [savedPlaces, setSavedPlaces] = useState<any[]>([]);
+  const [recentPlace, setRecentPlace] = useState<{ address: string; lat: number; lng: number } | null>(null);
+  const [ridePick, setRidePick] = useState<{ label: string; address: string; lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     fetchMe().then(setUser).catch(() => {});
-    fetchWallet().then(w => setWalletBalance(w.balance)).catch(() => {});
+    fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(() => {});
+
+    // Saved Home / Work
+    api.get<any[]>('/users/saved-places')
+      .then(list => setSavedPlaces(Array.isArray(list) ? list : []))
+      .catch(() => {});
+
+    // Most recent place the customer actually travelled to
+    api.get<any[]>('/rides/history')
+      .then(trips => {
+        const last = Array.isArray(trips) ? trips.find(t => t?.destinationAddress) : null;
+        if (last) {
+          setRecentPlace({
+            address: last.destinationAddress,
+            lat: last.destinationLat,
+            lng: last.destinationLng,
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -89,22 +112,61 @@ export default function HomePage() {
             </div>
           </button>
 
-          {/* Quick places */}
+          {/* Quick places — tap a saved place to pick a ride type */}
           <div className="grid grid-cols-3 gap-2">
-            {[
-              { icon: <Home size={14} />, label: 'Home', sub: 'Set location', route: '/profile/places' },
-              { icon: <Briefcase size={14} />, label: 'Work', sub: 'Set location', route: '/profile/places' },
-              { icon: <Clock size={14} />, label: 'Recent', sub: 'Last ride', route: '/history' },
-            ].map(p => (
-              <button key={p.label} onClick={() => router.push(p.route)}
-                className="flex flex-col items-start gap-1.5 bg-gray-50 rounded-2xl px-3 py-3 text-left">
-                <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-gray-500 shadow-sm">
-                  {p.icon}
-                </div>
-                <p className="text-xs font-bold text-gray-900">{p.label}</p>
-                <p className="text-[10px] text-gray-400 leading-tight">{p.sub}</p>
-              </button>
-            ))}
+            {(() => {
+              const findSaved = (name: string) =>
+                savedPlaces.find(p => (p?.label ?? '').toLowerCase() === name);
+              const home = findSaved('home');
+              const work = findSaved('work');
+
+              const tiles = [
+                {
+                  key: 'Home',
+                  icon: <Home size={14} />,
+                  place: home
+                    ? { label: 'Home', address: home.address, lat: home.lat, lng: home.lng }
+                    : null,
+                },
+                {
+                  key: 'Work',
+                  icon: <Briefcase size={14} />,
+                  place: work
+                    ? { label: 'Work', address: work.address, lat: work.lat, lng: work.lng }
+                    : null,
+                },
+                {
+                  key: 'Recent',
+                  icon: <Clock size={14} />,
+                  place: recentPlace
+                    ? { label: 'Recent', address: recentPlace.address, lat: recentPlace.lat, lng: recentPlace.lng }
+                    : null,
+                },
+              ];
+
+              return tiles.map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => {
+                    if (t.place) setRidePick(t.place);
+                    else router.push('/profile/places');
+                  }}
+                  className="flex flex-col items-start gap-1.5 bg-gray-50 rounded-2xl px-3 py-3 text-left active:scale-95 transition-transform"
+                >
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-sm ${
+                    t.place ? 'bg-zana-primary-light text-zana-primary' : 'bg-white text-gray-400'
+                  }`}>
+                    {t.icon}
+                  </div>
+                  <p className="text-xs font-bold text-gray-900">{t.key}</p>
+                  <p className="text-[10px] text-gray-400 leading-tight line-clamp-1 w-full">
+                    {t.place
+                      ? t.place.address.split(',')[0]
+                      : t.key === 'Recent' ? 'No trips yet' : 'Set location'}
+                  </p>
+                </button>
+              ));
+            })()}
           </div>
         </div>
       </div>
@@ -167,6 +229,62 @@ export default function HomePage() {
           <span className="text-[8px] text-zana-primary font-bold">Location</span>
         </button>
       </div>
+
+      {/* ── Ride type picker for a saved place ────────────────────────── */}
+      {ridePick && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={() => setRidePick(null)}>
+          <div className="w-full bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Going to {ridePick.label}</p>
+            <p className="text-lg font-black text-gray-900 mt-0.5 mb-5 line-clamp-2">{ridePick.address}</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  const q = new URLSearchParams({
+                    service: 'BIKE',
+                    destLat: String(ridePick.lat),
+                    destLng: String(ridePick.lng),
+                    destAddress: ridePick.address,
+                  });
+                  router.push(`/search?${q.toString()}`);
+                }}
+                className="flex flex-col items-center gap-2 py-5 rounded-2xl border-2 border-gray-100 active:scale-95 transition-transform"
+                style={{ background: '#FDF6E3' }}
+              >
+                <Image src="/icons/motorbike.png" alt="Moto" width={44} height={44} className="object-contain" />
+                <p className="text-sm font-black text-gray-900">Moto</p>
+                <p className="text-[10px] text-gray-500 -mt-1">Fast &amp; cheap</p>
+              </button>
+
+              <button
+                onClick={() => {
+                  const q = new URLSearchParams({
+                    destLat: String(ridePick.lat),
+                    destLng: String(ridePick.lng),
+                    destAddress: ridePick.address,
+                  });
+                  router.push(`/ride-options?${q.toString()}`);
+                }}
+                className="flex flex-col items-center gap-2 py-5 rounded-2xl border-2 border-gray-100 active:scale-95 transition-transform"
+                style={{ background: '#EEF9F6' }}
+              >
+                <Image src="/icons/car.png" alt="Car" width={44} height={44} className="object-contain" />
+                <p className="text-sm font-black text-gray-900">Car</p>
+                <p className="text-[10px] text-gray-500 -mt-1">Comfortable</p>
+              </button>
+            </div>
+
+            <button
+              onClick={() => { setRidePick(null); router.push('/profile/places'); }}
+              className="w-full text-center text-xs text-gray-400 mt-5 py-1"
+            >
+              Change this saved place
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Bottom nav ───────────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-3 z-40">
