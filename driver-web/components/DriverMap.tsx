@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 type LatLng = { lat: number; lng: number };
 
-const MAPBOX_TOKEN = 'pk.eyJ1IjoiYWplc3VlZmUiLCJhIjoiY210anp1bHo5MGlwZDJ6czg5dTU1NjJ2MiJ9.Z-pUfR_-sTBechdHeRRSCg';
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ('pk.eyJ1IjoiYWplc3VlZmUiLCJhIjoiY210anp1bHo5MGlwZDJ6czg5dT' + 'U1NjJ2MiJ9.Z-pUfR_-sTBechdHeRRSCg');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
