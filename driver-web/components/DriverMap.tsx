@@ -83,12 +83,10 @@ export default function DriverMap({
     if (!map || !followingRef.current) return;
 
     if (navigationMode) {
-      map.moveCamera({
-        center: { lat: dPos.lat, lng: dPos.lng },
-        zoom: 18,
-        tilt: 45,
-        heading: dPos.heading,
-      });
+      map.setCenter({ lat: dPos.lat, lng: dPos.lng });
+      map.setZoom(18);
+      map.setTilt(45);
+      map.setHeading(dPos.heading);
     } else {
       map.panTo({ lat: dPos.lat, lng: dPos.lng });
     }
@@ -231,10 +229,10 @@ export default function DriverMap({
         zoom: navigationMode ? 18 : 14,
         tilt: navigationMode ? 45 : 0,
         heading: navigationMode ? (initPos.heading ?? 0) : 0,
-        mapId: 'zana_driver_nav',
         disableDefaultUI: true,
         gestureHandling: 'greedy',
         clickableIcons: false,
+        mapTypeId: 'roadmap',
       });
 
       // Detect manual drag → stop following
