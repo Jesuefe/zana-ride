@@ -96,6 +96,11 @@ export default function VoiceCall({
 
     room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
       console.log('[CALL] Remote participant connected:', participant.identity);
+      // Start timer immediately on participant connect — don't wait for audio track
+      setState('connected');
+      clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+      api.post(`/calls/${callId}/connected`).catch(() => {});
     });
 
     room.on(RoomEvent.ParticipantDisconnected, () => {
@@ -105,19 +110,14 @@ export default function VoiceCall({
 
     room.on(RoomEvent.TrackSubscribed, (track, _pub, _participant) => {
       if (track.kind === Track.Kind.Audio) {
-        console.log('[CALL] Remote audio subscribed');
+        console.log('[CALL] Remote audio subscribed — attaching');
         const el = track.attach() as HTMLAudioElement;
         el.autoplay = true;
         el.setAttribute('playsinline', '');
         document.body.appendChild(el);
         audioElementsRef.current.push(el);
-
-        // Mark as media-connected
-        setState('connected');
-        clearInterval(timerRef.current);
-        timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
-        api.post(`/calls/${callId}/connected`).catch(() => {});
-        console.log('[CALL] CALL CONNECTED — audio playing');
+        // Timer already started on ParticipantConnected
+        console.log('[CALL] Audio attached and playing');
       }
     });
 

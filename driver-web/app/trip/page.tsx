@@ -180,60 +180,29 @@ function TripContent() {
               <MessageCircle size={16} className="text-zana-primary" />
             </button>
 
-            {/* Smart call button — tap for options */}
-            <div className="relative shrink-0">
-              <button
-                onClick={() => setShowCallOptions(v => !v)}
-                className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center"
-              >
-                <Phone size={16} className="text-green-600" />
-              </button>
-              {showCallOptions && (
-                <div className="absolute bottom-12 right-0 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-44 z-50">
-                  <button
-                    onClick={async () => {
-                      setShowCallOptions(false);
-                      if (!trip?.id) return;
-                      try {
-                        const res = await api.post<{callId:string;roomName:string;wsUrl:string;token:string}>(
-                          '/calls', { rideId: trip.id }
-                        );
-                        setOutgoingCallId(res.callId);
-                        setOutgoingRoom(res.roomName);
-                        setOutgoingWsUrl(res.wsUrl);
-                        setOutgoingToken(res.token);
-                        setShowCall(true);
-                      } catch (e: any) {
-                        console.error('[CALL] Create call failed:', e);
-                      }
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                      <Phone size={14} className="text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-900">Free Call</p>
-                      <p className="text-[10px] text-gray-400">Via Zana (internet)</p>
-                    </div>
-                  </button>
-                  <div className="h-px bg-gray-100" />
-                  <a
-                    href={`tel:${trip.customer?.phone ?? ''}`}
-                    onClick={() => setShowCallOptions(false)}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                      <Phone size={14} className="text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-900">Regular Call</p>
-                      <p className="text-[10px] text-gray-400">Dial {trip.customer?.phone}</p>
-                    </div>
-                  </a>
-                </div>
-              )}
-            </div>
+            {/* Free call button — tap to call via Zana */}
+            <button
+              onClick={async () => {
+                if (!trip?.id) return;
+                try {
+                  const res = await api.post<{callId:string;roomName:string;wsUrl:string;token:string}>(
+                    '/calls', { rideId: trip.id }
+                  );
+                  setOutgoingCallId(res.callId);
+                  setOutgoingRoom(res.roomName);
+                  setOutgoingWsUrl(res.wsUrl);
+                  setOutgoingToken(res.token);
+                  setShowCall(true);
+                } catch (e: any) {
+                  console.error('[CALL] Create call failed:', e?.message);
+                  // Fallback to regular call
+                  if (trip.customer?.phone) window.location.href = `tel:${trip.customer.phone}`;
+                }
+              }}
+              className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0"
+            >
+              <Phone size={16} className="text-green-600" />
+            </button>
           </div>
 
           {detailsOpen && (
