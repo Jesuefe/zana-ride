@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ZanaMark, ZanaWordmark } from './ZanaLogo';
+import { ZanaMark, ZanaWordmark, ZanaHorizontal } from './ZanaLogo';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {

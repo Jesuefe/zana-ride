@@ -60,7 +60,7 @@ export default function ZanaSplash({ onDone }: { onDone?: () => void }) {
           <path
             d="M 40 22 L 132 22 L 52 100 L 146 100"
             fill="none"
-            stroke="#00A082"
+            stroke="#FEC708"
             strokeWidth="17"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -96,7 +96,7 @@ export default function ZanaSplash({ onDone }: { onDone?: () => void }) {
           >
             <circle
               cx="146" cy="100" r="10"
-              fill="#FFC244"
+              fill="#59B02D"
               style={{
                 transformOrigin: '146px 100px',
                 animation: phase === 1 ? 'zanaPulse 420ms ease-out' : 'none',
@@ -109,7 +109,7 @@ export default function ZanaSplash({ onDone }: { onDone?: () => void }) {
           {phase === 4 && (
             <circle
               cx="146" cy="100" r="10"
-              fill="none" stroke="#FFC244" strokeWidth="2"
+              fill="none" stroke="#59B02D" strokeWidth="2"
               style={{ animation: 'zanaRipple 720ms ease-out forwards' }}
             />
           )}
@@ -127,7 +127,7 @@ export default function ZanaSplash({ onDone }: { onDone?: () => void }) {
         >
           <span
             style={{
-              color: '#00A082',
+              color: '#59B02D',
               opacity: phase >= 3 ? 1 : 0,
               transform: phase >= 3 ? 'translateX(0)' : 'translateX(-14px)',
               transition: 'all 300ms cubic-bezier(0.34, 1.4, 0.64, 1) 0ms',
@@ -139,7 +139,7 @@ export default function ZanaSplash({ onDone }: { onDone?: () => void }) {
             <span
               key={i}
               style={{
-                color: i === 0 ? '#FFC244' : '#1A1A2E',
+                color: i === 0 ? '#59B02D' : '#1A1A2E',
                 opacity: phase >= 3 ? 1 : 0,
                 transform: phase >= 3 ? 'translateX(0)' : 'translateX(-22px)',
                 transition: `all 300ms cubic-bezier(0.34, 1.4, 0.64, 1) ${90 + i * 85}ms`,
@@ -163,9 +163,9 @@ export default function ZanaSplash({ onDone }: { onDone?: () => void }) {
             transition: 'opacity 420ms ease 120ms',
           }}
         >
-          Ride<span style={{ color: '#00A082' }}>.</span> Deliver
-          <span style={{ color: '#FFC244' }}>.</span> Connect
-          <span style={{ color: '#00A082' }}>.</span>
+          Ride<span style={{ color: '#59B02D' }}>.</span> Deliver
+          <span style={{ color: '#FEC708' }}>.</span> Connect
+          <span style={{ color: '#59B02D' }}>.</span>
         </p>
 
         {/* ── Departing route streak ────────────────────────────────── */}
@@ -176,11 +176,11 @@ export default function ZanaSplash({ onDone }: { onDone?: () => void }) {
           >
             <path
               d="M 0 10 L 190 10"
-              fill="none" stroke="#00A082" strokeWidth="4" strokeLinecap="round"
+              fill="none" stroke="#FEC708" strokeWidth="4" strokeLinecap="round"
               style={{ animation: 'zanaDepart 560ms cubic-bezier(0.5, 0, 0.75, 0) forwards' }}
             />
             <circle
-              cx="0" cy="10" r="5" fill="#FFC244"
+              cx="0" cy="10" r="5" fill="#59B02D"
               style={{ animation: 'zanaDepartDot 560ms cubic-bezier(0.5, 0, 0.75, 0) forwards' }}
             />
           </svg>

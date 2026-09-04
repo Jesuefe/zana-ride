@@ -1,110 +1,118 @@
 'use client';
 
 /**
- * Zana logo, rebuilt as vector so it renders crisply at any size and can
- * recolour for dark mode. Three variants:
- *   mark      — the Z with its road and destination pin
- *   wordmark  — "zana" text only
- *   full      — mark above wordmark, with the optional tagline
+ * Zana logo. Uses the real brand artwork with transparent backgrounds so it
+ * sits correctly on light and dark surfaces.
+ *
+ * Brand colours, sampled from the supplied artwork:
+ *   yellow #FEC708  — the Z and its road
+ *   green  #59B02D  — the destination pin and the "a"
  */
 
-const TEAL = '#00A082';
-const YELLOW = '#FFC244';
+export const ZANA_YELLOW = '#FEC708';
+export const ZANA_GREEN = '#59B02D';
 
-export function ZanaMark({ size = 40 }: { size?: number }) {
+/** The Z mark on its own — app icons, avatars, tight spaces. */
+export function ZanaMark({ size = 40, className = '' }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" aria-label="Zana">
-      {/* The Z, drawn as a road */}
-      <path
-        d="M 22 22 L 74 22 L 30 70 L 82 70"
-        stroke={YELLOW}
-        strokeWidth="15"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      {/* Centre dashes — reads as a road rather than a letter */}
-      <path
-        d="M 22 22 L 74 22 L 30 70 L 82 70"
-        stroke="#FFFFFF"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeDasharray="6 8"
-        fill="none"
-        opacity="0.85"
-      />
-      {/* Destination pin at the end of the route */}
-      <path
-        d="M 82 58 C 87 58 91 62 91 67 C 91 73 82 82 82 82 C 82 82 73 73 73 67 C 73 62 77 58 82 58 Z"
-        fill={TEAL}
-      />
-      <circle cx="82" cy="67" r="3.4" fill="#FFFFFF" />
-    </svg>
+    <img
+      src="/zana-mark.png"
+      alt="Zana"
+      width={size}
+      height={size}
+      className={`object-contain ${className}`}
+      style={{ width: size, height: size }}
+    />
   );
 }
 
+/** "zana" wordmark. On dark surfaces the supplied artwork already reads white. */
 export function ZanaWordmark({
   size = 32,
-  color = '#1A1A2E',
-}: { size?: number; color?: string }) {
-  return (
-    <span
-      style={{
-        fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
-        fontSize: size,
-        fontWeight: 800,
-        letterSpacing: '-0.02em',
-        lineHeight: 1,
-        color,
-      }}
-    >
-      z<span style={{ color: TEAL }}>a</span>na
-    </span>
-  );
-}
-
-export default function ZanaLogo({
-  variant = 'full',
-  size = 40,
-  color = '#1A1A2E',
-  tagline = false,
-}: {
-  variant?: 'mark' | 'wordmark' | 'full' | 'horizontal';
-  size?: number;
-  color?: string;
-  tagline?: boolean;
-}) {
-  if (variant === 'mark') return <ZanaMark size={size} />;
-  if (variant === 'wordmark') return <ZanaWordmark size={size} color={color} />;
-
-  if (variant === 'horizontal') {
+  color,
+  className = '',
+}: { size?: number; color?: string; className?: string }) {
+  // The artwork's own letters are white, which vanishes on light backgrounds,
+  // so render type there and fall back to the artwork on dark.
+  if (color && color.toUpperCase() !== '#FFFFFF') {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: size * 0.2 }}>
-        <ZanaMark size={size} />
-        <ZanaWordmark size={size * 0.78} color={color} />
+      <span
+        className={className}
+        style={{
+          fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+          fontSize: size,
+          fontWeight: 800,
+          letterSpacing: '-0.02em',
+          lineHeight: 1,
+          color,
+        }}
+      >
+        z<span style={{ color: ZANA_GREEN }}>a</span>na
       </span>
     );
   }
 
   return (
-    <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: size * 0.12 }}>
+    <img
+      src="/zana-wordmark.png"
+      alt="Zana"
+      className={`object-contain ${className}`}
+      style={{ height: size * 1.1, width: 'auto' }}
+    />
+  );
+}
+
+/** Mark and wordmark side by side — headers and sign-in screens. */
+export function ZanaHorizontal({ size = 36, className = '' }: { size?: number; className?: string }) {
+  return (
+    <img
+      src="/zana-horizontal.png"
+      alt="Zana"
+      className={`object-contain ${className}`}
+      style={{ height: size, width: 'auto' }}
+    />
+  );
+}
+
+export default function ZanaLogo({
+  variant = 'horizontal',
+  size = 40,
+  color,
+  tagline = false,
+  className = '',
+}: {
+  variant?: 'mark' | 'wordmark' | 'horizontal' | 'full';
+  size?: number;
+  color?: string;
+  tagline?: boolean;
+  className?: string;
+}) {
+  if (variant === 'mark') return <ZanaMark size={size} className={className} />;
+  if (variant === 'wordmark') return <ZanaWordmark size={size} color={color} className={className} />;
+  if (variant === 'horizontal') return <ZanaHorizontal size={size} className={className} />;
+
+  return (
+    <span
+      className={className}
+      style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: size * 0.14 }}
+    >
       <ZanaMark size={size} />
-      <ZanaWordmark size={size * 0.62} color={color} />
+      <ZanaWordmark size={size * 0.5} color={color} />
       {tagline && (
         <span
           style={{
             fontFamily: 'system-ui, -apple-system, sans-serif',
-            fontSize: Math.max(7, size * 0.13),
+            fontSize: Math.max(7, size * 0.12),
             fontWeight: 700,
             letterSpacing: '0.26em',
             textTransform: 'uppercase',
             color: '#9A9A96',
-            marginTop: size * 0.06,
+            marginTop: size * 0.05,
           }}
         >
-          Ride<span style={{ color: TEAL }}>.</span> Deliver
-          <span style={{ color: YELLOW }}>.</span> Connect
-          <span style={{ color: TEAL }}>.</span>
+          Ride<span style={{ color: ZANA_GREEN }}>.</span> Deliver
+          <span style={{ color: ZANA_YELLOW }}>.</span> Connect
+          <span style={{ color: ZANA_GREEN }}>.</span>
         </span>
       )}
     </span>

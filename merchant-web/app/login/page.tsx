@@ -24,8 +24,15 @@ export default function LoginPage() {
     setError(null);
     try {
       const { user } = await login(email.trim(), password);
+
+      // Merchants and market agents both sign in here, then land on
+      // whichever dashboard fits their role.
+      if (user.role === 'AGENT') {
+        router.push('/agent');
+        return;
+      }
       if (user.role !== 'MERCHANT') {
-        setError('This account is not a merchant account.');
+        setError('This account is not a merchant or agent account.');
         return;
       }
       router.push('/');
@@ -50,7 +57,7 @@ export default function LoginPage() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h1 className="text-lg font-bold text-gray-900 mb-1">Sign in</h1>
-          <p className="text-sm text-gray-500 mb-6">Enter your business account credentials</p>
+          <p className="text-sm text-gray-500 mb-6">Sign in as a merchant or market agent</p>
 
           <div className="space-y-4">
             {/* Email */}

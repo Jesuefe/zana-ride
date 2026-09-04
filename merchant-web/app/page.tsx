@@ -6,9 +6,11 @@ import Link from 'next/link';
 import { Package, Truck, Wallet, ShoppingBag, Plus, TrendingUp } from 'lucide-react';
 import Topbar from '../components/Topbar';
 import { fetchMyMerchant, fetchDeliveries, fetchWallet, fetchMyOrders, ApiMerchant, ApiDelivery } from '../lib/api/merchant';
-import { ApiError } from '../lib/api/client';
+import { ApiError, api } from '../lib/api/client';
+import { useRouter } from 'next/navigation';
 
 export default function OverviewPage() {
+  const router = useRouter();
   const [merchant, setMerchant] = useState<ApiMerchant | null>(null);
   const [deliveries, setDeliveries] = useState<ApiDelivery[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -29,6 +31,13 @@ export default function OverviewPage() {
       finally { setSettingLocation(false); }
     }, () => { setSettingLocation(false); console.error('Could not get location'); });
   };
+
+  useEffect(() => {
+    // Agents share this app but have their own dashboard.
+    api.get<any>('/users/me')
+      .then(u => { if (u?.role === 'AGENT') router.replace('/agent'); })
+      .catch(() => {});
+  }, [router]);
 
   useEffect(() => {
     (async () => {
