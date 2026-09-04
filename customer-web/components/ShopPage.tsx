@@ -23,7 +23,14 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
   const [error, setError] = useState('');
   const [showCart, setShowCart] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [selectedMerchant, setSelectedMerchant] = useState<string | null>(null);
+
+  useEffect(() => {
+    import('../lib/api/trips').then(({ fetchWallet }) => {
+      fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(() => {});
+    });
+  }, []);
 
   useEffect(() => {
     fetchMarketplaceWithLocation(category, pickup.lat, pickup.lng)
@@ -35,6 +42,8 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
   const merchantForCart = merchants.find(m => m.id === cart[0]?.merchantId);
   const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const deliveryFee = merchantForCart?.deliveryFee ?? 0;
+  const walletShort =
+    paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < (cartTotal + deliveryFee);
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
   const grandTotal = cartTotal + deliveryFee;
 
@@ -68,10 +77,23 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
         dropoffLng: pickup.lng,
         dropoffAddress: 'Current location',
         paymentMethod,
+        deliveryFee,
       });
       router.push(`/orders?highlight=${order.id}`);
     } catch (e: any) {
-      setError(e.message ?? 'Could not place order.');
+      const msg = e?.message ?? '';
+      if (msg.includes('INSUFFICIENT_WALLET_BALANCE')) {
+        const parts = msg.split(':');
+        const bal = Number(parts[1] ?? 0);
+        const need = Number(parts[2] ?? 0);
+        setError(
+          `Not enough in your wallet. Balance ${bal.toLocaleString()} RWF, order costs ${need.toLocaleString()} RWF. Top up or pay with Mobile Money.`
+        );
+      } else if (msg.includes('MOMO_CHARGE_FAILED')) {
+        setError('Could not reach Mobile Money. Check the number and try again.');
+      } else {
+        setError(msg || 'Could not place order.');
+      }
     } finally { setOrdering(false); }
   };
 
@@ -245,14 +267,28 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
                   </button>
                 ))}
               </div>
+              {paymentMethod === 'WALLET' && walletBalance !== null && (
+                <p className={`text-[11px] mt-1.5 font-semibold ${walletShort ? 'text-red-500' : 'text-gray-500'}`}>
+                  Wallet balance: {walletBalance.toLocaleString()} RWF
+                  {walletShort ? ` · ${(grandTotal - walletBalance).toLocaleString()} RWF short` : ''}
+                </p>
+              )}
               <p className="text-[10px] text-gray-400 mt-1.5">
                 Cash not accepted. Payment processed before delivery.
               </p>
+
+              {/* Security compliance notice */}
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-3">
+                <span className="text-amber-500 text-sm shrink-0">🛡️</span>
+                <p className="text-[10px] text-amber-800 leading-relaxed">
+                  All goods are inspected by the rider before pickup to meet Zana security compliance.
+                </p>
+              </div>
             </div>
 
             {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
 
-            <button onClick={handleOrder} disabled={ordering}
+            <button onClick={handleOrder} disabled={ordering || walletShort}
               className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2 text-base">
               {ordering
                 ? <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Placing order...</>

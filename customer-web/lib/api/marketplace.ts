@@ -30,6 +30,7 @@ export async function placeOrder(data: {
   items: { productId: string; quantity: number }[];
   dropoffLat: number; dropoffLng: number; dropoffAddress: string;
   paymentMethod: 'WALLET' | 'MOBILE_MONEY';
+  deliveryFee?: number;
 }) {
   return api.post<any>('/orders', data);
 }
