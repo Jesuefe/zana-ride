@@ -11,6 +11,8 @@ import { useRouter } from 'next/navigation';
 
 export default function OverviewPage() {
   const router = useRouter();
+  const [brandingBusy, setBrandingBusy] = useState<'logo' | 'cover' | null>(null);
+  const [brandingNote, setBrandingNote] = useState('');
   const [merchant, setMerchant] = useState<ApiMerchant | null>(null);
   const [deliveries, setDeliveries] = useState<ApiDelivery[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -63,6 +65,41 @@ export default function OverviewPage() {
   const pendingOrders = orders.filter(o => o.status === 'PENDING').length;
   const activeDeliveries = deliveries.filter(d => ['REQUESTED','COURIER_ASSIGNED','PICKED_UP'].includes(d.status)).length;
 
+  // Storefront imagery. Compressed client-side because merchants photograph
+  // shopfronts on phones and those files are enormous.
+  const uploadBranding = (kind: 'logo' | 'cover') => (file?: File) => {
+    if (!file) return;
+    setBrandingBusy(kind);
+    setBrandingNote('');
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new window.Image();
+      img.onload = async () => {
+        const max = kind === 'logo' ? 400 : 1200;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d')?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const base64 = canvas.toDataURL('image/jpeg', 0.8);
+
+        try {
+          await api.patch('/merchant/branding',
+            kind === 'logo' ? { logoBase64: base64 } : { coverBase64: base64 });
+          setBrandingNote(kind === 'logo' ? 'Logo updated' : 'Storefront photo updated');
+          fetchMyMerchant().then(setMerchant).catch(() => {});
+        } catch {
+          setBrandingNote('Upload failed. Try a smaller image.');
+        } finally {
+          setBrandingBusy(null);
+        }
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div>
       <Topbar title={merchant?.businessName ?? 'Dashboard'} subtitle={undefined} />
@@ -77,6 +114,73 @@ export default function OverviewPage() {
       </div>
 
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+
+      {/* Storefront branding — what customers see on the shop card */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
+          Your shop card
+        </p>
+
+        <div className="flex gap-3">
+          <label className="flex-1 cursor-pointer">
+            <div className="border-2 border-dashed border-gray-200 rounded-xl h-24 flex flex-col items-center justify-center gap-1 overflow-hidden">
+              {(merchant as any)?.logoUrl ? (
+                <img src={(merchant as any).logoUrl} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <>
+                  <Plus size={16} className="text-gray-400" />
+                  <span className="text-[10px] font-bold text-gray-500">Logo</span>
+                </>
+              )}
+            </div>
+            <input type="file" accept="image/*" className="hidden"
+              onChange={e => uploadBranding('logo')(e.target.files?.[0])} />
+          </label>
+
+          <label className="flex-[2] cursor-pointer">
+            <div className="border-2 border-dashed border-gray-200 rounded-xl h-24 flex flex-col items-center justify-center gap-1 overflow-hidden">
+              {(merchant as any)?.coverUrl ? (
+                <img src={(merchant as any).coverUrl} alt="Storefront" className="w-full h-full object-cover" />
+              ) : (
+                <>
+                  <Plus size={16} className="text-gray-400" />
+                  <span className="text-[10px] font-bold text-gray-500">Storefront photo</span>
+                </>
+              )}
+            </div>
+            <input type="file" accept="image/*" className="hidden"
+              onChange={e => uploadBranding('cover')(e.target.files?.[0])} />
+          </label>
+        </div>
+
+        {brandingBusy && (
+          <p className="text-[11px] text-zana-primary font-semibold mt-2">
+            Uploading {brandingBusy === 'logo' ? 'logo' : 'storefront photo'}…
+          </p>
+        )}
+        {brandingNote && !brandingBusy && (
+          <p className="text-[11px] text-gray-500 mt-2">{brandingNote}</p>
+        )}
+        <p className="text-[10px] text-gray-400 mt-2">
+          Shops with a photo get noticeably more orders.
+        </p>
+      </div>
+
+      {/* Order history */}
+      <button
+        onClick={() => router.push('/history')}
+        className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3.5 shadow-sm mb-4"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-zana-primary-light flex items-center justify-center">
+            <TrendingUp size={16} className="text-zana-primary" />
+          </div>
+          <span className="text-sm font-bold text-gray-900">Order history &amp; revenue</span>
+        </div>
+        <span className="text-xs font-bold text-zana-primary">View</span>
+      </button>
+
+
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-3 mb-6">

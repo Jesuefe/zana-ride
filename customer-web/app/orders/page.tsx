@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Package, MapPin, Navigation, ShoppingBag, Star } from 'lucide-react';
 import ReviewSheet from '../../components/ReviewSheet';
+import DeliveryTracker from '../../components/DeliveryTracker';
 import { fetchMyDeliveries, Delivery } from '../../lib/api/deliveries';
 import { fetchMyOrders } from '../../lib/api/trips';
 
@@ -133,6 +134,20 @@ function OrdersContent() {
                   <Navigation size={12} className="text-zana-secondary-dark mt-0.5 shrink-0" />
                   <p className="text-[11px] text-gray-700 truncate">{d.dropoffAddress}</p>
                 </div>
+              </div>
+
+              {/* Follow the parcel while it is in flight */}
+              {['COURIER_ASSIGNED', 'PICKED_UP'].includes(d.status) && (
+                <div className="mt-3">
+                  <DeliveryTracker
+                    deliveryId={d.id}
+                    pickup={{ lat: (d as any).pickupLat, lng: (d as any).pickupLng }}
+                    dropoff={{ lat: (d as any).dropoffLat, lng: (d as any).dropoffLng }}
+                    status={d.status}
+                  />
+                </div>
+              )}
+              <div className="hidden">
               </div>
             </div>
           ))}
