@@ -25,6 +25,8 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [selectedMerchant, setSelectedMerchant] = useState<string | null>(null);
+  const [openMerchant, setOpenMerchant] = useState<MarketplaceMerchant | null>(null);
+  const [switchPrompt, setSwitchPrompt] = useState<{ product: MarketplaceProduct; merchantId: string } | null>(null);
 
   useEffect(() => {
     import('../lib/api/trips').then(({ fetchWallet }) => {
@@ -49,8 +51,10 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
 
   const addToCart = (product: MarketplaceProduct, merchantId: string) => {
     const existing = cart[0];
+    // Each merchant prepares and is collected separately, so a cart can only
+    // ever hold one merchant's items. Ask before discarding the other one.
     if (existing && existing.merchantId !== merchantId) {
-      setCart([{ product, quantity: 1, merchantId }]);
+      setSwitchPrompt({ product, merchantId });
       return;
     }
     setCart(prev => {
@@ -131,167 +135,261 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
           </div>
         )}
 
-        {merchants.map(m => (
-          <div key={m.id} className="mb-6">
-            {/* Merchant header */}
-            <div className="flex items-center gap-3 mb-3 bg-white rounded-2xl px-4 py-3 shadow-sm">
-              <div className="w-12 h-12 rounded-xl bg-zana-primary-light flex items-center justify-center shrink-0">
-                <Store size={20} className="text-zana-primary" />
+        {/* ── Browse: one card per merchant ───────────────────────── */}
+        {!openMerchant && merchants.map(m => (
+          <button
+            key={m.id}
+            onClick={() => setOpenMerchant(m)}
+            className="w-full bg-white rounded-2xl overflow-hidden shadow-sm mb-3 text-left active:scale-[0.99] transition-transform"
+          >
+            {/* Storefront banner */}
+            {(m as any).coverUrl ? (
+              <img src={(m as any).coverUrl} alt="" className="w-full h-28 object-cover" />
+            ) : (
+              <div className="w-full h-24 bg-zana-primary-light flex items-center justify-center">
+                <Store size={26} className="text-zana-primary/40" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900">{m.businessName}</p>
-                {m.branch && <p className="text-xs text-gray-400">{m.branch}</p>}
-                <div className="flex items-center gap-3 mt-0.5">
-                  <span className="flex items-center gap-1 text-[11px] text-gray-400">
-                    <MapPin size={9} /> {m.distanceText} away
+            )}
+
+            <div className="p-4">
+              <div className="flex items-start gap-3">
+                {(m as any).logoUrl ? (
+                  <img
+                    src={(m as any).logoUrl}
+                    alt=""
+                    className="w-12 h-12 rounded-xl object-cover shrink-0 -mt-9 border-2 border-white shadow-sm"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-white shadow-sm -mt-9 border-2 border-white flex items-center justify-center shrink-0">
+                    <Store size={18} className="text-zana-primary" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-black text-gray-900 line-clamp-1">{m.businessName}</p>
+                  {m.branch && <p className="text-xs text-gray-400 line-clamp-1">{m.branch}</p>}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 mt-3 text-[11px] flex-wrap">
+                <span className="flex items-center gap-1 text-gray-500">
+                  <MapPin size={10} /> {m.distanceText}
+                </span>
+                <span className="text-gray-300">·</span>
+                <span className="font-bold text-zana-primary">
+                  {m.deliveryFee.toLocaleString()} RWF delivery
+                </span>
+                <span className="text-gray-300">·</span>
+                <span className="text-gray-500">
+                  {m.products.length} item{m.products.length === 1 ? '' : 's'}
+                </span>
+              </div>
+            </div>
+          </button>
+        ))}
+
+        {/* ── Inside one merchant ──────────────────────────────────── */}
+        {openMerchant && (
+          <div>
+            <button
+              onClick={() => setOpenMerchant(null)}
+              className="flex items-center gap-1.5 text-sm font-bold text-zana-primary mb-3"
+            >
+              <ArrowLeft size={15} /> All shops
+            </button>
+
+            <div className="bg-white rounded-2xl overflow-hidden shadow-sm mb-4">
+              {(openMerchant as any).coverUrl ? (
+                <img src={(openMerchant as any).coverUrl} alt="" className="w-full h-32 object-cover" />
+              ) : (
+                <div className="w-full h-24 bg-zana-primary-light flex items-center justify-center">
+                  <Store size={28} className="text-zana-primary/40" />
+                </div>
+              )}
+              <div className="p-4">
+                <p className="font-black text-lg text-gray-900">{openMerchant.businessName}</p>
+                {openMerchant.branch && (
+                  <p className="text-xs text-gray-400">{openMerchant.branch}</p>
+                )}
+                <div className="flex items-center gap-2.5 mt-2 text-[11px]">
+                  <span className="flex items-center gap-1 text-gray-500">
+                    <MapPin size={10} /> {openMerchant.distanceText}
                   </span>
-                  <span className="text-[11px] font-semibold text-zana-primary">
-                    Delivery: {m.deliveryFee.toLocaleString()} RWF
+                  <span className="text-gray-300">·</span>
+                  <span className="font-bold text-zana-primary">
+                    {openMerchant.deliveryFee.toLocaleString()} RWF delivery
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Products */}
-            <div className="space-y-2 pl-1">
-              {m.products.map(p => (
-                <div key={p.id} className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
-                  {p.imageUrl ? (
-                    <img src={p.imageUrl} alt={p.name} className="w-16 h-16 rounded-xl object-cover shrink-0" />
-                  ) : (
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-                      <Package size={24} className="text-gray-300" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-gray-900">{p.name}</p>
-                    {p.description && (
-                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{p.description}</p>
-                    )}
-                    <p className="text-sm font-bold text-zana-primary mt-1">
-                      {p.price.toLocaleString()} RWF
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {getQty(p.id) > 0 ? (
-                      <>
-                        <button onClick={() => removeFromCart(p.id)}
-                          className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
-                          <Minus size={13} />
-                        </button>
-                        <span className="text-sm font-bold w-4 text-center">{getQty(p.id)}</span>
-                        <button onClick={() => addToCart(p, m.id)}
-                          className="w-7 h-7 rounded-full bg-zana-primary text-white flex items-center justify-center">
-                          <Plus size={13} />
-                        </button>
-                      </>
+            <div className="space-y-2">
+              {openMerchant.products.length === 0 && (
+                <p className="text-center text-sm text-gray-500 py-10">
+                  Nothing listed here yet.
+                </p>
+              )}
+
+              {openMerchant.products.map(p => {
+                const inCart = cart.find(i => i.product.id === p.id);
+                return (
+                  <div key={p.id} className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} className="w-16 h-16 rounded-xl object-cover shrink-0" />
                     ) : (
-                      <button onClick={() => addToCart(p, m.id)}
-                        className="w-8 h-8 rounded-full bg-zana-primary-light flex items-center justify-center">
-                        <Plus size={16} className="text-zana-primary" />
-                      </button>
+                      <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+                        <Package size={22} className="text-gray-300" />
+                      </div>
                     )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-gray-900">{p.name}</p>
+                      {p.description && (
+                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{p.description}</p>
+                      )}
+                      <p className="text-sm font-bold text-zana-primary mt-1">
+                        {p.price.toLocaleString()} RWF
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {inCart ? (
+                        <>
+                          <button
+                            onClick={() => removeFromCart(p.id)}
+                            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+                          >
+                            <Minus size={14} className="text-gray-700" />
+                          </button>
+                          <span className="w-5 text-center font-bold text-sm">{inCart.quantity}</span>
+                          <button
+                            onClick={() => addToCart(p, openMerchant.id)}
+                            className="w-8 h-8 rounded-full bg-zana-primary flex items-center justify-center"
+                          >
+                            <Plus size={14} className="text-white" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => addToCart(p, openMerchant.id)}
+                          className="w-9 h-9 rounded-full bg-zana-primary flex items-center justify-center"
+                        >
+                          <Plus size={16} className="text-white" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Cart sheet */}
-      {showCart && cart.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-end">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowCart(false)} />
-          <div className="relative w-full bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto">
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-            <h2 className="font-black text-lg text-gray-900 mb-1">Your Order</h2>
+      {/* ── Switching merchants clears the cart ─────────────────────── */}
+      {switchPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6">
+            <p className="font-black text-lg text-gray-900 mb-2">Start a new order?</p>
+            <p className="text-sm text-gray-500 mb-5">
+              Your basket has items from {merchantForCart?.businessName ?? 'another shop'}.
+              Each shop is prepared and collected separately, so Zana can only
+              carry one shop per order.
+            </p>
+            <button
+              onClick={() => {
+                setCart([{ product: switchPrompt.product, quantity: 1, merchantId: switchPrompt.merchantId }]);
+                setSwitchPrompt(null);
+              }}
+              className="w-full bg-zana-primary text-white font-black py-3.5 rounded-2xl"
+            >
+              Start new order
+            </button>
+            <button
+              onClick={() => setSwitchPrompt(null)}
+              className="w-full text-sm text-gray-400 py-2.5 mt-1"
+            >
+              Keep my current basket
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cart ─────────────────────────────────────────────────────── */}
+      {showCart && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={() => setShowCart(false)}>
+          <div className="w-full bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+
+            <p className="font-black text-lg text-gray-900">Your basket</p>
             {merchantForCart && (
               <p className="text-xs text-gray-400 mb-4">{merchantForCart.businessName}</p>
             )}
 
-            {/* Items */}
-            <div className="space-y-2 mb-4">
-              {cart.map(item => (
-                <div key={item.product.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700">{item.product.name}</span>
-                    <span className="text-xs text-gray-400">× {item.quantity}</span>
-                  </div>
-                  <span className="text-sm font-semibold">
-                    {(item.product.price * item.quantity).toLocaleString()} RWF
+            <div className="space-y-1.5 mb-4">
+              {cart.map(i => (
+                <div key={i.product.id} className="flex justify-between text-sm">
+                  <span className="text-gray-600">{i.product.name} ×{i.quantity}</span>
+                  <span className="font-semibold">
+                    {(i.product.price * i.quantity).toLocaleString()} RWF
                   </span>
                 </div>
               ))}
-            </div>
-
-            {/* Fee breakdown */}
-            <div className="bg-gray-50 rounded-xl p-3 space-y-2 mb-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="font-semibold">{cartTotal.toLocaleString()} RWF</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <div>
-                  <span className="text-gray-600">Delivery fee</span>
-                  {merchantForCart && (
-                    <p className="text-[10px] text-gray-400">{merchantForCart.distanceText} from you</p>
-                  )}
-                </div>
+              <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
+                <span className="text-gray-600">Delivery</span>
                 <span className="font-semibold">{deliveryFee.toLocaleString()} RWF</span>
               </div>
-              <div className="border-t border-gray-200 pt-2 flex justify-between">
+              <div className="flex justify-between pt-2 border-t border-gray-100">
                 <span className="font-black text-gray-900">Total</span>
-                <span className="font-black text-zana-primary text-lg">{grandTotal.toLocaleString()} RWF</span>
+                <span className="font-black text-zana-primary text-lg">
+                  {grandTotal.toLocaleString()} RWF
+                </span>
               </div>
             </div>
 
-            {/* Delivery address */}
-            <div className="flex items-center gap-2 bg-zana-primary-light rounded-xl px-3 py-2.5 mb-4">
-              <MapPin size={14} className="text-zana-primary shrink-0" />
-              <p className="text-xs text-gray-700">Delivered to your current location</p>
+            <p className="text-xs font-bold text-gray-500 uppercase mb-2">Payment</p>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              {([['WALLET', 'Zana Wallet'], ['MOBILE_MONEY', 'Mobile Money']] as const).map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => setPaymentMethod(id)}
+                  className={`py-3 rounded-xl border-2 text-xs font-bold ${
+                    paymentMethod === id
+                      ? 'border-zana-primary bg-zana-primary text-white'
+                      : 'border-gray-100 text-gray-600 bg-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
-            {/* Payment — online only */}
-            <div className="mb-4">
-              <p className="text-xs font-semibold text-gray-500 mb-2">Payment — online only</p>
-              <div className="grid grid-cols-2 gap-2">
-                {([['WALLET', 'Zana Wallet'], ['MOBILE_MONEY', 'Mobile Money']] as const).map(([id, label]) => (
-                  <button key={id} onClick={() => setPaymentMethod(id)}
-                    className={`py-3 rounded-xl border-2 text-xs font-bold transition-colors ${
-                      paymentMethod === id
-                        ? 'border-zana-primary bg-zana-primary text-white'
-                        : 'border-gray-100 text-gray-600 bg-white'
-                    }`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {paymentMethod === 'WALLET' && walletBalance !== null && (
-                <p className={`text-[11px] mt-1.5 font-semibold ${walletShort ? 'text-red-500' : 'text-gray-500'}`}>
-                  Wallet balance: {walletBalance.toLocaleString()} RWF
-                  {walletShort ? ` · ${(grandTotal - walletBalance).toLocaleString()} RWF short` : ''}
-                </p>
-              )}
-              <p className="text-[10px] text-gray-400 mt-1.5">
-                Cash not accepted. Payment processed before delivery.
+            {paymentMethod === 'WALLET' && walletBalance !== null && (
+              <p className={`text-[11px] font-semibold ${walletShort ? 'text-red-500' : 'text-gray-500'}`}>
+                Wallet balance: {walletBalance.toLocaleString()} RWF
+                {walletShort ? ` · ${(grandTotal - walletBalance).toLocaleString()} RWF short` : ''}
               </p>
+            )}
 
-              {/* Security compliance notice */}
-              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-3">
-                <span className="text-amber-500 text-sm shrink-0">🛡️</span>
-                <p className="text-[10px] text-amber-800 leading-relaxed">
-                  All goods are inspected by the rider before pickup to meet Zana security compliance.
-                </p>
-              </div>
+            <p className="text-[10px] text-gray-400 mt-1.5">
+              Cash not accepted. Payment is processed before delivery.
+            </p>
+
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-3">
+              <span className="text-amber-500 text-sm shrink-0">🛡️</span>
+              <p className="text-[10px] text-amber-800 leading-relaxed">
+                All goods are inspected by the rider before pickup to meet Zana
+                security compliance.
+              </p>
             </div>
 
-            {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
+            {error && <p className="text-xs text-red-600 mt-3">{error}</p>}
 
-            <button onClick={handleOrder} disabled={ordering || walletShort}
-              className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2 text-base">
+            <button
+              onClick={handleOrder}
+              disabled={ordering || walletShort || cart.length === 0}
+              className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl mt-4 disabled:opacity-40 flex items-center justify-center gap-2 text-base"
+            >
               {ordering
-                ? <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Placing order...</>
+                ? <Loader2 size={16} className="animate-spin" />
                 : `Pay & Order · ${grandTotal.toLocaleString()} RWF`}
             </button>
           </div>
