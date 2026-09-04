@@ -360,6 +360,16 @@ function RideOptionsContent() {
                 );
               })}
             </div>
+            {/* Nudge toward wallet when they've picked something else */}
+            {paymentMethod !== 'WALLET' && !walletInsufficient && (
+              <div className="mt-3 flex items-center gap-2 bg-zana-primary-light rounded-xl px-3 py-2.5">
+                <span className="text-sm shrink-0">💡</span>
+                <p className="text-[11px] text-gray-700 leading-snug">
+                  Paying from your Zana Wallet costs less in fees and skips the payment prompt.
+                </p>
+              </div>
+            )}
+
             {/* Insufficient funds banner */}
             {walletInsufficient && (
               <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2">

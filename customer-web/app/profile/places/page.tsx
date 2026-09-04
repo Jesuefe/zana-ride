@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Home, Briefcase, MapPin, Plus, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Home, Briefcase, MapPin, Plus, Trash2, Loader2, Navigation } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { loadGoogleMaps } from '../../../lib/mapsLoader';
 import { GOOGLE_MAPS_EMBED_KEY } from '../../../lib/config';
@@ -18,6 +18,8 @@ export default function SavedPlacesPage() {
   const [places, setPlaces] = useState<SavedPlace[]>([]);
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState('Home');
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<{ address: string; lat: number; lng: number } | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -67,6 +69,50 @@ export default function SavedPlacesPage() {
       await api.delete(`/users/saved-places/${id}`);
       setPlaces(p => p.filter(pl => pl.id !== id));
     } catch {} finally { setDeleting(null); }
+  };
+
+  // Fill the address straight from where the customer is standing, so
+  // saving Home or Work needs no typing at all.
+  const useCurrentLocation = () => {
+    setLocating(true);
+    setLocateError('');
+    if (!navigator.geolocation) {
+      setLocateError('Location is not available on this device.');
+      setLocating(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const G = (window as any).google?.maps;
+
+        if (!G) {
+          setSelectedPlace({ address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, lat, lng });
+          setLocating(false);
+          return;
+        }
+
+        new G.Geocoder().geocode(
+          { location: { lat, lng } },
+          (results: any, status: any) => {
+            const address =
+              status === 'OK' && results?.[0]?.formatted_address
+                ? results[0].formatted_address
+                : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            setSelectedPlace({ address, lat, lng });
+            if (inputRef.current) inputRef.current.value = address;
+            setLocating(false);
+          },
+        );
+      },
+      () => {
+        setLocateError('Could not read your location. Allow location access and try again.');
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
   };
 
   return (
@@ -120,6 +166,33 @@ export default function SavedPlacesPage() {
               </button>
             ))}
           </div>
+          {/* No typing needed — pull the address from GPS */}
+          <button
+            onClick={useCurrentLocation}
+            disabled={locating}
+            className="w-full flex items-center justify-center gap-2 border-2 border-zana-primary text-zana-primary font-bold text-sm py-3 rounded-xl disabled:opacity-50"
+          >
+            {locating ? (
+              <>
+                <span className="w-4 h-4 border-2 border-zana-primary/30 border-t-zana-primary rounded-full animate-spin" />
+                Finding you…
+              </>
+            ) : (
+              <>
+                <Navigation size={14} />
+                Use my current location
+              </>
+            )}
+          </button>
+
+          {locateError && <p className="text-xs text-red-600">{locateError}</p>}
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-100" />
+            <span className="text-[10px] text-gray-400 uppercase tracking-wide">or</span>
+            <div className="flex-1 h-px bg-gray-100" />
+          </div>
+
           <div>
             <label className="text-xs font-medium text-gray-500 block mb-1.5">Search address</label>
             <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-zana-primary/30">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Clock, Home, Briefcase, ChevronRight, Search, MapPin, Calendar } from 'lucide-react';
+import { Clock, Home, Briefcase, ChevronRight, Search, MapPin, Calendar, Package } from 'lucide-react';
 import { fetchMe, ApiUser } from '../lib/api/auth';
 import { fetchWallet } from '../lib/api/trips';
 import { api } from '../lib/api/client';
@@ -216,6 +216,27 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Encourage wallet — it is the cheapest way to pay */}
+      {walletBalance !== null && (
+        <div className="px-4 mt-4">
+          <button
+            onClick={() => router.push('/wallet')}
+            className="w-full flex items-center gap-3 bg-white border-2 border-dashed border-zana-primary/30 rounded-2xl px-4 py-3.5 text-left active:scale-[0.99] transition-transform"
+          >
+            <div className="w-9 h-9 rounded-xl bg-zana-primary-light flex items-center justify-center shrink-0">
+              <span className="text-lg">💡</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-black text-gray-900">Pay with your Zana Wallet</p>
+              <p className="text-[11px] text-gray-500 leading-snug">
+                Lower fees than Mobile Money, and no waiting for a payment prompt.
+              </p>
+            </div>
+            <ChevronRight size={16} className="text-gray-300 shrink-0" />
+          </button>
+        </div>
+      )}
+
       {/* ── Schedule & Location FABs ─────────────────────── */}
       <div className="fixed bottom-20 right-4 flex flex-col gap-2.5 z-30">
         <button onClick={() => router.push('/schedule')}
@@ -291,7 +312,7 @@ export default function HomePage() {
         <div className="flex items-center justify-around">
           {[
             { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>, label: 'Home', route: '/', active: true },
-            { icon: <Clock size={22} />, label: 'Activity', route: '/history', active: false },
+            { icon: <Package size={22} />, label: 'Orders', route: '/orders', active: false },
             { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="15" rx="3"/><path d="M16 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0z" fill="currentColor" stroke="none"/><path d="M2 9h20"/></svg>, label: 'Wallet', route: '/wallet', active: false },
             { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: 'Profile', route: '/profile', active: false },
           ].map(item => (
