@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Package, MapPin, Navigation, ShoppingBag } from 'lucide-react';
+import { Package, MapPin, Navigation, ShoppingBag, Star } from 'lucide-react';
+import ReviewSheet from '../../components/ReviewSheet';
 import { fetchMyDeliveries, Delivery } from '../../lib/api/deliveries';
 import { fetchMyOrders } from '../../lib/api/trips';
 
@@ -27,6 +28,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 function OrdersContent() {
+  const [review, setReview] = useState<any>(null);
   const params = useSearchParams();
   const highlightId = params.get('highlight');
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -107,6 +109,19 @@ function OrdersContent() {
                     </span>
                   </div>
                   <p className="text-xs text-zana-muted mt-1">{d.fee.toLocaleString()} RWF · {d.distanceKm} km</p>
+                  {d.status === 'DELIVERED' && (
+                    <button
+                      onClick={() => setReview({
+                        target: 'DELIVERY',
+                        deliveryId: d.id,
+                        title: 'How was this delivery?',
+                        subtitle: d.itemDescription,
+                      })}
+                      className="mt-2 flex items-center gap-1 text-[11px] font-bold text-zana-primary"
+                    >
+                      <Star size={11} /> Rate this delivery
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="mt-3 space-y-1.5 pl-1">
@@ -122,6 +137,17 @@ function OrdersContent() {
             </div>
           ))}
         </div>
+      )}
+      {review && (
+        <ReviewSheet
+          target={review.target}
+          deliveryId={review.deliveryId}
+          merchantId={review.merchantId}
+          orderId={review.orderId}
+          title={review.title}
+          subtitle={review.subtitle}
+          onDone={() => setReview(null)}
+        />
       )}
     </div>
   );

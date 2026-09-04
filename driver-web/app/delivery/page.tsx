@@ -30,10 +30,38 @@ export default function ActiveDeliveryPage() {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [acting, setActing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [allActive, setAllActive] = useState<any[]>([]);
   const [photoStage, setPhotoStage] = useState<'pickup' | 'dropoff' | null>(null);
   const [uploading, setUploading] = useState(false);
   const [photoNote, setPhotoNote] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Everything the rider is carrying, so they can switch between stops
+  useEffect(() => {
+    const load = () =>
+      api.get<any[]>('/driver/deliveries/active/all')
+        .then(r => setAllActive(Array.isArray(r) ? r : []))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 20000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Ping position so the customer, merchant and admin can follow the parcel
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const ping = () =>
+      navigator.geolocation.getCurrentPosition(
+        p => { api.post('/driver/deliveries/position', {
+          lat: p.coords.latitude, lng: p.coords.longitude,
+        }).catch(() => {}); },
+        () => {},
+        { enableHighAccuracy: true, timeout: 8000 },
+      );
+    ping();
+    const t = setInterval(ping, 15000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     const load = () => api.get<ActiveDelivery | null>('/driver/deliveries/active')
@@ -129,6 +157,41 @@ export default function ActiveDeliveryPage() {
         className="hidden"
         onChange={e => onPhotoPicked(e.target.files?.[0])}
       />
+
+      {/* Other parcels this rider is carrying */}
+      {allActive.length > 1 && (
+        <div className="px-4 py-2 bg-white border-b border-gray-100">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">
+            Carrying {allActive.length} parcels
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {allActive.map((a: any, i: number) => {
+              const isCurrent = a.id === delivery?.id;
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => router.push(`/delivery?id=${a.id}`)}
+                  className={`shrink-0 px-3 py-2 rounded-xl border-2 text-left ${
+                    isCurrent ? 'border-zana-primary bg-zana-primary-light' : 'border-gray-100 bg-white'
+                  }`}
+                >
+                  <p className="text-[10px] font-bold text-gray-400">
+                    Stop {a.routeSequence ?? i + 1}
+                  </p>
+                  <p className={`text-xs font-bold line-clamp-1 max-w-32 ${
+                    isCurrent ? 'text-zana-primary' : 'text-gray-800'
+                  }`}>
+                    {a.itemDescription}
+                  </p>
+                  <p className="text-[9px] text-gray-400">
+                    {a.status === 'PICKED_UP' ? 'On board' : 'To collect'}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Uploading overlay */}
       {uploading && (
