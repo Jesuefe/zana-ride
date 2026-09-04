@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ZanaMark, ZanaWordmark } from './ZanaLogo';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   LayoutDashboard, Users, Car, Store, Package, MapPin,
   UserCheck, TrendingUp, LogOut, ChevronRight,
-  Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X
-} from 'lucide-react';
+  Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
 
 const SENIOR_NAV = [
@@ -17,6 +17,7 @@ const SENIOR_NAV = [
   { label: 'Users', href: '/dashboard/users', icon: Users },
   { label: 'Drivers', href: '/dashboard/drivers', icon: Car },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
+  { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
   { label: 'Products', href: '/dashboard/products', icon: Package },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
   { label: 'Deliveries', href: '/dashboard/deliveries', icon: Truck },
@@ -33,6 +34,7 @@ const WORKER_NAV = [
   { label: 'Pending Products', href: '/dashboard/products', icon: Package },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
+  { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
   { label: 'Active Deliveries', href: '/dashboard/deliveries', icon: Truck },
 ];
 
@@ -53,8 +55,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     <>
       <div className="px-4 py-5 border-b border-white/10">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center font-black text-zana-primary-dark text-lg">Z</div>
-          <span className="flex items-center gap-2"><img src="/zana-logo-full.png" alt="Zana" className="h-7 w-auto object-contain" /><span className="text-white font-bold text-sm">Admin</span></span>
+          <ZanaMark size={32} />
+          <span className="flex items-center gap-2"><ZanaWordmark size={16} color="#FFFFFF" /><span className="text-white font-bold text-sm">Admin</span></span>
         </div>
         <div className="flex rounded-lg overflow-hidden border border-white/20">
           <button onClick={() => setMode('senior')} className={`flex-1 text-[10px] font-semibold py-1.5 ${mode === 'senior' ? 'bg-white text-zana-primary-dark' : 'text-white/70'}`}>Senior</button>
@@ -85,8 +87,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-zana-primary-dark flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center font-black text-zana-primary-dark">Z</div>
-          <span className="flex items-center gap-2"><img src="/zana-logo-full.png" alt="Zana" className="h-7 w-auto object-contain" /><span className="text-white font-bold text-sm">Admin</span></span>
+          <ZanaMark size={28} />
+          <span className="flex items-center gap-2"><ZanaWordmark size={16} color="#FFFFFF" /><span className="text-white font-bold text-sm">Admin</span></span>
         </div>
         <button onClick={() => setMobileOpen(o => !o)} className="text-white p-1">
           {mobileOpen ? <X size={22} /> : <Menu size={22} />}

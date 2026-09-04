@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ZanaMark } from '../../components/ZanaLogo';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { login } from '../../lib/api/merchant';
@@ -40,7 +41,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center gap-2 mb-8 justify-center">
-          <div className="w-10 h-10 rounded-xl bg-zana-primary flex items-center justify-center font-black text-white text-xl">Z</div>
+          <ZanaMark size={40} />
           <div>
             <p className="font-bold text-gray-900 text-lg leading-tight">Zana Business</p>
             <p className="text-xs text-gray-500">Merchant Portal</p>

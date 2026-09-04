@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
+import { ZanaMark } from '../../components/ZanaLogo';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { MapPin, Navigation, Star, Car, Clock, CreditCard, Download, Home } from 'lucide-react';
 import { fetchTrip, ApiTrip } from '../../lib/api/trips';
@@ -32,7 +33,7 @@ function ReceiptContent() {
     <div className="min-h-screen bg-gray-50 pb-8">
       {/* Zana header */}
       <div className="bg-zana-primary px-4 pt-12 pb-8 text-center">
-        <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center font-black text-zana-primary text-2xl mx-auto mb-3">Z</div>
+        <div className="mx-auto mb-3 w-fit"><ZanaMark size={48} /></div>
         <p className="text-white/80 text-xs uppercase tracking-widest font-semibold">Zana Ride</p>
         <p className="text-white text-2xl font-bold mt-1">{fare.toLocaleString()} RWF</p>
         <p className="text-white/60 text-sm mt-0.5">Trip completed · {new Date(trip.requestedAt).toLocaleDateString()}</p>

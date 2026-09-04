@@ -30,6 +30,10 @@ export default function ActiveDeliveryPage() {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [acting, setActing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [photoStage, setPhotoStage] = useState<'pickup' | 'dropoff' | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [photoNote, setPhotoNote] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const load = () => api.get<ActiveDelivery | null>('/driver/deliveries/active')
@@ -50,7 +54,50 @@ export default function ActiveDeliveryPage() {
     return stop;
   }, []);
 
-  const handlePickup = async () => {
+  // Downscale before upload — riders are often on a weak connection.
+  const compress = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new window.Image();
+        img.onload = () => {
+          const max = 1000;
+          const scale = Math.min(1, max / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return reject(new Error('no canvas'));
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.72));
+        };
+        img.onerror = reject;
+        img.src = reader.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const onPhotoPicked = async (file: File | undefined) => {
+    if (!file || !delivery || !photoStage) return;
+    const stage = photoStage;
+    setUploading(true);
+    setPhotoNote('');
+    try {
+      const base64 = await compress(file);
+      await api.post(`/deliveries/${delivery.id}/photo/${stage}`, { imageBase64: base64 });
+    } catch {
+      // Upload failed — record it but let the delivery continue.
+      setPhotoNote('Photo could not upload. Continuing without it.');
+    } finally {
+      setUploading(false);
+      setPhotoStage(null);
+      if (stage === 'pickup') await doPickup();
+      else await doComplete();
+    }
+  };
+
+  const doPickup = async () => {
     if (!delivery) return;
     setActing(true);
     await api.post(`/driver/deliveries/${delivery.id}/pickup`).catch(() => {});
@@ -59,16 +106,45 @@ export default function ActiveDeliveryPage() {
     setActing(false);
   };
 
-  const handleComplete = async () => {
+  const doComplete = async () => {
     if (!delivery) return;
     setActing(true);
     await api.post(`/driver/deliveries/${delivery.id}/complete`).catch(() => {});
     setActing(false);
-    router.push('/');
+    router.push('/?delivered=1');
   };
+
+  // Both stages ask for a photo first.
+  const handlePickup = () => { setPhotoStage('pickup'); fileRef.current?.click(); };
+  const handleComplete = () => { setPhotoStage('dropoff'); fileRef.current?.click(); };
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
+      {/* Hidden camera input — capture opens the rear camera on mobile */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={e => onPhotoPicked(e.target.files?.[0])}
+      />
+
+      {/* Uploading overlay */}
+      {uploading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60">
+          <div className="w-12 h-12 border-3 border-white/30 border-t-white rounded-full animate-spin mb-4" />
+          <p className="text-white font-bold">Uploading photo…</p>
+          <p className="text-white/60 text-xs mt-1">Proof of handling</p>
+        </div>
+      )}
+
+      {photoNote && (
+        <div className="fixed bottom-24 left-4 right-4 z-50 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <p className="text-xs text-amber-800">{photoNote}</p>
+        </div>
+      )}
+
       <div className="w-6 h-6 border-2 border-zana-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import ThemePicker from '../../../components/ThemePicker';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, Phone, Mail, Save, Loader2 } from 'lucide-react';
 import { fetchMe, ApiUser } from '../../../lib/api/auth';
@@ -38,6 +39,7 @@ export default function AccountSettingsPage() {
 
   return (
     <div className="p-4">
+      <div className="mb-6"><ThemePicker /></div>
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />

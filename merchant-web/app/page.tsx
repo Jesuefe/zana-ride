@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ZanaMark } from '../components/ZanaLogo';
 import Link from 'next/link';
 import { Package, Truck, Wallet, ShoppingBag, Plus, TrendingUp } from 'lucide-react';
 import Topbar from '../components/Topbar';
@@ -59,7 +60,7 @@ export default function OverviewPage() {
 
       {/* Zana logo + greeting */}
       <div className="flex items-center gap-2 mb-6">
-        <img src="/zana-logo-full.png" alt="Zana" className="h-10 w-auto object-contain" />
+        <ZanaMark size={40} />
         <div>
           <p className="text-xs text-gray-500">Welcome back</p>
           <p className="font-bold text-gray-900">{merchant?.businessName ?? '—'}</p>

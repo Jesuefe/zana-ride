@@ -29,3 +29,39 @@ body { background: #F3F4F6; font-family: -apple-system, BlinkMacSystemFont, "Seg
 /* Make tables scroll horizontally on mobile instead of breaking layout */
 .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table { min-width: 600px; }
+
+/* ── Dark mode ────────────────────────────────────────────────────────────
+   Applied by ThemeProvider adding .dark to <html>. Overriding the same
+   variables means every component that already uses them adapts without
+   needing a single dark: utility class.                                   */
+.dark {
+  --background: #0E1414;
+  --foreground: #F1F3F2;
+
+  --zana-primary: #1FBE9E;
+  --zana-primary-dark: #169C81;
+  --zana-primary-light: #12332C;
+  --zana-secondary: #FFC244;
+  --zana-secondary-dark: #D99F2B;
+  --zana-surface: #172020;
+  --zana-muted: #98A5A2;
+  --zana-border: #253130;
+  --zana-success: #2ED18A;
+  --zana-error: #FF6B5E;
+}
+
+/* Tailwind's stock greys are hard-coded, so map the ones used most often
+   across the app onto the theme surfaces. */
+.dark .bg-white { background-color: var(--zana-surface) !important; }
+.dark .bg-gray-50 { background-color: #121A19 !important; }
+.dark .bg-gray-100 { background-color: #1C2625 !important; }
+.dark .text-gray-900 { color: var(--foreground) !important; }
+.dark .text-gray-800 { color: #DFE4E3 !important; }
+.dark .text-gray-700 { color: #C6CECC !important; }
+.dark .text-gray-600,
+.dark .text-gray-500 { color: var(--zana-muted) !important; }
+.dark .text-gray-400 { color: #7C8986 !important; }
+.dark .border-gray-100,
+.dark .border-gray-200 { border-color: var(--zana-border) !important; }
+.dark .shadow-sm,
+.dark .shadow-md { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important; }
