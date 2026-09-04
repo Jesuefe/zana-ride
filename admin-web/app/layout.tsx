@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import SosListener from '../components/SosListener';
 import { ThemeProvider } from '../lib/ThemeContext';
 import "./globals.css";
 
@@ -14,7 +15,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="overflow-x-hidden"><ThemeProvider>{children}</ThemeProvider></body>
+      <body className="overflow-x-hidden"><ThemeProvider>{children}<SosListener /></ThemeProvider></body>
     </html>
   );
 }

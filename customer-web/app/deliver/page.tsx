@@ -42,8 +42,16 @@ export default function DeliverPage() {
 
   const [quote, setQuote] = useState<{ fee: number; distanceKm: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY' | 'CASH'>('WALLET');
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    import('../../lib/api/trips').then(({ fetchWallet }) => {
+      fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(() => {});
+    });
+  }, []);
 
   useEffect(() => {
     reverseGeocode(pickup.lat, pickup.lng).then((a) => setPickupAddress(a ?? 'Current location'));
@@ -139,10 +147,21 @@ export default function DeliverPage() {
         locationCode: codeInput.trim() || undefined,
         receiverName: receiverName.trim() || undefined,
         receiverPhone: `+250${receiverPhone.replace(/\D/g, '')}`,
+        paymentMethod,
       });
       router.push(`/orders?highlight=${delivery.id}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not create the delivery.');
+      const msg = err instanceof ApiError ? err.message : '';
+      if (msg.includes('INSUFFICIENT_WALLET_BALANCE')) {
+        const p = msg.split(':');
+        setError(
+          `Not enough in your wallet. Balance ${Number(p[1] ?? 0).toLocaleString()} RWF, delivery costs ${Number(p[2] ?? 0).toLocaleString()} RWF.`
+        );
+      } else if (msg.includes('MOMO_CHARGE_FAILED')) {
+        setError('Could not reach Mobile Money. Check the number and try again.');
+      } else {
+        setError(msg || 'Could not create the delivery.');
+      }
       setSubmitting(false);
     }
   };
@@ -322,6 +341,69 @@ export default function DeliverPage() {
         )}
 
         {error && <p className="text-xs text-zana-error">{error}</p>}
+
+        {/* Payment — a courier is never dispatched for an unpaid job */}
+        {quote && (
+          <div>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">How will you pay?</p>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                ['WALLET', 'Wallet', '💳'],
+                ['MOBILE_MONEY', 'MoMo', '📱'],
+                ['CASH', 'Cash', '💵'],
+              ] as const).map(([id, label, icon]) => {
+                const short =
+                  id === 'WALLET' && walletBalance !== null && walletBalance < quote.fee;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setPaymentMethod(id)}
+                    className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition-all ${
+                      paymentMethod === id
+                        ? short
+                          ? 'border-red-400 bg-red-50'
+                          : 'border-zana-primary bg-zana-primary-light'
+                        : 'border-gray-100 bg-white'
+                    }`}
+                  >
+                    <span className="text-lg">{icon}</span>
+                    <span className={`text-[11px] font-bold ${
+                      paymentMethod === id
+                        ? short ? 'text-red-600' : 'text-zana-primary'
+                        : 'text-gray-600'
+                    }`}>
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {paymentMethod === 'WALLET' && walletBalance !== null && (
+              <p className={`text-[11px] mt-2 font-semibold ${
+                walletBalance < quote.fee ? 'text-red-500' : 'text-gray-500'
+              }`}>
+                Wallet balance: {walletBalance.toLocaleString()} RWF
+                {walletBalance < quote.fee
+                  ? ` · ${(quote.fee - walletBalance).toLocaleString()} RWF short`
+                  : ''}
+              </p>
+            )}
+
+            {paymentMethod === 'CASH' && (
+              <p className="text-[11px] text-gray-500 mt-2">
+                Pay the rider when they collect the package.
+              </p>
+            )}
+
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-3">
+              <span className="text-amber-500 text-sm shrink-0">🛡️</span>
+              <p className="text-[10px] text-amber-800 leading-relaxed">
+                The rider inspects every package before pickup to meet Zana security compliance.
+              </p>
+            </div>
+          </div>
+        )}
 
         <button
           onClick={handleSubmit}
