@@ -148,6 +148,27 @@ export default function ActiveDeliveryPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
+      <div className="w-6 h-6 border-2 border-zana-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  if (!delivery) return (
+    <div className="flex flex-col items-center justify-center h-screen gap-3 p-6 text-center">
+      <Package size={40} className="text-gray-200" />
+      <p className="font-semibold text-gray-700">No active delivery</p>
+      <button onClick={() => router.push('/deliveries')} className="bg-zana-primary text-white px-6 py-2.5 rounded-xl text-sm font-semibold">
+        Browse deliveries
+      </button>
+    </div>
+  );
+
+  const isPickup = delivery.status === 'COURIER_ASSIGNED';
+  const target = isPickup
+    ? { lat: delivery.pickupLat, lng: delivery.pickupLng }
+    : { lat: delivery.dropoffLat, lng: delivery.dropoffLng };
+
+  return (
+    <div className="h-screen flex flex-col">
       {/* Hidden camera input — capture opens the rear camera on mobile */}
       <input
         ref={fileRef}
@@ -208,27 +229,6 @@ export default function ActiveDeliveryPage() {
         </div>
       )}
 
-      <div className="w-6 h-6 border-2 border-zana-primary border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-
-  if (!delivery) return (
-    <div className="flex flex-col items-center justify-center h-screen gap-3 p-6 text-center">
-      <Package size={40} className="text-gray-200" />
-      <p className="font-semibold text-gray-700">No active delivery</p>
-      <button onClick={() => router.push('/deliveries')} className="bg-zana-primary text-white px-6 py-2.5 rounded-xl text-sm font-semibold">
-        Browse deliveries
-      </button>
-    </div>
-  );
-
-  const isPickup = delivery.status === 'COURIER_ASSIGNED';
-  const target = isPickup
-    ? { lat: delivery.pickupLat, lng: delivery.pickupLng }
-    : { lat: delivery.dropoffLat, lng: delivery.dropoffLng };
-
-  return (
-    <div className="h-screen flex flex-col">
       {/* Map */}
       <div className="flex-shrink-0" style={{ height: '45%' }}>
         <DriverMap
