@@ -43,7 +43,7 @@ export default function EarningsPage() {
 
   const handleWithdraw = async () => {
     const amount = Number(withdrawAmount);
-    if (!amount || amount < 1000) { setError('Minimum withdrawal is 1,000 RWF'); return; }
+    if (!amount || amount < 10000) { setError('Minimum withdrawal is 10,000 RWF'); return; }
     if (amount > (data?.walletBalance ?? 0)) { setError('Insufficient balance'); return; }
     if (!withdrawPhone || withdrawPhone.replace(/\D/g,'').length < 9) { setError('Enter a valid phone number'); return; }
 

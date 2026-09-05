@@ -21,7 +21,7 @@ export default function WalletPage() {
 
   const handleWithdraw = async () => {
     const amt = Number(amount);
-    if (!amt || amt < 1000) { setError('Minimum withdrawal is 1,000 RWF'); return; }
+    if (!amt || amt < 10000) { setError('Minimum withdrawal is 10,000 RWF'); return; }
     if (amt > (wallet?.balance ?? 0)) { setError('Insufficient balance'); return; }
     if (!phone.trim()) { setError('Enter your MoMo phone number'); return; }
     setWithdrawing(true); setError('');
