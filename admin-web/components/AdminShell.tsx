@@ -7,7 +7,7 @@ import Link from 'next/link';
 import {
   LayoutDashboard, Users, Car, Store, Package, MapPin,
   UserCheck, TrendingUp, LogOut, ChevronRight,
-  Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search } from 'lucide-react';
+  Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
 
 const SENIOR_NAV = [
@@ -17,6 +17,7 @@ const SENIOR_NAV = [
   { label: 'Users', href: '/dashboard/users', icon: Users },
   { label: 'Drivers', href: '/dashboard/drivers', icon: Car },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
+  { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send },
   { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
   { label: 'Products', href: '/dashboard/products', icon: Package },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
@@ -34,6 +35,7 @@ const WORKER_NAV = [
   { label: 'Pending Products', href: '/dashboard/products', icon: Package },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
+  { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send },
   { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
   { label: 'Active Deliveries', href: '/dashboard/deliveries', icon: Truck },
 ];
