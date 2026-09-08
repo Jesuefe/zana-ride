@@ -1,0 +1,326 @@
+/* ── Zana landing ───────────────────────────────────────────────────────────
+   The logo is a road with lane markings and a destination pin. So the page
+   is built as a journey: one yellow road runs its full height, and each
+   service is a stop along it. That is the only ornament here — everything
+   else stays quiet so the road carries the page.                            */
+
+:root {
+  --asphalt: #23262B;   /* tarmac, not a tinted black */
+  --asphalt-deep: #191C20;
+  --paper: #F5F3EF;
+  --yellow: #FEC708;    /* the road */
+  --green: #59B02D;     /* the destination */
+  --ink: #14161A;
+  --muted: #8A8F96;
+
+  --road-x: 8vw;        /* where the road sits on wide screens */
+  --measure: 62ch;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--asphalt);
+  color: var(--paper);
+  font-family: Archivo, system-ui, -apple-system, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── Type scale ─────────────────────────────────────────────────────────── */
+
+.display {
+  font-family: Archivo, system-ui, sans-serif;
+  font-variation-settings: 'wdth' 118, 'wght' 800;
+  font-weight: 800;
+  line-height: 0.86;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+
+.d-hero { font-size: clamp(3.6rem, 15vw, 12rem); }
+.d-stop { font-size: clamp(2.4rem, 8.4vw, 6rem); line-height: 0.92; }
+.d-end  { font-size: clamp(2.6rem, 10vw, 7.2rem); line-height: 0.95; }
+
+.lede {
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  line-height: 1.5;
+  max-width: 34ch;
+  color: #C9CDD3;
+}
+
+.body { max-width: var(--measure); color: #B6BBC2; }
+
+/* ── The road ───────────────────────────────────────────────────────────────
+   A fixed rail down the left. The whole route is always visible, the stops
+   ahead of you are marked, and the yellow fills in behind as you travel. It
+   sits above the section backgrounds but the content column starts well clear
+   of it, so nothing is ever covered.                                        */
+
+.rail { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
+
+.road {
+  position: absolute;
+  top: 0;
+  left: var(--road-x);
+  width: 4px;
+  height: 100vh;
+  background: rgba(130, 136, 145, 0.35);
+}
+
+/* Lane markings, so it reads as a road rather than a progress bar */
+.road-lane {
+  position: absolute;
+  top: 0;
+  left: calc(var(--road-x) + 1px);
+  width: 2px;
+  height: 100vh;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.55) 0 12px,
+    transparent 12px 30px
+  );
+  opacity: 0.45;
+}
+
+/* The travelled portion */
+.road-fill {
+  position: absolute;
+  top: 0;
+  left: var(--road-x);
+  width: 4px;
+  background: var(--yellow);
+  will-change: height;
+}
+
+/* Stops waiting ahead on the route */
+.stop-marker {
+  position: absolute;
+  left: var(--road-x);
+  width: 13px;
+  height: 13px;
+  margin-left: -4.5px;
+  margin-top: -6.5px;
+  border-radius: 50%;
+  background: var(--asphalt);
+  border: 3px solid rgba(130, 136, 145, 0.55);
+  transition: border-color 260ms ease, background 260ms ease;
+}
+.stop-marker.passed {
+  border-color: var(--yellow);
+  background: var(--yellow);
+}
+
+/* The pin travels with you */
+.pin {
+  position: absolute;
+  left: var(--road-x);
+  width: 30px;
+  height: 30px;
+  margin-left: -13px;
+  margin-top: -26px;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
+  will-change: top;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+
+.wrap { position: relative; }
+
+.hero {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 6vw 0 calc(var(--road-x) + 5vw);
+  position: relative;
+  z-index: 5;
+}
+
+.stop {
+  position: relative;
+  padding: clamp(6rem, 14vh, 11rem) 6vw clamp(6rem, 14vh, 11rem) calc(var(--road-x) + 5vw);
+  z-index: 5;
+}
+
+/* Alternate sides, like buildings along a street */
+.stop--right {
+  padding-left: calc(var(--road-x) + 22vw);
+}
+
+.stop--light {
+  background: var(--paper);
+  color: var(--ink);
+}
+.stop--light .body { color: #4A4F57; }
+.stop--light .stop-num { color: var(--muted); }
+
+.scroll-hint {
+  position: absolute;
+  bottom: 3.5rem;
+  left: calc(var(--road-x) + 5vw);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.arrow-down {
+  width: 1px;
+  height: 26px;
+  background: linear-gradient(to bottom, var(--yellow), transparent);
+}
+
+/* ── Service stop content ───────────────────────────────────────────────── */
+
+.stop-kicker {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--yellow);
+  margin-bottom: 0.9rem;
+}
+
+.stop--light .stop-kicker { color: var(--green); }
+
+.stop-body { margin-top: 1.4rem; }
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.4rem;
+  margin-top: 2.4rem;
+}
+
+.fact-value {
+  font-variation-settings: 'wdth' 112, 'wght' 700;
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+.fact-label { font-size: 0.85rem; color: var(--muted); margin-top: 0.15rem; }
+
+/* ── Closing ────────────────────────────────────────────────────────────── */
+
+.finish {
+  position: relative;
+  min-height: 92svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 6vw 0 calc(var(--road-x) + 5vw);
+  background: var(--asphalt-deep);
+  z-index: 5;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 2.6rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 1rem 1.9rem;
+  border-radius: 100px;
+  font-weight: 700;
+  font-size: 0.98rem;
+  text-decoration: none;
+  transition: transform 140ms ease, background 140ms ease;
+}
+.btn:hover { transform: translateY(-2px); }
+.btn:focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
+
+.btn--primary { background: var(--yellow); color: var(--ink); }
+.btn--ghost {
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  color: var(--paper);
+}
+.btn--ghost:hover { background: rgba(255, 255, 255, 0.06); }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.foot {
+  position: relative;
+  z-index: 5;
+  background: var(--asphalt-deep);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 3rem 6vw 3.5rem calc(var(--road-x) + 5vw);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.foot a { color: #C9CDD3; text-decoration: none; }
+.foot a:hover { color: var(--yellow); }
+.foot-links { display: flex; flex-wrap: wrap; gap: 1.6rem; }
+
+/* ── Reveal — the one entrance, used sparingly ──────────────────────────── */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 620ms cubic-bezier(0.2, 0.7, 0.2, 1),
+              transform 620ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.reveal.in { opacity: 1; transform: none; }
+
+/* ── Small screens: the road moves to the edge ──────────────────────────── */
+
+@media (max-width: 760px) {
+  :root { --road-x: 22px; }
+  .hero, .stop, .finish, .foot { padding-left: calc(var(--road-x) + 22px); padding-right: 22px; }
+  .stop--right { padding-left: calc(var(--road-x) + 22px); }
+  .scroll-hint { left: calc(var(--road-x) + 22px); }
+  .pin { width: 24px; height: 24px; margin-left: -10px; }
+  .facts { gap: 1.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .btn:hover { transform: none; }
+}
+
+/* ── Lockup ─────────────────────────────────────────────────────────────────
+   The supplied wordmark is white letterforms with soft edges, so it ghosts on
+   a dark ground. The Z mark is solid colour and holds up, so it pairs with
+   typed letters instead.                                                     */
+
+.lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  margin-bottom: 2.6rem;
+}
+
+.lockup img { display: block; }
+
+.lockup-word {
+  font-variation-settings: 'wdth' 108, 'wght' 700;
+  font-size: 1.7rem;
+  letter-spacing: -0.025em;
+  color: var(--paper);
+  line-height: 1;
+}
+.lockup-word span { color: var(--green); }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
