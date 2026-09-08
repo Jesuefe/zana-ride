@@ -9,6 +9,10 @@ import { useEffect, useRef, useState } from 'react';
  * at the end — so the page moves the way the brand already does.
  */
 
+const APP = 'https://app.zanaride.rw';
+const DRIVER = 'https://driver.zanaride.rw';
+const MERCHANT = 'https://merchant.zanaride.rw';
+
 const STOPS = [
   {
     id: 'ride',
@@ -157,7 +161,7 @@ export default function Landing() {
         </p>
 
         <div className="cta-row">
-          <a className="btn btn--primary" href="https://zana-ride.pages.dev">
+          <a className="btn btn--primary" href={APP}>
             Open Zana
           </a>
           <a className="btn btn--ghost" href="#ride">
@@ -214,13 +218,13 @@ export default function Landing() {
           </p>
 
           <div className="cta-row">
-            <a className="btn btn--primary" href="https://zana-ride.pages.dev">
+            <a className="btn btn--primary" href={APP}>
               Open Zana
             </a>
-            <a className="btn btn--ghost" href="https://zana-driver.pages.dev">
+            <a className="btn btn--ghost" href={DRIVER}>
               Drive with Zana
             </a>
-            <a className="btn btn--ghost" href="https://zana-merchant.pages.dev">
+            <a className="btn btn--ghost" href={MERCHANT}>
               Sell on Zana
             </a>
           </div>
@@ -240,9 +244,9 @@ export default function Landing() {
         </div>
 
         <nav className="foot-links" aria-label="Footer">
-          <a href="https://zana-ride.pages.dev">Ride</a>
-          <a href="https://zana-driver.pages.dev">Drive</a>
-          <a href="https://zana-merchant.pages.dev">Sell</a>
+          <a href={APP}>Ride</a>
+          <a href={DRIVER}>Drive</a>
+          <a href={MERCHANT}>Sell</a>
           <a href="mailto:hello@zanaride.rw">Contact</a>
         </nav>
       </footer>
