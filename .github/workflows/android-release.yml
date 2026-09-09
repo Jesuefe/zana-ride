@@ -1,0 +1,96 @@
+name: Build Android release (AAB)
+
+# Google Play needs a signed Android App Bundle, not the debug APK from the
+# other workflow. Run this when you are ready to upload to the Play Console.
+#
+# Requires four repository secrets:
+#   ANDROID_KEYSTORE_BASE64   the .jks file, base64 encoded
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD
+#
+# Guard the keystore carefully. Lose it and you cannot ship an update to an
+# app already on Play under the same identity.
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: 'Version name, e.g. 1.0.0'
+        required: true
+        default: '1.0.0'
+      versionCode:
+        description: 'Version code — must increase with every upload'
+        required: true
+        default: '1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - { dir: driver,   name: zana-driver }
+          - { dir: customer, name: zana-customer }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: native/${{ matrix.app.dir }}
+        run: npm install
+
+      - name: Sync Capacitor
+        working-directory: native/${{ matrix.app.dir }}
+        run: npx cap sync android
+
+      - name: Set version
+        working-directory: native/${{ matrix.app.dir }}/android/app
+        run: |
+          sed -i "s/versionCode .*/versionCode ${{ inputs.versionCode }}/" build.gradle
+          sed -i "s/versionName .*/versionName \"${{ inputs.versionName }}\"/" build.gradle
+          grep -E "versionCode|versionName" build.gradle
+
+      - name: Restore keystore
+        working-directory: native/${{ matrix.app.dir }}/android
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE" | base64 --decode > zana.jks
+
+      - name: Build signed bundle
+        working-directory: native/${{ matrix.app.dir }}/android
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon \
+            -PZANA_KEYSTORE_FILE=../zana.jks \
+            -PZANA_KEYSTORE_PASSWORD='${{ secrets.ANDROID_KEYSTORE_PASSWORD }}' \
+            -PZANA_KEY_ALIAS='${{ secrets.ANDROID_KEY_ALIAS }}' \
+            -PZANA_KEY_PASSWORD='${{ secrets.ANDROID_KEY_PASSWORD }}'
+
+      - name: Collect
+        run: |
+          mkdir -p out
+          cp native/${{ matrix.app.dir }}/android/app/build/outputs/bundle/release/app-release.aab \
+             out/${{ matrix.app.name }}-${{ inputs.versionName }}.aab
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f native/${{ matrix.app.dir }}/android/zana.jks
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app.name }}-aab
+          path: out/*.aab
+          retention-days: 30

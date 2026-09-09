@@ -5,7 +5,8 @@
   "server": {
     "url": "https://app.zanaride.rw",
     "cleartext": false,
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "errorPath": "error.html"
   },
   "android": {
     "allowMixedContent": false,
@@ -14,7 +15,11 @@
   },
   "plugins": {
     "PushNotifications": {
-      "presentationOptions": ["badge", "sound", "alert"]
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
     }
   }
 }

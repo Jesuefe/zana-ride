@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Zana</title>
+  <style>
+    /* Shown when the app cannot reach zanaride.rw. Without this the WebView
+       falls back to the browser's own error page, which is jarring inside an
+       app and gives the rider nothing useful to do.
+
+       Deliberately self-contained: no fonts, no images, no requests. It has
+       to render when there is no connection at all. */
+
+    :root {
+      --asphalt: #23262B;
+      --paper: #F5F3EF;
+      --yellow: #FEC708;
+      --green: #59B02D;
+      --muted: #8A8F96;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--asphalt);
+      color: var(--paper);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.6rem;
+      text-align: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* The road from the logo, drawn as a journey that has not arrived yet.
+       The dashes keep moving, which reads as "still trying" rather than
+       "broken". */
+    .journey {
+      position: relative;
+      width: 190px;
+      margin-bottom: 2.6rem;
+    }
+
+    .road {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .road::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to right,
+        var(--yellow) 0 16px,
+        transparent 16px 30px
+      );
+      animation: travel 1.1s linear infinite;
+    }
+
+    @keyframes travel {
+      to { transform: translateX(30px); }
+    }
+
+    .pin {
+      position: absolute;
+      right: -8px;
+      top: -20px;
+      width: 20px;
+      height: 24px;
+      /* The destination is still there; we just cannot reach it yet. */
+      opacity: 0.9;
+      animation: waiting 2.4s ease-in-out infinite;
+    }
+
+    @keyframes waiting {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    h1 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.6rem;
+    }
+
+    p {
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: #B6BBC2;
+      max-width: 30ch;
+      margin: 0 auto 0.5rem;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 1.4rem;
+    }
+
+    button {
+      margin-top: 2rem;
+      background: var(--yellow);
+      color: #14161A;
+      border: 0;
+      border-radius: 100px;
+      padding: 0.95rem 2.4rem;
+      font-size: 0.96rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    button:active { transform: scale(0.97); }
+    button:disabled { opacity: 0.55; }
+
+    .status {
+      margin-top: 1.1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      min-height: 1.2em;
+    }
+
+    .back-online {
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .road::after, .pin { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="journey">
+    <div class="road"></div>
+    <svg class="pin" viewBox="0 0 30 30" aria-hidden="true">
+      <path d="M15 3c4.4 0 8 3.5 8 7.9 0 5.6-8 15.1-8 15.1S7 16.5 7 10.9C7 6.5 10.6 3 15 3z" fill="#59B02D"/>
+      <circle cx="15" cy="10.8" r="3.1" fill="#F5F3EF"/>
+    </svg>
+  </div>
+
+  <h1>No connection</h1>
+  <p id="message">
+    Zana can&rsquo;t reach the network. Check your data or Wi-Fi and we&rsquo;ll
+    pick up where you left off.
+  </p>
+
+  <button id="retry" type="button">Try again</button>
+  <p class="status" id="status"></p>
+
+  <p class="hint" id="hint">
+    Your trip and earnings are safe. Nothing is lost while you&rsquo;re offline.
+  </p>
+
+  <script>
+    // Where to return to. Set at build time by the Capacitor config; the
+    // fallback covers a manual open of this file.
+    var HOME = window.location.origin && window.location.origin !== 'null'
+      ? window.location.origin
+      : 'https://driver.zanaride.rw';
+
+    var retry = document.getElementById('retry');
+    var status = document.getElementById('status');
+    var attempts = 0;
+    var timer = null;
+
+    function go() {
+      window.location.replace(HOME);
+    }
+
+    function attempt(manual) {
+      attempts++;
+      retry.disabled = true;
+      status.textContent = 'Checking\u2026';
+
+      // navigator.onLine is unreliable on Android — it reports true for a
+      // connection that goes nowhere. So we actually try to reach the site.
+      fetch(HOME, { method: 'HEAD', cache: 'no-store', mode: 'no-cors' })
+        .then(function () { go(); })
+        .catch(function () {
+          retry.disabled = false;
+          status.textContent = manual
+            ? 'Still no connection.'
+            : '';
+          schedule();
+        });
+    }
+
+    // Back off gradually so a phone in a dead spot is not hammering the
+    // radio and draining the battery.
+    function schedule() {
+      clearTimeout(timer);
+      var wait = Math.min(30000, 3000 * Math.pow(1.6, Math.min(attempts, 6)));
+      timer = setTimeout(function () { attempt(false); }, wait);
+    }
+
+    retry.addEventListener('click', function () { attempt(true); });
+
+    // The moment the OS says we are back, go immediately rather than waiting
+    // for the next scheduled attempt.
+    window.addEventListener('online', function () {
+      status.textContent = 'Back online';
+      status.className = 'status back-online';
+      setTimeout(go, 400);
+    });
+
+    schedule();
+  </script>
+</body>
+</html>

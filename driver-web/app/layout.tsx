@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { ThemeProvider } from '../lib/ThemeContext';
-import SplashGate from '../components/SplashGate';
 import "./globals.css";
 import { LangProvider } from "../lib/LangContext";
-import DriverBottomNav from "../components/DriverBottomNav";
+import DriverShell from "../components/DriverShell";
 
 export const metadata: Metadata = {
   title: "Zana Driver",
@@ -22,10 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="overflow-x-hidden">
         <LangProvider>
-          <div className="min-h-screen w-full max-w-[480px] mx-auto overflow-x-hidden pb-16">
-            <SplashGate><ThemeProvider>{children}</ThemeProvider></SplashGate>
-          </div>
-          <DriverBottomNav />
+          <DriverShell>{children}</DriverShell>
         </LangProvider>
       </body>
     </html>
