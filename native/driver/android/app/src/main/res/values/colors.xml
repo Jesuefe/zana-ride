@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Zana asphalt, matching the app's own ground.
+         Note: ic_launcher_background lives in its own generated file and must
+         not be redefined here, or the resource merger fails on a duplicate. -->
+    <color name="colorPrimary">#23262B</color>
+    <color name="colorPrimaryDark">#191C20</color>
+    <color name="colorAccent">#FEC708</color>
+</resources>
