@@ -32,7 +32,7 @@ export default function LoginPage() {
     <div className="flex flex-col min-h-screen">
       <div className="bg-zana-primary-light flex-1 flex items-center justify-center animate-fade-in py-10">
         <div className="w-32 h-32 rounded-3xl bg-white shadow-lg flex items-center justify-center overflow-hidden animate-fade-slide-up">
-          <Image src="/logo.png" alt="Zana" width={128} height={128} className="object-cover" priority />
+          <Image src="/zana-mark.png" alt="Zana" width={128} height={128} className="object-cover" priority />
         </div>
       </div>
       <div className="p-6">
@@ -67,6 +67,20 @@ export default function LoginPage() {
           {loading ? 'Logging in…' : 'Log In'}
         </button>
 
+        <div className="flex flex-col gap-1 mt-3">
+          <button
+            onClick={() => router.push('/login-code')}
+            className="text-sm font-bold text-zana-primary py-2"
+          >
+            Sign in with a code instead
+          </button>
+          <button
+            onClick={() => router.push('/forgot-password')}
+            className="text-sm text-gray-500 py-1"
+          >
+            Forgot your password?
+          </button>
+        </div>
         <p className="text-center text-sm text-zana-muted mt-4">
           New to Zana?{' '}
           <Link href="/signup" className="text-zana-primary font-semibold">

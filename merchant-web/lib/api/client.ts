@@ -55,3 +55,17 @@ export const api = {
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
 };
+
+// ── Password recovery ───────────────────────────────────────────────────────
+
+export async function requestPasswordReset(identifier: string) {
+  return api.post<{ sent: boolean; phoneHint: string | null }>(
+    '/auth/password/forgot', { identifier },
+  );
+}
+
+export async function resetPassword(phone: string, code: string, password: string) {
+  const result = await api.post<any>('/auth/password/reset', { phone, code, password });
+  if (result?.token) setToken(result.token);
+  return result;
+}

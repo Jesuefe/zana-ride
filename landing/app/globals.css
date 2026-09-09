@@ -68,7 +68,7 @@ body {
   top: 0;
   left: var(--road-x);
   width: 4px;
-  height: 100vh;
+  height: 100dvh;
   background: rgba(130, 136, 145, 0.35);
 }
 
@@ -78,7 +78,7 @@ body {
   top: 0;
   left: calc(var(--road-x) + 1px);
   width: 2px;
-  height: 100vh;
+  height: 100dvh;
   background: repeating-linear-gradient(
     to bottom,
     rgba(255, 255, 255, 0.55) 0 12px,
@@ -278,12 +278,73 @@ body {
 /* ── Small screens: the road moves to the edge ──────────────────────────── */
 
 @media (max-width: 760px) {
-  :root { --road-x: 22px; }
-  .hero, .stop, .finish, .foot { padding-left: calc(var(--road-x) + 22px); padding-right: 22px; }
-  .stop--right { padding-left: calc(var(--road-x) + 22px); }
-  .scroll-hint { left: calc(var(--road-x) + 22px); }
-  .pin { width: 24px; height: 24px; margin-left: -10px; }
-  .facts { gap: 1.6rem; }
+  :root {
+    --road-x: 18px;
+    --measure: 100%;
+  }
+
+  body { font-size: 16px; }
+
+  .hero, .stop, .finish, .foot {
+    padding-left: calc(var(--road-x) + 20px);
+    padding-right: 24px;
+  }
+  .stop--right { padding-left: calc(var(--road-x) + 20px); }
+  .scroll-hint { left: calc(var(--road-x) + 20px); bottom: 2.2rem; }
+
+  .pin { width: 24px; height: 24px; margin-left: -10px; margin-top: -21px; }
+  .stop-marker { width: 11px; height: 11px; margin-left: -3.5px; }
+
+  /* Give the display words more of the screen — they are the point. */
+  .d-hero { font-size: clamp(3.9rem, 19vw, 6rem); }
+  /* The longest word here is ANYTHING. — sized so it clears the edge. */
+  .d-stop { font-size: clamp(2.6rem, 13vw, 4.2rem); }
+  .d-end  { font-size: clamp(2.6rem, 13vw, 4.2rem); }
+
+  /* Long lines are the main readability problem at this width. */
+  .lede { font-size: 1.02rem; max-width: 30ch; }
+  .body { font-size: 0.97rem; line-height: 1.62; }
+
+  /* Sections were losing most of a screen to padding. */
+  .stop { padding-top: 4.5rem; padding-bottom: 4.5rem; }
+  .finish { min-height: auto; padding-top: 5rem; padding-bottom: 5rem; }
+  .hero { min-height: 92svh; }
+
+  .stop-body { margin-top: 1.1rem; }
+
+  /* Facts sit side by side rather than stacking into a long list. */
+  .facts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.3rem 1rem;
+    margin-top: 1.9rem;
+  }
+  .fact-value { font-size: 1.15rem; }
+  .fact-label { font-size: 0.78rem; }
+
+  /* Equal-width buttons read as a pair rather than two odd shapes. */
+  .cta-row { flex-direction: column; align-items: stretch; gap: 0.7rem; margin-top: 2rem; }
+  .btn { justify-content: center; padding: 1.05rem 1.4rem; }
+
+  .lockup { margin-bottom: 1.9rem; }
+  .lockup img { width: 38px; height: 30px; }
+  .lockup-word { font-size: 1.5rem; }
+
+  .foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.6rem;
+    padding-top: 2.5rem;
+    padding-bottom: 3rem;
+  }
+  .foot-links { gap: 1.2rem; }
+}
+
+/* Very narrow phones */
+@media (max-width: 360px) {
+  .d-hero { font-size: 3.4rem; }
+  .d-stop, .d-end { font-size: 2.6rem; }
+  .facts { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -323,4 +384,108 @@ body {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ── Legal pages ────────────────────────────────────────────────────────────
+   Read when something has gone wrong, or by a store reviewer checking
+   compliance. Legibility over art direction: a light ground, a proper
+   measure, and generous spacing between sections.                           */
+
+.legal {
+  background: var(--paper, #F5F3EF);
+  color: #14161A;
+  min-height: 100vh;
+}
+
+.legal-head {
+  border-bottom: 1px solid #E3E1DC;
+  padding: 1.4rem 6vw;
+}
+
+.legal-back { text-decoration: none; }
+
+.legal-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-variation-settings: 'wdth' 108, 'wght' 700;
+  font-size: 1.35rem;
+  letter-spacing: -0.025em;
+  color: #14161A;
+  line-height: 1;
+}
+.legal-mark span span { color: #59B02D; }
+.legal-mark img { display: block; }
+
+.legal-body {
+  max-width: 68ch;
+  margin: 0 auto;
+  padding: 3.5rem 6vw 5rem;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.legal-body h1 {
+  font-variation-settings: 'wdth' 112, 'wght' 800;
+  font-size: clamp(2rem, 5vw, 2.9rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.4rem;
+}
+
+.legal-updated {
+  color: #7A7F86;
+  font-size: 0.88rem;
+  margin-bottom: 2.4rem;
+}
+
+.legal-intro {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #33383F;
+  padding-bottom: 1.6rem;
+  border-bottom: 1px solid #E3E1DC;
+  margin-bottom: 1.8rem;
+}
+
+.legal-body h2 {
+  font-variation-settings: 'wdth' 106, 'wght' 700;
+  font-size: 1.32rem;
+  letter-spacing: -0.015em;
+  margin: 2.6rem 0 0.7rem;
+}
+
+.legal-body h3 {
+  font-weight: 700;
+  font-size: 1.02rem;
+  margin: 1.6rem 0 0.4rem;
+  color: #14161A;
+}
+
+.legal-body p { margin-bottom: 1rem; color: #33383F; }
+.legal-body strong { color: #14161A; font-weight: 700; }
+
+.legal-body ul {
+  margin: 0 0 1.2rem 1.1rem;
+  color: #33383F;
+}
+.legal-body li { margin-bottom: 0.45rem; }
+
+.legal-body a { color: #00806A; }
+.legal-body a:hover { color: #59B02D; }
+
+.legal-foot {
+  margin-top: 3.5rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid #E3E1DC;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.6rem;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 760px) {
+  .legal-head { padding: 1.1rem 22px; }
+  .legal-body { padding: 2.4rem 22px 3.5rem; font-size: 0.98rem; }
+  .legal-body h2 { font-size: 1.18rem; margin-top: 2.1rem; }
 }

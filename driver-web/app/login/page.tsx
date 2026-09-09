@@ -67,6 +67,21 @@ export default function LoginPage() {
           {loading ? 'Logging in…' : 'Log In'}
         </button>
 
+        <div className="flex flex-col items-center gap-1 mt-3">
+          <button
+            onClick={() => router.push('/login-code')}
+            className="text-sm font-bold text-zana-primary py-1.5"
+          >
+            Sign in with a code instead
+          </button>
+          <button
+            onClick={() => router.push('/forgot-password')}
+            className="text-sm text-gray-500 py-1"
+          >
+            Forgot your password?
+          </button>
+        </div>
+
         <p className="text-center text-sm text-zana-muted mt-4">
           New driver?{' '}
           <Link href="/signup" className="text-zana-primary font-semibold">

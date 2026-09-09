@@ -42,6 +42,13 @@ export default function LoginPage() {
         <button onClick={handleLogin} disabled={loading || !identifier || !password} className="w-full mt-4 bg-zana-primary text-white font-semibold py-2.5 rounded-lg disabled:opacity-40 flex items-center justify-center gap-2">
           {loading ? <><Loader2 size={15} className="animate-spin" /> Signing in…</> : 'Sign In'}
         </button>
+
+        <button
+          onClick={() => router.push('/forgot-password')}
+          className="w-full text-sm text-gray-500 py-2.5 mt-1"
+        >
+          Forgot your password?
+        </button>
       </div>
     </div>
   );

@@ -45,6 +45,16 @@ export default function DriverProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
+      <div className="px-4 pt-4">
+        <button
+          onClick={() => router.push('/documents')}
+          className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3.5 shadow-sm"
+        >
+          <span className="text-sm font-bold text-gray-900">Your documents</span>
+          <span className="text-xs font-bold text-zana-primary">Manage</span>
+        </button>
+      </div>
+
       <div className="bg-zana-primary-dark px-4 pt-12 pb-6">
         <button onClick={() => router.back()} className="text-white/70 text-sm mb-4">← Back</button>
         <div className="flex items-center gap-4">

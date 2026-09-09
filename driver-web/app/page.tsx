@@ -87,6 +87,15 @@ export default function DriverHome() {
   const [battery, setBattery] = useState<{ level: number; charging: boolean } | null>(null);
 
   // Real phone battery
+  // Play requires the disclosure to appear before the permission prompt.
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem('zana_location_disclosed')) {
+        router.replace('/location-notice');
+      }
+    } catch {}
+  }, [router]);
+
   useEffect(() => {
     const nav = navigator as any;
     if (!nav.getBattery) return;

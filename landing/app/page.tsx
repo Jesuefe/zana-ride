@@ -120,17 +120,17 @@ export default function Landing() {
       <div className="rail" aria-hidden="true">
         <div className="road" />
         <div className="road-lane" />
-        <div className="road-fill" style={{ height: `${progress * 100}vh` }} />
+        <div className="road-fill" style={{ height: `${progress * 100}dvh` }} />
 
         {marks.map((m, i) => (
           <span
             key={i}
             className={`stop-marker ${progress >= m ? 'passed' : ''}`}
-            style={{ top: `${m * 100}vh` }}
+            style={{ top: `${m * 100}dvh` }}
           />
         ))}
 
-        <svg className="pin" style={{ top: `${progress * 100}vh` }} viewBox="0 0 30 30">
+        <svg className="pin" style={{ top: `${progress * 100}dvh` }} viewBox="0 0 30 30">
           <path
             d="M15 3c4.4 0 8 3.5 8 7.9 0 5.6-8 15.1-8 15.1S7 16.5 7 10.9C7 6.5 10.6 3 15 3z"
             fill="#59B02D"
@@ -247,6 +247,8 @@ export default function Landing() {
           <a href={APP}>Ride</a>
           <a href={DRIVER}>Drive</a>
           <a href={MERCHANT}>Sell</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
           <a href="mailto:hello@zanaride.rw">Contact</a>
         </nav>
       </footer>

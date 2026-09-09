@@ -113,7 +113,12 @@ export default function LoginPage() {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
 
-          <p className="text-xs text-gray-400 text-center mt-4">
+          <div className="flex flex-col gap-1 mt-3 items-center">
+          <button onClick={() => router.push('/forgot-password')} className="text-sm text-gray-500 py-1.5">
+            Forgot your password?
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 text-center mt-4">
             Don't have an account? Contact <a href="mailto:support@zana.rw" className="text-zana-primary">support@zana.rw</a>
           </p>
         </div>

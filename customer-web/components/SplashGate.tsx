@@ -8,6 +8,7 @@ export default function SplashGate({ children }: { children: React.ReactNode }) 
   const [show, setShow] = useState(false);
   const [checked, setChecked] = useState(false);
 
+
   useEffect(() => {
     try {
       const seen = sessionStorage.getItem('zana_splash_seen');
