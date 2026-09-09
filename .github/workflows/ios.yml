@@ -1,0 +1,154 @@
+name: Build iOS
+
+# iOS cannot produce an installable file without an Apple Developer account
+# and signing certificates. So this has two modes:
+#
+#   unsigned  — compiles for the simulator. Proves the project builds and
+#               catches mistakes early. Costs nothing. Cannot be installed
+#               on a real phone.
+#   sideload  — an unsigned .ipa for AltStore or SideStore. Installs on your
+#               own iPhone with a free Apple ID, from Windows. Expires after
+#               seven days and must be refreshed. Good for testing, no use
+#               for handing to riders.
+#   signed    — produces an .ipa for TestFlight. Needs the four secrets
+#               listed below.
+#
+# Start with unsigned. Move to signed once the developer account exists.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Build mode'
+        required: true
+        default: 'unsigned'
+        type: choice
+        options: [unsigned, sideload, signed]
+
+jobs:
+  build:
+    # macOS runners cost ten times a Linux minute on private repositories.
+    # This is why it is manual rather than running on every push.
+    runs-on: macos-14
+
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - { dir: driver,   name: zana-driver }
+          - { dir: customer, name: zana-customer }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: native/${{ matrix.app.dir }}
+        run: npm install
+
+      - name: Sync Capacitor
+        working-directory: native/${{ matrix.app.dir }}
+        run: npx cap sync ios
+
+      - name: Install pods
+        working-directory: native/${{ matrix.app.dir }}/ios/App
+        run: pod install
+
+      # ── Unsigned: does it compile? ──────────────────────────────────────
+      - name: Build for simulator
+        if: inputs.mode == 'unsigned'
+        working-directory: native/${{ matrix.app.dir }}/ios/App
+        run: |
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+
+      # ── Sideload: an unsigned .ipa for AltStore / SideStore ─────────────
+      # Xcode will not produce an .ipa without signing, so we build the .app
+      # unsigned and package it by hand. AltStore signs it on your machine
+      # with your free Apple ID.
+      - name: Build unsigned .ipa
+        if: inputs.mode == 'sideload'
+        working-directory: native/${{ matrix.app.dir }}/ios/App
+        run: |
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qr "${{ matrix.app.name }}-unsigned.ipa" Payload
+
+      - name: Upload unsigned .ipa
+        if: inputs.mode == 'sideload'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app.name }}-unsigned-ipa
+          path: native/${{ matrix.app.dir }}/ios/App/*.ipa
+          retention-days: 30
+
+      # ── Signed: TestFlight ──────────────────────────────────────────────
+      - name: Import signing certificate
+        if: inputs.mode == 'signed'
+        env:
+          CERT_P12: ${{ secrets.IOS_CERTIFICATE_P12 }}
+          CERT_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+        run: |
+          echo "$CERT_P12" | base64 --decode > cert.p12
+          security create-keychain -p runner build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p runner build.keychain
+          security import cert.p12 -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k runner build.keychain
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/zana.mobileprovision
+
+      - name: Archive and export
+        if: inputs.mode == 'signed'
+        working-directory: native/${{ matrix.app.dir }}/ios/App
+        env:
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          xcodebuild -workspace App.xcworkspace -scheme App \
+            -sdk iphoneos -configuration Release \
+            -archivePath build/App.xcarchive \
+            DEVELOPMENT_TEAM="$TEAM_ID" archive
+
+          cat > ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+          </dict></plist>
+          PLIST
+
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build/ipa
+
+      - name: Upload
+        if: inputs.mode == 'signed'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app.name }}-ipa
+          path: native/${{ matrix.app.dir }}/ios/App/build/ipa/*.ipa
+          retention-days: 30

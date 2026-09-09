@@ -8,15 +8,16 @@
     "open": "cap open android"
   },
   "dependencies": {
+    "@capacitor-community/background-geolocation": "^1.2.24",
     "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/camera": "^6.1.2",
     "@capacitor/core": "^6.2.0",
     "@capacitor/geolocation": "^6.1.0",
-    "@capacitor/push-notifications": "^6.0.4",
-    "@capacitor/camera": "^6.1.2",
-    "@capacitor/app": "^6.0.2",
     "@capacitor/haptics": "^6.0.2",
-    "@capacitor/status-bar": "^6.0.2",
-    "@capacitor-community/background-geolocation": "^1.2.24"
+    "@capacitor/ios": "^6.2.2",
+    "@capacitor/push-notifications": "^6.0.4",
+    "@capacitor/status-bar": "^6.0.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.0"
