@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Zana asphalt, matching the app's own ground -->
+    <color name="colorPrimary">#23262B</color>
+    <color name="colorPrimaryDark">#191C20</color>
+    <color name="colorAccent">#FEC708</color>
+    <color name="ic_launcher_background">#23262B</color>
+</resources>

@@ -1,0 +1,65 @@
+name: Build Android APKs
+
+# Builds a debug APK for both shells on every push, and on demand.
+# Debug APKs install directly on a phone without Play Store signing, which is
+# what you want for field testing.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      # One failing shell should not hide the other's result
+      fail-fast: false
+      matrix:
+        app:
+          - { dir: driver,   name: zana-driver }
+          - { dir: customer, name: zana-customer }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: native/${{ matrix.app.dir }}
+        run: npm install
+
+      - name: Sync Capacitor
+        working-directory: native/${{ matrix.app.dir }}
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: native/${{ matrix.app.dir }}/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Name the APK by build number
+        run: |
+          mkdir -p out
+          cp native/${{ matrix.app.dir }}/android/app/build/outputs/apk/debug/app-debug.apk \
+             out/${{ matrix.app.name }}-${{ github.run_number }}.apk
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app.name }}-apk
+          path: out/*.apk
+          retention-days: 30

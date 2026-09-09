@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Zana</string>
+    <string name="title_activity_main">Zana</string>
+    <string name="package_name">rw.zanaride.app</string>
+    <string name="custom_url_scheme">rw.zanaride.app</string>
+</resources>
