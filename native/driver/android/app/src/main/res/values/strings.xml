@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Zana Driver</string>
-    <string name="title_activity_main">Zana Driver</string>
-    <string name="package_name">rw.zanaride.driver</string>
-    <string name="custom_url_scheme">rw.zanaride.driver</string>
-</resources>
