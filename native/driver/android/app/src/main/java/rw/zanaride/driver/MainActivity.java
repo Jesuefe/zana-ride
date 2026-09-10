@@ -2,10 +2,9 @@ package rw.zanaride.driver;
 
 import android.os.Bundle;
 import android.webkit.PermissionRequest;
-import android.webkit.WebChromeClient;
-import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebChromeClient;
 
 public class MainActivity extends BridgeActivity {
 
@@ -13,13 +12,15 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        WebView webView = getBridge().getWebView();
-
-        // The rider app uses getUserMedia for voice calls and the camera for
-        // proof-of-handling photos. Android will not grant those to a WebView
-        // unless the host app explicitly says yes, so requests silently fail
-        // without this — the call connects but no audio is ever published.
-        webView.setWebChromeClient(new WebChromeClient() {
+        // Extend Capacitor's own chrome client rather than replacing it.
+        // A bare android.webkit.WebChromeClient looks like it only affects
+        // getUserMedia, but it silently drops onShowFileChooser() too —
+        // every <input type="file"> in the app (pickup photos, drop-off
+        // photos, document uploads) stops opening the camera or gallery,
+        // with no error, because the tap has nothing to do. Extending
+        // BridgeWebChromeClient keeps that behaviour and only adds the
+        // auto-grant this app needs for voice calls.
+        getBridge().getWebView().setWebChromeClient(new BridgeWebChromeClient(getBridge()) {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> request.grant(request.getResources()));

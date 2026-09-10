@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import PasswordField from '../../components/PasswordField';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -47,12 +48,12 @@ export default function LoginPage() {
             className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             autoFocus
           />
-          <input
+          <PasswordField
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            type="password"
             placeholder="Password"
-            className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
+            autoComplete="current-password"
+            className="border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             onKeyDown={(e) => e.key === 'Enter' && valid && handleLogin()}
           />
         </div>

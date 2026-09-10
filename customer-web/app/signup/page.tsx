@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import PasswordField from '../../components/PasswordField';
+import CountryCodePicker from '../../components/CountryCodePicker';
+import { DEFAULT_COUNTRY, Country } from '../../lib/countries';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -13,6 +16,7 @@ export default function SignupPage() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +25,8 @@ export default function SignupPage() {
     firstName.trim() &&
     lastName.trim() &&
     /\S+@\S+\.\S+/.test(email) &&
-    phone.replace(/\D/g, '').length >= 9 &&
+    phone.replace(/\D/g, '').length >= country.minDigits &&
+    phone.replace(/\D/g, '').length <= country.maxDigits &&
     password.length >= 6;
 
   const handleSignup = async () => {
@@ -32,7 +37,7 @@ export default function SignupPage() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
-        phone: `+250${phone.replace(/\D/g, '')}`,
+        phone: `+${country.dial}${phone.replace(/\D/g, '')}`,
         password,
       });
       router.push('/');
@@ -75,22 +80,22 @@ export default function SignupPage() {
           placeholder="Email address"
           className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
         />
-        <div className="flex gap-2">
-          <div className="border border-zana-border rounded-lg px-3 flex items-center text-sm">RW +250</div>
+        <div className="flex gap-2 h-[46px]">
+          <CountryCodePicker value={country} onChange={setCountry} />
           <input
             value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, country.maxDigits))}
             placeholder="788 123 456"
             inputMode="numeric"
             className="flex-1 border border-zana-border rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
           />
         </div>
-        <input
+        <PasswordField
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          type="password"
           placeholder="Password (min. 6 characters)"
-          className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
+          autoComplete="new-password"
+          className="border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
           onKeyDown={(e) => e.key === 'Enter' && valid && handleSignup()}
         />
       </div>

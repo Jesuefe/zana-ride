@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Star, Car, Truck, TrendingUp, Calendar, AlertTriangle, CheckCircle } from 'lucide-react';
-import { api } from '../../lib/api/client';
+import { ArrowLeft, Star, Car, Truck, TrendingUp, Calendar, AlertTriangle, CheckCircle, LogOut } from 'lucide-react';
+import { api, clearToken } from '../../lib/api/client';
 import { fetchMyDriverProfile } from '../../lib/api/driver';
 
 type DriverStats = {
@@ -147,6 +147,14 @@ export default function DriverProfilePage() {
             </div>
           </div>
         )}
+
+        <button
+          onClick={() => { clearToken(); router.replace('/login'); }}
+          className="w-full flex items-center justify-center gap-2 bg-white rounded-2xl shadow-sm px-4 py-3.5 text-red-600 font-semibold text-sm"
+        >
+          <LogOut size={16} />
+          Log out
+        </button>
       </div>
     </div>
   );

@@ -2,10 +2,9 @@ package rw.zanaride.app;
 
 import android.os.Bundle;
 import android.webkit.PermissionRequest;
-import android.webkit.WebChromeClient;
-import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebChromeClient;
 
 public class MainActivity extends BridgeActivity {
 
@@ -13,9 +12,11 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Voice calls and package photos both need the WebView to be granted
-        // camera and microphone access explicitly.
-        getBridge().getWebView().setWebChromeClient(new WebChromeClient() {
+        // See the driver app's MainActivity for why this extends Capacitor's
+        // own chrome client instead of replacing it: doing otherwise breaks
+        // every photo upload in the app (package photos, later a profile
+        // picture) with no visible error.
+        getBridge().getWebView().setWebChromeClient(new BridgeWebChromeClient(getBridge()) {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> request.grant(request.getResources()));

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SERVICES } from '../lib/services';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Clock, Home, Briefcase, ChevronRight, Search, MapPin, Calendar, Package } from 'lucide-react';
@@ -8,16 +9,6 @@ import { fetchMe, ApiUser } from '../lib/api/auth';
 import { fetchWallet } from '../lib/api/trips';
 import { api } from '../lib/api/client';
 import { useLang } from '../lib/LangContext';
-
-const SERVICES = [
-  { id: 'car',      title: 'Ride',          sub: 'Affordable & safe',    image: '/icons/car.png',            bg: '#EEF9F6', route: '/search?service=ECONOMY' },
-  { id: 'moto',     title: 'Moto Ride',     sub: 'Fast & reliable',      image: '/icons/motorbike.png',      bg: '#FDF6E3', route: '/search?service=BIKE' },
-  { id: 'package',  title: 'Delivery',      sub: 'Send anything',        image: '/icons/package-box.png',    bg: '#EEF9F6', route: '/deliver' },
-  { id: 'food',     title: 'Order Food',    sub: 'Meals & drinks',       image: '/icons/burger-drink.png',   bg: '#FDF6E3', route: '/food' },
-  { id: 'shop',     title: 'Shop',          sub: 'Groceries & goods',    image: '/icons/grocery-bag.png',    bg: '#EEF9F6', route: '/shop' },
-  { id: 'gift',     title: 'Send Gift',     sub: 'Roses & surprises',    image: '/icons/flower-bouquet.png', bg: '#FDF6E3', route: '/gifts' },
-  { id: 'market',   title: 'Market',        sub: 'Agent shops for you',  image: '/icons/grocery-bag.png',    bg: '#EEF9F6', route: '/market' },
-];
 
 function greeting() {
   const h = new Date().getHours();
@@ -176,7 +167,7 @@ export default function HomePage() {
       <div className="px-4 mt-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-black text-gray-900">Services</h2>
-          <button onClick={() => router.push('/search')}
+          <button onClick={() => router.push('/services')}
             className="text-sm font-semibold text-zana-primary">See all</button>
         </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import PasswordField from '../../components/PasswordField';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { requestPasswordReset, resetPassword } from '../../lib/api/auth';
@@ -141,25 +142,23 @@ export default function ForgotPassword() {
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
             New password
           </label>
-          <input
-            type="password"
+          <PasswordField
             value={password}
             onChange={e => setPassword(e.target.value)}
             autoComplete="new-password"
             placeholder="At least 6 characters"
-            className="w-full border-2 border-gray-100 rounded-2xl px-4 py-3.5 mt-2 mb-4 text-sm focus:border-zana-primary focus:outline-none"
+            className="border-2 border-gray-100 rounded-2xl px-4 py-3.5 mt-2 mb-4 text-sm focus:border-zana-primary focus:outline-none"
           />
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
             Confirm password
           </label>
-          <input
-            type="password"
+          <PasswordField
             value={confirm}
             onChange={e => setConfirm(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && submit()}
             autoComplete="new-password"
-            className="w-full border-2 border-gray-100 rounded-2xl px-4 py-3.5 mt-2 text-sm focus:border-zana-primary focus:outline-none"
+            className="border-2 border-gray-100 rounded-2xl px-4 py-3.5 mt-2 text-sm focus:border-zana-primary focus:outline-none"
           />
 
           {error && <p className="text-xs text-red-600 mt-3">{error}</p>}
