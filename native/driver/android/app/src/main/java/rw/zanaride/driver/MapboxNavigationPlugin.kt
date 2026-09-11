@@ -9,6 +9,7 @@ import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.RouteOptions
+import com.mapbox.common.location.Location
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
@@ -17,7 +18,9 @@ import com.mapbox.maps.Style
 import com.mapbox.maps.extension.style.layers.generated.lineLayer
 import com.mapbox.maps.extension.style.sources.generated.GeoJsonSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
+import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.plugin.locationcomponent.location
+import com.mapbox.navigation.base.extensions.applyDefaultNavigationOptions
 import com.mapbox.navigation.base.options.NavigationOptions
 import com.mapbox.navigation.base.route.NavigationRoute
 import com.mapbox.navigation.base.route.NavigationRouterCallback
@@ -25,32 +28,12 @@ import com.mapbox.navigation.base.route.RouterFailure
 import com.mapbox.navigation.base.trip.model.RouteLegProgress
 import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.core.MapboxNavigation
+import com.mapbox.navigation.core.MapboxNavigationProvider
 import com.mapbox.navigation.core.arrival.ArrivalObserver
 import com.mapbox.navigation.core.directions.session.RoutesObserver
 import com.mapbox.navigation.core.trip.session.LocationMatcherResult
 import com.mapbox.navigation.core.trip.session.LocationObserver
 
-/**
- * A small, direct wrapper around Mapbox's real Navigation Core SDK and Maps
- * SDK — not the third-party npm plugins, which are either years stale or
- * don't support Android at all (checked before building this).
- *
- * Deliberately does NOT use Mapbox's own "drop-in" NavigationView — that
- * component is documented and exemplified almost entirely in Kotlin/XML
- * with a real-but-different API shape that couldn't be confirmed
- * confidently enough to write blind. Instead this draws the route as a
- * plain line layer and uses the Maps SDK's Location Component for the
- * position puck — both long-standing, stable parts of the Maps SDK, not
- * the newer, less-certain drop-in UI. Real routing, real rerouting, real
- * position — plainer turn-by-turn chrome than Mapbox's own polished UI
- * would give, traded deliberately for using only APIs this plugin can be
- * reasonably confident are correct, since none of this has been compiled
- * anywhere — that happens for the first time in CI, not here.
- *
- * Surface matches what the web hook expects: initialize, showNavigationView,
- * startNavigation, stopNavigation, plus onNavigationReady/onArrival/
- * onRouteChanged/onNavigationClosed events.
- */
 @CapacitorPlugin(name = "MapboxNavigation")
 class MapboxNavigationPlugin : Plugin() {
 
@@ -60,10 +43,6 @@ class MapboxNavigationPlugin : Plugin() {
     private val routeSourceId = "zana-route-source"
     private val routeLayerId = "zana-route-layer"
 
-    // Updated on every real location fix from the Navigation SDK's own
-    // pipeline, registered once in initialize() rather than re-registered
-    // each time the map opens — this is what startNavigation() reads as
-    // the route's origin point.
     @Volatile
     private var lastLocation: Point? = null
 
@@ -74,20 +53,12 @@ class MapboxNavigationPlugin : Plugin() {
             return
         }
 
-        val tokenResId = activity.resources.getIdentifier(
-            "mapbox_access_token", "string", activity.packageName
-        )
-        val token = activity.getString(tokenResId)
-
-        val options = NavigationOptions.Builder(activity)
-            .accessToken(token)
-            .build()
-
-        val nav = MapboxNavigation(options)
+        val options = NavigationOptions.Builder(activity).build()
+        val nav = MapboxNavigationProvider.create(options)
         mapboxNavigation = nav
 
         nav.registerLocationObserver(object : LocationObserver {
-            override fun onNewRawLocation(rawLocation: android.location.Location) {}
+            override fun onNewRawLocation(rawLocation: Location) {}
             override fun onNewLocationMatcherResult(result: LocationMatcherResult) {
                 val point = Point.fromLngLat(
                     result.enhancedLocation.longitude,
@@ -112,9 +83,6 @@ class MapboxNavigationPlugin : Plugin() {
             notifyListeners("onRouteChanged", JSObject())
         })
 
-        // Location updates only flow once a trip session is running — this
-        // starts it immediately so lastLocation is populated by the time a
-        // driver actually taps to navigate, not only after showNavigationView.
         nav.startTripSession()
 
         notifyListeners("onNavigationReady", JSObject())
@@ -141,8 +109,6 @@ class MapboxNavigationPlugin : Plugin() {
                     container?.addView(mv)
                     mapView = mv
                     mv.mapboxMap.loadStyle(Style.MAPBOX_STREETS)
-                    // The built-in position puck — a stable, long-standing
-                    // part of the Maps SDK, not hand-built here.
                     mv.location.updateSettings {
                         enabled = true
                         pulsingEnabled = true
@@ -173,23 +139,12 @@ class MapboxNavigationPlugin : Plugin() {
 
         val origin = lastLocation
         if (origin == null) {
-            // No GPS fix yet — real on a cold start or a weak signal. The
-            // caller (the web hook) surfaces this as a failed start() and
-            // the driver can just try again once the puck has appeared.
             call.reject("NO_CURRENT_LOCATION")
             return
         }
 
-        // applyDefaultParams() rather than the newer applyDefaultNavigationOptions()
-        // helper — this method has appeared consistently across multiple
-        // Mapbox navigation SDK generations in real, confirmed examples,
-        // unlike the newer one, which this plugin could not confirm the
-        // real import path for confidently enough to depend on.
         val routeOptions = RouteOptions.builder()
-            .applyDefaultParams()
-            .accessToken(activity.getString(
-                activity.resources.getIdentifier("mapbox_access_token", "string", activity.packageName)
-            ))
+            .applyDefaultNavigationOptions()
             .coordinatesList(listOf(origin, Point.fromLngLat(lng, lat)))
             .profile(DirectionsCriteria.PROFILE_DRIVING_TRAFFIC)
             .build()
