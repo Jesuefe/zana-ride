@@ -107,6 +107,7 @@ export default function DriverHome() {
     }).catch(() => {});
   }, []);
   const [online, setOnline] = useState(false);
+  const [goOnlineError, setGoOnlineError] = useState('');
   const [coords, setCoords] = useState<Coords | null>(null);
   const [incoming, setIncoming] = useState<DriverTrip | null>(null);
   const [countdown, setCountdown] = useState(TIMEOUT);
@@ -115,7 +116,9 @@ export default function DriverHome() {
   const [driverMode, setDriverMode] = useState<'RIDES' | 'DELIVERIES' | 'BOTH'>('BOTH');
   const [incomingDelivery, setIncomingDelivery] = useState<PendingDelivery | null>(null);
   const [earnings, setEarnings] = useState<{ todayEarnings: number; totalTrips: number; walletBalance: number } | null>(null);
-  const [notifications] = useState(3);
+  // No notifications feature exists yet — this must not fabricate a
+  // count. Remove this line once a real notification source is wired in.
+  const notifications = 0;
   const [showMenu, setShowMenu] = useState(false);
   const seenIds = useRef(new Set<string>());
 
@@ -260,7 +263,14 @@ export default function DriverHome() {
       const updated = await goOnline();
       setOnline(true);
       setProfile(updated as any);
-    } catch {} finally { setLoading(false); }
+    } catch {
+      // Going online is the one action that decides whether this driver
+      // can earn at all. The sheet closing must not look identical whether
+      // it worked or not — silence here means someone sits waiting for
+      // jobs while actually still offline.
+      setGoOnlineError('Could not go online. Check your connection and try again.');
+      setTimeout(() => setGoOnlineError(''), 4000);
+    } finally { setLoading(false); }
   };
 
   const handleAcceptTrip = async () => {
@@ -278,6 +288,11 @@ export default function DriverHome() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-100">
+      {goOnlineError && (
+        <div className="fixed top-4 left-4 right-4 z-[60] bg-red-600 text-white text-sm text-center py-3 rounded-xl shadow-lg">
+          {goOnlineError}
+        </div>
+      )}
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-20 px-4 pt-10 pb-2 flex items-center justify-between">
         <button

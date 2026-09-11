@@ -77,6 +77,7 @@ function TrackingContent() {
   const [trip, setTrip] = useState<ApiTrip | null>(null);
   const [groupTrips, setGroupTrips] = useState<GroupTrip[]>([]);
   const [showReport, setShowReport] = useState(false);
+  const [callNotice, setCallNotice] = useState('');
   const [showChat, setShowChat] = useState(false);
   const [sosSent, setSosSent] = useState(false);
   const [showRating, setShowRating] = useState(false);
@@ -176,7 +177,10 @@ function TrackingContent() {
         );
         setCallData({ callId: data.callId, roomName: res.roomName, wsUrl: res.wsUrl, token: res.token });
         setShowCall(true);
-      } catch {}
+      } catch {
+        setCallNotice('Could not join the call. Try calling again.');
+        setTimeout(() => setCallNotice(''), 4000);
+      }
     });
 
     socket.on('call:missed', () => { setIncomingCallInfo(null); try { (window as any).__zanaRingtone?.pause(); } catch {} });
@@ -280,6 +284,11 @@ function TrackingContent() {
 
   return (
     <div>
+      {callNotice && (
+        <div className="fixed top-4 left-4 right-4 z-[70] bg-gray-900 text-white text-sm text-center py-3 rounded-xl shadow-lg">
+          {callNotice}
+        </div>
+      )}
       <div className="relative">
         {mapSource ? (
           <BrandedMap

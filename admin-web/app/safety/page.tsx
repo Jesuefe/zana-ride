@@ -148,6 +148,7 @@ export default function SafetyDashboard() {
   const [alarmActive, setAlarmActive] = useState(false);
   const [lastCount, setLastCount] = useState(0);
   const [acknowledged, setAcknowledging] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     if (getToken()) setAuthed(true);
@@ -192,8 +193,12 @@ export default function SafetyDashboard() {
       await api.patch(`/sos/${id}/acknowledge`);
       setAlarmActive(false);
       await poll();
-    } catch {}
-    finally { setAcknowledging(null); }
+    } catch {
+      // This is an active emergency alert — a safety operator must know
+      // immediately if acknowledging it failed, or they may walk away
+      // believing it was handled when it was not.
+      setActionError('Could not acknowledge the alert. It is still active — try again.');
+    } finally { setAcknowledging(null); }
   };
 
   const resolve = async (id: string) => {
@@ -201,7 +206,9 @@ export default function SafetyDashboard() {
       await api.patch(`/sos/${id}/resolve`);
       setFocused(null);
       await poll();
-    } catch {}
+    } catch {
+      setActionError('Could not mark the alert resolved. Try again.');
+    }
   };
 
   if (!authed) return (
@@ -244,6 +251,15 @@ export default function SafetyDashboard() {
       `}</style>
 
       <AlarmSound active={alarmActive} />
+
+      {actionError && (
+        <div
+          onClick={() => setActionError('')}
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[80] bg-red-600 text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-lg cursor-pointer"
+        >
+          {actionError} — tap to dismiss
+        </div>
+      )}
 
       {/* Header */}
       <div className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 z-10">

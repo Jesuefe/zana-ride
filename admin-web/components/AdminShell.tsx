@@ -7,8 +7,10 @@ import Link from 'next/link';
 import {
   LayoutDashboard, Users, Car, Store, Package, MapPin,
   UserCheck, TrendingUp, LogOut, ChevronRight,
-  Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send } from 'lucide-react';
+  Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
+  Sun, Moon, Smartphone } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
+import { useTheme } from '../lib/ThemeContext';
 
 const SENIOR_NAV = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -44,6 +46,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const pathname = usePathname();
   const [mode, setMode] = useState<'senior' | 'worker'>('senior');
+  const { choice, setChoice } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -78,6 +81,24 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           );
         })}
       </nav>
+      <div className="px-4 pt-3 pb-1 border-t border-white/10">
+        <div className="flex rounded-lg overflow-hidden border border-white/20">
+          {([
+            { id: 'light', icon: Sun },
+            { id: 'dark', icon: Moon },
+            { id: 'system', icon: Smartphone },
+          ] as const).map(o => (
+            <button
+              key={o.id}
+              onClick={() => setChoice(o.id)}
+              className={`flex-1 flex items-center justify-center py-1.5 ${choice === o.id ? 'bg-white/15 text-white' : 'text-white/50 hover:text-white/80'}`}
+              aria-label={o.id}
+            >
+              <o.icon size={13} />
+            </button>
+          ))}
+        </div>
+      </div>
       <button onClick={handleLogout} className="flex items-center gap-2.5 px-4 py-4 text-sm text-white/60 hover:text-white border-t border-white/10">
         <LogOut size={16} /> Sign out
       </button>

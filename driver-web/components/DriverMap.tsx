@@ -170,7 +170,15 @@ export default function DriverMap({
         const newSteps: typeof steps = [];
 
         leg.steps.forEach((s: any) => {
-          s.lat_lngs.forEach((ll: any) => path.push({ lat: ll.lat(), lng: ll.lng() }));
+          // Google's DirectionsStep exposes the per-step detailed route as
+          // `path`, not `lat_lngs` (that field does not exist on this
+          // object). The old code threw here on every single route fetch —
+          // after the ETA line above had already run, so the ETA appeared
+          // to work while the polyline, turn-by-turn steps, destination
+          // marker and bounds-fit that follow in this callback silently
+          // never ran. Guarded with ?? [] so one malformed step still
+          // cannot take down the whole callback.
+          (s.path ?? []).forEach((ll: any) => path.push({ lat: ll.lat(), lng: ll.lng() }));
           newSteps.push({
             instruction: stripHtml(s.instructions),
             distanceText: s.distance.text,

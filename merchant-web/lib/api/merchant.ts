@@ -61,6 +61,7 @@ export type Delivery = {
   fee: number;
   status: string;
   createdAt: string;
+  driver?: { id: string; user: { firstName: string | null } } | null;
 };
 
 export async function createDelivery(data: {

@@ -11,6 +11,7 @@ export default function InvitesPage() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     api.get<Invite[]>('/admin/merchant-invites').then(setInvites).catch(() => {});
@@ -21,20 +22,38 @@ export default function InvitesPage() {
     try {
       const inv = await api.post<Invite>('/admin/merchant-invites');
       setInvites(prev => [inv, ...prev]);
-    } catch {} finally { setGenerating(false); }
+    } catch (e: any) {
+      setToast(e?.message ?? 'Could not generate an invite. Try again.');
+      setTimeout(() => setToast(''), 3000);
+    } finally { setGenerating(false); }
   };
 
-  const copy = (token: string) => {
+  const copy = async (token: string) => {
     const url = `https://zana-merchant.pages.dev/register?token=${token}`;
-    navigator.clipboard.writeText(url);
-    setCopied(token);
-    setTimeout(() => setCopied(null), 2000);
+    try {
+      // This was previously fire-and-forget with no catch — the "Copied!"
+      // confirmation showed unconditionally even when the write silently
+      // failed (denied clipboard permission, insecure context, etc.), so an
+      // admin could send someone a token that was never actually on their
+      // clipboard.
+      await navigator.clipboard.writeText(url);
+      setCopied(token);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      setToast('Could not copy — select and copy the link manually.');
+      setTimeout(() => setToast(''), 3000);
+    }
   };
 
   const isExpired = (inv: Invite) => new Date(inv.expiresAt) < new Date();
 
   return (
     <AdminShell>
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg">
+          {toast}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Merchant Invites</h1>

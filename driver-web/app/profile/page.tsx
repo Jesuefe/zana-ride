@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import ThemePicker from '../../components/ThemePicker';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Star, Car, Truck, TrendingUp, Calendar, AlertTriangle, CheckCircle, LogOut } from 'lucide-react';
 import { api, clearToken } from '../../lib/api/client';
@@ -147,6 +148,10 @@ export default function DriverProfilePage() {
             </div>
           </div>
         )}
+
+        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+          <ThemePicker />
+        </div>
 
         <button
           onClick={() => { clearToken(); router.replace('/login'); }}

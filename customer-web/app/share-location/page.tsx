@@ -61,22 +61,34 @@ export default function ShareLocationPage() {
 
   const handleShare = async () => {
     if (!code) return;
+    setError(null);
     // Uses the phone's native share sheet where available, so it goes
     // straight into WhatsApp/SMS rather than needing a manual copy-paste.
     if (navigator.share) {
       await navigator.share({ text: shareText }).catch(() => {});
     } else {
-      await navigator.clipboard.writeText(shareText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      try {
+        await navigator.clipboard.writeText(shareText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        // Previously unhandled — the button did nothing at all on failure,
+        // with no way to tell whether it had worked.
+        setError('Could not copy. Select and copy the text manually.');
+      }
     }
   };
 
   const handleCopy = async () => {
     if (!code) return;
-    await navigator.clipboard.writeText(code.code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setError(null);
+    try {
+      await navigator.clipboard.writeText(code.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Could not copy the code. Select and copy it manually.');
+    }
   };
 
   const mins = secondsLeft !== null ? Math.floor(secondsLeft / 60) : 0;

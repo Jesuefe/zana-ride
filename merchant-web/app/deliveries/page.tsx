@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Package, MapPin, Navigation, Phone } from 'lucide-react';
 import { fetchDeliveries, Delivery } from '../../lib/api/merchant';
+import VoiceCall from '../../components/VoiceCall';
+import { useState as useState2 } from 'react';
 
 const STATUS_LABEL: Record<string, string> = {
   REQUESTED: 'Finding a courier',
@@ -21,6 +23,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default function DeliveriesPage() {
+  const [callingDelivery, setCallingDelivery] = useState<Delivery | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[] | null>(null);
 
   useEffect(() => {
@@ -73,6 +76,15 @@ export default function DeliveriesPage() {
                   {d.fee.toLocaleString()} RWF · {d.distanceKm} km
                 </p>
               </div>
+              {d.driver && ['COURIER_ASSIGNED', 'PICKED_UP'].includes(d.status) && (
+                <button
+                  onClick={() => setCallingDelivery(d)}
+                  className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0"
+                  aria-label={`Call ${d.driver.user.firstName ?? 'rider'}`}
+                >
+                  <Phone size={16} className="text-zana-primary" />
+                </button>
+              )}
             </div>
 
             <div className="mt-3 space-y-1.5 pl-1 border-t border-gray-100 pt-3">
@@ -88,6 +100,15 @@ export default function DeliveriesPage() {
           </div>
         ))}
       </div>
+
+      {callingDelivery && (
+        <VoiceCall
+          context="delivery"
+          contextId={callingDelivery.id}
+          participantLabel={callingDelivery.driver?.user.firstName ?? 'Rider'}
+          onClose={() => setCallingDelivery(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { capturePhoto, stampPhoto } from '../../lib/photoCapture';
+import { fetchMyDriverProfile } from '../../lib/api/driver';
 import { useRouter } from 'next/navigation';
 import { MapPin, Navigation, Phone, Package, ChevronRight, Check } from 'lucide-react';
 import { api } from '../../lib/api/client';
@@ -34,7 +36,6 @@ export default function ActiveDeliveryPage() {
   const [photoStage, setPhotoStage] = useState<'pickup' | 'dropoff' | null>(null);
   const [uploading, setUploading] = useState(false);
   const [photoNote, setPhotoNote] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
 
   // Everything the rider is carrying, so they can switch between stops
   useEffect(() => {
@@ -106,20 +107,31 @@ export default function ActiveDeliveryPage() {
       reader.readAsDataURL(file);
     });
 
-  const onPhotoPicked = async (file: File | undefined) => {
-    if (!file || !delivery || !photoStage) return;
-    const stage = photoStage;
+  // Goes through Capacitor's Camera plugin rather than a raw file input.
+  // A file input hands control to the system camera app, and Android is
+  // free to kill the WebView process while that app is in the foreground —
+  // when control returns, the app restarted because its JS state was gone.
+  // The Camera plugin is built specifically to survive that round trip.
+  const runCapture = async (stage: 'pickup' | 'dropoff') => {
+    if (!delivery) return;
     setUploading(true);
     setPhotoNote('');
     try {
-      const base64 = await compress(file);
-      await api.post(`/deliveries/${delivery.id}/photo/${stage}`, { imageBase64: base64 });
+      const shot = await capturePhoto();
+      if (!shot) { setUploading(false); return; }
+
+      const me = await fetchMyDriverProfile().catch(() => null);
+      const name = (me as any)?.user?.firstName ? `${(me as any).user.firstName}` : 'Zana rider';
+      const stamped = await stampPhoto(shot.base64, name, shot.lat != null && shot.lng != null
+        ? { lat: shot.lat, lng: shot.lng } : undefined);
+
+      await api.post(`/deliveries/${delivery.id}/photo/${stage}`, { imageBase64: stamped });
     } catch {
-      // Upload failed — record it but let the delivery continue.
+      // Upload failed — record it but let the delivery continue. A rider
+      // should never be stuck at a door because a photo did not send.
       setPhotoNote('Photo could not upload. Continuing without it.');
     } finally {
       setUploading(false);
-      setPhotoStage(null);
       if (stage === 'pickup') await doPickup();
       else await doComplete();
     }
@@ -143,8 +155,8 @@ export default function ActiveDeliveryPage() {
   };
 
   // Both stages ask for a photo first.
-  const handlePickup = () => { setPhotoStage('pickup'); fileRef.current?.click(); };
-  const handleComplete = () => { setPhotoStage('dropoff'); fileRef.current?.click(); };
+  const handlePickup = () => runCapture('pickup');
+  const handleComplete = () => runCapture('dropoff');
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
@@ -169,16 +181,6 @@ export default function ActiveDeliveryPage() {
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Hidden camera input — capture opens the rear camera on mobile */}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={e => onPhotoPicked(e.target.files?.[0])}
-      />
-
       {/* Other parcels this rider is carrying */}
       {allActive.length > 1 && (
         <div className="px-4 py-2 bg-white border-b border-gray-100">

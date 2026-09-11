@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { api } from '../lib/api/client';
 import { Room, RoomEvent, createLocalTracks, ConnectionState } from 'livekit-client';
+import { io, Socket } from 'socket.io-client';
+import { getToken } from '../lib/api/client';
 
 type CallState = 'ringing' | 'connecting' | 'connected' | 'ended';
 
@@ -69,6 +71,7 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
   const [error, setError] = useState('');
   const timerRef = useRef<any>(null);
   const stopRingRef = useRef<(() => void) | null>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   // Start ringing immediately
   useEffect(() => {
@@ -83,10 +86,33 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
     setCallState('connecting');
 
     try {
-      const { token, wsUrl } = await api.post<{ token: string; wsUrl: string; roomId: string }>(
-        '/calls/token',
-        { context, contextId }
-      );
+      // Create the call — this both mints our own token and rings the other
+      // party over the socket. The old code skipped this step entirely and
+      // called an endpoint that never existed, so the other side was never
+      // actually notified a call was coming.
+      const created = await api.post<{
+        callId: string; token: string; roomName: string; wsUrl: string;
+      }>('/calls', { context, contextId });
+
+      const { token, wsUrl, callId, roomName } = created;
+
+      // Listen for the other side accepting or declining before we commit
+      // to joining the LiveKit room — joining early just to sit alone in an
+      // empty room wastes a connection and looks connected when it is not.
+      const authToken = getToken();
+      if (authToken) {
+        const socket = io(process.env.NEXT_PUBLIC_API_URL ?? 'https://zana.ajumalink.com', {
+          auth: { token: authToken },
+          transports: ['websocket'],
+        });
+        socketRef.current = socket;
+        socket.on('call:declined', (d: any) => {
+          if (d.callId === callId) { setCallState('ended'); setTimeout(onClose, 1500); }
+        });
+        socket.on('call:missed', (d: any) => {
+          if (d.callId === callId) { setCallState('ended'); setError('No answer'); setTimeout(onClose, 1500); }
+        });
+      }
 
       const room = new Room({
         adaptiveStream: true,
@@ -152,6 +178,8 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
     stopRingRef.current?.();
     clearInterval(timerRef.current);
     roomRef.current?.disconnect();
+    socketRef.current?.disconnect();
+    socketRef.current = null;
     setCallState('ended');
     setTimeout(onClose, 800);
   }, [onClose]);

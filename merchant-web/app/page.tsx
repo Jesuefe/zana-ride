@@ -22,16 +22,26 @@ export default function OverviewPage() {
   const [settingLocation, setSettingLocation] = useState(false);
 
   const handleSetLocation = async () => {
-    if (!navigator.geolocation) { setError && setError('Geolocation not available'); return; }
+    if (!navigator.geolocation) { setError('Geolocation not available'); return; }
     setSettingLocation(true);
+    setError(null);
     navigator.geolocation.getCurrentPosition(async pos => {
       try {
         const { api } = await import('../lib/api/client');
         await api.patch('/merchant/location', { lat: pos.coords.latitude, lng: pos.coords.longitude });
         // location saved - banner will disappear on next load
-      } catch (e: any) { console.error('Failed to update location', e); }
+      } catch (e: any) {
+        // This directly feeds delivery fee calculation — a merchant with no
+        // location on file falls back to a flat estimate, so a failed save
+        // must be visible, not just logged where only a developer looks.
+        console.error('Failed to update location', e);
+        setError('Could not save your location. Try again.');
+      }
       finally { setSettingLocation(false); }
-    }, () => { setSettingLocation(false); console.error('Could not get location'); });
+    }, () => {
+      setSettingLocation(false);
+      setError('Could not read your location. Check your device settings and try again.');
+    });
   };
 
   useEffect(() => {

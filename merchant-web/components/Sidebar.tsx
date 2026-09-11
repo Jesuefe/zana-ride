@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, PackagePlus, PackageSearch, Wallet, Package, ShoppingBag, Menu, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, PackagePlus, PackageSearch, Wallet, Package, ShoppingBag, Menu, X, LogOut, Sun, Moon, Smartphone } from 'lucide-react';
 import { clearToken } from '../lib/api/client';
 import { useRouter } from 'next/navigation';
+import { useTheme } from '../lib/ThemeContext';
 
 const navItems = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
@@ -20,6 +21,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const { choice, setChoice } = useTheme();
 
   const handleLogout = () => { clearToken(); router.push('/login'); };
 
@@ -44,6 +46,24 @@ export default function Sidebar() {
           );
         })}
       </nav>
+      <div className="px-4 pt-3 pb-1 border-t border-gray-800">
+        <div className="flex rounded-lg overflow-hidden border border-gray-700">
+          {([
+            { id: 'light', icon: Sun },
+            { id: 'dark', icon: Moon },
+            { id: 'system', icon: Smartphone },
+          ] as const).map(o => (
+            <button
+              key={o.id}
+              onClick={() => setChoice(o.id)}
+              className={`flex-1 flex items-center justify-center py-1.5 ${choice === o.id ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              aria-label={o.id}
+            >
+              <o.icon size={13} />
+            </button>
+          ))}
+        </div>
+      </div>
       <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-4 text-sm text-gray-400 hover:text-white border-t border-gray-800">
         <LogOut size={16} /> Sign out
       </button>

@@ -16,7 +16,13 @@ export default function MerchantsPage() {
     try {
       const data = await getMerchants(filter || undefined);
       setMerchants(data);
-    } catch {} finally { setLoading(false); }
+    } catch (e: any) {
+      // The file already has a toast mechanism for action failures below —
+      // this load failure was the one path that never used it, so a broken
+      // fetch looked identical to "no merchants match this filter".
+      setToast(e?.message ?? 'Could not load merchants. Pull to refresh.');
+      setTimeout(() => setToast(''), 3000);
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, [filter]);

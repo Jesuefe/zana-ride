@@ -8,6 +8,8 @@ import { getStoredPickup, setStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
 import { compressImage } from '../../lib/image';
+import { capturePhoto, stampPhoto } from '../../lib/photoCapture';
+import { fetchMe } from '../../lib/api/auth';
 import {
   WEIGHT_OPTIONS,
   PackageWeight,
@@ -26,6 +28,7 @@ export default function DeliverPage() {
   const [itemDescription, setItemDescription] = useState('');
   const [weight, setWeight] = useState<PackageWeight>('UNDER_1KG');
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [capturing, setCapturing] = useState(false);
 
   const [pickup, setPickup] = useState(getStoredPickup());
   const [pickupAddress, setPickupAddress] = useState('Locating…');
@@ -95,6 +98,30 @@ export default function DeliverPage() {
       setImageBase64(await compressImage(file));
     } catch {
       setError('Could not process that image.');
+    }
+  };
+
+  // The camera button now goes through Capacitor's Camera plugin, which
+  // survives Android reclaiming the WebView process while the camera app is
+  // in the foreground — a plain file input does not, which is why the app
+  // used to restart when someone tapped OK after taking a photo.
+  const handleCapture = async () => {
+    setCapturing(true);
+    setError('');
+    try {
+      const shot = await capturePhoto();
+      if (!shot) { setCapturing(false); return; }
+
+      const me = await fetchMe().catch(() => null);
+      const name = me?.firstName ? `${me.firstName}` : 'Zana customer';
+      const stamped = await stampPhoto(shot.base64, name, shot.lat != null && shot.lng != null
+        ? { lat: shot.lat, lng: shot.lng } : undefined);
+
+      setImageBase64(stamped);
+    } catch {
+      setError('Could not take that photo. Try again.');
+    } finally {
+      setCapturing(false);
     }
   };
 
@@ -231,11 +258,23 @@ export default function DeliverPage() {
               </button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-zana-border rounded-xl py-7 cursor-pointer">
-              <Camera size={22} className="text-zana-muted" />
-              <span className="text-xs text-zana-muted">Take or upload a photo</span>
-              <input type="file" accept="image/*" capture="environment" onChange={handleImage} className="hidden" />
-            </label>
+            <>
+              <button
+                type="button"
+                onClick={handleCapture}
+                disabled={capturing}
+                className="w-full flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-zana-border rounded-xl py-7 disabled:opacity-60"
+              >
+                <Camera size={22} className="text-zana-muted" />
+                <span className="text-xs text-zana-muted">
+                  {capturing ? 'Opening camera…' : 'Take a photo'}
+                </span>
+              </button>
+              <label className="block text-center text-[11px] text-zana-primary font-semibold mt-2 cursor-pointer">
+                or choose from your gallery
+                <input type="file" accept="image/*" onChange={handleImage} className="hidden" />
+              </label>
+            </>
           )}
         </div>
 

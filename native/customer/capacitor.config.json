@@ -20,6 +20,9 @@
         "sound",
         "alert"
       ]
+    },
+    "Camera": {
+      "presentationStyle": "fullscreen"
     }
   }
 }
