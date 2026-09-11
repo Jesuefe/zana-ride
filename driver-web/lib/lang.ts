@@ -45,6 +45,8 @@ export function t(key: string, lang: Lang): string {
 export const DRIVER_UI: Record<string, Record<Lang, string>> = {
   'Go Online': { en: 'Go Online', fr: 'Se connecter', rw: 'Injira kumurongo' },
   'Go Offline': { en: 'Go Offline', fr: 'Se déconnecter', rw: 'Sohoka kumurongo' },
+  'You are online': { en: 'You are online', fr: 'Vous êtes en ligne', rw: 'Uri kumurongo' },
+  'You are offline': { en: 'You are offline', fr: 'Vous êtes hors ligne', rw: 'Ntabwo uri kumurongo' },
   'Earnings': { en: 'Earnings', fr: 'Revenus', rw: 'Inyungu' },
   'Today': { en: 'Today', fr: 'Aujourd\'hui', rw: 'Uyu munsi' },
   'All time': { en: 'All time', fr: 'Tout le temps', rw: 'Igihe cyose' },

@@ -6,7 +6,7 @@ import { Menu, Bell, MapPin, Navigation, ChevronRight, X } from 'lucide-react';
 import LanguageSelector from '../components/LanguageSelector';
 import { useLang } from '../lib/LangContext';
 import {
-  fetchMyDriverProfile, fetchSearchingTrips, acceptTrip, declineTrip,
+  fetchMyDriverProfile, fetchSearchingTrips, acceptTrip,
   goOnline, goOffline, updateDriverLocation, updateDriverMode,
   fetchPendingDeliveries, acceptDelivery, fetchEarnings,
   DriverProfile, DriverTrip, PendingDelivery,
@@ -77,7 +77,7 @@ function SlideToAccept({ label, onAccept, color = '#00A082' }: { label: string; 
 
 export default function DriverHome() {
   const router = useRouter();
-  const { dt } = useLang();
+  const { t } = useLang();
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -280,8 +280,14 @@ export default function DriverHome() {
     router.push('/trip');
   };
 
-  const handleDeclineTrip = async () => {
-    if (incoming) { await declineTrip(incoming.id).catch(() => {}); setIncoming(null); }
+  // Declining an offer that hasn't been assigned to anyone yet needs no
+  // backend call at all — the trip is broadcast to every eligible driver at
+  // once (see findSearchingTrips), so one driver passing on it must never
+  // change its status for everyone else still considering it. This is
+  // purely local: stop showing it to this driver, already tracked in
+  // seenIds from the moment it first appeared.
+  const handleDeclineTrip = () => {
+    setIncoming(null);
   };
 
   const onlineTimeStr = '0h 0m';
@@ -328,7 +334,7 @@ export default function DriverHome() {
           <div className={`flex items-center gap-2 px-4 py-2 rounded-full shadow ${online ? 'bg-white' : 'bg-white'}`}>
             <div className={`w-2.5 h-2.5 rounded-full ${online ? 'bg-green-500' : 'bg-gray-400'}`} />
             <p className="text-sm font-semibold text-gray-800">
-              {online ? dt('You are online') : dt('You are offline')}
+              {online ? t('You are online') : t('You are offline')}
             </p>
           </div>
         </div>
@@ -432,7 +438,7 @@ export default function DriverHome() {
               </div>
               <div className="text-center flex-1">
                 <p className="text-gray-900 font-black text-base">
-                  {dt('Go Offline')}
+                  {t('Go Offline')}
                 </p>
                 <p className="text-gray-700 text-xs">Go offline →</p>
               </div>
@@ -493,12 +499,10 @@ export default function DriverHome() {
           </div>
 
           {/* Quick links */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {[
               { icon: '📈', label: 'Earnings', route: '/earnings' },
               { icon: '🎁', label: 'Incentives', route: '/earnings' },
-              { icon: '🎧', label: 'Help', route: '/profile' },
-              { icon: '👥', label: 'Refer', route: '/profile' },
             ].map(({ icon, label, route }) => (
               <button key={label} onClick={() => router.push(route)}
                 className="flex flex-col items-center gap-1.5 py-3">
@@ -638,6 +642,13 @@ export default function DriverHome() {
                   {label}
                 </button>
               ))}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Language</p>
+              <div className="px-4">
+                <LanguageSelector variant="light" />
+              </div>
             </div>
           </div>
           <div className="flex-1 bg-black/30" onClick={() => setShowMenu(false)} />

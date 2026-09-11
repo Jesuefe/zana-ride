@@ -9,6 +9,11 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.2.1'
         classpath 'com.google.gms:google-services:4.4.0'
+        // 2.0.0 sits well inside AGP 8.2.1's supported range (Kotlin 2.0
+        // needs AGP 7.4.2–8.3) — needed only for the Mapbox navigation
+        // plugin, which is written in Kotlin since Mapbox's own SDK is
+        // Kotlin-first and its API is documented that way, not in Java.
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.0'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -21,6 +26,21 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+
+        // Mapbox's SDK is not on a public Maven repo — downloading it
+        // requires a secret token used as HTTP Basic Auth here. This is
+        // separate from the public token the app uses at runtime; this one
+        // only exists to authenticate the download during the build.
+        maven {
+            url 'https://api.mapbox.com/downloads/v2/releases/maven'
+            authentication { basic(BasicAuthentication) }
+            credentials {
+                // Literally "mapbox" — not a real username, this is
+                // Mapbox's own documented convention.
+                username = "mapbox"
+                password = project.findProperty('MAPBOX_DOWNLOADS_TOKEN') ?: ""
+            }
+        }
     }
 }
 

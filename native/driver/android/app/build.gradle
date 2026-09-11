@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
 
 android {
     // Release signing. The keystore never lives in the repo — CI writes it
@@ -24,12 +25,30 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // Mapbox's SDK takes its public runtime token as a string resource,
+        // not a manifest tag — this generates R.string.mapbox_access_token
+        // at build time from the CI secret, so no real token is ever
+        // committed. This is the PUBLIC token (used while the app runs);
+        // the separate MAPBOX_DOWNLOADS_TOKEN above is only used to
+        // authenticate downloading the SDK itself during the build.
+        resValue "string", "mapbox_access_token", (project.findProperty("MAPBOX_ACCESS_TOKEN") ?: "").toString()
+
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    compileOptions {
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
     buildTypes {
         release {
             if (project.hasProperty('ZANA_KEYSTORE_FILE')) {
@@ -49,6 +68,24 @@ repositories {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.0.0"
+
+    // Mapbox Maps SDK — the real map surface (well-established, stable,
+    // Java-friendly API) that MapboxNavigationPlugin.kt draws the route
+    // line and position marker onto directly, rather than using Mapbox's
+    // newer "drop-in" NavigationView UI component. That component is
+    // designed for XML/Kotlin usage with real navigation route line
+    // and turn card polish this project doesn't have yet, but this is
+    // real navigation on Mapbox's actual routing engine and location
+    // data — not a placeholder.
+    implementation 'com.mapbox.maps:android:11.8.0'
+
+    // Mapbox Navigation Core SDK — routing, trip session, rerouting,
+    // arrival detection. No UI of its own; MapboxNavigationPlugin.kt
+    // drives the MapView above directly from this.
+    implementation 'com.mapbox.navigationcore:android:3.27.0'
+
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"

@@ -2,14 +2,15 @@
 
 import { Suspense, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Phone, ChevronUp, ChevronDown, MapPin, Navigation, MessageCircle } from 'lucide-react';
+import { Phone, ChevronUp, ChevronDown, MapPin, Navigation, MessageCircle, X } from 'lucide-react';
 import ChatPanel from '../../components/ChatPanel';
 import VoiceCall from '../../components/VoiceCall';
 import { io, Socket } from 'socket.io-client';
 import { api, getToken } from '../../lib/api/client';
 import RatingModal from '../../components/RatingModal';
 import { getStoredLang, dt } from '../../lib/lang';
-import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, DriverTrip } from '../../lib/api/driver';
+import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, declineTrip, DriverTrip } from '../../lib/api/driver';
+import { useMapboxNavigation } from '../../lib/useMapboxNavigation';
 import { getCurrentPosition, watchPosition, Coords } from '../../lib/location';
 import DriverMap from '../../components/DriverMap';
 
@@ -84,6 +85,10 @@ function TripContent() {
   const [incomingCall, setIncomingCall] = useState<{callId:string;callerName:string;rideId:string;roomName:string;wsUrl:string;token:string}|null>(null);
   const socketRef = useRef<Socket | null>(null);
   const [showRating, setShowRating] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
   const lang = getStoredLang();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -127,6 +132,20 @@ function TripContent() {
       clearInterval(interval);
     };
   }, [router]);
+
+  const handleCancelTrip = async () => {
+    if (!trip || !cancelReason.trim()) return;
+    setCancelling(true);
+    setCancelError('');
+    try {
+      await declineTrip(trip.id, cancelReason.trim());
+      router.push('/');
+    } catch (e: any) {
+      setCancelError('Could not cancel. Try again.');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const handleAction = async () => {
     if (!trip) return;
@@ -204,6 +223,8 @@ function TripContent() {
 
   // Navigate toward pickup until trip starts, then toward destination.
   // Keep showing the pickup during DRIVER_ARRIVED so the map stays active.
+  const mapboxNav = useMapboxNavigation();
+
   const navigationTarget =
     trip.status === 'RIDE_IN_PROGRESS'
       ? { lat: trip.destinationLat, lng: trip.destinationLng }
@@ -233,6 +254,21 @@ function TripContent() {
               <p className="text-[11px] text-zana-muted">{STATUS_COPY[trip.status] ?? trip.status}</p>
               <p className="text-sm font-semibold text-gray-900 truncate">{targetLabel}</p>
             </div>
+            {/* Only shows inside the installed app — the SDK has no web
+                implementation, so a browser visitor never sees this. */}
+            {mapboxNav.available && (
+              <button
+                onClick={() => mapboxNav.active
+                  ? mapboxNav.stop()
+                  : mapboxNav.start(navigationTarget.lat, navigationTarget.lng)}
+                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                  mapboxNav.active ? 'bg-red-50' : 'bg-blue-50'
+                }`}
+                aria-label={mapboxNav.active ? 'Stop navigation' : 'Open navigation'}
+              >
+                <Navigation size={16} className={mapboxNav.active ? 'text-red-600' : 'text-blue-600'} />
+              </button>
+            )}
             {/* Chat */}
             <button
               onClick={() => setShowChat(true)}
@@ -300,8 +336,51 @@ function TripContent() {
           >
             {acting ? '…' : buttonLabel}
           </button>
+
+          {trip.status !== 'RIDE_COMPLETED' && (
+            <button
+              onClick={() => setShowCancel(true)}
+              className="w-full mt-2 text-zana-error text-sm font-semibold py-2"
+            >
+              Cancel this ride
+            </button>
+          )}
         </div>
       </div>
+
+      {showCancel && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => !cancelling && setShowCancel(false)} />
+          <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-semibold text-lg text-gray-900">Cancel this ride?</h2>
+              <button onClick={() => setShowCancel(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <X size={16} />
+              </button>
+            </div>
+            <p className="text-sm text-zana-muted mb-4">
+              Tell us why — this goes to the customer and to Zana.
+            </p>
+            <textarea
+              value={cancelReason}
+              onChange={e => setCancelReason(e.target.value)}
+              placeholder="e.g. vehicle problem, customer not reachable…"
+              rows={3}
+              autoFocus
+              className="w-full border-1.5 border-zana-border rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-zana-primary"
+              style={{ borderWidth: 1.5 }}
+            />
+            {cancelError && <p className="text-xs text-zana-error mt-3">{cancelError}</p>}
+            <button
+              onClick={handleCancelTrip}
+              disabled={!cancelReason.trim() || cancelling}
+              className="w-full mt-4 bg-zana-error text-white font-semibold py-3 rounded-xl disabled:opacity-40"
+            >
+              {cancelling ? 'Cancelling…' : 'Confirm cancellation'}
+            </button>
+          </div>
+        </div>
+      )}
       {trip?.status === 'RIDE_COMPLETED' && !showRating && (
         <div className="absolute bottom-24 left-4 right-4">
           <button onClick={() => setShowRating(true)} className="w-full bg-zana-secondary text-gray-900 font-bold py-3 rounded-xl text-sm">

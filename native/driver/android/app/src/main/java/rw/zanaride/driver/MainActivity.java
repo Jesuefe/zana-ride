@@ -10,6 +10,11 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Must run before super.onCreate() — that's when Capacitor's
+        // bridge actually initializes, and a plugin registered after that
+        // point is simply never wired in, with no error to say so.
+        registerPlugin(MapboxNavigationPlugin.class);
+
         super.onCreate(savedInstanceState);
 
         // Extend Capacitor's own chrome client rather than replacing it.

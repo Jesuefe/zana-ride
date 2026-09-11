@@ -53,8 +53,8 @@ export async function acceptTrip(tripId: string) {
   return api.post<DriverTrip>(`/driver/rides/${tripId}/accept`);
 }
 
-export async function declineTrip(tripId: string) {
-  return api.post<DriverTrip>(`/driver/rides/${tripId}/decline`);
+export async function declineTrip(tripId: string, reason: string) {
+  return api.post<DriverTrip>(`/driver/rides/${tripId}/decline`, { reason });
 }
 
 export async function arriveAtPickup(tripId: string) {
