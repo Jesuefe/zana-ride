@@ -107,8 +107,11 @@ export default function DriverHome() {
     }).catch(() => {});
   }, []);
   const [online, setOnline] = useState(false);
-  const [goOnlineError, setGoOnlineError] = useState('');
-  const [acceptError, setAcceptError] = useState('');
+  // A single shared slot rather than two separate error states — two
+  // independent banners sharing the exact same screen position could both
+  // fire close together and silently hide each other; one slot makes that
+  // impossible by construction instead of needing careful sequencing.
+  const [topBannerError, setTopBannerError] = useState('');
   const [coords, setCoords] = useState<Coords | null>(null);
   const [incoming, setIncoming] = useState<DriverTrip | null>(null);
   const [countdown, setCountdown] = useState(TIMEOUT);
@@ -251,6 +254,7 @@ export default function DriverHome() {
       setOnline(false);
       setLoading(false);
     } else {
+      setShowMenu(false); // don't let the side menu sit open underneath
       setShowMode(true);
     }
   };
@@ -269,8 +273,8 @@ export default function DriverHome() {
       // can earn at all. The sheet closing must not look identical whether
       // it worked or not — silence here means someone sits waiting for
       // jobs while actually still offline.
-      setGoOnlineError('Could not go online. Check your connection and try again.');
-      setTimeout(() => setGoOnlineError(''), 4000);
+      setTopBannerError('Could not go online. Check your connection and try again.');
+      setTimeout(() => setTopBannerError(''), 4000);
     } finally { setLoading(false); }
   };
 
@@ -286,12 +290,12 @@ export default function DriverHome() {
       setIncoming(null);
       router.push('/trip');
     } catch (e: any) {
-      setAcceptError(
+      setTopBannerError(
         e?.message?.includes('404') || e?.message?.includes('already')
           ? 'Someone else already took this ride.'
           : 'Could not accept — check your connection and try again.'
       );
-      setTimeout(() => setAcceptError(''), 4000);
+      setTimeout(() => setTopBannerError(''), 4000);
       setIncoming(null);
     }
   };
@@ -310,20 +314,15 @@ export default function DriverHome() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-100">
-      {goOnlineError && (
+      {topBannerError && (
         <div className="fixed top-4 left-4 right-4 z-[60] bg-red-600 text-white text-sm text-center py-3 rounded-xl shadow-lg">
-          {goOnlineError}
-        </div>
-      )}
-      {acceptError && (
-        <div className="fixed top-4 left-4 right-4 z-[60] bg-red-600 text-white text-sm text-center py-3 rounded-xl shadow-lg">
-          {acceptError}
+          {topBannerError}
         </div>
       )}
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-20 px-4 pt-10 pb-2 flex items-center justify-between">
         <button
-          onClick={() => setShowMenu(true)}
+          onClick={() => { setShowMode(false); setShowMenu(true); }}
           className="w-11 h-11 rounded-2xl bg-white shadow flex items-center justify-center"
         >
           <Menu size={20} className="text-gray-700" />
@@ -468,7 +467,7 @@ export default function DriverHome() {
           ) : (
             <SlideToAccept
               label={loading ? 'Going online...' : `Slide to go online`}
-              onAccept={() => setShowMode(true)}
+              onAccept={() => { setShowMenu(false); setShowMode(true); }}
               color="#00A082"
             />
           )}

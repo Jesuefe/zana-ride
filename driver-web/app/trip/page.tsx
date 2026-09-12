@@ -61,6 +61,13 @@ function TripContent() {
       try { window.speechSynthesis?.cancel(); } catch {}
       setShowCall(false);
       setIncomingCall(null);
+      // The driver could be mid-way through their own "Cancel this ride?"
+      // confirmation right when the customer cancels from their side too —
+      // without this, both dialogs could show stacked, and submitting the
+      // driver's own cancel reason at that point would hit a trip that no
+      // longer exists.
+      setShowCancel(false);
+      setCancelReason('');
       setCancelledNotice(data?.message ?? 'The customer cancelled this ride');
       setTimeout(() => router.replace('/'), 3500);
     });

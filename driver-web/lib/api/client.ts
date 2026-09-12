@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://zana.ajumalink.com/api/v1';
+export const API_BASE_URL = 'https://zana.ajumalink.com/api/v1';
 const TOKEN_KEY = 'zana_driver_token';
 
 export function getToken(): string | null {

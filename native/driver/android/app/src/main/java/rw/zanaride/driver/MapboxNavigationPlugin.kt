@@ -1,14 +1,20 @@
 package rw.zanaride.driver
-import com.mapbox.maps.extension.style.layers.addLayer
-import com.mapbox.maps.extension.style.sources.addSource
+
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.mapbox.api.directions.v5.DirectionsCriteria
+import com.mapbox.api.directions.v5.models.BannerInstructions
 import com.mapbox.api.directions.v5.models.RouteOptions
 import com.mapbox.common.location.Location
 import com.mapbox.geojson.LineString
@@ -16,8 +22,10 @@ import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.Style
+import com.mapbox.maps.extension.style.layers.addLayer
 import com.mapbox.maps.extension.style.layers.generated.lineLayer
 import com.mapbox.maps.extension.style.sources.generated.GeoJsonSource
+import com.mapbox.maps.extension.style.sources.addSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
 import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.plugin.locationcomponent.location
@@ -32,15 +40,37 @@ import com.mapbox.navigation.core.MapboxNavigation
 import com.mapbox.navigation.core.MapboxNavigationProvider
 import com.mapbox.navigation.core.arrival.ArrivalObserver
 import com.mapbox.navigation.core.directions.session.RoutesObserver
+import com.mapbox.navigation.core.trip.session.BannerInstructionsObserver
 import com.mapbox.navigation.core.trip.session.LocationMatcherResult
 import com.mapbox.navigation.core.trip.session.LocationObserver
 
+/**
+ * A small, direct wrapper around Mapbox's real Navigation Core SDK and Maps
+ * SDK — not the third-party npm plugins, which are either years stale or
+ * don't support Android at all.
+ *
+ * Deliberately does NOT use Mapbox's own "drop-in" NavigationView — instead
+ * draws the route as a plain line layer, uses the Maps SDK's Location
+ * Component for the position puck, and now a plain native text banner for
+ * turn-by-turn instructions — all long-standing, well-documented, directly
+ * verified parts of the SDK, not the newer drop-in UI whose exact API this
+ * plugin could not confirm confidently enough to write blind.
+ *
+ * The instruction banner is built as a native Android view added to the
+ * same container as the map, not sent back to the web layer — the native
+ * map is a full-screen overlay sitting on top of the entire React app, so
+ * anything rendered in React while it's showing would be invisible,
+ * hidden underneath it.
+ */
 @CapacitorPlugin(name = "MapboxNavigation")
 class MapboxNavigationPlugin : Plugin() {
 
     private var mapboxNavigation: MapboxNavigation? = null
     private var mapView: MapView? = null
     private var container: FrameLayout? = null
+    private var instructionBanner: LinearLayout? = null
+    private var instructionText: TextView? = null
+    private var instructionDistance: TextView? = null
     private val routeSourceId = "zana-route-source"
     private val routeLayerId = "zana-route-layer"
 
@@ -84,6 +114,14 @@ class MapboxNavigationPlugin : Plugin() {
             notifyListeners("onRouteChanged", JSObject())
         })
 
+        // Fires continuously during active guidance whenever the next turn
+        // instruction changes — this is what actually drives the banner
+        // text and distance, updated directly here rather than round-
+        // tripping through JS for something purely visual like this.
+        nav.registerBannerInstructionsObserver(BannerInstructionsObserver { banner: BannerInstructions ->
+            updateInstructionBanner(banner)
+        })
+
         nav.startTripSession()
 
         notifyListeners("onNavigationReady", JSObject())
@@ -114,6 +152,9 @@ class MapboxNavigationPlugin : Plugin() {
                         enabled = true
                         pulsingEnabled = true
                     }
+                }
+                if (instructionBanner == null) {
+                    buildInstructionBanner()
                 }
                 container?.visibility = FrameLayout.VISIBLE
             } else {
@@ -148,6 +189,10 @@ class MapboxNavigationPlugin : Plugin() {
             .applyDefaultNavigationOptions()
             .coordinatesList(listOf(origin, Point.fromLngLat(lng, lat)))
             .profile(DirectionsCriteria.PROFILE_DRIVING_TRAFFIC)
+            // Without this, the route response never includes turn-by-turn
+            // banner data at all, and BannerInstructionsObserver simply
+            // never fires — silently, with no error to point at why.
+            .bannerInstructions(true)
             .build()
 
         nav.requestRoutes(
@@ -173,6 +218,7 @@ class MapboxNavigationPlugin : Plugin() {
     @PluginMethod
     fun stopNavigation(call: PluginCall) {
         mapboxNavigation?.setNavigationRoutes(emptyList())
+        instructionBanner?.visibility = LinearLayout.GONE
         call.resolve(success())
     }
 
@@ -194,6 +240,63 @@ class MapboxNavigationPlugin : Plugin() {
                     }
                 )
             }
+        }
+    }
+
+    /**
+     * A plain native banner, built once and reused — styled to roughly
+     * match the dark green instruction banner already used in the web
+     * map, so it reads as the same product rather than a different one.
+     */
+    private fun buildInstructionBanner() {
+        val density = activity.resources.displayMetrics.density
+        fun dp(v: Int) = (v * density).toInt()
+
+        val banner = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(14), dp(16), dp(14))
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#E6005040")) // dark green, ~90% opacity
+            }
+            visibility = LinearLayout.GONE
+        }
+
+        val text = TextView(activity).apply {
+            setTextColor(Color.WHITE)
+            textSize = 17f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val distance = TextView(activity).apply {
+            setTextColor(Color.parseColor("#B3FFFFFF")) // white ~70% opacity
+            textSize = 12f
+            setPadding(0, dp(2), 0, 0)
+        }
+
+        banner.addView(text)
+        banner.addView(distance)
+
+        val params = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        params.gravity = Gravity.TOP
+
+        container?.addView(banner, params)
+        instructionBanner = banner
+        instructionText = text
+        instructionDistance = distance
+    }
+
+    private fun updateInstructionBanner(banner: BannerInstructions) {
+        activity.runOnUiThread {
+            instructionText?.text = banner.primary().text()
+            val meters = banner.distanceAlongGeometry()
+            instructionDistance?.text = if (meters >= 1000) {
+                "in %.1f km".format(meters / 1000)
+            } else {
+                "in ${meters.toInt()} m"
+            }
+            instructionBanner?.visibility = LinearLayout.VISIBLE
         }
     }
 

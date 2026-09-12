@@ -3,6 +3,9 @@ require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 platform :ios, '13.0'
 use_frameworks!
 
+# workaround to avoid Xcode caching of Pods that requires
+# Product -> Clean Build Folder after new Cordova plugins installed
+# Requires CocoaPods 1.6 or newer
 install! 'cocoapods', :disable_input_output_paths => true
 
 def capacitor_pods
@@ -25,6 +28,11 @@ end
 post_install do |installer|
   assertDeploymentTarget(installer)
 
+  # CocoaPods library targets (CapacitorGeolocation, CapacitorCordova, etc.)
+  # aren't apps and can't have a provisioning profile — only the main "App"
+  # target needs signing. Without this, a manual-signing override meant for
+  # just the app target applies to every target in the workspace and every
+  # library rejects the profile it was never supposed to get.
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
