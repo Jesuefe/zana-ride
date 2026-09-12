@@ -10,7 +10,6 @@ import { api, getToken } from '../../lib/api/client';
 import RatingModal from '../../components/RatingModal';
 import { getStoredLang, dt } from '../../lib/lang';
 import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, declineTrip, DriverTrip } from '../../lib/api/driver';
-import { useMapboxNavigation } from '../../lib/useMapboxNavigation';
 import { getCurrentPosition, watchPosition, Coords } from '../../lib/location';
 import DriverMap from '../../components/DriverMap';
 
@@ -22,7 +21,6 @@ const STATUS_COPY: Record<string, string> = {
 
 function TripContent() {
   const router = useRouter();
-  const mapboxNav = useMapboxNavigation();
 
   // Connect to WebSocket for incoming call events
   useEffect(() => {
@@ -260,21 +258,6 @@ function TripContent() {
               <p className="text-[11px] text-zana-muted">{STATUS_COPY[trip.status] ?? trip.status}</p>
               <p className="text-sm font-semibold text-gray-900 truncate">{targetLabel}</p>
             </div>
-            {/* Only shows inside the installed app — the SDK has no web
-                implementation, so a browser visitor never sees this. */}
-            {mapboxNav.available && (
-              <button
-                onClick={() => mapboxNav.active
-                  ? mapboxNav.stop()
-                  : mapboxNav.start(navigationTarget.lat, navigationTarget.lng)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                  mapboxNav.active ? 'bg-red-50' : 'bg-blue-50'
-                }`}
-                aria-label={mapboxNav.active ? 'Stop navigation' : 'Open navigation'}
-              >
-                <Navigation size={16} className={mapboxNav.active ? 'text-red-600' : 'text-blue-600'} />
-              </button>
-            )}
             {/* Chat */}
             <button
               onClick={() => setShowChat(true)}
