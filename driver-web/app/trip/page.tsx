@@ -22,6 +22,7 @@ const STATUS_COPY: Record<string, string> = {
 
 function TripContent() {
   const router = useRouter();
+  const mapboxNav = useMapboxNavigation();
 
   // Connect to WebSocket for incoming call events
   useEffect(() => {
@@ -223,8 +224,6 @@ function TripContent() {
 
   // Navigate toward pickup until trip starts, then toward destination.
   // Keep showing the pickup during DRIVER_ARRIVED so the map stays active.
-  const mapboxNav = useMapboxNavigation();
-
   const navigationTarget =
     trip.status === 'RIDE_IN_PROGRESS'
       ? { lat: trip.destinationLat, lng: trip.destinationLng }
