@@ -290,10 +290,21 @@ export default function DriverMap({
 
     onGpsUpdate(dPos);
 
-    // Reroute if >80m off — only if map and target ready
-    if (mapsReady && target && lastFetchPosRef.current) {
-      const drift = haversineM(position, lastFetchPosRef.current);
-      if (drift > 80) fetchRoute(position, target);
+    if (mapsReady && target) {
+      if (!lastFetchPosRef.current) {
+        // The very first route fetch. The map almost always finishes
+        // loading before GPS resolves, so by the time this effect first
+        // runs here, mapsReady may still be false — and the other effect
+        // below only reacts to mapsReady/target changing, never to
+        // position changing. Without this, the two effects could each
+        // wait on a signal only the other one provides, and fetchRoute()
+        // would never run at all — exactly what drawing no line looks like.
+        fetchRoute(position, target);
+      } else {
+        // Already have a route — only refetch if actually off course.
+        const drift = haversineM(position, lastFetchPosRef.current);
+        if (drift > 80) fetchRoute(position, target);
+      }
     }
   }, [position?.lat, position?.lng, mapsReady, onGpsUpdate]);
 
