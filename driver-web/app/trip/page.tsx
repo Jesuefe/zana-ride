@@ -12,6 +12,7 @@ import { getStoredLang, dt } from '../../lib/lang';
 import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, declineTrip, DriverTrip } from '../../lib/api/driver';
 import { getCurrentPosition, watchPosition, Coords } from '../../lib/location';
 import DriverMap from '../../components/DriverMap';
+import { Browser } from '@capacitor/browser';
 
 const STATUS_COPY: Record<string, string> = {
   DRIVER_ASSIGNED: 'Heading to pickup',
@@ -267,9 +268,20 @@ function TripContent() {
                 it's installed, or a browser tab if not — no new native
                 plugin or permission needed for this at all. */}
             <button
-              onClick={() => {
+              onClick={async () => {
                 const url = `https://www.google.com/maps/dir/?api=1&destination=${navigationTarget.lat},${navigationTarget.lng}&travelmode=driving`;
-                window.open(url, '_system');
+                try {
+                  // Stays layered on top of Zana rather than switching to a
+                  // separate app — on iOS this is a real small popover; on
+                  // Android that option doesn't exist, so it opens as a
+                  // full-screen sheet instead, with an instant "back" to
+                  // return here. Falls back to a plain external tab if the
+                  // native plugin isn't available for some reason (e.g. a
+                  // browser tab with no Capacitor bridge at all).
+                  await Browser.open({ url, presentationStyle: 'popover', toolbarColor: '#00A082' });
+                } catch {
+                  window.open(url, '_system');
+                }
               }}
               className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0"
               aria-label="Open in Google Maps"
