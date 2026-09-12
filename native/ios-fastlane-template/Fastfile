@@ -14,7 +14,9 @@ platform :ios do
       workspace: "App.xcworkspace",
       scheme: "App",
       export_method: "app-store",
+      xcargs: "DEVELOPMENT_TEAM=TVNH48NRJX",
       export_options: {
+        teamID: "TVNH48NRJX",
         provisioningProfiles: {
           ENV["BUNDLE_ID"] => ENV["PROFILE_NAME"]
         }
