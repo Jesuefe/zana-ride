@@ -108,6 +108,7 @@ export default function DriverHome() {
   }, []);
   const [online, setOnline] = useState(false);
   const [goOnlineError, setGoOnlineError] = useState('');
+  const [acceptError, setAcceptError] = useState('');
   const [coords, setCoords] = useState<Coords | null>(null);
   const [incoming, setIncoming] = useState<DriverTrip | null>(null);
   const [countdown, setCountdown] = useState(TIMEOUT);
@@ -275,9 +276,24 @@ export default function DriverHome() {
 
   const handleAcceptTrip = async () => {
     if (!incoming) return;
-    await acceptTrip(incoming.id).catch(() => {});
-    setIncoming(null);
-    router.push('/trip');
+    try {
+      // Previously silent — if someone else took the ride first, or the
+      // request just failed to reach the server, this used to send the
+      // driver to /trip anyway with nothing actually there to show. Now
+      // the driver stays here and sees why, instead of landing on a page
+      // that looks broken for a reason that had nothing to do with the app.
+      await acceptTrip(incoming.id);
+      setIncoming(null);
+      router.push('/trip');
+    } catch (e: any) {
+      setAcceptError(
+        e?.message?.includes('404') || e?.message?.includes('already')
+          ? 'Someone else already took this ride.'
+          : 'Could not accept — check your connection and try again.'
+      );
+      setTimeout(() => setAcceptError(''), 4000);
+      setIncoming(null);
+    }
   };
 
   // Declining an offer that hasn't been assigned to anyone yet needs no
@@ -297,6 +313,11 @@ export default function DriverHome() {
       {goOnlineError && (
         <div className="fixed top-4 left-4 right-4 z-[60] bg-red-600 text-white text-sm text-center py-3 rounded-xl shadow-lg">
           {goOnlineError}
+        </div>
+      )}
+      {acceptError && (
+        <div className="fixed top-4 left-4 right-4 z-[60] bg-red-600 text-white text-sm text-center py-3 rounded-xl shadow-lg">
+          {acceptError}
         </div>
       )}
       {/* Header */}

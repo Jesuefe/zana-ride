@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Clock, Upload, FileText } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { capturePhoto } from '../../lib/photoCapture';
 
 type Doc = {
   label: string;
@@ -24,8 +25,6 @@ export default function Documents() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
   const [note, setNote] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
-  const pending = useRef<string | null>(null);
 
   const load = () =>
     api.get<{ documents: Doc[] }>('/driver/documents')
@@ -35,38 +34,35 @@ export default function Documents() {
 
   useEffect(() => { load(); }, []);
 
-  const pick = (label: string) => {
-    pending.current = label;
-    fileRef.current?.click();
-  };
-
-  const onFile = async (file?: File) => {
-    const label = pending.current;
-    if (!file || !label) return;
-
+  // Was a raw <input type="file"> — that hands off to the system camera app,
+  // and Android is free to kill the WebView process while it's in the
+  // foreground, restarting the whole app on return. capturePhoto() uses
+  // Capacitor's native Camera plugin instead, which is built to survive
+  // that exact round trip (same fix already applied to delivery photos).
+  const pick = async (label: string) => {
     setUploading(label);
     setNote('');
     try {
-      // Photographs of documents are large; downscale before sending since
-      // riders are often on a weak connection.
+      const captured = await capturePhoto();
+      if (!captured) { setUploading(null); return; } // cancelled, not an error
+
+      // Downscale before sending — document photos are large and riders/
+      // drivers are often on a weak connection. No name/timestamp/location
+      // stamp here, unlike delivery photos — a licence or ID needs a clean
+      // scan, not a proof-of-delivery watermark.
       const base64 = await new Promise<string>((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => {
-          const img = new window.Image();
-          img.onload = () => {
-            const max = 1400;
-            const s = Math.min(1, max / Math.max(img.width, img.height));
-            const c = document.createElement('canvas');
-            c.width = Math.round(img.width * s);
-            c.height = Math.round(img.height * s);
-            c.getContext('2d')?.drawImage(img, 0, 0, c.width, c.height);
-            resolve(c.toDataURL('image/jpeg', 0.82));
-          };
-          img.onerror = reject;
-          img.src = r.result as string;
+        const img = new window.Image();
+        img.onload = () => {
+          const max = 1400;
+          const s = Math.min(1, max / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.width * s);
+          c.height = Math.round(img.height * s);
+          c.getContext('2d')?.drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL('image/jpeg', 0.82));
         };
-        r.onerror = reject;
-        r.readAsDataURL(file);
+        img.onerror = reject;
+        img.src = captured.base64;
       });
 
       await api.post('/driver/documents', { label, imageBase64: base64 });
@@ -76,7 +72,6 @@ export default function Documents() {
       setNote('That upload failed. Try again on a better connection.');
     } finally {
       setUploading(null);
-      pending.current = null;
     }
   };
 
@@ -84,14 +79,6 @@ export default function Documents() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={e => onFile(e.target.files?.[0])}
-      />
-
       <div className="bg-white px-4 pt-12 pb-4 flex items-center gap-3">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center">
           <ArrowLeft size={18} className="text-gray-700" />
