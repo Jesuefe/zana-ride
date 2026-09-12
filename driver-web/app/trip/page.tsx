@@ -316,35 +316,6 @@ function TripContent() {
               <p className="text-[11px] text-zana-muted">{STATUS_COPY[trip.status] ?? trip.status}</p>
               <p className="text-sm font-semibold text-gray-900 truncate">{targetLabel}</p>
             </div>
-            {/* Open in Google Maps — hands off real turn-by-turn to Google's
-                own app instead of building it ourselves. This is the same
-                pattern apps like Bolt and Uber use: a quick in-app map for
-                context, with an explicit handoff for anyone who wants full
-                navigation. Uses Google's official, documented cross-platform
-                Maps URL, which opens the native Google Maps app directly if
-                it's installed, or a browser tab if not — no new native
-                plugin or permission needed for this at all. */}
-            <button
-              onClick={async () => {
-                const url = `https://www.google.com/maps/dir/?api=1&destination=${navigationTarget.lat},${navigationTarget.lng}&travelmode=driving`;
-                try {
-                  // Stays layered on top of Zana rather than switching to a
-                  // separate app — on iOS this is a real small popover; on
-                  // Android that option doesn't exist, so it opens as a
-                  // full-screen sheet instead, with an instant "back" to
-                  // return here. Falls back to a plain external tab if the
-                  // native plugin isn't available for some reason (e.g. a
-                  // browser tab with no Capacitor bridge at all).
-                  await Browser.open({ url, presentationStyle: 'popover', toolbarColor: '#00A082' });
-                } catch {
-                  window.open(url, '_system');
-                }
-              }}
-              className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0"
-              aria-label="Open in Google Maps"
-            >
-              <Navigation size={16} className="text-blue-600" />
-            </button>
             {/* Chat */}
             <button
               onClick={() => setShowChat(true)}
@@ -353,30 +324,50 @@ function TripContent() {
               <MessageCircle size={16} className="text-zana-primary" />
             </button>
 
-            {/* Free call button — tap to call via Zana */}
+            {/* Call — asks which method every time, rather than silently
+                trying Zana's call and only falling back to a regular call
+                if that request happens to fail. The driver decides up
+                front, instead of the app deciding for them after the fact. */}
             <button
-              onClick={async () => {
-                if (!trip?.id) return;
-                try {
-                  const res = await api.post<{callId:string;roomName:string;wsUrl:string;token:string}>(
-                    '/calls', { rideId: trip.id }
-                  );
-                  setOutgoingCallId(res.callId);
-                  setOutgoingRoom(res.roomName);
-                  setOutgoingWsUrl(res.wsUrl);
-                  setOutgoingToken(res.token);
-                  setShowCall(true);
-                } catch (e: any) {
-                  console.error('[CALL] Create call failed:', e?.message);
-                  // Fallback to regular call
-                  if (trip.customer?.phone) window.location.href = `tel:${trip.customer.phone}`;
-                }
-              }}
+              onClick={() => setShowCallOptions(true)}
               className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0"
             >
               <Phone size={16} className="text-green-600" />
             </button>
           </div>
+
+          {/* Open in Google Maps — hands off real turn-by-turn to Google's
+              own app instead of building it ourselves. This is the same
+              pattern apps like Bolt and Uber use: a quick in-app map for
+              context, with an explicit handoff for anyone who wants full
+              navigation. Given its own full-width, labeled button rather
+              than a bare icon crammed alongside Chat and Call, since it's
+              the primary action here, not a secondary one. Uses Google's
+              official, documented cross-platform Maps URL, which opens the
+              native Google Maps app directly if it's installed, or a
+              browser tab if not — no new native plugin or permission
+              needed for this at all. */}
+          <button
+            onClick={async () => {
+              const url = `https://www.google.com/maps/dir/?api=1&destination=${navigationTarget.lat},${navigationTarget.lng}&travelmode=driving`;
+              try {
+                // Stays layered on top of Zana rather than switching to a
+                // separate app — on iOS this is a real small popover; on
+                // Android that option doesn't exist, so it opens as a
+                // full-screen sheet instead, with an instant "back" to
+                // return here. Falls back to a plain external tab if the
+                // native plugin isn't available for some reason (e.g. a
+                // browser tab with no Capacitor bridge at all).
+                await Browser.open({ url, presentationStyle: 'popover', toolbarColor: '#00A082' });
+              } catch {
+                window.open(url, '_system');
+              }
+            }}
+            className="w-full mt-3 bg-blue-50 text-blue-700 font-semibold text-sm py-3 rounded-xl flex items-center justify-center gap-2"
+          >
+            <Navigation size={16} />
+            Get Directions
+          </button>
 
           {detailsOpen && (
             <div className="mt-3 space-y-2 animate-fade-slide-up">
@@ -423,6 +414,62 @@ function TripContent() {
           )}
         </div>
       </div>
+
+      {showCallOptions && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowCallOptions(false)} />
+          <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-lg text-gray-900">Call passenger</h2>
+              <button onClick={() => setShowCallOptions(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <X size={16} />
+              </button>
+            </div>
+            <button
+              onClick={async () => {
+                setShowCallOptions(false);
+                if (!trip?.id) return;
+                try {
+                  const res = await api.post<{callId:string;roomName:string;wsUrl:string;token:string}>(
+                    '/calls', { rideId: trip.id }
+                  );
+                  setOutgoingCallId(res.callId);
+                  setOutgoingRoom(res.roomName);
+                  setOutgoingWsUrl(res.wsUrl);
+                  setOutgoingToken(res.token);
+                  setShowCall(true);
+                } catch (e: any) {
+                  console.error('[CALL] Create call failed:', e?.message);
+                }
+              }}
+              className="w-full flex items-center gap-3 p-4 rounded-xl bg-zana-primary-light mb-2"
+            >
+              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0">
+                <Phone size={16} className="text-zana-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900">Free Call</p>
+                <p className="text-xs text-zana-muted">Through Zana — no airtime used</p>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setShowCallOptions(false);
+                if (trip?.customer?.phone) window.location.href = `tel:${trip.customer.phone}`;
+              }}
+              className="w-full flex items-center gap-3 p-4 rounded-xl bg-gray-50"
+            >
+              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0">
+                <Phone size={16} className="text-gray-600" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900">Call Directly</p>
+                <p className="text-xs text-zana-muted">Using your phone's carrier network</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       {showCancel && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">

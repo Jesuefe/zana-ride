@@ -12,7 +12,7 @@ export const LANG_LABELS: Record<Lang, string> = {
 
 export function getStoredLang(): Lang {
   if (typeof window === 'undefined') return 'en';
-  return (localStorage.getItem(STORAGE_KEY) as Lang) ?? 'en';
+  return (localStorage.getItem(STORAGE_KEY) as Lang) ?? 'rw';
 }
 
 export function setStoredLang(lang: Lang) {

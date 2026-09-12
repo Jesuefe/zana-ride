@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import ThemePicker from '../../components/ThemePicker';
+import LanguageSelector from '../../components/LanguageSelector';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Star, Car, Truck, TrendingUp, Calendar, AlertTriangle, CheckCircle, LogOut } from 'lucide-react';
 import { api, clearToken } from '../../lib/api/client';
@@ -151,6 +152,11 @@ export default function DriverProfilePage() {
 
         <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
           <ThemePicker />
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Language</p>
+          <LanguageSelector variant="light" />
         </div>
 
         <button

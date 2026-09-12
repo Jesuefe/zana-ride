@@ -492,44 +492,35 @@ export default function DriverHome() {
               {[
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="#00A082" strokeWidth="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#E6A82E" strokeWidth="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#00A082" strokeWidth="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#E6A82E" strokeWidth="2"/></svg>,
-                  bg: '#E3F5F1', value: earnings?.totalTrips ?? 0, label: 'Completed'
+                  bg: '#E3F5F1', value: earnings?.totalTrips ?? 0, label: 'Completed', route: '/rides'
                 },
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#E6A82E" strokeWidth="2"/><path d="M12 7v5l3 3" stroke="#E6A82E" strokeWidth="2" strokeLinecap="round"/></svg>,
-                  bg: '#FBF1DD', value: onlineTimeStr, label: 'Online time'
+                  bg: '#FBF1DD', value: onlineTimeStr, label: 'Online time', route: null
                 },
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="3" stroke="#4F9EF8" strokeWidth="2"/><path d="M2 9h20" stroke="#4F9EF8" strokeWidth="2"/></svg>,
-                  bg: '#E8F0FE', value: earnings ? `${(earnings.todayEarnings ?? 0).toLocaleString()}` : '0', label: 'RWF Earnings', small: true
+                  bg: '#E8F0FE', value: earnings ? `${(earnings.todayEarnings ?? 0).toLocaleString()}` : '0', label: 'RWF Earnings', small: true, route: '/earnings'
                 },
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><polygon points="12,2 15,8.5 22,9.5 17,14.2 18.2,21 12,17.7 5.8,21 7,14.2 2,9.5 9,8.5" stroke="#9B59B6" strokeWidth="2" fill="none"/></svg>,
-                  bg: '#F3E8FF', value: (profile?.rating ?? 0).toFixed(1), label: 'Rating'
+                  bg: '#F3E8FF', value: (profile?.rating ?? 0).toFixed(1), label: 'Rating', route: '/ratings'
                 },
-              ].map(({ icon, bg, value, label, small }, i) => (
-                <div key={i} className="bg-white rounded-2xl p-3 flex flex-col items-center gap-1.5 shadow-sm">
+              ].map(({ icon, bg, value, label, small, route }, i) => (
+                <button
+                  key={i}
+                  onClick={() => route && router.push(route)}
+                  disabled={!route}
+                  className="bg-white rounded-2xl p-3 flex flex-col items-center gap-1.5 shadow-sm disabled:opacity-100"
+                >
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: bg }}>
                     {icon}
                   </div>
                   <p className={`font-black text-gray-900 ${small ? 'text-xs' : 'text-base'}`}>{value}</p>
                   <p className="text-[9px] text-gray-400 text-center leading-tight">{label}</p>
-                </div>
+                </button>
               ))}
             </div>
-          </div>
-
-          {/* Quick links */}
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { icon: '📈', label: 'Earnings', route: '/earnings' },
-              { icon: '🎁', label: 'Incentives', route: '/earnings' },
-            ].map(({ icon, label, route }) => (
-              <button key={label} onClick={() => router.push(route)}
-                className="flex flex-col items-center gap-1.5 py-3">
-                <span className="text-xl">{icon}</span>
-                <span className="text-[10px] text-gray-500 font-medium">{label}</span>
-              </button>
-            ))}
           </div>
         </div>
       </div>
