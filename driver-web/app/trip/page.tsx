@@ -93,6 +93,7 @@ function TripContent() {
   const socketRef = useRef<Socket | null>(null);
   const [showRating, setShowRating] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
+  const [showReturnPrompt, setShowReturnPrompt] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState('');
@@ -116,6 +117,37 @@ function TripContent() {
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coords?.lat, coords?.lng]);
+
+  // While Google Maps is on screen, Zana sits paused in the background —
+  // Android can throttle things like the trip poll below while it isn't
+  // the active screen. Rather than trust it'll catch up on its own timing,
+  // force an immediate, fresh check the instant the driver is back, and
+  // prompt them to continue instead of relying on them remembering the
+  // button was there.
+  useEffect(() => {
+    let handle: { remove: () => void } | undefined;
+    (async () => {
+      try {
+        const { Browser } = await import('@capacitor/browser');
+        handle = await Browser.addListener('browserFinished', async () => {
+          try {
+            const fresh = await fetchMyActiveTrip();
+            if (fresh) {
+              setTrip(fresh);
+              setShowReturnPrompt(true);
+            }
+          } catch {
+            // Still show the prompt even if the refresh itself failed —
+            // better to nudge the driver to check than say nothing.
+            setShowReturnPrompt(true);
+          }
+        });
+      } catch {
+        // Not running natively — nothing to listen for.
+      }
+    })();
+    return () => handle?.remove();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -243,6 +275,31 @@ function TripContent() {
     // with the nav UI floating over it — like a real navigation app.
     <div className="fixed inset-0 z-40 bg-black">
       <DriverMap position={coords} target={navigationTarget} navigationMode height="100%" lang={lang} />
+
+      {/* Nudge back into the trip flow after Google Maps closes — the
+          trip data has already been refreshed by the time this shows, so
+          tapping through here is acting on current status, not stale. */}
+      {showReturnPrompt && (
+        <div className="absolute bottom-[92px] left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl p-4 flex items-center gap-3 animate-fade-slide-up">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-gray-900">Back from navigation</p>
+            <p className="text-xs text-zana-muted">Ready to continue?</p>
+          </div>
+          <button
+            onClick={() => { setShowReturnPrompt(false); handleAction(); }}
+            className="bg-zana-primary text-white text-sm font-semibold px-4 py-2 rounded-xl shrink-0"
+          >
+            {buttonLabel}
+          </button>
+          <button
+            onClick={() => setShowReturnPrompt(false)}
+            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0"
+            aria-label="Dismiss"
+          >
+            <X size={14} className="text-gray-500" />
+          </button>
+        </div>
+      )}
 
       {/* Bottom action sheet, collapsed by default so the map stays dominant */}
       <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl">
