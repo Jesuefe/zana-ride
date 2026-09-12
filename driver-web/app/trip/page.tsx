@@ -258,6 +258,24 @@ function TripContent() {
               <p className="text-[11px] text-zana-muted">{STATUS_COPY[trip.status] ?? trip.status}</p>
               <p className="text-sm font-semibold text-gray-900 truncate">{targetLabel}</p>
             </div>
+            {/* Open in Google Maps — hands off real turn-by-turn to Google's
+                own app instead of building it ourselves. This is the same
+                pattern apps like Bolt and Uber use: a quick in-app map for
+                context, with an explicit handoff for anyone who wants full
+                navigation. Uses Google's official, documented cross-platform
+                Maps URL, which opens the native Google Maps app directly if
+                it's installed, or a browser tab if not — no new native
+                plugin or permission needed for this at all. */}
+            <button
+              onClick={() => {
+                const url = `https://www.google.com/maps/dir/?api=1&destination=${navigationTarget.lat},${navigationTarget.lng}&travelmode=driving`;
+                window.open(url, '_system');
+              }}
+              className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0"
+              aria-label="Open in Google Maps"
+            >
+              <Navigation size={16} className="text-blue-600" />
+            </button>
             {/* Chat */}
             <button
               onClick={() => setShowChat(true)}
