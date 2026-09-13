@@ -8,7 +8,7 @@ import { useLang } from '../lib/LangContext';
 import {
   fetchMyDriverProfile, fetchSearchingTrips, acceptTrip,
   goOnline, goOffline, updateDriverLocation, updateDriverMode,
-  fetchPendingDeliveries, acceptDelivery, fetchEarnings,
+  fetchPendingDeliveries, acceptDelivery, fetchEarnings, fetchMyActiveTrip,
   DriverProfile, DriverTrip, PendingDelivery,
 } from '../lib/api/driver';
 import { getCurrentPosition, watchPosition, Coords } from '../lib/location';
@@ -94,6 +94,27 @@ export default function DriverHome() {
         router.replace('/location-notice');
       }
     } catch {}
+  }, [router]);
+
+  // A driver who force-closed the app, had it crash, or restarted their
+  // phone mid-trip would otherwise land here on the normal home screen
+  // with no indication their ride is still running — nothing anywhere
+  // else checks for this on app launch, only the trip screen itself does,
+  // which is no help if you're not already on it. The backend already
+  // only ever returns a trip here if it's genuinely still active, so a
+  // hit is always safe to act on directly, no extra status filtering
+  // needed on this side.
+  const [checkingActiveRide, setCheckingActiveRide] = useState(true);
+  useEffect(() => {
+    fetchMyActiveTrip()
+      .then((trip) => {
+        if (trip) {
+          router.replace('/trip');
+        } else {
+          setCheckingActiveRide(false);
+        }
+      })
+      .catch(() => setCheckingActiveRide(false));
   }, [router]);
 
   useEffect(() => {
@@ -311,6 +332,14 @@ export default function DriverHome() {
   };
 
   const onlineTimeStr = '0h 0m';
+
+  if (checkingActiveRide) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-100">
+        <div className="w-8 h-8 border-3 border-zana-primary/20 border-t-zana-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-100">
