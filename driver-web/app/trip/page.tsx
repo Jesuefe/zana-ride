@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Phone, ChevronUp, ChevronDown, MapPin, Navigation, MessageCircle, X } from 'lucide-react';
 import ChatPanel from '../../components/ChatPanel';
 import VoiceCall from '../../components/VoiceCall';
@@ -9,7 +9,7 @@ import { io, Socket } from 'socket.io-client';
 import { api, getToken } from '../../lib/api/client';
 import RatingModal from '../../components/RatingModal';
 import { getStoredLang, dt } from '../../lib/lang';
-import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, declineTrip, DriverTrip } from '../../lib/api/driver';
+import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, declineTrip, logRecoveryEvent, DriverTrip } from '../../lib/api/driver';
 import { getCurrentPosition, watchPosition, Coords } from '../../lib/location';
 import DriverMap from '../../components/DriverMap';
 import { Browser } from '@capacitor/browser';
@@ -22,6 +22,13 @@ const STATUS_COPY: Record<string, string> = {
 
 function TripContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Landing here via a normal accept is indistinguishable from landing
+  // here via crash recovery once the page has loaded — this flag is only
+  // ever set by the recovery redirect on the home screen, so its presence
+  // is what actually tells the driver "this wasn't just a normal open,
+  // something was restored for you" rather than leaving them to guess.
+  const [showRecoveredBanner, setShowRecoveredBanner] = useState(searchParams.get('recovered') === '1');
 
   // Connect to WebSocket for incoming call events
   useEffect(() => {
@@ -102,10 +109,16 @@ function TripContent() {
 
   // A driver on an active trip is inherently "on the clock" — keep tracking
   // and reporting live location the whole time so the customer's map updates.
+  // Runs on every mount regardless of how the driver got here — a fresh
+  // accept or a crash-recovery redirect look identical to this effect,
+  // which is exactly the point: GPS resumes automatically either way,
+  // with nothing extra for the driver to press.
   useEffect(() => {
+    logRecoveryEvent('GPS_TRACKING_RESUMED', trip?.id, trip?.status);
     getCurrentPosition().then((c) => c && setCoords(c));
     const stop = watchPosition((c) => setCoords(c));
     return stop;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -275,6 +288,31 @@ function TripContent() {
     // with the nav UI floating over it — like a real navigation app.
     <div className="fixed inset-0 z-40 bg-black">
       <DriverMap position={coords} target={navigationTarget} navigationMode height="100%" lang={lang} />
+
+      {/* Shown once, only when this screen was reached via crash recovery
+          rather than a normal accept — a driver whose app just crashed
+          mid-trip should be told plainly that nothing was lost, not left
+          to quietly notice the app still works and piece it together
+          themselves. */}
+      {showRecoveredBanner && (
+        <div className="absolute top-4 left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl p-4 animate-fade-slide-up">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-bold text-gray-900">Active ride restored</p>
+              <p className="text-xs text-zana-muted mt-0.5">
+                {STATUS_COPY[trip.status] ?? trip.status} · {targetLabel}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowRecoveredBanner(false)}
+              className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center shrink-0"
+              aria-label="Dismiss"
+            >
+              <X size={14} className="text-gray-500" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Nudge back into the trip flow after Google Maps closes — the
           trip data has already been refreshed by the time this shows, so

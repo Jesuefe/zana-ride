@@ -9,6 +9,7 @@ import {
   fetchMyDriverProfile, fetchSearchingTrips, acceptTrip,
   goOnline, goOffline, updateDriverLocation, updateDriverMode,
   fetchPendingDeliveries, acceptDelivery, fetchEarnings, fetchMyActiveTrip,
+  fetchRecentlyCompletedRide, logRecoveryEvent,
   DriverProfile, DriverTrip, PendingDelivery,
 } from '../lib/api/driver';
 import { getCurrentPosition, watchPosition, Coords } from '../lib/location';
@@ -105,16 +106,75 @@ export default function DriverHome() {
   // hit is always safe to act on directly, no extra status filtering
   // needed on this side.
   const [checkingActiveRide, setCheckingActiveRide] = useState(true);
+  const [justCompleted, setJustCompleted] = useState<{ fare: number; paymentMethod: string; driverEarnings: number } | null>(null);
   useEffect(() => {
-    fetchMyActiveTrip()
-      .then((trip) => {
+    let cancelled = false;
+    logRecoveryEvent('ACTIVE_RIDE_CHECK_STARTED');
+
+    // This endpoint always succeeds with either a trip or null — it never
+    // throws just because there's no active ride. So a caught error here
+    // can only mean a genuine failure to reach the server, never means
+    // "no ride". Treating the two the same was the actual gap: a driver
+    // with a real active ride could get sent to the home screen just
+    // because one request happened to time out. Retry with backoff
+    // before ever falling through to the normal home screen.
+    const attempt = async (tries: number): Promise<void> => {
+      try {
+        const trip = await fetchMyActiveTrip();
+        if (cancelled) return;
         if (trip) {
-          router.replace('/trip');
+          logRecoveryEvent('ACTIVE_RIDE_FOUND', trip.id, trip.status);
+          router.replace('/trip?recovered=1');
+          return;
+        }
+
+        logRecoveryEvent('ACTIVE_RIDE_CHECK_STARTED_NONE_FOUND');
+
+        // No active ride — but this same check only ever covered rides.
+        // A driver mid-way through a delivery batch who force-closed and
+        // reopened the app would land right here on the normal home
+        // screen, exactly the failure this whole recovery system exists
+        // to prevent, just for the other half of the app.
+        try {
+          const activeDelivery = await api.get<{ id: string } | null>('/driver/deliveries/active');
+          if (activeDelivery && !cancelled) {
+            logRecoveryEvent('ACTIVE_DELIVERY_FOUND', activeDelivery.id);
+            router.replace('/delivery?recovered=1');
+            return;
+          }
+        } catch {}
+
+        // No active ride and no active delivery — but that's also exactly
+        // what things look like if the app crashed the instant after a
+        // ride finished, before the driver ever saw it worked. Check for
+        // that specific case before just showing the normal home screen.
+        try {
+          const recent = await fetchRecentlyCompletedRide();
+          if (recent && !cancelled) {
+            logRecoveryEvent('RIDE_COMPLETION_RECONCILED', recent.id);
+            setJustCompleted(recent);
+          }
+        } catch {}
+
+        setCheckingActiveRide(false);
+      } catch {
+        if (cancelled) return;
+        if (tries > 0) {
+          logRecoveryEvent('ACTIVE_RIDE_RETRY');
+          await new Promise((r) => setTimeout(r, (4 - tries) * 1500));
+          if (!cancelled) await attempt(tries - 1);
         } else {
+          // Genuinely couldn't reach the server after real retries — fall
+          // through rather than trap the driver on a spinner forever.
+          // Not perfect, but a bounded wait beats an infinite one.
+          logRecoveryEvent('ACTIVE_RIDE_CHECK_FAILED');
           setCheckingActiveRide(false);
         }
-      })
-      .catch(() => setCheckingActiveRide(false));
+      }
+    };
+
+    attempt(3);
+    return () => { cancelled = true; };
   }, [router]);
 
   useEffect(() => {
@@ -337,6 +397,38 @@ export default function DriverHome() {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-100">
         <div className="w-8 h-8 border-3 border-zana-primary/20 border-t-zana-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (justCompleted) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center px-8 bg-white">
+        <div className="w-20 h-20 rounded-full bg-zana-primary-light flex items-center justify-center mb-5">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00A082" strokeWidth="2.5">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        </div>
+        <p className="text-xl font-black text-gray-900 mb-1">Ride completed successfully</p>
+        <p className="text-sm text-zana-muted mb-6">
+          {justCompleted.paymentMethod === 'CASH' ? 'Cash payment' : justCompleted.paymentMethod}
+        </p>
+        <div className="w-full bg-gray-50 rounded-2xl p-4 mb-6 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-zana-muted">Fare</span>
+            <span className="text-sm font-bold text-gray-900">{justCompleted.fare.toLocaleString()} RWF</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-zana-muted">Your earnings</span>
+            <span className="text-sm font-bold text-zana-primary">{justCompleted.driverEarnings.toLocaleString()} RWF</span>
+          </div>
+        </div>
+        <button
+          onClick={() => { setJustCompleted(null); }}
+          className="w-full bg-zana-primary text-white font-bold py-3.5 rounded-2xl"
+        >
+          Done
+        </button>
       </div>
     );
   }

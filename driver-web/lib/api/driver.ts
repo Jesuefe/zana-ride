@@ -79,6 +79,18 @@ export async function fetchMyActiveTrip() {
   return api.get<DriverTrip | null>('/driver/rides/active');
 }
 
+export async function fetchRecentlyCompletedRide() {
+  return api.get<{ id: string; fare: number; paymentMethod: string; driverEarnings: number } | null>(
+    '/driver/recently-completed-ride'
+  );
+}
+
+// Fire-and-forget by design — a logging call must never be able to block
+// or break the actual recovery flow it's just there to help debug later.
+export function logRecoveryEvent(event: string, rideId?: string, rideStatus?: string) {
+  api.post('/driver/recovery-event', { event, rideId, rideStatus }).catch(() => {});
+}
+
 export async function acceptTrip(tripId: string) {
   return api.post<DriverTrip>(`/driver/rides/${tripId}/accept`);
 }

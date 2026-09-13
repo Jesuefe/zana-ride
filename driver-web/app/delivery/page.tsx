@@ -1,19 +1,38 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { capturePhoto, stampPhoto } from '../../lib/photoCapture';
 import { fetchMyDriverProfile } from '../../lib/api/driver';
-import { useRouter } from 'next/navigation';
-import { MapPin, Navigation, Phone, Package, ChevronRight, Check } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { MapPin, Navigation, Phone, Package, ChevronRight, Check, X } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import DriverBottomNav from '../../components/DriverBottomNav';
 import DriverMap from '../../components/DriverMap';
 import { watchPosition, Coords } from '../../lib/location';
 import { updateDriverLocation } from '../../lib/api/driver';
 
+// Straight-line distance in meters — same small, self-contained pattern
+// already used in a few other files in this app rather than a shared
+// import, since it's just a few lines and has no other dependencies.
+function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+// A safe fallback only — the real value is fetched from the backend on
+// mount below, so it can be tuned per real-world GPS behavior in Kigali
+// without needing to rebuild this app at all.
+const DEFAULT_ARRIVAL_RADIUS_M = 200;
+
 type ActiveDelivery = {
   id: string;
   status: string;
+  trackingCode?: string | null;
   itemDescription: string;
   pickupAddress: string;
   pickupLat: number;
@@ -26,8 +45,14 @@ type ActiveDelivery = {
   merchant?: { businessName: string; businessAddress?: string; businessLat?: number; businessLng?: number };
 };
 
-export default function ActiveDeliveryPage() {
+function ActiveDeliveryContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Only ever set by the home screen's crash-recovery redirect — its
+  // presence is what tells the driver "this wasn't a normal open, Zana
+  // found and restored something for you" instead of leaving them to
+  // notice the app still works and piece that together on their own.
+  const [showRecoveredBanner, setShowRecoveredBanner] = useState(searchParams.get('recovered') === '1');
   const [delivery, setDelivery] = useState<ActiveDelivery | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [acting, setActing] = useState(false);
@@ -36,6 +61,16 @@ export default function ActiveDeliveryPage() {
   const [photoStage, setPhotoStage] = useState<'pickup' | 'dropoff' | null>(null);
   const [uploading, setUploading] = useState(false);
   const [photoNote, setPhotoNote] = useState('');
+  const [arrivalRadiusM, setArrivalRadiusM] = useState(DEFAULT_ARRIVAL_RADIUS_M);
+
+  // Fetched once on load — if this ever fails, the hardcoded default above
+  // keeps the safety check working exactly as before, just not tunable
+  // until the next successful fetch.
+  useEffect(() => {
+    api.get<{ deliveryGeofenceRadiusMeters: number }>('/driver/config')
+      .then(c => { if (c?.deliveryGeofenceRadiusMeters) setArrivalRadiusM(c.deliveryGeofenceRadiusMeters); })
+      .catch(() => {});
+  }, []);
 
   // Everything the rider is carrying, so they can switch between stops
   useEffect(() => {
@@ -150,8 +185,17 @@ export default function ActiveDeliveryPage() {
     if (!delivery) return;
     setActing(true);
     await api.post(`/driver/deliveries/${delivery.id}/complete`).catch(() => {});
+    // Was unconditional — every single delivery completion sent the driver
+    // home, even with more packages still waiting in the same batch. Pickup
+    // already correctly stayed on this page and advanced to the next stop;
+    // completion needs the exact same check before it can bounce home.
+    const next = await api.get<ActiveDelivery | null>('/driver/deliveries/active').catch(() => null);
     setActing(false);
-    router.push('/?delivered=1');
+    if (next) {
+      setDelivery(next);
+    } else {
+      router.push('/?delivered=1');
+    }
   };
 
   // Both stages ask for a photo first.
@@ -179,8 +223,15 @@ export default function ActiveDeliveryPage() {
     ? { lat: delivery.pickupLat, lng: delivery.pickupLng }
     : { lat: delivery.dropoffLat, lng: delivery.dropoffLng };
 
+  // Previously the confirm button worked from anywhere at all, regardless
+  // of whether the driver had actually reached the pickup or drop-off —
+  // no check existed. If GPS hasn't resolved yet, don't block the driver
+  // on that alone; only block once we genuinely know they're too far.
+  const distanceToTarget = coords ? distanceMeters(coords.lat, coords.lng, target.lat, target.lng) : null;
+  const closeEnough = distanceToTarget === null || distanceToTarget <= arrivalRadiusM;
+
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col relative">
       {/* Other parcels this rider is carrying */}
       {allActive.length > 1 && (
         <div className="px-4 py-2 bg-white border-b border-gray-100">
@@ -190,10 +241,15 @@ export default function ActiveDeliveryPage() {
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {allActive.map((a: any, i: number) => {
               const isCurrent = a.id === delivery?.id;
+              // Not tappable — this page never actually read the ?id= this
+              // used to navigate to, so tapping a different parcel did
+              // nothing at all despite looking interactive. The spec here
+              // is explicit that Zana determines the next stop, not the
+              // driver, so the honest fix is a clear display strip, not a
+              // half-built manual-switch feature nothing asked for.
               return (
-                <button
+                <div
                   key={a.id}
-                  onClick={() => router.push(`/delivery?id=${a.id}`)}
                   className={`shrink-0 px-3 py-2 rounded-xl border-2 text-left ${
                     isCurrent ? 'border-zana-primary bg-zana-primary-light' : 'border-gray-100 bg-white'
                   }`}
@@ -209,7 +265,7 @@ export default function ActiveDeliveryPage() {
                   <p className="text-[9px] text-gray-400">
                     {a.status === 'PICKED_UP' ? 'On board' : 'To collect'}
                   </p>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -228,6 +284,33 @@ export default function ActiveDeliveryPage() {
       {photoNote && (
         <div className="fixed bottom-24 left-4 right-4 z-50 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <p className="text-xs text-amber-800">{photoNote}</p>
+        </div>
+      )}
+
+      {/* Shown once, only when this screen was reached via crash recovery
+          rather than a normal open — using only real, currently-known
+          data (the actual package ID and status), no invented ETA. */}
+      {showRecoveredBanner && (
+        <div className="absolute top-4 left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl p-4 animate-fade-slide-up">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-bold text-gray-900">Active delivery restored</p>
+              <p className="text-xs text-zana-muted mt-0.5">
+                {delivery.trackingCode ?? delivery.itemDescription}
+                {' · '}
+                {isPickup ? 'Status: To collect' : 'Status: Picked up'}
+                {' · '}
+                {isPickup ? 'Next stop: Pickup' : 'Next stop: Customer'}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowRecoveredBanner(false)}
+              className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center shrink-0"
+              aria-label="Dismiss"
+            >
+              <X size={14} className="text-gray-500" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -311,9 +394,17 @@ export default function ActiveDeliveryPage() {
             <span className="text-lg font-black text-zana-primary">{Math.round(delivery.fee * 0.85).toLocaleString()} RWF</span>
           </div>
 
+          {/* Distance notice — only shown when genuinely too far, not
+              just because GPS hasn't resolved yet */}
+          {!closeEnough && distanceToTarget !== null && (
+            <p className="text-xs text-amber-600 text-center -mb-1">
+              {Math.round(distanceToTarget)}m away — move closer to confirm
+            </p>
+          )}
+
           {/* Action button */}
           {isPickup && (
-            <button onClick={handlePickup} disabled={acting}
+            <button onClick={handlePickup} disabled={acting || !closeEnough}
               className="w-full bg-amber-500 text-white font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 disabled:opacity-50">
               {acting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check size={18} />}
               Confirm Pickup
@@ -321,7 +412,7 @@ export default function ActiveDeliveryPage() {
           )}
 
           {!isPickup && (
-            <button onClick={handleComplete} disabled={acting}
+            <button onClick={handleComplete} disabled={acting || !closeEnough}
               className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 disabled:opacity-50">
               {acting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check size={18} />}
               Confirm Delivery
@@ -331,5 +422,13 @@ export default function ActiveDeliveryPage() {
       </div>
       <DriverBottomNav />
     </div>
+  );
+}
+
+export default function ActiveDeliveryPage() {
+  return (
+    <Suspense fallback={null}>
+      <ActiveDeliveryContent />
+    </Suspense>
   );
 }
