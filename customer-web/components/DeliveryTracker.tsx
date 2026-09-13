@@ -10,6 +10,12 @@ type Props = {
   pickup: { lat: number; lng: number };
   dropoff: { lat: number; lng: number };
   status: string;
+  // Optional — the parent owns the actual delivery list and its status
+  // values; this only reports a status change up rather than keeping its
+  // own separate copy, so the rest of the page (the status badge in the
+  // list itself, not just this widget) reflects it too, not just what's
+  // shown here.
+  onStatusUpdate?: (deliveryId: string, status: string) => void;
 };
 
 /**
@@ -17,7 +23,7 @@ type Props = {
  * this listens for it and moves the marker, so the customer can see the
  * parcel approaching instead of refreshing and hoping.
  */
-export default function DeliveryTracker({ deliveryId, pickup, dropoff, status }: Props) {
+export default function DeliveryTracker({ deliveryId, pickup, dropoff, status, onStatusUpdate }: Props) {
   const [riderPos, setRiderPos] = useState<{ lat: number; lng: number } | null>(null);
   const [lastSeen, setLastSeen] = useState<Date | null>(null);
   const [eta, setEta] = useState<string | null>(null);
@@ -36,6 +42,23 @@ export default function DeliveryTracker({ deliveryId, pickup, dropoff, status }:
       if (typeof d.lat !== 'number' || typeof d.lng !== 'number') return;
       setRiderPos({ lat: d.lat, lng: d.lng });
       setLastSeen(new Date());
+    });
+
+    // Backend already emits this — nothing was listening for it before,
+    // so a status change (picked up, delivered) only ever reached the
+    // customer whenever the parent's own 8-second poll happened to catch
+    // up, never instantly. That poll stays exactly as it was — this is
+    // an addition, not a replacement. Reusing the same socket connection
+    // already open for position updates rather than opening a second one.
+    socket.on('delivery:status', (d: any) => {
+      if (d?.deliveryId !== deliveryId) return;
+      if (typeof d.status !== 'string') return;
+      // Safe against duplicates and stale/out-of-order arrivals — this
+      // just re-asserts the delivery's current status; applying the same
+      // value twice, or an old value after a newer one already landed,
+      // changes nothing that matters. The 8-second poll remains the
+      // actual reconciliation path against the backend regardless.
+      onStatusUpdate?.(deliveryId, d.status);
     });
 
     return () => { socket.disconnect(); };

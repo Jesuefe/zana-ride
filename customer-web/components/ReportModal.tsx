@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X, ShieldAlert, MapPinOff, TriangleAlert, CircleHelp } from 'lucide-react';
+import { reportRide } from '../lib/api/trips';
 
 const reasons = [
   { id: 'safety', label: 'I feel unsafe', icon: ShieldAlert },
@@ -10,16 +11,28 @@ const reasons = [
   { id: 'other', label: 'Something else', icon: CircleHelp },
 ];
 
-export default function ReportModal({ onClose }: { onClose: () => void }) {
+export default function ReportModal({ tripId, onClose }: { tripId: string; onClose: () => void }) {
   const [selected, setSelected] = useState<string | null>(null);
+  const [details, setDetails] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selected) return;
-    // TODO: wire to a real /trips/:id/report endpoint once the backend
-    // supports it — for now this confirms the flow end to end.
-    setSubmitted(true);
-    setTimeout(onClose, 1800);
+    setSubmitting(true);
+    setError('');
+    try {
+      await reportRide(tripId, selected, details.trim() || undefined);
+      setSubmitted(true);
+      setTimeout(onClose, 1800);
+    } catch {
+      // A report failing silently is worse than the person just not
+      // reporting at all — they'd walk away believing it went through.
+      setError('Could not send that. Check your connection and try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -33,7 +46,9 @@ export default function ReportModal({ onClose }: { onClose: () => void }) {
             </div>
             <p className="font-semibold text-gray-900">Report sent</p>
             <p className="text-sm text-zana-muted mt-1">
-              The Zana safety team has been notified with your live trip details.
+              {selected === 'safety'
+                ? 'Zana Safety has been notified along with your trip details.'
+                : 'Zana has recorded this with your trip details and will follow up.'}
             </p>
           </div>
         ) : (
@@ -62,12 +77,25 @@ export default function ReportModal({ onClose }: { onClose: () => void }) {
               ))}
             </div>
 
+            {selected === 'other' && (
+              <textarea
+                value={details}
+                onChange={e => setDetails(e.target.value)}
+                placeholder="Tell us what happened"
+                rows={3}
+                className="w-full mt-3 border-1.5 border-zana-border rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-zana-primary"
+                style={{ borderWidth: 1.5 }}
+              />
+            )}
+
+            {error && <p className="text-xs text-zana-error mt-3">{error}</p>}
+
             <button
               onClick={handleSubmit}
-              disabled={!selected}
+              disabled={!selected || submitting}
               className="w-full mt-5 bg-zana-error text-white font-semibold py-3 rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
             >
-              Send report to Zana Safety
+              {submitting ? 'Sending…' : 'Send report to Zana Safety'}
             </button>
           </>
         )}

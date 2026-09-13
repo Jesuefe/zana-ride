@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Settings, ShieldCheck, FileText, CircleHelp, LogOut, ChevronRight, Globe, MapPin, Star } from 'lucide-react';
+import { User, Settings, ShieldCheck, FileText, CircleHelp, LogOut, ChevronRight, Globe, MapPin, Star, Check } from 'lucide-react';
+import { useLang } from '../../lib/LangContext';
+import { Lang, LANG_LABELS } from '../../lib/lang';
 import Link from 'next/link';
-import LanguageSelector from '../../components/LanguageSelector';
 import { fetchMe, ApiUser } from '../../lib/api/auth';
 import { clearToken } from '../../lib/api/client';
 
@@ -17,7 +18,11 @@ const menuItems = [
   { icon: CircleHelp, label: 'Help & support', href: '/profile/help' },
 ];
 
+const LANGS: Lang[] = ['en', 'fr', 'rw'];
+
 export default function ProfilePage() {
+  const { lang, setLang } = useLang();
+  const [showLangPicker, setShowLangPicker] = useState(false);
   const router = useRouter();
   const [user, setUser] = useState<ApiUser | null>(null);
 
@@ -50,7 +55,40 @@ export default function ProfilePage() {
             <ChevronRight size={15} className="text-zana-muted" />
           </Link>
         ))}
+        <button
+          onClick={() => setShowLangPicker(true)}
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+        >
+          <Globe size={18} className="text-gray-700" />
+          <span className="flex-1 text-sm text-gray-900">Language</span>
+          <span className="text-xs text-zana-muted">{LANG_LABELS[lang]}</span>
+          <ChevronRight size={15} className="text-zana-muted" />
+        </button>
       </div>
+
+      {showLangPicker && (
+        <div className="fixed inset-0 z-50 flex items-end" onClick={() => setShowLangPicker(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative w-full bg-white rounded-t-3xl p-2 pb-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto my-3" />
+            {LANGS.map(l => (
+              <button
+                key={l}
+                onClick={() => { setLang(l); setShowLangPicker(false); }}
+                className="w-full flex items-center justify-between px-4 py-3.5 text-left rounded-xl active:bg-gray-50"
+              >
+                <span className={`text-sm ${lang === l ? 'font-bold text-zana-primary' : 'text-gray-900'}`}>
+                  {LANG_LABELS[l]}
+                </span>
+                {lang === l && <Check size={16} className="text-zana-primary" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <button
         onClick={handleLogout}

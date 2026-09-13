@@ -77,6 +77,7 @@ function TrackingContent() {
   const [trip, setTrip] = useState<ApiTrip | null>(null);
   const [groupTrips, setGroupTrips] = useState<GroupTrip[]>([]);
   const [showReport, setShowReport] = useState(false);
+  const [cancelError, setCancelError] = useState('');
   const [callNotice, setCallNotice] = useState('');
   const [showChat, setShowChat] = useState(false);
   const [sosSent, setSosSent] = useState(false);
@@ -261,13 +262,28 @@ function TrackingContent() {
     rideIsActive,
   );
 
+  const rideInProgress = status === 'RIDE_IN_PROGRESS';
+
   const handleCancel = async () => {
-    if (groupId) {
-      await Promise.all(groupTrips.map((t) => cancelRide(t.id).catch(() => {})));
-    } else if (tripId) {
-      await cancelRide(tripId).catch(() => {});
+    // Once a ride is actually under way it can't just be undone — the
+    // button routes to reporting a problem instead (see the render below).
+    if (rideInProgress) { setShowReport(true); return; }
+
+    setCancelError('');
+    try {
+      if (groupId) {
+        await Promise.all(groupTrips.map((t) => cancelRide(t.id)));
+      } else if (tripId) {
+        await cancelRide(tripId);
+      }
+      router.push('/');
+    } catch (e: any) {
+      // A cancel that silently fails leaves someone standing at the
+      // roadside believing a ride they don't want is no longer coming.
+      setCancelError(e?.message?.includes('RIDE_ALREADY_IN_PROGRESS')
+        ? 'This ride has already started — report a problem instead.'
+        : 'Could not cancel. Try again.');
     }
-    router.push('/');
   };
 
   const showRouteBanner = status === 'DRIVER_EN_ROUTE' || status === 'RIDE_IN_PROGRESS';
@@ -382,19 +398,29 @@ function TrackingContent() {
                 }
               }} />}
 
+        {cancelError && <p className="text-xs text-zana-error text-center mt-4">{cancelError}</p>}
+
         <button
           onClick={status === 'RIDE_COMPLETED' || allCompleted ? () => setShowRating(true) : handleCancel}
           className={`w-full mt-6 py-3.5 rounded-xl font-semibold transition-transform active:scale-[0.98] ${
             status === 'RIDE_COMPLETED' || allCompleted
               ? 'bg-zana-primary text-white'
-              : 'border border-zana-primary text-zana-primary'
+              : rideInProgress
+                ? 'border border-zana-error text-zana-error'
+                : 'border border-zana-primary text-zana-primary'
           }`}
         >
-          {status === 'RIDE_COMPLETED' || allCompleted ? 'Rate your ride' : 'Cancel Ride'}
+          {status === 'RIDE_COMPLETED' || allCompleted
+            ? 'Rate your ride'
+            : rideInProgress
+              ? 'Report a problem'
+              : 'Cancel Ride'}
         </button>
       </div>
 
-      {showReport && <ReportModal onClose={() => setShowReport(false)} />}
+      {showReport && primaryTrip && (
+        <ReportModal tripId={primaryTrip.id} onClose={() => setShowReport(false)} />
+      )}
       {showRating && primaryTrip && (
         <RatingModal
           tripId={primaryTrip.id}

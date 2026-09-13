@@ -144,6 +144,9 @@ function OrdersContent() {
                     pickup={{ lat: (d as any).pickupLat, lng: (d as any).pickupLng }}
                     dropoff={{ lat: (d as any).dropoffLat, lng: (d as any).dropoffLng }}
                     status={d.status}
+                    onStatusUpdate={(id, newStatus) => {
+                      setDeliveries(prev => prev.map(x => x.id === id ? { ...x, status: newStatus as any } : x));
+                    }}
                   />
                 </div>
               )}

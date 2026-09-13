@@ -84,6 +84,10 @@ export async function cancelRide(id: string) {
   return api.post<ApiTrip>(`/rides/${id}/cancel`);
 }
 
+export async function reportRide(id: string, reason: string, details?: string) {
+  return api.post<{ id: string }>(`/rides/${id}/report`, { reason, details });
+}
+
 export async function fetchWallet() {
   return api.get<{ balance: number; transactions: { id: string; amount: number; reference: string | null; createdAt: string; status: string }[] }>(
     '/wallet/me',
