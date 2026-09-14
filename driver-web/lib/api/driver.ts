@@ -75,6 +75,27 @@ export async function fetchSearchingTrips() {
   return api.get<DriverTrip[]>('/driver/rides/searching');
 }
 
+export type RideOffer = {
+  id: string;
+  tripId: string;
+  distanceKm: number;
+  offeredAt: string;
+  expiresAt: string;
+  trip: DriverTrip;
+};
+
+// Replaces the old shared-list polling above with the driver's own real,
+// individual offers — each one exists whether or not the app happens to
+// be open to see it, rather than just whatever's currently in a shared
+// list at the moment of asking.
+export async function fetchMyOffers() {
+  return api.get<RideOffer[]>('/driver/rides/offers');
+}
+
+export async function declineOffer(offerId: string) {
+  return api.post(`/driver/rides/offers/${offerId}/decline`);
+}
+
 export async function fetchMyActiveTrip() {
   return api.get<DriverTrip | null>('/driver/rides/active');
 }

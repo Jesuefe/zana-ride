@@ -6,12 +6,15 @@ import { Menu, Bell, MapPin, Navigation, ChevronRight, X } from 'lucide-react';
 import LanguageSelector from '../components/LanguageSelector';
 import { useLang } from '../lib/LangContext';
 import {
-  fetchMyDriverProfile, fetchSearchingTrips, acceptTrip,
+  fetchMyDriverProfile, acceptTrip,
   goOnline, goOffline, updateDriverLocation, updateDriverMode,
   fetchPendingDeliveries, acceptDelivery, fetchEarnings, fetchMyActiveTrip,
   fetchRecentlyCompletedRide, logRecoveryEvent,
+  fetchMyOffers, declineOffer, RideOffer,
   DriverProfile, DriverTrip, PendingDelivery,
 } from '../lib/api/driver';
+import { io } from 'socket.io-client';
+import { getToken } from '../lib/api/client';
 import { getCurrentPosition, watchPosition, Coords } from '../lib/location';
 import { api } from '../lib/api/client';
 import { loadGoogleMaps } from '../lib/mapsLoader';
@@ -208,8 +211,11 @@ export default function DriverHome() {
   // impossible by construction instead of needing careful sequencing.
   const [topBannerError, setTopBannerError] = useState('');
   const [coords, setCoords] = useState<Coords | null>(null);
-  const [incoming, setIncoming] = useState<DriverTrip | null>(null);
-  const [countdown, setCountdown] = useState(TIMEOUT);
+  // Was a single incoming ride at a time — now a real list, each entry a
+  // genuine, individually-tracked offer from the backend, not just
+  // whatever happened to be first in a shared queue.
+  const [offers, setOffers] = useState<RideOffer[]>([]);
+  const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(false);
   const [showMode, setShowMode] = useState(false);
   const [driverMode, setDriverMode] = useState<'RIDES' | 'DELIVERIES' | 'BOTH'>('BOTH');
@@ -325,25 +331,52 @@ export default function DriverHome() {
     return stop;
   }, [online]);
 
-  // Poll for ride requests
+  // Real, individual offers now — a WebSocket push the instant one
+  // arrives, with a plain fetch of the driver's own current offers as
+  // the fallback/reconciliation path if that connection ever drops or
+  // misses something, same layered pattern used elsewhere in this app.
   useEffect(() => {
-    if (!online || driverMode === 'DELIVERIES') return;
-    const interval = setInterval(async () => {
-      if (incoming) return;
-      try {
-        const trips = await fetchSearchingTrips();
-        const newTrip = trips.find(t => !seenIds.current.has(t.id));
-        if (newTrip) { seenIds.current.add(newTrip.id); setIncoming(newTrip); setCountdown(TIMEOUT); }
-      } catch {}
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [online, incoming, driverMode]);
+    if (!online || driverMode === 'DELIVERIES') { setOffers([]); return; }
+
+    const load = () => fetchMyOffers().then(setOffers).catch(() => {});
+    load();
+    const interval = setInterval(load, 5000);
+
+    const token = getToken();
+    let socket: ReturnType<typeof io> | undefined;
+    if (token) {
+      socket = io(process.env.NEXT_PUBLIC_API_URL ?? 'https://zana.ajumalink.com', {
+        auth: { token },
+        transports: ['websocket'],
+      });
+      socket.on('ride:offer', () => load());
+    }
+
+    return () => {
+      clearInterval(interval);
+      socket?.disconnect();
+    };
+  }, [online, driverMode]);
+
+  // Ticks once a second so every offer's own countdown — each has its own
+  // real expiresAt from the backend, not one shared timer — stays live,
+  // and quietly drops any that have genuinely run out without waiting on
+  // a server round-trip to notice.
+  useEffect(() => {
+    if (offers.length === 0) return;
+    const t = setInterval(() => {
+      const n = Date.now();
+      setNow(n);
+      setOffers(prev => prev.filter(o => new Date(o.expiresAt).getTime() > n));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [offers.length]);
 
   // Poll for deliveries
   useEffect(() => {
     if (!online || !coords || driverMode === 'RIDES') return;
     const interval = setInterval(async () => {
-      if (incoming || incomingDelivery) return;
+      if (offers.length > 0 || incomingDelivery) return;
       try {
         const dels = await fetchPendingDeliveries(coords.lat, coords.lng);
         const nd = dels.find(d => !seenIds.current.has(d.id));
@@ -351,15 +384,8 @@ export default function DriverHome() {
       } catch {}
     }, 5000);
     return () => clearInterval(interval);
-  }, [online, coords, incoming, incomingDelivery, driverMode]);
+  }, [online, coords, offers.length, incomingDelivery, driverMode]);
 
-  // Countdown for trip request
-  useEffect(() => {
-    if (!incoming) return;
-    if (countdown <= 0) { setIncoming(null); return; }
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [incoming, countdown]);
 
   const handleToggle = async () => {
     if (online) {
@@ -392,16 +418,19 @@ export default function DriverHome() {
     } finally { setLoading(false); }
   };
 
-  const handleAcceptTrip = async () => {
-    if (!incoming) return;
+  const handleAcceptOffer = async (offer: RideOffer) => {
     try {
       // Previously silent — if someone else took the ride first, or the
       // request just failed to reach the server, this used to send the
       // driver to /trip anyway with nothing actually there to show. Now
       // the driver stays here and sees why, instead of landing on a page
       // that looks broken for a reason that had nothing to do with the app.
-      await acceptTrip(incoming.id);
-      setIncoming(null);
+      await acceptTrip(offer.tripId);
+      // Winning one ride means every other ride offer this driver was
+      // holding is now moot — the backend already cancels them on its
+      // side too; this just reflects that immediately rather than
+      // waiting for the next poll to catch up.
+      setOffers([]);
       router.push('/trip');
     } catch (e: any) {
       setTopBannerError(
@@ -410,18 +439,15 @@ export default function DriverHome() {
           : 'Could not accept — check your connection and try again.'
       );
       setTimeout(() => setTopBannerError(''), 4000);
-      setIncoming(null);
+      setOffers(prev => prev.filter(o => o.id !== offer.id));
     }
   };
 
-  // Declining an offer that hasn't been assigned to anyone yet needs no
-  // backend call at all — the trip is broadcast to every eligible driver at
-  // once (see findSearchingTrips), so one driver passing on it must never
-  // change its status for everyone else still considering it. This is
-  // purely local: stop showing it to this driver, already tracked in
-  // seenIds from the moment it first appeared.
-  const handleDeclineTrip = () => {
-    setIncoming(null);
+  const handleDeclineOffer = async (offer: RideOffer) => {
+    // Removed from view immediately — no reason to make the driver watch
+    // out a countdown for something they've already said no to.
+    setOffers(prev => prev.filter(o => o.id !== offer.id));
+    await declineOffer(offer.id).catch(() => {});
   };
 
   const onlineTimeStr = '0h 0m';
@@ -709,59 +735,70 @@ export default function DriverHome() {
         </div>
       )}
 
-      {/* Incoming ride request */}
-      {incoming && (
-        <div className="fixed inset-x-4 bottom-28 z-40">
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-            {/* Countdown bar */}
-            <div className="h-1 bg-gray-100">
-              <div
-                className="h-full bg-zana-primary transition-all duration-1000"
-                style={{ width: `${(countdown / TIMEOUT) * 100}%` }}
-              />
-            </div>
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-zana-primary-light flex items-center justify-center">
-                    <MapPin size={14} className="text-zana-primary" />
+      {/* Incoming ride offers — up to 5 at once, each a real, individually
+          tracked offer rather than a single shared slot. Stacked in a
+          scrollable list rather than each fixed independently, since more
+          than one at the same screen position would just sit on top of
+          each other. */}
+      {offers.length > 0 && (
+        <div className="fixed inset-x-4 bottom-28 z-40 max-h-[65vh] overflow-y-auto space-y-3">
+          {offers.map(offer => {
+            const secondsLeft = Math.max(0, Math.ceil((new Date(offer.expiresAt).getTime() - now) / 1000));
+            const trip = offer.trip;
+            return (
+              <div key={offer.id} className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+                <div className="h-1 bg-gray-100">
+                  <div
+                    className="h-full bg-zana-primary transition-all duration-1000"
+                    style={{ width: `${(secondsLeft / TIMEOUT) * 100}%` }}
+                  />
+                </div>
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-zana-primary-light flex items-center justify-center">
+                        <MapPin size={14} className="text-zana-primary" />
+                      </div>
+                      <p className="text-xs font-bold text-zana-primary uppercase tracking-wide">New ride request</p>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <p className="text-sm font-black text-gray-700">{secondsLeft}</p>
+                    </div>
                   </div>
-                  <p className="text-xs font-bold text-zana-primary uppercase tracking-wide">New ride request</p>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                  <p className="text-sm font-black text-gray-700">{countdown}</p>
+
+                  <div className="space-y-2 mb-3">
+                    <div className="flex items-start gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-zana-primary mt-1.5 shrink-0" />
+                      <p className="text-sm text-gray-700 truncate">{trip.pickupAddress}</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                      <p className="text-sm text-gray-700 truncate">{trip.destinationAddress}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-2xl font-black text-zana-primary">{(trip.estimatedFare ?? 0).toLocaleString()} RWF</p>
+                      <p className="text-xs text-gray-400">
+                        {trip.serviceType} · {(trip as any).paymentMethod ?? 'Cash'} · {offer.distanceKm} km away
+                      </p>
+                    </div>
+                    <button onClick={() => handleDeclineOffer(offer)} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                      <X size={16} className="text-gray-500" />
+                    </button>
+                  </div>
+
+                  <SlideToAccept label="Slide to accept ride" onAccept={() => handleAcceptOffer(offer)} color="#00A082" />
                 </div>
               </div>
-
-              <div className="space-y-2 mb-3">
-                <div className="flex items-start gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-zana-primary mt-1.5 shrink-0" />
-                  <p className="text-sm text-gray-700 truncate">{incoming.pickupAddress}</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                  <p className="text-sm text-gray-700 truncate">{incoming.destinationAddress}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-2xl font-black text-zana-primary">{(incoming.estimatedFare ?? 0).toLocaleString()} RWF</p>
-                  <p className="text-xs text-gray-400">{incoming.serviceType} · {(incoming as any).paymentMethod ?? 'Cash'}</p>
-                </div>
-                <button onClick={handleDeclineTrip} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                  <X size={16} className="text-gray-500" />
-                </button>
-              </div>
-
-              <SlideToAccept label="Slide to accept ride" onAccept={handleAcceptTrip} color="#00A082" />
-            </div>
-          </div>
+            );
+          })}
         </div>
       )}
 
       {/* Incoming delivery */}
-      {incomingDelivery && !incoming && (
+      {incomingDelivery && offers.length === 0 && (
         <div className="fixed inset-x-4 bottom-28 z-40">
           <div className="bg-white rounded-3xl shadow-2xl p-4">
             <p className="text-xs font-bold text-amber-600 uppercase tracking-wide mb-3">Delivery Request</p>
