@@ -1,19 +1,21 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import SosListener from '../components/SosListener';
+import { ThemeProvider } from '../lib/ThemeContext';
 import "./globals.css";
-import Sidebar from "../components/Sidebar";
 
-export const metadata: Metadata = {
-  title: "Zana Admin",
-  description: "Zana Ride operations dashboard",
+export const metadata: Metadata = { title: "Zana Admin" };
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex bg-background text-foreground font-sans">
-        <Sidebar />
-        <div className="flex-1 min-w-0">{children}</div>
-      </body>
+    <html lang="en">
+      <body className="overflow-x-hidden"><ThemeProvider>{children}<SosListener /></ThemeProvider></body>
     </html>
   );
 }
