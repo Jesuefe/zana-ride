@@ -331,6 +331,30 @@ export default function DriverHome() {
     return stop;
   }, [online]);
 
+  // The watch above only reports a new position after the driver moves
+  // roughly 15 meters — deliberately, so an actively-driving trip isn't
+  // spamming updates every second. But an online, stationary driver
+  // waiting for work is the single most common real state there is, and
+  // that same distance filter means their stored position never
+  // refreshes again after the first reading the moment they stop
+  // moving — found by a tester whose reported location stayed on the
+  // other side of the world from where dispatch was actually looking.
+  // A driver who genuinely isn't moving still needs to stay findable, so
+  // this guarantees a fresh reading on a plain timer too, independent of
+  // whether they've physically gone anywhere.
+  useEffect(() => {
+    if (!online) return;
+    const interval = setInterval(() => {
+      getCurrentPosition().then(c => {
+        if (c) {
+          setCoords(c);
+          updateDriverLocation(c.lat, c.lng).catch(() => {});
+        }
+      });
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [online]);
+
   // Real, individual offers now — a WebSocket push the instant one
   // arrives, with a plain fetch of the driver's own current offers as
   // the fallback/reconciliation path if that connection ever drops or
