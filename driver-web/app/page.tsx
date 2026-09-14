@@ -15,6 +15,7 @@ import {
 import { getCurrentPosition, watchPosition, Coords } from '../lib/location';
 import { api } from '../lib/api/client';
 import { loadGoogleMaps } from '../lib/mapsLoader';
+import { ZANA_MAP_STYLE } from '../lib/mapStyle';
 
 const TIMEOUT = 20;
 
@@ -221,20 +222,39 @@ export default function DriverHome() {
   const seenIds = useRef(new Set<string>());
 
   // Init map
+  // Previously started loading the full Maps SDK the instant this
+  // component mounted, completely independent of whether the driver was
+  // even about to stay on this screen at all. A driver with a genuinely
+  // active ride or delivery gets redirected away entirely by the
+  // recovery check above — in that whole, very common case, this was
+  // pure wasted bandwidth and CPU for a map that would never actually be
+  // seen, competing for the same connection as the recovery check itself
+  // right when speed matters most. Now waits until we actually know
+  // we're staying on this screen before spending anything on it.
   useEffect(() => {
+    if (checkingActiveRide) return;
     loadGoogleMaps().then(() => {
       if (!mapRef.current || googleMapRef.current) return;
       const G = (window as any).google.maps;
       googleMapRef.current = new G.Map(mapRef.current, {
         center: { lat: -1.9536, lng: 30.0605 },
         zoom: 15,
-        mapId: 'zana_driver_home',
+        // Was mapId: 'zana_driver_home' — a Cloud-configured style ID
+        // this API loading setup was never actually built to support
+        // (the loader's own comment says as much, and the trip/delivery
+        // map already learned this exact lesson and avoids it). A mapId
+        // and inline styles are mutually exclusive — passing one means
+        // any real styling gets silently dropped, which combined with
+        // this app's dark theme is very likely why the screen looked
+        // like a plain dark rectangle instead of an actual map. This
+        // real, on-brand style already existed — just never wired in.
+        styles: ZANA_MAP_STYLE,
         disableDefaultUI: true,
         gestureHandling: 'greedy',
         zoomControl: false,
       });
     });
-  }, []);
+  }, [checkingActiveRide]);
 
   // Update marker when coords change
   useEffect(() => {
