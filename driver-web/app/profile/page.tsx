@@ -6,6 +6,7 @@ import LanguageSelector from '../../components/LanguageSelector';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Star, Car, Truck, TrendingUp, Calendar, AlertTriangle, CheckCircle, LogOut } from 'lucide-react';
 import { api, clearToken } from '../../lib/api/client';
+import { goOffline } from '../../lib/api/driver';
 import { fetchMyDriverProfile } from '../../lib/api/driver';
 
 type DriverStats = {
@@ -160,7 +161,20 @@ export default function DriverProfilePage() {
         </div>
 
         <button
-          onClick={() => { clearToken(); router.replace('/login'); }}
+          onClick={async () => {
+            // Was only ever clearing the local token — the backend never
+            // learned the driver had logged out at all, so its own
+            // record of their online status just sat wherever it last
+            // was. A driver could log back in later and see themselves
+            // as "online" simply because nothing had ever told the
+            // server otherwise — and worse, could still be matched to a
+            // real ride or delivery while logged out, with no way to see
+            // or respond to it. Never let a failed request here trap
+            // someone unable to log out, though — this always proceeds.
+            await goOffline().catch(() => {});
+            clearToken();
+            router.replace('/login');
+          }}
           className="w-full flex items-center justify-center gap-2 bg-white rounded-2xl shadow-sm px-4 py-3.5 text-red-600 font-semibold text-sm"
         >
           <LogOut size={16} />

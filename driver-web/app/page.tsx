@@ -120,6 +120,17 @@ export default function DriverHome() {
     // before ever falling through to the normal home screen.
     const attempt = async (tries: number): Promise<void> => {
       try {
+        // The ride check and the delivery check don't depend on each
+        // other's result at all — nothing about one changes how the
+        // other should run. They were previously awaited one after the
+        // other anyway, meaning every single app launch paid for two
+        // full round-trips in sequence before anything could render,
+        // even in the ordinary case of no active job at all. Firing the
+        // delivery check immediately, in parallel with the ride check,
+        // rather than only starting it after the ride check finishes,
+        // cuts that common-case wait roughly in half.
+        const deliveryCheck = api.get<{ id: string } | null>('/driver/deliveries/active').catch(() => null);
+
         const trip = await fetchMyActiveTrip();
         if (cancelled) return;
         if (trip) {
@@ -134,20 +145,22 @@ export default function DriverHome() {
         // A driver mid-way through a delivery batch who force-closed and
         // reopened the app would land right here on the normal home
         // screen, exactly the failure this whole recovery system exists
-        // to prevent, just for the other half of the app.
-        try {
-          const activeDelivery = await api.get<{ id: string } | null>('/driver/deliveries/active');
-          if (activeDelivery && !cancelled) {
-            logRecoveryEvent('ACTIVE_DELIVERY_FOUND', activeDelivery.id);
-            router.replace('/delivery?recovered=1');
-            return;
-          }
-        } catch {}
+        // to prevent, just for the other half of the app. This was
+        // already in flight above, so there's nothing left to wait for
+        // here in the common case — its result is likely already back.
+        const activeDelivery = await deliveryCheck;
+        if (activeDelivery && !cancelled) {
+          logRecoveryEvent('ACTIVE_DELIVERY_FOUND', activeDelivery.id);
+          router.replace('/delivery?recovered=1');
+          return;
+        }
 
         // No active ride and no active delivery — but that's also exactly
         // what things look like if the app crashed the instant after a
         // ride finished, before the driver ever saw it worked. Check for
         // that specific case before just showing the normal home screen.
+        // Genuinely has to wait for both checks above first — there's no
+        // point asking this until we already know neither is active.
         try {
           const recent = await fetchRecentlyCompletedRide();
           if (recent && !cancelled) {
