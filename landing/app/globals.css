@@ -1,19 +1,22 @@
 /* ── Zana landing ───────────────────────────────────────────────────────────
-   The logo is a road with lane markings and a destination pin. So the page
-   is built as a journey: one yellow road runs its full height, and each
-   service is a stop along it. That is the only ornament here — everything
-   else stays quiet so the road carries the page.                            */
+   Same idea as before — the logo is a road with a destination pin, so the
+   page is a journey — just told in the dark, glowing network language now
+   shared with the company page: the road becomes a glowing spine, each
+   stop a node that lights as you reach it, the pin a travelling glow
+   rather than a flat marker. The scroll mechanic underneath is unchanged;
+   only what it looks like has.                                            */
 
 :root {
-  --asphalt: #23262B;   /* tarmac, not a tinted black */
-  --asphalt-deep: #191C20;
-  --paper: #F5F3EF;
-  --yellow: #FEC708;    /* the road */
-  --green: #59B02D;     /* the destination */
-  --ink: #14161A;
-  --muted: #8A8F96;
+  --night: #070D0B;
+  --night-alt: #0A1712;
+  --line-dim: #15251F;
+  --green: #00A082;
+  --green-glow: rgba(0, 160, 130, 0.55);
+  --yellow: #FFC244;
+  --paper: #EAF2EE;
+  --muted: #6B7D76;
 
-  --road-x: 8vw;        /* where the road sits on wide screens */
+  --road-x: 8vw;        /* where the spine sits on wide screens */
   --measure: 62ch;
 }
 
@@ -22,7 +25,7 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background: var(--asphalt);
+  background: var(--night);
   color: var(--paper);
   font-family: Archivo, system-ui, -apple-system, sans-serif;
   font-size: 17px;
@@ -50,16 +53,15 @@ body {
   font-size: clamp(1.05rem, 2.2vw, 1.35rem);
   line-height: 1.5;
   max-width: 34ch;
-  color: #C9CDD3;
+  color: #AEBDB6;
 }
 
-.body { max-width: var(--measure); color: #B6BBC2; }
+.body { max-width: var(--measure); color: #93A39C; }
 
-/* ── The road ───────────────────────────────────────────────────────────────
-   A fixed rail down the left. The whole route is always visible, the stops
-   ahead of you are marked, and the yellow fills in behind as you travel. It
-   sits above the section backgrounds but the content column starts well clear
-   of it, so nothing is ever covered.                                        */
+/* ── The spine ──────────────────────────────────────────────────────────────
+   A fixed rail down the left, same as before — the whole route stays
+   visible, stops ahead are marked, and the green glow fills in behind you
+   as you travel, instead of a flat yellow bar.                            */
 
 .rail { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
 
@@ -67,12 +69,11 @@ body {
   position: absolute;
   top: 0;
   left: var(--road-x);
-  width: 4px;
+  width: 2px;
   height: 100dvh;
-  background: rgba(130, 136, 145, 0.35);
+  background: var(--line-dim);
 }
 
-/* Lane markings, so it reads as a road rather than a progress bar */
 .road-lane {
   position: absolute;
   top: 0;
@@ -81,19 +82,19 @@ body {
   height: 100dvh;
   background: repeating-linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.55) 0 12px,
+    rgba(234, 242, 238, 0.18) 0 12px,
     transparent 12px 30px
   );
-  opacity: 0.45;
 }
 
-/* The travelled portion */
+/* The travelled portion — glowing, not flat */
 .road-fill {
   position: absolute;
   top: 0;
   left: var(--road-x);
-  width: 4px;
-  background: var(--yellow);
+  width: 2px;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green), 0 0 14px var(--green-glow);
   will-change: height;
 }
 
@@ -101,29 +102,30 @@ body {
 .stop-marker {
   position: absolute;
   left: var(--road-x);
-  width: 13px;
-  height: 13px;
-  margin-left: -4.5px;
-  margin-top: -6.5px;
+  width: 12px;
+  height: 12px;
+  margin-left: -5px;
+  margin-top: -6px;
   border-radius: 50%;
-  background: var(--asphalt);
-  border: 3px solid rgba(130, 136, 145, 0.55);
-  transition: border-color 260ms ease, background 260ms ease;
+  background: var(--night);
+  border: 2px solid var(--line-dim);
+  transition: border-color 260ms ease, background 260ms ease, box-shadow 260ms ease;
 }
 .stop-marker.passed {
-  border-color: var(--yellow);
-  background: var(--yellow);
+  border-color: var(--green);
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
 }
 
-/* The pin travels with you */
+/* The pin travels with you — a travelling glow now rather than a flat icon */
 .pin {
   position: absolute;
   left: var(--road-x);
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   margin-left: -13px;
-  margin-top: -26px;
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
+  margin-top: -24px;
+  filter: drop-shadow(0 0 6px var(--yellow));
   will-change: top;
 }
 
@@ -139,12 +141,14 @@ body {
   padding: 0 6vw 0 calc(var(--road-x) + 5vw);
   position: relative;
   z-index: 5;
+  background: radial-gradient(ellipse 80% 60% at 15% 40%, rgba(0, 160, 130, 0.10) 0%, transparent 60%);
 }
 
 .stop {
   position: relative;
   padding: clamp(6rem, 14vh, 11rem) 6vw clamp(6rem, 14vh, 11rem) calc(var(--road-x) + 5vw);
   z-index: 5;
+  background: var(--night);
 }
 
 /* Alternate sides, like buildings along a street */
@@ -152,12 +156,12 @@ body {
   padding-left: calc(var(--road-x) + 22vw);
 }
 
+/* Was a flip to a light/cream background — now a quieter tonal shift, so
+   the whole page stays in the same dark register rather than breaking the
+   cinematic feel every other section. */
 .stop--light {
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--night-alt);
 }
-.stop--light .body { color: #4A4F57; }
-.stop--light .stop-num { color: var(--muted); }
 
 .scroll-hint {
   position: absolute;
@@ -174,7 +178,7 @@ body {
 .arrow-down {
   width: 1px;
   height: 26px;
-  background: linear-gradient(to bottom, var(--yellow), transparent);
+  background: linear-gradient(to bottom, var(--green), transparent);
 }
 
 /* ── Service stop content ───────────────────────────────────────────────── */
@@ -182,11 +186,9 @@ body {
 .stop-kicker {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--yellow);
+  color: var(--green);
   margin-bottom: 0.9rem;
 }
-
-.stop--light .stop-kicker { color: var(--green); }
 
 .stop-body { margin-top: 1.4rem; }
 
@@ -201,6 +203,7 @@ body {
   font-variation-settings: 'wdth' 112, 'wght' 700;
   font-size: 1.6rem;
   line-height: 1.1;
+  color: var(--paper);
 }
 .fact-label { font-size: 0.85rem; color: var(--muted); margin-top: 0.15rem; }
 
@@ -213,8 +216,9 @@ body {
   flex-direction: column;
   justify-content: center;
   padding: 0 6vw 0 calc(var(--road-x) + 5vw);
-  background: var(--asphalt-deep);
+  background: radial-gradient(ellipse 90% 70% at 20% 50%, rgba(0, 160, 130, 0.14) 0%, var(--night-alt) 65%);
   z-index: 5;
+  overflow: hidden;
 }
 
 .cta-row {
@@ -232,25 +236,25 @@ body {
   font-weight: 700;
   font-size: 0.98rem;
   text-decoration: none;
-  transition: transform 140ms ease, background 140ms ease;
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
 }
 .btn:hover { transform: translateY(-2px); }
 .btn:focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
 
-.btn--primary { background: var(--yellow); color: var(--ink); }
+.btn--primary { background: var(--green); color: var(--night); }
 .btn--ghost {
-  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  border: 1.5px solid var(--line-dim);
   color: var(--paper);
 }
-.btn--ghost:hover { background: rgba(255, 255, 255, 0.06); }
+.btn--ghost:hover { border-color: var(--green); background: rgba(0, 160, 130, 0.08); }
 
 /* ── Footer ─────────────────────────────────────────────────────────────── */
 
 .foot {
   position: relative;
   z-index: 5;
-  background: var(--asphalt-deep);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--night-alt);
+  border-top: 1px solid var(--line-dim);
   padding: 3rem 6vw 3.5rem calc(var(--road-x) + 5vw);
   display: flex;
   flex-wrap: wrap;
@@ -261,8 +265,8 @@ body {
   color: var(--muted);
 }
 
-.foot a { color: #C9CDD3; text-decoration: none; }
-.foot a:hover { color: var(--yellow); }
+.foot a { color: #AEBDB6; text-decoration: none; }
+.foot a:hover { color: var(--green); }
 .foot-links { display: flex; flex-wrap: wrap; gap: 1.6rem; }
 
 /* ── Reveal — the one entrance, used sparingly ──────────────────────────── */
@@ -275,7 +279,7 @@ body {
 }
 .reveal.in { opacity: 1; transform: none; }
 
-/* ── Small screens: the road moves to the edge ──────────────────────────── */
+/* ── Small screens: the spine moves to the edge ─────────────────────────── */
 
 @media (max-width: 760px) {
   :root {
@@ -292,27 +296,22 @@ body {
   .stop--right { padding-left: calc(var(--road-x) + 20px); }
   .scroll-hint { left: calc(var(--road-x) + 20px); bottom: 2.2rem; }
 
-  .pin { width: 24px; height: 24px; margin-left: -10px; margin-top: -21px; }
-  .stop-marker { width: 11px; height: 11px; margin-left: -3.5px; }
+  .pin { width: 22px; height: 22px; margin-left: -11px; margin-top: -20px; }
+  .stop-marker { width: 10px; height: 10px; margin-left: -4px; }
 
-  /* Give the display words more of the screen — they are the point. */
   .d-hero { font-size: clamp(3.9rem, 19vw, 6rem); }
-  /* The longest word here is ANYTHING. — sized so it clears the edge. */
   .d-stop { font-size: clamp(2.6rem, 13vw, 4.2rem); }
   .d-end  { font-size: clamp(2.6rem, 13vw, 4.2rem); }
 
-  /* Long lines are the main readability problem at this width. */
   .lede { font-size: 1.02rem; max-width: 30ch; }
   .body { font-size: 0.97rem; line-height: 1.62; }
 
-  /* Sections were losing most of a screen to padding. */
   .stop { padding-top: 4.5rem; padding-bottom: 4.5rem; }
   .finish { min-height: auto; padding-top: 5rem; padding-bottom: 5rem; }
   .hero { min-height: 92svh; }
 
   .stop-body { margin-top: 1.1rem; }
 
-  /* Facts sit side by side rather than stacking into a long list. */
   .facts {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -322,7 +321,6 @@ body {
   .fact-value { font-size: 1.15rem; }
   .fact-label { font-size: 0.78rem; }
 
-  /* Equal-width buttons read as a pair rather than two odd shapes. */
   .cta-row { flex-direction: column; align-items: stretch; gap: 0.7rem; margin-top: 2rem; }
   .btn { justify-content: center; padding: 1.05rem 1.4rem; }
 
@@ -353,10 +351,7 @@ body {
   .btn:hover { transform: none; }
 }
 
-/* ── Lockup ─────────────────────────────────────────────────────────────────
-   The supplied wordmark is white letterforms with soft edges, so it ghosts on
-   a dark ground. The Z mark is solid colour and holds up, so it pairs with
-   typed letters instead.                                                     */
+/* ── Lockup ─────────────────────────────────────────────────────────────── */
 
 .lockup {
   display: inline-flex;
@@ -387,9 +382,9 @@ body {
 }
 
 /* ── Legal pages ────────────────────────────────────────────────────────────
-   Read when something has gone wrong, or by a store reviewer checking
-   compliance. Legibility over art direction: a light ground, a proper
-   measure, and generous spacing between sections.                           */
+   Unchanged — read when something has gone wrong, or by a store reviewer
+   checking compliance. Legibility over art direction, on its own light
+   ground regardless of what the rest of the site looks like.              */
 
 .legal {
   background: var(--paper, #F5F3EF);

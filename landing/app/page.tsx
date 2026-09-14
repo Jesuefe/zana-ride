@@ -133,9 +133,9 @@ export default function Landing() {
         <svg className="pin" style={{ top: `${progress * 100}dvh` }} viewBox="0 0 30 30">
           <path
             d="M15 3c4.4 0 8 3.5 8 7.9 0 5.6-8 15.1-8 15.1S7 16.5 7 10.9C7 6.5 10.6 3 15 3z"
-            fill="#59B02D"
+            fill="#FFC244"
           />
-          <circle cx="15" cy="10.8" r="3.1" fill="#F5F3EF" />
+          <circle cx="15" cy="10.8" r="3.1" fill="#070D0B" />
         </svg>
       </div>
 
