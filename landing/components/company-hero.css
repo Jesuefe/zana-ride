@@ -1,0 +1,184 @@
+/* ── Company hero tokens ─────────────────────────────────────────────────
+   A different register from the customer page on purpose: darker, more
+   restrained, built around the official Zana green rather than this
+   site's warmer local palette — this page is talking to people deciding
+   whether to fund the network, not people booking a ride.            */
+
+.company-hero {
+  --night: #06100D;
+  --night-deep: #030805;
+  --line-dim: #12261F;
+  --zana-green: #00A082;
+  --zana-green-soft: rgba(0, 160, 130, 0.35);
+  --zana-yellow: #FFC244;
+  --paper: #EAF2EE;
+  --muted: #5D7069;
+
+  position: relative;
+  min-height: 100vh;
+  background: radial-gradient(ellipse 120% 90% at 50% 20%, var(--night) 0%, var(--night-deep) 70%);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.company-hero__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 55% 62%, var(--zana-green-soft) 0%, transparent 45%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ── Wordmark lockup ───────────────────────────────────────────────────── */
+
+.company-hero__lockup {
+  position: absolute;
+  text-align: center;
+  z-index: 3;
+}
+
+.company-hero__mark {
+  font-family: Archivo, system-ui, sans-serif;
+  font-variation-settings: 'wdth' 92, 'wght' 800;
+  font-size: clamp(3.2rem, 11vw, 7rem);
+  color: var(--paper);
+  line-height: 0.9;
+}
+
+.company-hero__tagline {
+  margin-top: 0.6rem;
+  font-family: Archivo, system-ui, sans-serif;
+  font-variation-settings: 'wdth' 105, 'wght' 400;
+  font-size: clamp(1rem, 2.4vw, 1.3rem);
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+/* ── Network ───────────────────────────────────────────────────────────── */
+
+.company-hero__network {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4vw;
+  z-index: 2;
+}
+
+.company-hero__svg {
+  width: min(100%, 1200px);
+  aspect-ratio: 1200 / 520;
+  height: auto;
+}
+
+.company-hero__route-base {
+  fill: none;
+  stroke: var(--line-dim);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.company-hero__route-line {
+  fill: none;
+  stroke: var(--zana-green);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px var(--zana-green)) drop-shadow(0 0 14px var(--zana-green-soft));
+}
+
+.company-hero__node {
+  fill: var(--night-deep);
+  stroke: var(--line-dim);
+  stroke-width: 2;
+}
+
+.company-hero__node--lit {
+  fill: var(--zana-green);
+  stroke: var(--zana-green);
+  filter: drop-shadow(0 0 10px var(--zana-green));
+}
+
+.company-hero__node-label {
+  font-family: Archivo, system-ui, sans-serif;
+  font-variation-settings: 'wdth' 100, 'wght' 650;
+  font-size: 22px;
+  fill: var(--paper);
+}
+
+/* ── Final state ───────────────────────────────────────────────────────── */
+
+.company-hero__final {
+  position: absolute;
+  bottom: 9%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 3;
+  padding: 0 1.5rem;
+}
+
+.company-hero__final h1 {
+  font-family: Archivo, system-ui, sans-serif;
+  font-variation-settings: 'wdth' 100, 'wght' 700;
+  font-size: clamp(1.6rem, 4.2vw, 2.6rem);
+  color: var(--paper);
+  line-height: 1.15;
+  margin-bottom: 1.8rem;
+}
+
+.company-hero__ctas {
+  display: flex;
+  gap: 0.9rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.company-hero__cta {
+  display: inline-block;
+  padding: 0.85rem 1.7rem;
+  border-radius: 999px;
+  font-family: Archivo, system-ui, sans-serif;
+  font-variation-settings: 'wdth' 100, 'wght' 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.company-hero__cta--primary {
+  background: var(--zana-green);
+  color: var(--night-deep);
+}
+
+.company-hero__cta--primary:hover {
+  transform: translateY(-2px);
+}
+
+.company-hero__cta--ghost {
+  border: 1px solid var(--line-dim);
+  color: var(--paper);
+}
+
+.company-hero__cta--ghost:hover {
+  border-color: var(--zana-green);
+}
+
+/* ── Small screens ─────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Counterintuitive but correct: SVG text scales down along with the
+     whole SVG on a narrow viewport, so this needs to go up, not down, to
+     compensate for how much smaller the entire canvas is rendering — the
+     opposite of what a plain CSS font-size media query usually does. */
+  .company-hero__node-label { font-size: 46px; }
+  .company-hero__final { bottom: 6%; }
+  .company-hero__cta--ghost { border-color: var(--muted); }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .company-hero__cta { transition: none; }
+}
