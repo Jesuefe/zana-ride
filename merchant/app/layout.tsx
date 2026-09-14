@@ -1,18 +1,25 @@
 import type { Metadata } from "next";
+import { ThemeProvider } from '../lib/ThemeContext';
+import { LangProvider } from '../lib/LangContext';
+import OrderAlarm from '../components/OrderAlarm';
 import "./globals.css";
-import Sidebar from "../components/Sidebar";
+import AuthGuard from "../components/AuthGuard";
 
 export const metadata: Metadata = {
   title: "Zana Business",
   description: "Zana Business merchant portal",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex bg-background text-foreground font-sans">
-        <Sidebar />
-        <div className="flex-1 min-w-0">{children}</div>
+    <html lang="en" className="h-full">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+      </head>
+      <body className="h-full overflow-x-hidden">
+        <AuthGuard>
+          <LangProvider><ThemeProvider>{children}</ThemeProvider></LangProvider><OrderAlarm />
+        </AuthGuard>
       </body>
     </html>
   );

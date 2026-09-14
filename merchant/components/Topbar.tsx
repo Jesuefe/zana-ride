@@ -17,7 +17,7 @@ export default function Topbar({ title, subtitle }: { title: string; subtitle?: 
           </div>
           <div className="text-sm">
             <div className="font-medium text-gray-900">Ops Admin</div>
-            <div className="text-xs text-zana-muted">Super Admin</div>
+            
           </div>
         </div>
       </div>

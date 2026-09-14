@@ -1,67 +1,114 @@
 'use client';
 
-import { useState } from 'react';
-import { Search } from 'lucide-react';
-import Topbar from '../../components/Topbar';
-import StatusBadge from '../../components/StatusBadge';
-import { merchantDeliveries } from '../../lib/mockData';
+import { useEffect, useState } from 'react';
+import { Package, MapPin, Navigation, Phone } from 'lucide-react';
+import { fetchDeliveries, Delivery } from '../../lib/api/merchant';
+import VoiceCall from '../../components/VoiceCall';
+import { useState as useState2 } from 'react';
+
+const STATUS_LABEL: Record<string, string> = {
+  REQUESTED: 'Finding a courier',
+  COURIER_ASSIGNED: 'Courier assigned',
+  PICKED_UP: 'On the way',
+  DELIVERED: 'Delivered',
+  CANCELLED: 'Cancelled',
+};
+
+const STATUS_STYLE: Record<string, string> = {
+  REQUESTED: 'bg-amber-100 text-amber-700',
+  COURIER_ASSIGNED: 'bg-blue-100 text-blue-700',
+  PICKED_UP: 'bg-blue-100 text-blue-700',
+  DELIVERED: 'bg-green-100 text-green-700',
+  CANCELLED: 'bg-gray-100 text-gray-600',
+};
 
 export default function DeliveriesPage() {
-  const [query, setQuery] = useState('');
+  const [callingDelivery, setCallingDelivery] = useState<Delivery | null>(null);
+  const [deliveries, setDeliveries] = useState<Delivery[] | null>(null);
 
-  const filtered = merchantDeliveries.filter(
-    (d) =>
-      d.receiverName.toLowerCase().includes(query.toLowerCase()) ||
-      d.dropoffAddress.toLowerCase().includes(query.toLowerCase())
-  );
+  useEffect(() => {
+    const load = () => fetchDeliveries().then(setDeliveries).catch(() => setDeliveries([]));
+    load();
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <>
-      <Topbar title="Deliveries" subtitle={`${merchantDeliveries.length} total`} />
-      <div className="p-8">
-        <div className="relative max-w-sm mb-4">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zana-muted" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search receiver or address…"
-            className="w-full pl-9 pr-3 py-2 text-sm border border-zana-border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
-          />
-        </div>
+    <div>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">Deliveries</h1>
+      <p className="text-sm text-gray-500 mb-5">Every package you&apos;ve sent through Zana.</p>
 
-        <div className="bg-zana-surface border border-zana-border rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-zana-muted border-b border-zana-border bg-gray-50">
-                <th className="px-5 py-3 font-medium">Delivery</th>
-                <th className="px-5 py-3 font-medium">Receiver</th>
-                <th className="px-5 py-3 font-medium">Courier</th>
-                <th className="px-5 py-3 font-medium">Fee</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((d) => (
-                <tr key={d.id} className="border-b border-zana-border last:border-0 hover:bg-gray-50">
-                  <td className="px-5 py-3">
-                    <div className="font-medium text-gray-900">{d.id}</div>
-                    <div className="text-xs text-zana-muted">{d.dropoffAddress}</div>
-                  </td>
-                  <td className="px-5 py-3 text-gray-700">
-                    {d.receiverName}
-                    <div className="text-xs text-zana-muted">{d.receiverPhone}</div>
-                  </td>
-                  <td className="px-5 py-3 text-gray-700">{d.courierName ?? '—'}</td>
-                  <td className="px-5 py-3 text-gray-700">{d.fee.toLocaleString()} RWF</td>
-                  <td className="px-5 py-3"><StatusBadge status={d.status} /></td>
-                  <td className="px-5 py-3 text-xs text-zana-muted">{d.date}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {deliveries === null && <p className="text-sm text-gray-500">Loading…</p>}
+
+      {deliveries?.length === 0 && (
+        <div className="flex flex-col items-center justify-center text-center py-16 bg-white rounded-xl">
+          <Package size={26} className="text-gray-300 mb-3" />
+          <p className="text-sm text-gray-500">No deliveries yet.</p>
         </div>
+      )}
+
+      <div className="space-y-3">
+        {deliveries?.map((d) => (
+          <div key={d.id} className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              {d.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={d.imageUrl} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+              ) : (
+                <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                  <Package size={20} className="text-gray-400" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{d.itemDescription}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {d.receiverName ? `${d.receiverName} · ` : ''}
+                      {d.receiverPhone}
+                    </p>
+                  </div>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${STATUS_STYLE[d.status] ?? ''}`}>
+                    {STATUS_LABEL[d.status] ?? d.status}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1.5">
+                  {d.fee.toLocaleString()} RWF · {d.distanceKm} km
+                </p>
+              </div>
+              {d.driver && ['COURIER_ASSIGNED', 'PICKED_UP'].includes(d.status) && (
+                <button
+                  onClick={() => setCallingDelivery(d)}
+                  className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0"
+                  aria-label={`Call ${d.driver.user.firstName ?? 'rider'}`}
+                >
+                  <Phone size={16} className="text-zana-primary" />
+                </button>
+              )}
+            </div>
+
+            <div className="mt-3 space-y-1.5 pl-1 border-t border-gray-100 pt-3">
+              <div className="flex items-start gap-2">
+                <MapPin size={12} className="text-zana-primary mt-0.5 shrink-0" />
+                <p className="text-[11px] text-gray-600 truncate">{d.pickupAddress}</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <Navigation size={12} className="text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-[11px] text-gray-600 truncate">{d.dropoffAddress}</p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
-    </>
+
+      {callingDelivery && (
+        <VoiceCall
+          context="delivery"
+          contextId={callingDelivery.id}
+          participantLabel={callingDelivery.driver?.user.firstName ?? 'Rider'}
+          onClose={() => setCallingDelivery(null)}
+        />
+      )}
+    </div>
   );
 }
