@@ -16,6 +16,7 @@ import {
 import { io } from 'socket.io-client';
 import { getToken } from '../lib/api/client';
 import { getCurrentPosition, watchPosition, Coords } from '../lib/location';
+import { startRideAlert, stopRideAlert } from '../lib/rideAlert';
 import { api } from '../lib/api/client';
 import { loadGoogleMaps } from '../lib/mapsLoader';
 import { ZANA_MAP_STYLE } from '../lib/mapStyle';
@@ -374,6 +375,13 @@ export default function DriverHome() {
         transports: ['websocket'],
       });
       socket.on('ride:offer', () => load());
+      // The instant-removal counterpart to a driver declining — the
+      // customer cancelling should clear it from view (and stop the
+      // alert sounding for it) right away too, not leave it sitting
+      // until its own 20s countdown happens to run out.
+      socket.on('ride:offer-cancelled', (data: { tripId: string }) => {
+        setOffers(prev => prev.filter(o => o.tripId !== data.tripId));
+      });
     }
 
     return () => {
@@ -381,6 +389,23 @@ export default function DriverHome() {
       socket?.disconnect();
     };
   }, [online, driverMode]);
+
+  // One shared alert, tied purely to "is there at least one offer
+  // waiting" rather than to the exact count — a second or third offer
+  // arriving while one is already pending must not start a second,
+  // overlapping alert loop, it should just keep the same one going.
+  // Accepting, declining, expiring, and now cancellation, all already
+  // remove the offer from this same array elsewhere in this file, so
+  // stopping the alert the moment the array empties covers all four
+  // cases without needing separate handling for each.
+  useEffect(() => {
+    if (offers.length > 0) {
+      startRideAlert();
+    } else {
+      stopRideAlert();
+    }
+    return () => stopRideAlert();
+  }, [offers.length > 0]);
 
   // Ticks once a second so every offer's own countdown — each has its own
   // real expiresAt from the backend, not one shared timer — stays live,
