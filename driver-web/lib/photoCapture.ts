@@ -24,6 +24,18 @@ export async function capturePhoto(): Promise<CaptureResult | null> {
   try {
     const photo = await Camera.getPhoto({
       quality: 80,
+      // Was uncapped — a modern phone camera can easily produce a
+      // 10+ megapixel photo, and neither this base64 string nor the
+      // canvas redraw in stampPhoto() below were ever bounded by size.
+      // Holding and redrawing an image that large is a well-known way to
+      // exhaust memory on a mobile WebView, especially on lower-end
+      // Android devices — very likely the actual cause of crashes during
+      // upload, not the storage backend itself. Capped at the camera
+      // level, matching the same 1024px ceiling already proven working
+      // on the merchant app's product photos, so nothing downstream ever
+      // has to hold a full-resolution image at all.
+      width: 1024,
+      height: 1024,
       resultType: CameraResultType.DataUrl,
       source: CameraSource.Camera,
       saveToGallery: false,

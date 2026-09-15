@@ -24,6 +24,13 @@ export async function capturePhoto(): Promise<CaptureResult | null> {
   try {
     const photo = await Camera.getPhoto({
       quality: 80,
+      // Same fix as the driver app's identical file — was uncapped,
+      // meaning a full-resolution phone photo could be held and redrawn
+      // in memory with no bound at all, a well-known mobile WebView
+      // crash cause. Capped at the camera level, matching the same
+      // 1024px ceiling already proven on product photos elsewhere.
+      width: 1024,
+      height: 1024,
       resultType: CameraResultType.DataUrl,
       source: CameraSource.Camera,
       saveToGallery: false,
