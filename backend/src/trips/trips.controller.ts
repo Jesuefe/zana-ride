@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth/roles.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.strategy';
@@ -44,12 +44,20 @@ export class TripsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.tripsService.findById(id);
+  async findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const trip = await this.tripsService.findById(id);
+    if (trip.customerId !== user.sub) {
+      throw new ForbiddenException('This ride does not belong to you');
+    }
+    return trip;
   }
 
   @Post(':id/cancel')
-  cancel(@Param('id') id: string) {
+  async cancel(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const trip = await this.tripsService.findById(id);
+    if (trip.customerId !== user.sub) {
+      throw new ForbiddenException('This ride does not belong to you');
+    }
     return this.tripsService.cancel(id, 'CUSTOMER');
   }
 }
@@ -82,22 +90,42 @@ export class DriverTripsController {
   }
 
   @Post(':id/arrive')
-  arrive(@Param('id') id: string) {
+  async arrive(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const driver = await this.driversService.findByUserId(user.sub);
+    const trip = await this.tripsService.findById(id);
+    if (trip.driverId !== driver.id) {
+      throw new ForbiddenException('This ride is not assigned to you');
+    }
     return this.tripsService.updateStatus(id, TripStatus.DRIVER_ARRIVED);
   }
 
   @Post(':id/start')
-  start(@Param('id') id: string) {
+  async start(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const driver = await this.driversService.findByUserId(user.sub);
+    const trip = await this.tripsService.findById(id);
+    if (trip.driverId !== driver.id) {
+      throw new ForbiddenException('This ride is not assigned to you');
+    }
     return this.tripsService.updateStatus(id, TripStatus.RIDE_IN_PROGRESS);
   }
 
   @Post(':id/complete')
-  complete(@Param('id') id: string) {
+  async complete(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const driver = await this.driversService.findByUserId(user.sub);
+    const trip = await this.tripsService.findById(id);
+    if (trip.driverId !== driver.id) {
+      throw new ForbiddenException('This ride is not assigned to you');
+    }
     return this.tripsService.updateStatus(id, TripStatus.RIDE_COMPLETED);
   }
 
   @Post(':id/decline')
-  decline(@Param('id') id: string) {
+  async decline(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const driver = await this.driversService.findByUserId(user.sub);
+    const trip = await this.tripsService.findById(id);
+    if (trip.driverId !== driver.id) {
+      throw new ForbiddenException('This ride is not assigned to you');
+    }
     return this.tripsService.cancel(id, 'DRIVER');
   }
 }
