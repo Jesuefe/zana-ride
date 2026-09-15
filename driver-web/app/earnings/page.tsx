@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, TrendingUp, Truck, Car, Wallet, ArrowDownToLine, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Truck, Car, Wallet, ArrowDownToLine, Loader2, CheckCircle, AlertCircle, Banknote } from 'lucide-react';
 import { api } from '../../lib/api/client';
 
 type EarningsSummary = {
@@ -13,6 +13,9 @@ type EarningsSummary = {
   totalDeliveries: number;
   walletBalance: number;
   zanaCommission: number;
+  cashCollectedToday: number;
+  zanaDue: number;
+  recentDebts: { id: string; amount: number; createdAt: string }[];
 };
 
 export default function EarningsPage() {
@@ -23,6 +26,13 @@ export default function EarningsPage() {
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawDone, setWithdrawDone] = useState(false);
   const [error, setError] = useState('');
+
+  // Pay Debt Now — mirrors the exact same initiate/poll pattern already
+  // proven on the customer app's MoMo top-up flow.
+  const [showSettle, setShowSettle] = useState(false);
+  const [settleStage, setSettleStage] = useState<'form' | 'waiting' | 'success' | 'failed'>('form');
+  const [settlePhone, setSettlePhone] = useState('');
+  const [settleError, setSettleError] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -37,6 +47,9 @@ export default function EarningsPage() {
         totalDeliveries: earnings.totalDeliveries ?? 0,
         walletBalance: wallet.balance ?? 0,
         zanaCommission: Math.round((earnings.totalEarnings ?? 0) * 0.15 / 0.85),
+        cashCollectedToday: earnings.cashCollectedToday ?? 0,
+        zanaDue: earnings.zanaDue ?? 0,
+        recentDebts: earnings.recentDebts ?? [],
       });
     }).catch(() => {});
   }, []);
@@ -67,6 +80,47 @@ export default function EarningsPage() {
 
   const fmt = (n: number) => `${n.toLocaleString()} RWF`;
 
+  const handleStartSettle = async () => {
+    setSettleError('');
+    if (!settlePhone || settlePhone.replace(/\D/g,'').length < 9) {
+      setSettleError('Enter a valid phone number'); return;
+    }
+    try {
+      const { ref } = await api.post<{ ref: string }>('/wallet/settle-debt', {
+        phone: `+250${settlePhone.replace(/\D/g,'')}`,
+      });
+      setSettleStage('waiting');
+
+      const interval = setInterval(async () => {
+        const status = await api.get<{ status: string }>(`/wallet/settle-debt/${ref}/status`);
+        if (status.status === 'completed') {
+          clearInterval(interval);
+          setSettleStage('success');
+          // Refresh the real numbers rather than guess what changed —
+          // the backend is the only source of truth for what's still due.
+          const earnings = await api.get<any>('/driver/earnings');
+          setData(prev => prev ? {
+            ...prev,
+            zanaDue: earnings.zanaDue ?? 0,
+            recentDebts: earnings.recentDebts ?? [],
+          } : prev);
+        } else if (status.status === 'failed') {
+          clearInterval(interval);
+          setSettleStage('failed');
+        }
+      }, 3000);
+    } catch (e: any) {
+      setSettleError(e.message ?? 'Could not reach the payment provider.');
+    }
+  };
+
+  const closeSettleModal = () => {
+    setShowSettle(false);
+    setSettleStage('form');
+    setSettlePhone('');
+    setSettleError('');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
       {/* Header */}
@@ -87,13 +141,36 @@ export default function EarningsPage() {
           <p className="text-white/60 text-xs mt-1">After 15% Zana commission deducted</p>
         </div>
 
+        {/* Zana Due — this was already being tracked correctly on every
+            cash ride, it just had no way to ever actually be seen. Only
+            shown when it's genuinely relevant, so a driver who's never
+            done a cash ride isn't shown an empty warning card. */}
+        {data && data.zanaDue > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertCircle size={16} className="text-amber-600" />
+              <p className="text-amber-800 text-xs font-semibold">Zana due</p>
+            </div>
+            <p className="text-3xl font-bold text-amber-900">{fmt(data.zanaDue)}</p>
+            <p className="text-amber-700 text-xs mt-1">
+              Commission owed from cash rides — deducted automatically from your next digital-ride earnings.
+            </p>
+            <button
+              onClick={() => setShowSettle(true)}
+              className="w-full mt-3 bg-amber-600 text-white font-semibold py-2.5 rounded-xl text-sm"
+            >
+              Pay now with MoMo
+            </button>
+          </div>
+        )}
+
         {/* Earnings grid */}
         <div className="grid grid-cols-2 gap-3">
           {[
             { label: "Today's earnings", value: data?.todayEarnings, icon: TrendingUp, color: 'text-green-600' },
+            { label: 'Cash collected today', value: data?.cashCollectedToday, icon: Banknote, color: 'text-amber-600' },
             { label: 'This week', value: data?.weekEarnings, icon: TrendingUp, color: 'text-blue-600' },
             { label: 'Total earned', value: data?.totalEarnings, icon: TrendingUp, color: 'text-zana-primary' },
-            { label: 'Zana commission', value: data?.zanaCommission, icon: TrendingUp, color: 'text-amber-600' },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="bg-white rounded-xl p-4 shadow-sm">
               <Icon size={16} className={`${color} mb-2`} />
@@ -102,6 +179,25 @@ export default function EarningsPage() {
             </div>
           ))}
         </div>
+
+        {/* Recent Zana-due activity — a real, direct view into the same
+            ledger the backend has always kept, not a new number invented
+            just for this screen. */}
+        {data && data.recentDebts.length > 0 && (
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="font-semibold text-gray-900 mb-3">Recent Zana due</p>
+            <div className="space-y-2.5">
+              {data.recentDebts.map(d => (
+                <div key={d.id} className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">
+                    {new Date(d.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </p>
+                  <p className="text-sm font-semibold text-amber-700">+{fmt(d.amount)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Trip stats */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
@@ -179,6 +275,74 @@ export default function EarningsPage() {
           )}
         </div>
       </div>
+
+      {/* Pay Debt Now — same real, confirmed-through-Paypack flow as
+          withdrawal and top-up, never a driver just claiming they paid. */}
+      {showSettle && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={closeSettleModal}>
+          <div className="w-full bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+
+            {settleStage === 'form' && (
+              <>
+                <p className="font-black text-lg text-gray-900 mb-1">Pay Zana</p>
+                <p className="text-sm text-gray-500 mb-4">
+                  {data ? fmt(data.zanaDue) : '…'} — the full amount currently due
+                </p>
+                <label className="text-xs font-medium text-gray-500 block mb-1">MTN / Airtel number</label>
+                <div className="flex gap-2">
+                  <div className="border border-gray-200 rounded-lg px-3 flex items-center text-sm text-gray-500">+250</div>
+                  <input
+                    value={settlePhone}
+                    onChange={e => setSettlePhone(e.target.value.replace(/\D/g,'').slice(0,9))}
+                    placeholder="788 123 456"
+                    inputMode="numeric"
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                  />
+                </div>
+                {settleError && <p className="text-xs text-red-600 mt-2">{settleError}</p>}
+                <button
+                  onClick={handleStartSettle}
+                  disabled={!settlePhone}
+                  className="w-full mt-4 bg-amber-600 text-white font-semibold py-3 rounded-xl disabled:opacity-40"
+                >
+                  Pay now
+                </button>
+              </>
+            )}
+
+            {settleStage === 'waiting' && (
+              <div className="flex flex-col items-center py-6">
+                <Loader2 size={28} className="animate-spin text-amber-600 mb-3" />
+                <p className="font-semibold text-gray-900">Check your phone</p>
+                <p className="text-sm text-gray-500 mt-1 text-center">Approve the MoMo prompt to complete payment</p>
+              </div>
+            )}
+
+            {settleStage === 'success' && (
+              <div className="flex flex-col items-center py-6">
+                <CheckCircle size={32} className="text-green-600 mb-3" />
+                <p className="font-semibold text-gray-900">Payment received</p>
+                <p className="text-sm text-gray-500 mt-1">Your Zana due balance is now settled</p>
+                <button onClick={closeSettleModal} className="mt-5 text-sm font-semibold text-zana-primary">Done</button>
+              </div>
+            )}
+
+            {settleStage === 'failed' && (
+              <div className="flex flex-col items-center py-6">
+                <AlertCircle size={28} className="text-red-600 mb-3" />
+                <p className="font-semibold text-gray-900">Payment didn't go through</p>
+                <button
+                  onClick={() => setSettleStage('form')}
+                  className="mt-4 text-sm font-semibold text-amber-600"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

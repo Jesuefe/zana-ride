@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Users, Plus, Trash2 } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
-import { getFinancial, getCommissionSummary, getExpenses, createExpense, deleteExpense } from '../../../lib/api/admin';
+import { getFinancial, getCommissionSummary, getExpenses, createExpense, deleteExpense, getSettlementOverview, getDriverSettlements } from '../../../lib/api/admin';
 
 function Card({ label, value, sub, color = 'green' }: any) {
   const colors: Record<string, string> = { green: 'bg-green-50 text-green-700', red: 'bg-red-50 text-red-700', blue: 'bg-blue-50 text-blue-700', amber: 'bg-amber-50 text-amber-700' };
@@ -19,6 +19,8 @@ export default function FinancialPage() {
   const [snapshot, setSnapshot] = useState<any>(null);
   const [commissions, setCommissions] = useState<any>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [settlement, setSettlement] = useState<any>(null);
+  const [driverSettlements, setDriverSettlements] = useState<any[]>([]);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [form, setForm] = useState({ title: '', amount: '', category: 'Office', description: '' });
   const CATEGORIES = ['Office', 'Fuel', 'Marketing', 'Software', 'Salaries', 'Equipment', 'Other'];
@@ -27,6 +29,8 @@ export default function FinancialPage() {
     getFinancial().then(setSnapshot).catch(() => {});
     getCommissionSummary().then(setCommissions).catch(() => {});
     getExpenses().then(setExpenses).catch(() => {});
+    getSettlementOverview().then(setSettlement).catch(() => {});
+    getDriverSettlements().then(setDriverSettlements).catch(() => {});
   };
   useEffect(() => { load(); }, []);
 
@@ -70,6 +74,47 @@ export default function FinancialPage() {
             ))}
           </div>
         )}
+
+        {/* Driver Settlement Monitor — reads the same existing
+            Commission/CommissionDebt/DebtSettlement records, not a
+            separate ledger. */}
+        <h2 className="font-semibold text-gray-900 mb-3">Driver settlement monitor</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+          <Card label="Cash GMV" value={fmt(settlement?.cashGmv)} />
+          <Card label="Digital GMV" value={fmt(settlement?.digitalGmv)} />
+          <Card label="Wallet-covered commission" value={fmt(settlement?.walletCovered)} color="green" />
+          <Card label="Outstanding debt" value={fmt(settlement?.outstanding)} color={settlement?.outstanding > 0 ? 'red' : 'green'} />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+          <Card label="Debt created (all-time)" value={fmt(settlement?.debtCreated)} color="amber" />
+          <Card label="Auto-recovered" value={fmt(settlement?.autoRecovered)} sub="From later digital rides" color="green" />
+          <Card label="Manually settled" value={fmt(settlement?.manuallySettled)} sub="Via Pay Now" color="green" />
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-gray-100 text-left">
+              {['Driver','Cash collected','Commission','Covered','Outstanding','Status'].map(h => <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {driverSettlements.map(d => (
+                <tr key={d.driverId} className="border-b border-gray-50 hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium">{d.name}</td>
+                  <td className="px-4 py-3">{fmt(d.cashCollected)}</td>
+                  <td className="px-4 py-3">{fmt(d.commission)}</td>
+                  <td className="px-4 py-3">{fmt(d.covered)}</td>
+                  <td className="px-4 py-3 font-semibold">{fmt(d.outstanding)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${d.status === 'CLEARED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {d.status === 'CLEARED' ? '🟢 Cleared' : '🟡 Due'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {driverSettlements.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-sm">No cash-ride activity yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
 
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-gray-900">Expenses</h2>
