@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, MapPin, Loader2, Minus, Plus, Users, Move } from 'lucide-react';
-import { getStoredPickup, setStoredPickup } from '../../lib/location';
+import { getStoredPickup, setStoredPickup, requestLiveLocation } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
 import { createRide, createRideGroup, fetchNearbyDrivers, NearbyDriver, estimateRide } from '../../lib/api/trips';
@@ -45,6 +45,22 @@ function SearchContent() {
   const [resolvingCode, setResolvingCode] = useState(false);
   const [motoCount, setMotoCount] = useState(1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // True the moment the passenger manually drags the pin — a fresh GPS
+  // reading arriving after that point must never silently override a
+  // choice they already made.
+  const manuallyMovedRef = useRef(false);
+
+  // requestLiveLocation() existed but was never actually being called
+  // anywhere in the app — every screen was only ever reading whatever
+  // got cached the very first time this device ever used Zana, with no
+  // way for that to update again on its own. A passenger opening the
+  // app from a genuinely new location would still see wherever they
+  // happened to be standing the first time, indefinitely.
+  useEffect(() => {
+    requestLiveLocation().then((coords) => {
+      if (!manuallyMovedRef.current) setPickup(coords);
+    });
+  }, []);
 
   // Resolve the pickup point to a human-readable address whenever it moves
   // (either from GPS or because the passenger dragged the pin).
@@ -122,6 +138,7 @@ function SearchContent() {
   };
 
   const handlePickupDrag = (coords: { lat: number; lng: number }) => {
+    manuallyMovedRef.current = true;
     setPickup(coords);
     setStoredPickup(coords);
   };
