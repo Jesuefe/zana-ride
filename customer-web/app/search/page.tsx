@@ -29,6 +29,10 @@ function SearchContent() {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const [isZanaCode, setIsZanaCode] = useState(false);
+  // Tapping the pickup row switches the same search input into pickup
+  // mode, rather than requiring the driver to drag a map pin, which was
+  // previously the only way to change it at all.
+  const [editingPickup, setEditingPickup] = useState(false);
   const [pickup, setPickup] = useState(getStoredPickup());
   const [pickupAddress, setPickupAddress] = useState('Locating…');
   const [nearby, setNearby] = useState<NearbyDriver[]>([]);
@@ -179,6 +183,22 @@ function SearchContent() {
       return;
     }
 
+    // Picking a pickup search result — apply it directly rather than
+    // treating it as a destination, same manual-override flag the pin
+    // drag already uses so the earlier GPS-refresh fix never silently
+    // overwrites a deliberate choice like this one.
+    if (editingPickup) {
+      manuallyMovedRef.current = true;
+      const coords = { lat: place.lat, lng: place.lng };
+      setPickup(coords);
+      setStoredPickup(coords);
+      setPickupAddress(place.address);
+      setEditingPickup(false);
+      setQuery('');
+      setSuggestions([]);
+      return;
+    }
+
     // Moto — fetch fare estimate then show payment picker
     if (isMoto) {
       const pending = { address: place.address, lat: place.lat, lng: place.lng };
@@ -233,17 +253,34 @@ function SearchContent() {
             <ArrowLeft size={16} />
           </button>
           <div className="flex-1 bg-gray-100 rounded-xl px-3 py-2">
-            <div className="flex items-center gap-2 text-xs text-zana-muted pb-1.5 border-b border-gray-200">
+            <button
+              type="button"
+              onClick={() => {
+                setEditingPickup(true);
+                setQuery('');
+                setSuggestions([]);
+              }}
+              className="w-full flex items-center gap-2 text-xs text-zana-muted pb-1.5 border-b border-gray-200 text-left"
+            >
               <span className="w-2 h-2 rounded-full bg-zana-primary shrink-0" />
               <span className="truncate">{pickupAddress}</span>
-            </div>
+            </button>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Where are you going?"
+              placeholder={editingPickup ? 'Search pickup location' : 'Where are you going?'}
               className="w-full bg-transparent pt-1.5 text-sm focus:outline-none"
-              autoFocus
+              autoFocus={!editingPickup}
             />
+            {editingPickup && (
+              <button
+                type="button"
+                onClick={() => { setEditingPickup(false); setQuery(''); setSuggestions([]); }}
+                className="text-[11px] text-zana-primary font-semibold mt-1"
+              >
+                Cancel
+              </button>
+            )}
           </div>
         </div>
 
