@@ -89,7 +89,6 @@ export default function DriverHome() {
   const markerRef = useRef<any>(null);
 
   const [profile, setProfile] = useState<DriverProfile | null>(null);
-  const [activeDelivery, setActiveDelivery] = useState<any>(null);
   const [battery, setBattery] = useState<{ level: number; charging: boolean } | null>(null);
 
   // Real phone battery
@@ -160,12 +159,15 @@ export default function DriverHome() {
           return;
         }
 
-        // No active ride and no active delivery — but that's also exactly
-        // what things look like if the app crashed the instant after a
-        // ride finished, before the driver ever saw it worked. Check for
-        // that specific case before just showing the normal home screen.
-        // Genuinely has to wait for both checks above first — there's no
-        // point asking this until we already know neither is active.
+        // No active ride and no active delivery — the driver can see the
+        // real home screen now; nothing past this point needs to keep it
+        // hidden. Whether a ride was JUST completed is only relevant to
+        // a small banner, not to whether the screen itself is ready —
+        // this used to block the whole screen on that one purely
+        // cosmetic check, adding a full extra round-trip to the visible
+        // loading time for something that was never worth blocking on.
+        setCheckingActiveRide(false);
+
         try {
           const recent = await fetchRecentlyCompletedRide();
           if (recent && !cancelled) {
@@ -173,8 +175,6 @@ export default function DriverHome() {
             setJustCompleted(recent);
           }
         } catch {}
-
-        setCheckingActiveRide(false);
       } catch {
         if (cancelled) return;
         if (tries > 0) {
@@ -307,8 +307,6 @@ export default function DriverHome() {
   }, []);
 
   useEffect(() => {
-    // Check for active delivery on load
-    api.get('/driver/deliveries/active').then((d: any) => setActiveDelivery(d)).catch(() => {});
     fetchMyDriverProfile().then(p => {
       if (!p) return;
       setProfile(p);
@@ -628,24 +626,6 @@ export default function DriverHome() {
         </div>
       </div>
 
-      {/* Active delivery banner */}
-      {activeDelivery && (
-        <div className="absolute bottom-24 left-3 right-3 z-30">
-          <button onClick={() => router.push('/delivery')}
-            className="w-full bg-amber-500 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-              </div>
-              <div className="text-left">
-                <p className="text-white font-bold text-sm">Active delivery</p>
-                <p className="text-white/70 text-xs truncate max-w-[180px]">{activeDelivery.itemDescription}</p>
-              </div>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-        </div>
-      )}
       {/* Bottom panel — scrollable */}
       <div className="flex-1 bg-white rounded-t-3xl -mt-4 overflow-y-auto shadow-2xl z-10">
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-4" />
