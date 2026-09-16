@@ -499,14 +499,14 @@ export default function DriverHome() {
 
   const onlineTimeStr = '0h 0m';
 
-  if (checkingActiveRide) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gray-100">
-        <div className="w-8 h-8 border-3 border-zana-primary/20 border-t-zana-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
-
+  // Used to fully block the entire home screen behind a spinner while
+  // this ran — every single launch paid for a full network round-trip
+  // of blank screen before showing anything, even in the overwhelming
+  // common case of no active ride to recover. The check itself still
+  // runs exactly the same; it just no longer holds the whole page
+  // hostage to do it. A driver who genuinely does have an active ride
+  // still gets redirected away the moment it's found — they just don't
+  // stare at a blank spinner for a round-trip first if they don't.
   if (justCompleted) {
     return (
       <div className="h-screen flex flex-col items-center justify-center px-8 bg-white">
@@ -574,7 +574,7 @@ export default function DriverHome() {
 
       {/* Map — takes up ~55% of screen */}
       <div className="relative" style={{ height: '52%' }}>
-        <div ref={mapRef} className="w-full h-full" />
+        <div ref={mapRef} className="w-full h-full" style={{ backgroundColor: '#F7F5EF' }} />
 
         {/* Online status pill */}
         <div className="absolute top-24 left-0 right-0 flex justify-center z-10">
