@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { PhoneOff, Mic, MicOff, Loader2 } from 'lucide-react';
 import { api } from '../lib/api/client';
 import {
@@ -21,9 +21,23 @@ type Props = {
   token?: string;
   participantLabel: string;
   onClose: () => void;
+  // Refs alone don't trigger a re-render in the parent when this
+  // internal state changes — this callback is what lets the trip
+  // page's own speaker button actually reflect on/unavailable
+  // correctly, not just fire the toggle blind.
+  onSpeakerStateChange?: (state: { speakerOn: boolean; speakerSupported: boolean }) => void;
 };
 
-export default function VoiceCall({
+// Lets the trip page render its own speaker button on the same row as
+// Chat/Call, rather than requiring the driver to be looking at this
+// full-screen call overlay just to reach it.
+export type VoiceCallHandle = {
+  toggleSpeaker: () => void;
+  speakerOn: boolean;
+  speakerSupported: boolean;
+};
+
+const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
   rideId,
   incomingCallId,
   roomName: incomingRoom,
@@ -31,7 +45,8 @@ export default function VoiceCall({
   token: incomingToken,
   participantLabel,
   onClose,
-}: Props) {
+  onSpeakerStateChange,
+}: Props, ref) {
   const roomRef = useRef<Room | null>(null);
   const audioElementsRef = useRef<HTMLAudioElement[]>([]);
   const heartbeatRef = useRef<any>(null);
@@ -241,6 +256,17 @@ export default function VoiceCall({
     }
   };
 
+  useImperativeHandle(ref, () => ({
+    toggleSpeaker,
+    speakerOn,
+    speakerSupported,
+  }), [speakerOn, speakerSupported]);
+
+  useEffect(() => {
+    onSpeakerStateChange?.({ speakerOn, speakerSupported });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speakerOn, speakerSupported]);
+
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   const stateLabels: Record<CallState, string> = {
@@ -343,4 +369,6 @@ export default function VoiceCall({
       )}
     </div>
   );
-}
+});
+
+export default VoiceCall;

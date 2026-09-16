@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Phone, ChevronUp, ChevronDown, MapPin, Navigation, MessageCircle, X } from 'lucide-react';
 import ChatPanel from '../../components/ChatPanel';
-import VoiceCall from '../../components/VoiceCall';
+import VoiceCall, { VoiceCallHandle } from '../../components/VoiceCall';
 import { io, Socket } from 'socket.io-client';
 import { api, getToken } from '../../lib/api/client';
 import RatingModal from '../../components/RatingModal';
@@ -227,6 +227,9 @@ function TripContent() {
 
   // ── MoMo charge ──────────────────────────────────────────────────────────
   const [collectingCash, setCollectingCash] = useState(false);
+  const voiceCallRef = useRef<VoiceCallHandle>(null);
+  const [speakerOn, setSpeakerOn] = useState(false);
+  const [speakerSupported, setSpeakerSupported] = useState(true);
 
   const handleCollectCash = async () => {
     if (!trip) return;
@@ -401,6 +404,23 @@ function TripContent() {
             >
               <Phone size={16} className="text-green-600" />
             </button>
+
+            {/* Speaker — only meaningful once a call is actually
+                connected, so it only appears in this row then, rather
+                than sitting there doing nothing the rest of the time. */}
+            {showCall && (
+              <button
+                onClick={() => voiceCallRef.current?.toggleSpeaker()}
+                disabled={!speakerSupported}
+                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40 ${
+                  speakerOn ? 'bg-zana-primary' : 'bg-gray-100'
+                }`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill={speakerOn ? 'white' : '#374151'}>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14M3 9v6h4l5 5V4L7 9H3z"/>
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* Open in Google Maps — hands off real turn-by-turn to Google's
@@ -692,12 +712,14 @@ function TripContent() {
       {/* Outgoing call */}
       {showCall && outgoingCallId && outgoingRoom && outgoingWsUrl && outgoingToken && trip && (
         <VoiceCall
+          ref={voiceCallRef}
           incomingCallId={outgoingCallId}
           roomName={outgoingRoom}
           wsUrl={outgoingWsUrl}
           token={outgoingToken}
           participantLabel={trip.customer?.firstName ?? 'Passenger'}
           onClose={() => { setShowCall(false); setOutgoingCallId(null); }}
+          onSpeakerStateChange={s => { setSpeakerOn(s.speakerOn); setSpeakerSupported(s.speakerSupported); }}
         />
       )}
 
@@ -752,12 +774,14 @@ function TripContent() {
       {/* Accepted incoming call — connect to LiveKit */}
       {showCall && incomingCall && (
         <VoiceCall
+          ref={voiceCallRef}
           incomingCallId={incomingCall.callId}
           roomName={incomingCall.roomName}
           wsUrl={incomingCall.wsUrl}
           token={incomingCall.token}
           participantLabel={incomingCall.callerName}
           onClose={() => { setShowCall(false); setIncomingCall(null); }}
+          onSpeakerStateChange={s => { setSpeakerOn(s.speakerOn); setSpeakerSupported(s.speakerSupported); }}
         />
       )}
       {showChat && trip && (
