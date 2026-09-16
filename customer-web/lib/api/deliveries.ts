@@ -66,6 +66,7 @@ export async function createDelivery(data: {
   receiverName?: string;
   receiverPhone: string;
   paymentMethod?: 'WALLET' | 'MOBILE_MONEY' | 'CASH';
+  momoPhone?: string;
 }) {
   return api.post<Delivery>('/deliveries', data);
 }

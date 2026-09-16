@@ -50,6 +50,16 @@ export default function DeliverPage() {
   // approve the charge before the delivery is allowed to be dispatched.
   const [awaitingMomo, setAwaitingMomo] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY' | 'CASH'>('WALLET');
+  // Previously there was no way at all for the customer to specify which
+  // MoMo number to charge — the backend silently used whatever phone was
+  // on the account, with no input, confirmation, or way to use a
+  // different number. Pre-filled from the account as a sensible default,
+  // but editable, matching how a driver can already correct the number
+  // before charging a ride.
+  const [momoPhone, setMomoPhone] = useState('');
+  useEffect(() => {
+    fetchMe().then((me) => { if (me?.phone) setMomoPhone(me.phone.replace(/^\+250/, '')); }).catch(() => {});
+  }, []);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -158,7 +168,8 @@ export default function DeliverPage() {
   };
 
   const canSubmit =
-    itemDescription.trim().length > 1 && dropoff !== null && receiverPhone.replace(/\D/g, '').length >= 9;
+    itemDescription.trim().length > 1 && dropoff !== null && receiverPhone.replace(/\D/g, '').length >= 9 &&
+    (paymentMethod !== 'MOBILE_MONEY' || momoPhone.replace(/\D/g, '').length >= 9);
 
   const handleSubmit = async () => {
     if (!dropoff) return;
@@ -179,6 +190,7 @@ export default function DeliverPage() {
         receiverName: receiverName.trim() || undefined,
         receiverPhone: `+250${receiverPhone.replace(/\D/g, '')}`,
         paymentMethod,
+        momoPhone: paymentMethod === 'MOBILE_MONEY' ? `+250${momoPhone.replace(/\D/g, '')}` : undefined,
       });
 
       if (paymentMethod === 'MOBILE_MONEY') {
@@ -463,6 +475,24 @@ export default function DeliverPage() {
               <p className="text-[11px] text-gray-500 mt-2">
                 Pay the rider when they collect the package.
               </p>
+            )}
+
+            {paymentMethod === 'MOBILE_MONEY' && (
+              <div className="mt-2">
+                <p className="text-[11px] text-gray-500 mb-1.5">
+                  We'll send a payment prompt to this number:
+                </p>
+                <div className="flex gap-2">
+                  <div className="border border-zana-border rounded-lg px-3 flex items-center text-sm">+250</div>
+                  <input
+                    value={momoPhone}
+                    onChange={(e) => setMomoPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                    placeholder="788 123 456"
+                    inputMode="numeric"
+                    className="flex-1 border border-zana-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
+                  />
+                </div>
+              </div>
             )}
 
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-3">
