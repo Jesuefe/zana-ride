@@ -1,22 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import AdminShell from '../../../components/AdminShell';
 import { api } from '../../../lib/api/client';
 
 export default function TrackingPage() {
-  const [code, setCode] = useState('');
+  const params = useSearchParams();
+  const [code, setCode] = useState(params.get('code') ?? '');
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const search = async () => {
-    if (!code.trim()) return;
+  const search = async (searchCode?: string) => {
+    const target = (searchCode ?? code).trim();
+    if (!target) return;
     setLoading(true);
     setError('');
     setResult(null);
     try {
-      const res = await api.get<any>(`/deliveries/track/${code.trim().toUpperCase()}`);
+      const res = await api.get<any>(`/deliveries/track/${target.toUpperCase()}`);
       setResult(res);
     } catch (e: any) {
       setError(e?.message?.includes('404') || e?.message?.includes('No delivery')
@@ -26,6 +29,16 @@ export default function TrackingPage() {
       setLoading(false);
     }
   };
+
+  // Lets other admin pages (the deliveries list, a future rides
+  // detail view) link straight here with ?code=... instead of making
+  // whoever's investigating an issue copy a tracking code by hand and
+  // paste it into this search box themselves.
+  useEffect(() => {
+    const fromUrl = params.get('code');
+    if (fromUrl) search(fromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fmt = (d?: string) =>
     d ? new Date(d).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
@@ -47,7 +60,7 @@ export default function TrackingPage() {
             className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 font-mono font-bold tracking-wider focus:border-zana-primary focus:outline-none"
           />
           <button
-            onClick={search}
+            onClick={() => search()}
             disabled={loading || !code.trim()}
             className="bg-zana-primary text-white font-bold px-8 rounded-xl disabled:opacity-40"
           >
@@ -127,6 +140,52 @@ export default function TrackingPage() {
               </div>
             )}
   
+            {/* Financials — only present for deliveries where a
+                Commission record already exists (i.e. completed ones);
+                the numbers are the same authoritative records the
+                completion flow itself wrote, never recalculated here. */}
+            {result.financials && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                <p className="text-xs font-bold text-gray-400 uppercase mb-3">Delivery financials</p>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-gray-400">Delivery value</p>
+                    <p className="font-bold text-gray-900">{result.financials.gmv?.toLocaleString()} RWF</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Payment method</p>
+                    <p className="font-bold text-gray-900">{result.financials.paymentMethod === 'CASH' ? 'Cash' : 'Digital'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Zana commission</p>
+                    <p className="font-bold text-gray-900">{result.financials.zanaCommission?.toLocaleString()} RWF</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Driver earnings</p>
+                    <p className="font-bold text-gray-900">{result.financials.driverEarnings?.toLocaleString()} RWF</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Commission debt</p>
+                    <p className={`font-bold ${result.financials.debtStatus === 'OUTSTANDING' ? 'text-amber-600' : 'text-gray-900'}`}>
+                      {result.financials.commissionDebt?.toLocaleString()} RWF
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Debt status</p>
+                    <p className="font-bold text-gray-900">
+                      {result.financials.debtStatus === 'N/A' ? '—' : result.financials.debtStatus === 'PAID' ? 'Paid' : 'Outstanding'}
+                    </p>
+                  </div>
+                  {result.financials.settlement && (
+                    <div>
+                      <p className="text-xs text-gray-400">Settlement</p>
+                      <p className="font-bold text-gray-900">{result.financials.settlement === 'AUTO' ? 'Automatic' : 'Manual'}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Proof of handling */}
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <p className="text-xs font-bold text-gray-400 uppercase mb-3">Proof of handling</p>
