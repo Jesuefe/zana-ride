@@ -47,7 +47,7 @@ export default function DeliveriesPage() {
         <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b border-gray-100 text-left">
-              {['Item','From','Pickup','Dropoff','Fee','Status','Courier'].map(h => <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}
+              {['Item','From','Pickup','Dropoff','Fee','Status','Courier',''].map(h => <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}
             </tr></thead>
             <tbody>
               {filtered.map(d => (
@@ -61,6 +61,11 @@ export default function DeliveriesPage() {
                   <td className="px-4 py-3">{d.fee?.toLocaleString()} RWF</td>
                   <td className="px-4 py-3"><span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[d.status] ?? ''}`}>{d.status}</span></td>
                   <td className="px-4 py-3 text-xs">{d.driver?.user?.firstName ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    {d.trackingCode && (
+                      <span className="text-xs text-zana-primary font-semibold hover:underline">View</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
