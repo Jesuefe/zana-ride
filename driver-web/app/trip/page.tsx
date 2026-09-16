@@ -226,6 +226,35 @@ function TripContent() {
   };
 
   // ── MoMo charge ──────────────────────────────────────────────────────────
+  const [collectingCash, setCollectingCash] = useState(false);
+
+  const handleCollectCash = async () => {
+    if (!trip) return;
+    setCollectingCash(true);
+    try {
+      // Was previously a bare navigate-away with no API call at all — the
+      // trip's payment method stayed MOBILE_MONEY forever and commission
+      // had already been credited to the driver's wallet as a digital
+      // payment at completion, even though the driver is walking away
+      // with physical cash instead. This corrects the payment method and
+      // settles commission the cash way for real.
+      await api.post(`/driver/rides/${trip.id}/collect-cash`);
+    } catch (e: any) {
+      // Was silently swallowed and still navigated away regardless — if
+      // the backend correctly refuses the switch (MoMo already went
+      // through), the driver needs to actually see that, not be sent
+      // home not knowing whether cash still needs collecting.
+      setCollectingCash(false);
+      setMomoError(
+        e?.message === 'PAYMENT_ALREADY_CONFIRMED'
+          ? 'This ride was already paid via MoMo — no need to collect cash.'
+          : (e?.message || 'Could not switch to cash. Please try again.')
+      );
+      return;
+    }
+    router.replace('/');
+  };
+
   const sendMomoPrompt = async () => {
     if (!trip) return;
     setMomoState('sending');
@@ -610,9 +639,9 @@ function TripContent() {
                   className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40">
                   {momoState === 'failed' ? 'Send prompt again' : 'Send payment request'}
                 </button>
-                <button onClick={() => router.replace('/')}
-                  className="w-full text-center text-sm text-gray-400 mt-3 py-1">
-                  Collect cash instead
+                <button onClick={handleCollectCash} disabled={collectingCash}
+                  className="w-full text-center text-sm text-gray-400 mt-3 py-1 disabled:opacity-50">
+                  {collectingCash ? 'Recording cash payment…' : 'Collect cash instead'}
                 </button>
               </>
             ) : momoState === 'sending' ? (

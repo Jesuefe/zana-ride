@@ -16,6 +16,7 @@ import {
   resolveLocationCode,
   quoteDelivery,
   createDelivery,
+  checkDeliveryPaymentStatus,
 } from '../../lib/api/deliveries';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
@@ -45,6 +46,9 @@ export default function DeliverPage() {
 
   const [quote, setQuote] = useState<{ fee: number; distanceKm: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Only relevant for MOBILE_MONEY — waiting on the customer to actually
+  // approve the charge before the delivery is allowed to be dispatched.
+  const [awaitingMomo, setAwaitingMomo] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY' | 'CASH'>('WALLET');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -176,6 +180,32 @@ export default function DeliverPage() {
         receiverPhone: `+250${receiverPhone.replace(/\D/g, '')}`,
         paymentMethod,
       });
+
+      if (paymentMethod === 'MOBILE_MONEY') {
+        // The delivery now exists but genuinely can't be dispatched yet —
+        // acceptDelivery() on the backend refuses it until this actually
+        // confirms. Poll the same way the wallet top-up flow already
+        // does, rather than navigating away and leaving the customer to
+        // wonder why their delivery seems to be stuck.
+        setAwaitingMomo(true);
+        const confirmed = await new Promise<boolean>((resolve) => {
+          const interval = setInterval(async () => {
+            try {
+              const { status } = await checkDeliveryPaymentStatus(delivery.id);
+              if (status === 'confirmed') { clearInterval(interval); resolve(true); }
+              if (status === 'failed') { clearInterval(interval); resolve(false); }
+            } catch { /* keep polling */ }
+          }, 3000);
+          setTimeout(() => { clearInterval(interval); resolve(false); }, 90_000);
+        });
+        setAwaitingMomo(false);
+        if (!confirmed) {
+          setError('Payment was not confirmed. The delivery was cancelled — you can try again.');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       router.push(`/orders?highlight=${delivery.id}`);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : '';
@@ -446,10 +476,14 @@ export default function DeliverPage() {
 
         <button
           onClick={handleSubmit}
-          disabled={!canSubmit || submitting}
+          disabled={!canSubmit || submitting || awaitingMomo}
           className="w-full bg-zana-primary text-white font-semibold py-3.5 rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
         >
-          {submitting ? (
+          {awaitingMomo ? (
+            <>
+              <Loader2 size={16} className="animate-spin" /> Approve the MoMo prompt on your phone…
+            </>
+          ) : submitting ? (
             <>
               <Loader2 size={16} className="animate-spin" /> Requesting…
             </>

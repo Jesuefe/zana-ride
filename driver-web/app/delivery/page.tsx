@@ -61,6 +61,7 @@ function ActiveDeliveryContent() {
   const [photoStage, setPhotoStage] = useState<'pickup' | 'dropoff' | null>(null);
   const [uploading, setUploading] = useState(false);
   const [photoNote, setPhotoNote] = useState('');
+  const [actionError, setActionError] = useState('');
   const [arrivalRadiusM, setArrivalRadiusM] = useState(DEFAULT_ARRIVAL_RADIUS_M);
 
   // Fetched once on load — if this ever fails, the hardcoded default above
@@ -151,6 +152,7 @@ function ActiveDeliveryContent() {
     if (!delivery) return;
     setUploading(true);
     setPhotoNote('');
+    setActionError('');
     try {
       const shot = await capturePhoto();
       if (!shot) { setUploading(false); return; }
@@ -175,7 +177,17 @@ function ActiveDeliveryContent() {
   const doPickup = async () => {
     if (!delivery) return;
     setActing(true);
-    await api.post(`/driver/deliveries/${delivery.id}/pickup`).catch(() => {});
+    try {
+      await api.post(`/driver/deliveries/${delivery.id}/pickup`);
+    } catch (e: any) {
+      // Was previously swallowed entirely — a rejected pickup (wrong
+      // state, payment never confirmed, anything else) left the driver
+      // staring at an unexplained stuck screen with no idea why nothing
+      // happened.
+      setActionError(e?.message || 'Could not confirm pickup. Please try again.');
+      setActing(false);
+      return;
+    }
     const updated = await api.get<ActiveDelivery | null>('/driver/deliveries/active').catch(() => null);
     setDelivery(updated);
     setActing(false);
@@ -184,7 +196,13 @@ function ActiveDeliveryContent() {
   const doComplete = async () => {
     if (!delivery) return;
     setActing(true);
-    await api.post(`/driver/deliveries/${delivery.id}/complete`).catch(() => {});
+    try {
+      await api.post(`/driver/deliveries/${delivery.id}/complete`);
+    } catch (e: any) {
+      setActionError(e?.message || 'Could not confirm delivery. Please try again.');
+      setActing(false);
+      return;
+    }
     // Was unconditional — every single delivery completion sent the driver
     // home, even with more packages still waiting in the same batch. Pickup
     // already correctly stayed on this page and advanced to the next stop;
@@ -284,6 +302,13 @@ function ActiveDeliveryContent() {
       {photoNote && (
         <div className="fixed bottom-24 left-4 right-4 z-50 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <p className="text-xs text-amber-800">{photoNote}</p>
+        </div>
+      )}
+
+      {actionError && (
+        <div className="fixed bottom-24 left-4 right-4 z-50 bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start justify-between gap-3">
+          <p className="text-xs text-red-800 flex-1">{actionError}</p>
+          <button onClick={() => setActionError('')} className="text-red-400 text-xs font-bold shrink-0">✕</button>
         </div>
       )}
 

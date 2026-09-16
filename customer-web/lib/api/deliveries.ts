@@ -73,3 +73,7 @@ export async function createDelivery(data: {
 export async function fetchMyDeliveries() {
   return api.get<Delivery[]>('/deliveries');
 }
+
+export async function checkDeliveryPaymentStatus(id: string) {
+  return api.get<{ status: 'confirmed' | 'pending' | 'failed' }>(`/deliveries/${id}/payment-status`);
+}
