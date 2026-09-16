@@ -455,12 +455,16 @@ export default function DriverHome() {
       const updated = await goOnline();
       setOnline(true);
       setProfile(updated as any);
-    } catch {
+    } catch (e: any) {
       // Going online is the one action that decides whether this driver
       // can earn at all. The sheet closing must not look identical whether
       // it worked or not — silence here means someone sits waiting for
       // jobs while actually still offline.
-      setTopBannerError('Could not go online. Check your connection and try again.');
+      setTopBannerError(
+        e?.message === 'DRIVER_NOT_APPROVED'
+          ? 'Your account is still pending approval — you can go online once it\'s reviewed.'
+          : 'Could not go online. Check your connection and try again.'
+      );
       setTimeout(() => setTopBannerError(''), 4000);
     } finally { setLoading(false); }
   };
