@@ -26,14 +26,20 @@ export default function HomePage() {
   const [recentPlace, setRecentPlace] = useState<{ address: string; lat: number; lng: number } | null>(null);
   const [ridePick, setRidePick] = useState<{ label: string; address: string; lat: number; lng: number } | null>(null);
 
-  useEffect(() => {
-    fetchMe().then(setUser).catch(() => {});
-    fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(() => {});
+  const [loadError, setLoadError] = useState(false);
+
+  const loadHomeData = () => {
+    setLoadError(false);
+    let failures = 0;
+    const noteFailure = () => { failures += 1; if (failures === 4) setLoadError(true); };
+
+    fetchMe().then(setUser).catch(noteFailure);
+    fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(noteFailure);
 
     // Saved Home / Work
     api.get<any[]>('/users/saved-places')
       .then(list => setSavedPlaces(Array.isArray(list) ? list : []))
-      .catch(() => {});
+      .catch(noteFailure);
 
     // Most recent place the customer actually travelled to
     api.get<any[]>('/rides/history')
@@ -47,7 +53,20 @@ export default function HomePage() {
           });
         }
       })
-      .catch(() => {});
+      .catch(noteFailure);
+  };
+
+  // Previously every one of these silently swallowed its own failure —
+  // on a slow or flaky connection, this being the very first screen a
+  // customer sees, the whole page would just quietly show "Welcome"
+  // with no name, a blank wallet, and empty everything, with no way to
+  // tell that from a genuinely new, empty account, and no way to retry
+  // short of reloading the entire app. Only surfaces something when
+  // every single call fails, not one flaky field — that's the actual
+  // signal of a real connectivity problem, not just normal empty data.
+  useEffect(() => {
+    loadHomeData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -86,6 +105,13 @@ export default function HomePage() {
           </button>
         </div>
       </div>
+
+      {loadError && (
+        <div className="mx-4 mb-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+          <p className="text-xs text-amber-800">Couldn't load your info. Check your connection.</p>
+          <button onClick={loadHomeData} className="text-xs font-bold text-amber-800 shrink-0">Retry</button>
+        </div>
+      )}
 
       {/* ── Where to card ───────────────────────────────── */}
       <div className="px-4 mt-2">
