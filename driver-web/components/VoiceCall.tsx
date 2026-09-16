@@ -41,6 +41,8 @@ export default function VoiceCall({
 
   const [state, setState] = useState<CallState>(incomingCallId ? 'connected' : 'connecting');
   const [muted, setMuted] = useState(false);
+  const [speakerOn, setSpeakerOn] = useState(false);
+  const [speakerSupported, setSpeakerSupported] = useState(true);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState('');
 
@@ -209,6 +211,36 @@ export default function VoiceCall({
     console.log(`[CALL] Microphone ${newMuted ? 'muted' : 'unmuted'}`);
   };
 
+  // Was previously a pure visual placeholder — tapping it did nothing at
+  // all. setSinkId (the underlying browser API this needs) has real,
+  // long-standing platform limits worth being upfront about: no support
+  // at all on iOS Safari/WKWebView, and inconsistent support even on
+  // Android WebViews. This does the real thing where the platform
+  // genuinely allows it, and tells the driver plainly when it can't,
+  // rather than silently doing nothing and looking broken either way.
+  const toggleSpeaker = async () => {
+    if (!roomRef.current) return;
+    const testEl = document.createElement('audio');
+    if (typeof (testEl as any).setSinkId !== 'function') {
+      setSpeakerSupported(false);
+      return;
+    }
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const outputs = devices.filter(d => d.kind === 'audiooutput');
+      const wantSpeaker = !speakerOn;
+      const target = wantSpeaker
+        ? outputs.find(d => /speaker/i.test(d.label))
+        : outputs.find(d => /ear|receiver|default/i.test(d.label)) ?? outputs[0];
+      if (!target) { setSpeakerSupported(false); return; }
+      await roomRef.current.switchActiveDevice('audiooutput', target.deviceId);
+      setSpeakerOn(wantSpeaker);
+    } catch (e) {
+      console.error('[CALL] Speaker switch failed:', e);
+      setSpeakerSupported(false);
+    }
+  };
+
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   const stateLabels: Record<CallState, string> = {
@@ -295,14 +327,17 @@ export default function VoiceCall({
             <p className="text-white/50 text-xs">End call</p>
           </div>
 
-          {/* Speaker placeholder */}
+          {/* Speaker */}
           <div className="flex flex-col items-center gap-2">
-            <div className="w-16 h-16 rounded-full bg-white/15 border border-white/20 flex items-center justify-center">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+            <button onClick={toggleSpeaker} disabled={!speakerSupported}
+              className={`w-16 h-16 rounded-full flex items-center justify-center transition-all disabled:opacity-40 ${
+                speakerOn ? 'bg-white scale-105' : 'bg-white/15 border border-white/20'
+              }`}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill={speakerOn ? '#111' : 'white'}>
                 <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14M3 9v6h4l5 5V4L7 9H3z"/>
               </svg>
-            </div>
-            <p className="text-white/50 text-xs">Speaker</p>
+            </button>
+            <p className="text-white/50 text-xs">{!speakerSupported ? 'Unavailable' : speakerOn ? 'Speaker on' : 'Speaker'}</p>
           </div>
         </div>
       )}
