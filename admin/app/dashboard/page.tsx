@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { Users, Car, Store, Package, Truck, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 import AdminShell from '../../components/AdminShell';
-import { getOverview } from '../../lib/api/admin';
+import { getOverview, getDeliveryKpis } from '../../lib/api/admin';
 
 type Overview = {
   totalUsers: number; customers: number; merchants: number; drivers: number; agents: number;
   activeRides: number; activeDeliveries: number;
   pendingDrivers: number; pendingMerchants: number; pendingProducts: number;
-  totalRevenue: number;
+  totalRevenue: number; totalDeliveries: number; deliveryRevenue: number;
 };
 
 function StatCard({ icon: Icon, label, value, sub, alert }: any) {
@@ -31,10 +31,15 @@ function StatCard({ icon: Icon, label, value, sub, alert }: any) {
 
 export default function DashboardPage() {
   const [data, setData] = useState<Overview | null>(null);
+  const [deliveryKpis, setDeliveryKpis] = useState<any>(null);
 
   useEffect(() => {
     getOverview().then(setData).catch(() => {});
-    const interval = setInterval(() => getOverview().then(setData).catch(() => {}), 15000);
+    getDeliveryKpis('today').then(setDeliveryKpis).catch(() => {});
+    const interval = setInterval(() => {
+      getOverview().then(setData).catch(() => {});
+      getDeliveryKpis('today').then(setDeliveryKpis).catch(() => {});
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -78,12 +83,50 @@ export default function DashboardPage() {
           <StatCard icon={Store} label="Merchants" value={data?.merchants} />
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
           <StatCard icon={Users} label="Agents" value={data?.agents} />
           <StatCard icon={Store} label="Pending merchants" value={data?.pendingMerchants} alert={data && data.pendingMerchants > 0} />
           <div className="bg-zana-primary-dark rounded-xl p-4 shadow-sm col-span-2 lg:col-span-1">
             <p className="text-white/70 text-xs">Total revenue (rides)</p>
             <p className="text-2xl font-bold text-white mt-1">{data ? `${(data.totalRevenue).toLocaleString()} RWF` : '…'}</p>
+          </div>
+          <div className="bg-zana-primary-dark rounded-xl p-4 shadow-sm col-span-2 lg:col-span-1">
+            <p className="text-white/70 text-xs">Total revenue (deliveries, {data?.totalDeliveries ?? '…'})</p>
+            <p className="text-2xl font-bold text-white mt-1">{data ? `${(data.deliveryRevenue).toLocaleString()} RWF` : '…'}</p>
+          </div>
+        </div>
+
+        {/* Deliveries today — reads the same Commission/CommissionDebt
+            records the delivery completion flow itself writes, not a
+            separate calculation. */}
+        <h2 className="text-sm font-semibold text-gray-700 mb-3 mt-2">Deliveries today</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+          <StatCard icon={Package} label="Deliveries" value={deliveryKpis?.volume?.delivered} />
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-xl font-bold text-gray-900">{deliveryKpis ? `${(deliveryKpis.financial.gmv).toLocaleString()} RWF` : '…'}</p>
+            <p className="text-xs text-gray-500">GMV</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-xl font-bold text-gray-900">{deliveryKpis ? `${(deliveryKpis.financial.zanaCommission).toLocaleString()} RWF` : '…'}</p>
+            <p className="text-xs text-gray-500">Zana commission</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-xl font-bold text-gray-900">{deliveryKpis?.performance?.completionRate != null ? `${deliveryKpis.performance.completionRate}%` : '—'}</p>
+            <p className="text-xs text-gray-500">Completion rate</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-lg font-bold text-gray-900">{deliveryKpis ? `${(deliveryKpis.financial.cashGmv).toLocaleString()} RWF` : '…'}</p>
+            <p className="text-xs text-gray-500">Cash GMV</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-lg font-bold text-gray-900">{deliveryKpis ? `${(deliveryKpis.financial.digitalGmv).toLocaleString()} RWF` : '…'}</p>
+            <p className="text-xs text-gray-500">Digital GMV</p>
+          </div>
+          <div className={`rounded-xl p-4 shadow-sm ${deliveryKpis?.financial?.outstandingCommissionDebt > 0 ? 'bg-amber-50 border border-amber-200' : 'bg-white'}`}>
+            <p className="text-lg font-bold text-gray-900">{deliveryKpis ? `${(deliveryKpis.financial.outstandingCommissionDebt).toLocaleString()} RWF` : '…'}</p>
+            <p className="text-xs text-gray-500">Outstanding debt (all-time)</p>
           </div>
         </div>
       </div>
