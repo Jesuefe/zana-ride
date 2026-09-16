@@ -55,7 +55,8 @@ export default function FinancialPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           <Card label="Total Revenue (rides)" value={fmt(snapshot?.totalRevenue)} />
-          <Card label="Total Commission Earned" value={fmt(snapshot?.totalCommission)} sub="15% per ride" color="green" />
+          <Card label="Total Revenue (deliveries)" value={fmt(snapshot?.deliveryRevenue)} />
+          <Card label="Total Commission Earned" value={fmt(snapshot?.totalCommission)} sub="15% — rides + deliveries" color="green" />
           <Card label="Total Expenses" value={fmt(snapshot?.totalExpenses)} color="red" />
           <Card label="Net Profit" value={fmt(snapshot?.netProfit)} color={snapshot?.netProfit >= 0 ? 'green' : 'red'} />
         </div>
