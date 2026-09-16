@@ -10,6 +10,7 @@ import DriverBottomNav from '../../components/DriverBottomNav';
 import DriverMap from '../../components/DriverMap';
 import { watchPosition, Coords } from '../../lib/location';
 import { updateDriverLocation } from '../../lib/api/driver';
+import { Browser } from '@capacitor/browser';
 
 // Straight-line distance in meters — same small, self-contained pattern
 // already used in a few other files in this app rather than a shared
@@ -426,6 +427,26 @@ function ActiveDeliveryContent() {
               {Math.round(distanceToTarget)}m away — move closer to confirm
             </p>
           )}
+
+          {/* Open Google Maps — same official cross-platform URL scheme,
+              same Browser.open-with-fallback pattern already proven on
+              the ride trip screen, just never wired in here. A driver
+              working through a multi-package batch benefits from this
+              even more than on a single ride — this always points at
+              whichever stop (pickup or dropoff) is actually next. */}
+          <button
+            onClick={async () => {
+              const url = `https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}&travelmode=driving`;
+              try {
+                await Browser.open({ url, presentationStyle: 'popover', toolbarColor: '#00A082' });
+              } catch {
+                window.open(url, '_system');
+              }
+            }}
+            className="w-full bg-white border-2 border-zana-primary text-zana-primary font-black py-3.5 rounded-2xl text-base flex items-center justify-center gap-2">
+            <Navigation size={18} />
+            Navigate
+          </button>
 
           {/* Action button */}
           {isPickup && (
