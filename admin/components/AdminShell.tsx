@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Car, Store, Package, MapPin,
   UserCheck, TrendingUp, LogOut, ChevronRight,
   Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
-  Sun, Moon, Smartphone } from 'lucide-react';
+  Sun, Moon, Smartphone, ClipboardList, Bell } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
 import { useTheme } from '../lib/ThemeContext';
 
@@ -30,6 +30,8 @@ const SENIOR_NAV = [
   { label: 'Fares', href: '/dashboard/fares', icon: BarChart2 },
   { label: 'Merchant Invites', href: '/dashboard/invites', icon: ShieldCheck },
   { label: 'Expenses', href: '/dashboard/expenses', icon: DollarSign },
+  { label: 'Audit Log', href: '/dashboard/audit-log', icon: ClipboardList },
+  { label: 'Notifications', href: '/dashboard/notifications', icon: Bell },
 ];
 
 const WORKER_NAV = [
