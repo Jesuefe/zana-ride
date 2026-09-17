@@ -13,7 +13,7 @@ export default function MarketsPage() {
   // Previously the only way to list a market item at all was through an
   // agent's own app — admin had no upload path of their own.
   const [addingProductFor, setAddingProductFor] = useState<string | null>(null);
-  const [productForm, setProductForm] = useState({ name: '', price: '', stock: '' });
+  const [productForm, setProductForm] = useState({ name: '', price: '', referenceCost: '', stock: '' });
   const [savingProduct, setSavingProduct] = useState(false);
 
   const load = () => getMarkets().then(setMarkets).catch(() => {});
@@ -35,9 +35,10 @@ export default function MarketsPage() {
       await addMarketProduct(marketId, {
         name: productForm.name.trim(),
         price: Number(productForm.price),
+        referenceCost: productForm.referenceCost ? Number(productForm.referenceCost) : undefined,
         stock: productForm.stock ? Number(productForm.stock) : undefined,
       });
-      setProductForm({ name: '', price: '', stock: '' });
+      setProductForm({ name: '', price: '', referenceCost: '', stock: '' });
       setAddingProductFor(null);
       load();
     } finally {
@@ -100,16 +101,18 @@ export default function MarketsPage() {
                     placeholder="Item name" className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs" />
                   <div className="flex gap-2">
                     <input value={productForm.price} onChange={e => setProductForm(f => ({ ...f, price: e.target.value.replace(/\D/g,'') }))}
-                      placeholder="Price (RWF)" inputMode="numeric" className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs" />
-                    <input value={productForm.stock} onChange={e => setProductForm(f => ({ ...f, stock: e.target.value.replace(/\D/g,'') }))}
-                      placeholder="Stock (optional)" inputMode="numeric" className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs" />
+                      placeholder="Selling price (RWF)" inputMode="numeric" className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs" />
+                    <input value={productForm.referenceCost} onChange={e => setProductForm(f => ({ ...f, referenceCost: e.target.value.replace(/\D/g,'') }))}
+                      placeholder="Normal stall price" inputMode="numeric" className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs" />
                   </div>
+                  <input value={productForm.stock} onChange={e => setProductForm(f => ({ ...f, stock: e.target.value.replace(/\D/g,'') }))}
+                    placeholder="Stock (optional)" inputMode="numeric" className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs" />
                   <div className="flex gap-2">
                     <button onClick={() => handleAddProduct(m.id)} disabled={savingProduct || !productForm.name.trim() || !productForm.price}
                       className="bg-zana-primary text-white font-semibold px-3 py-1.5 rounded-lg text-xs disabled:opacity-40">
                       {savingProduct ? 'Adding…' : 'Add item'}
                     </button>
-                    <button onClick={() => { setAddingProductFor(null); setProductForm({ name: '', price: '', stock: '' }); }}
+                    <button onClick={() => { setAddingProductFor(null); setProductForm({ name: '', price: '', referenceCost: '', stock: '' }); }}
                       className="border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs">Cancel</button>
                   </div>
                 </div>

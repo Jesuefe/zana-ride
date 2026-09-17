@@ -20,6 +20,7 @@ export default function AgentPage() {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [referenceCost, setReferenceCost] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Wallet — previously didn't exist at all for agents. They do real
@@ -71,8 +72,13 @@ export default function AgentPage() {
     if (!name.trim() || !price) return;
     setSaving(true);
     try {
-      await api.post('/agent/products', { name: name.trim(), price: Number(price), stock: 99 });
-      setName(''); setPrice(''); setAdding(false);
+      await api.post('/agent/products', {
+        name: name.trim(),
+        price: Number(price),
+        referenceCost: referenceCost ? Number(referenceCost) : undefined,
+        stock: 99,
+      });
+      setName(''); setPrice(''); setReferenceCost(''); setAdding(false);
       api.get<any[]>('/agent/products').then(setProducts).catch(() => {});
     } catch (e: any) {
       setError(e?.message ?? 'Could not add the item');
@@ -84,9 +90,31 @@ export default function AgentPage() {
     setProducts(p => p.filter(x => x.id !== id));
   };
 
-  const setStatus = async (id: string, status: string) => {
-    await api.patch(`/agent/orders/${id}/status`, { status }).catch(() => {});
+  const setStatus = async (id: string, status: string, actualPrices?: Record<string, number>) => {
+    await api.patch(`/agent/orders/${id}/status`, { status, actualPrices }).catch(() => {});
     api.get<any[]>('/agent/orders').then(setOrders).catch(() => {});
+  };
+
+  // Previously the agent's own actual purchase price was never recorded
+  // anywhere — the split between the reference stall price and what
+  // they genuinely paid, negotiated or not, is exactly what their
+  // payout is supposed to key off. Asked for right at the natural point
+  // they'd actually know it: the moment they're done shopping.
+  const [enteringPricesFor, setEnteringPricesFor] = useState<string | null>(null);
+  const [enteredPrices, setEnteredPrices] = useState<Record<string, string>>({});
+
+  const confirmReadyForPickup = async (order: any) => {
+    const actualPrices: Record<string, number> = {};
+    for (const item of order.items ?? []) {
+      const entered = enteredPrices[item.id];
+      // Left blank means "paid exactly the reference price" — a
+      // reasonable default rather than forcing the agent to type the
+      // same number back in every time nothing was negotiated.
+      actualPrices[item.id] = entered ? Number(entered) : item.price;
+    }
+    await setStatus(order.id, 'READY_FOR_PICKUP', actualPrices);
+    setEnteringPricesFor(null);
+    setEnteredPrices({});
   };
 
   // Agents only ever move an order through these three states — the rider
@@ -174,7 +202,7 @@ export default function AgentPage() {
                 <div className="flex justify-between items-center">
                   <span className="font-black text-gray-900">{o.total?.toLocaleString()} RWF</span>
                   {step && (
-                    <button onClick={() => setStatus(o.id, step.to)}
+                    <button onClick={() => step.to === 'READY_FOR_PICKUP' ? setEnteringPricesFor(o.id) : setStatus(o.id, step.to)}
                       className="bg-zana-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl">
                       {step.label}
                     </button>
@@ -185,6 +213,35 @@ export default function AgentPage() {
                     </span>
                   )}
                 </div>
+
+                {enteringPricesFor === o.id && (
+                  <div className="mt-3 pt-3 border-t border-gray-50 space-y-2">
+                    <p className="text-[11px] text-gray-500">What did you actually pay for each item? Leave blank if it matched the stall price.</p>
+                    {o.items?.map((i: any) => (
+                      <div key={i.id} className="flex items-center gap-2">
+                        <span className="flex-1 text-xs text-gray-700 truncate">{i.product?.name}</span>
+                        <span className="text-[10px] text-gray-400">ref {i.price?.toLocaleString()}</span>
+                        <input
+                          value={enteredPrices[i.id] ?? ''}
+                          onChange={e => setEnteredPrices(p => ({ ...p, [i.id]: e.target.value.replace(/\D/g, '') }))}
+                          placeholder={String(i.price)}
+                          inputMode="numeric"
+                          className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-xs"
+                        />
+                      </div>
+                    ))}
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => confirmReadyForPickup(o)}
+                        className="bg-zana-primary text-white text-xs font-bold px-4 py-2 rounded-xl">
+                        Confirm ready for pickup
+                      </button>
+                      <button onClick={() => { setEnteringPricesFor(null); setEnteredPrices({}); }}
+                        className="border border-gray-200 text-gray-600 text-xs px-4 py-2 rounded-xl">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -205,7 +262,10 @@ export default function AgentPage() {
                 placeholder="Item name, e.g. Tomatoes (1kg)"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
               <input value={price} onChange={e => setPrice(e.target.value.replace(/\D/g, ''))}
-                placeholder="Price in RWF" inputMode="numeric"
+                placeholder="Selling price in RWF" inputMode="numeric"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
+              <input value={referenceCost} onChange={e => setReferenceCost(e.target.value.replace(/\D/g, ''))}
+                placeholder="Normal stall price (optional — for your margin split)" inputMode="numeric"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
               <button onClick={addItem} disabled={saving || !name.trim() || !price}
                 className="w-full bg-zana-primary text-white font-bold py-3 rounded-xl disabled:opacity-40">
