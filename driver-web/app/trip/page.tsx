@@ -88,6 +88,14 @@ function TripContent() {
   const [showCall, setShowCall] = useState(false);
   const [showCallOptions, setShowCallOptions] = useState(false);
   const [cancelledNotice, setCancelledNotice] = useState<string | null>(null);
+  // A ref, not the state directly — the polling effect below closes
+  // over this once and would otherwise never see updates to the state
+  // itself, the same stale-closure issue fixed in the call component
+  // earlier: this ref is what lets the poll loop know a notice is
+  // already showing, without re-subscribing the whole polling effect
+  // every time cancelledNotice changes.
+  const cancelledNoticeRef = useRef<string | null>(null);
+  useEffect(() => { cancelledNoticeRef.current = cancelledNotice; }, [cancelledNotice]);
   const [momoState, setMomoState] = useState<'idle'|'prompt'|'sending'|'waiting'|'paid'|'failed'>('idle');
   const [momoPhone, setMomoPhone] = useState('');
   const [momoError, setMomoError] = useState('');
@@ -169,7 +177,20 @@ function TripContent() {
         const t = await fetchMyActiveTrip();
         if (cancelled) return;
         if (!t) {
-          router.replace('/');
+          // Previously redirected instantly and silently the moment the
+          // trip stopped being "active" — which happens the exact
+          // instant a customer cancels. This raced directly against the
+          // trip:cancelled socket handler's graceful 3.5s notice, and
+          // whichever one won left the driver either informed or just
+          // abruptly bounced home with zero explanation, which reads as
+          // the app randomly kicking them out. The socket handler is
+          // the one path that actually knows why the trip is gone, so
+          // let it own the notice-then-redirect whenever it's already
+          // in flight, rather than racing it with a silent jump.
+          if (!cancelledNoticeRef.current) {
+            setCancelledNotice('This ride is no longer active');
+            setTimeout(() => router.replace('/'), 3500);
+          }
           return;
         }
         setTrip(t);
