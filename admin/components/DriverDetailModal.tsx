@@ -1,14 +1,31 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { X, FileText, Star, Car } from 'lucide-react';
-import { getDriverDetail } from '../lib/api/admin';
+import { X, FileText, Star, Car, Check } from 'lucide-react';
+import { getDriverDetail, verifyDriverDocument } from '../lib/api/admin';
 
 export default function DriverDetailModal({ driverId, onClose }: { driverId: string; onClose: () => void }) {
   const [d, setD] = useState<any>(null);
+  // Previously documents only ever showed a static badge — there was
+  // no way anywhere in admin to actually flip a document to verified,
+  // even though the backend endpoint for it already existed.
+  const [verifying, setVerifying] = useState<string | null>(null);
 
   useEffect(() => {
     getDriverDetail(driverId).then(setD).catch(() => {});
   }, [driverId]);
+
+  const toggleVerify = async (docId: string, current: boolean) => {
+    setVerifying(docId);
+    try {
+      await verifyDriverDocument(docId, !current);
+      setD((prev: any) => ({
+        ...prev,
+        documents: prev.documents.map((doc: any) => doc.id === docId ? { ...doc, verified: !current } : doc),
+      }));
+    } finally {
+      setVerifying(null);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
@@ -49,14 +66,20 @@ export default function DriverDetailModal({ driverId, onClose }: { driverId: str
             <div className="space-y-1.5 mb-4">
               {!d.documents?.length && <p className="text-xs text-gray-400">No documents uploaded.</p>}
               {d.documents?.map((doc: any) => (
-                <a key={doc.id} href={doc.fileUrl} target="_blank" rel="noreferrer"
-                  className="flex items-center gap-2 text-xs bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100">
-                  <FileText size={13} className="text-gray-400 shrink-0" />
-                  <span className="flex-1 text-gray-700">{doc.label}</span>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${doc.verified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {doc.verified ? 'Verified' : 'Unverified'}
-                  </span>
-                </a>
+                <div key={doc.id} className="flex items-center gap-2 text-xs bg-gray-50 rounded-lg px-3 py-2">
+                  <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 flex-1 min-w-0 hover:underline">
+                    <FileText size={13} className="text-gray-400 shrink-0" />
+                    <span className="text-gray-700 truncate">{doc.label}</span>
+                  </a>
+                  <button
+                    onClick={() => toggleVerify(doc.id, doc.verified)}
+                    disabled={verifying === doc.id}
+                    className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 disabled:opacity-50 ${doc.verified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}
+                  >
+                    {doc.verified && <Check size={10} />}
+                    {verifying === doc.id ? '…' : doc.verified ? 'Verified' : 'Verify'}
+                  </button>
+                </div>
               ))}
             </div>
 

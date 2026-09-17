@@ -34,6 +34,9 @@ export async function getDrivers(status?: string) {
 export async function getDriverDetail(id: string) {
   return api.get<any>(`/admin/drivers/${id}/detail`);
 }
+export async function verifyDriverDocument(documentId: string, verified: boolean) {
+  return api.patch(`/admin/drivers/documents/${documentId}/verify`, { verified });
+}
 
 export async function approveDriver(id: string) { return api.patch(`/admin/drivers/${id}/approve`); }
 export async function rejectDriver(id: string) { return api.patch(`/admin/drivers/${id}/reject`); }
