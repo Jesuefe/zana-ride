@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Search, Shield, ShieldOff, UserCheck } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
+import UserDetailModal from '../../../components/UserDetailModal';
 import { getUsers, updateUserStatus } from '../../../lib/api/admin';
 
 const ROLE_BADGE: Record<string, string> = {
@@ -17,6 +18,9 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [loading, setLoading] = useState(true);
+  // Previously there was no drill-down at all — clicking a user did
+  // nothing; the list row was the only view admin ever had of them.
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -53,7 +57,7 @@ export default function UsersPage() {
               {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-sm">Loading…</td></tr>}
               {users.map(u => (
                 <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-3">{u.firstName} {u.lastName}</td>
+                  <td className="px-4 py-3 text-zana-primary cursor-pointer hover:underline" onClick={() => setDetailId(u.id)}>{u.firstName} {u.lastName}</td>
                   <td className="px-4 py-3 text-gray-600">{u.phone}</td>
                   <td className="px-4 py-3 text-gray-600">{u.email ?? '—'}</td>
                   <td className="px-4 py-3"><span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${ROLE_BADGE[u.role] ?? 'bg-gray-100 text-gray-600'}`}>{u.role}</span></td>

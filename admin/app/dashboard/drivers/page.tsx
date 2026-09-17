@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Check, X, Pause } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
+import DriverDetailModal from '../../../components/DriverDetailModal';
 import { getDrivers, approveDriver, rejectDriver, suspendDriver } from '../../../lib/api/admin';
 
 const STATUS_BADGE: Record<string, string> = {
@@ -14,6 +15,9 @@ const STATUS_BADGE: Record<string, string> = {
 export default function DriversPage() {
   const [drivers, setDrivers] = useState<any[]>([]);
   const [filter, setFilter] = useState('PENDING');
+  // Previously there was no drill-down at all — clicking a driver did
+  // nothing; the list row was the only view admin ever had of them.
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const load = () => getDrivers(filter || undefined).then(setDrivers).catch(() => {});
   useEffect(() => { load(); }, [filter]);
@@ -47,7 +51,7 @@ export default function DriversPage() {
             <tbody>
               {drivers.map(d => (
                 <tr key={d.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{d.user.firstName} {d.user.lastName}</td>
+                  <td className="px-4 py-3 font-medium text-zana-primary cursor-pointer hover:underline" onClick={() => setDetailId(d.id)}>{d.user.firstName} {d.user.lastName}</td>
                   <td className="px-4 py-3 text-gray-600">{d.user.phone}</td>
                   <td className="px-4 py-3">{d.vehicle}</td>
                   <td className="px-4 py-3">{d.plate}</td>
@@ -67,6 +71,7 @@ export default function DriversPage() {
           </table>
         </div>
       </div>
+      {detailId && <DriverDetailModal driverId={detailId} onClose={() => setDetailId(null)} />}
     </AdminShell>
   );
 }

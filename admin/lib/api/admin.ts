@@ -23,8 +23,16 @@ export async function updateUserStatus(id: string, status: string) {
   return api.patch(`/admin/users/${id}/status`, { status });
 }
 
+export async function getUserDetail(id: string) {
+  return api.get<any>(`/admin/users/${id}/detail`);
+}
+
 export async function getDrivers(status?: string) {
   return api.get<any[]>(`/admin/drivers${status ? `?status=${status}` : ''}`);
+}
+
+export async function getDriverDetail(id: string) {
+  return api.get<any>(`/admin/drivers/${id}/detail`);
 }
 
 export async function approveDriver(id: string) { return api.patch(`/admin/drivers/${id}/approve`); }
