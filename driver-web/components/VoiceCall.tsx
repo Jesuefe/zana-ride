@@ -53,8 +53,15 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<any>(null);
   const callIdRef = useRef<string | null>(incomingCallId ?? null);
+  // A ref, not the state variable, because the RoomEvent.Disconnected
+  // handler below is registered once inside connectToRoom (called from
+  // an effect with an empty dependency array) and would otherwise always
+  // see whatever `state` was at that first render — never the real,
+  // current value — causing handleEnd to double-fire on every
+  // deliberate end (disconnect() triggers this same event back).
+  const endedRef = useRef(false);
 
-  const [state, setState] = useState<CallState>(incomingCallId ? 'connected' : 'connecting');
+  const [state, setState] = useState<CallState>('connecting');
   const [muted, setMuted] = useState(false);
   const [speakerOn, setSpeakerOn] = useState(false);
   const [speakerSupported, setSpeakerSupported] = useState(true);
@@ -74,6 +81,8 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
 
   // ── End call ───────────────────────────────────────────────────────────────
   const handleEnd = useCallback(async (reason?: string) => {
+    if (endedRef.current) return; // already ending/ended — don't double-fire
+    endedRef.current = true;
     if (callIdRef.current) {
       await api.post(`/calls/${callIdRef.current}/end`).catch(() => {});
     }
@@ -110,7 +119,7 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
 
     room.on(RoomEvent.Disconnected, () => {
       console.log('[CALL] Disconnected');
-      if (state !== 'ended') handleEnd();
+      if (!endedRef.current) handleEnd();
     });
 
     room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
@@ -169,7 +178,7 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
       api.post(`/calls/${callId}/heartbeat`).catch(() => {});
     }, 10_000);
 
-  }, [handleEnd, state]);
+  }, [handleEnd]);
 
   // ── Main effect ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -178,9 +187,13 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
     const init = async () => {
       try {
         if (incomingCallId && incomingRoom && incomingWsUrl && incomingToken) {
-          // Incoming call — already accepted, just connect to LiveKit
+          // Incoming call — already accepted, connect to LiveKit. Stays
+          // in the normal "connecting" state and only actually shows
+          // Connected once RoomEvent.ParticipantConnected genuinely
+          // fires — same real signal the caller side waits for, so the
+          // receiver doesn't show a "Connected" badge and a running
+          // timer before the caller has even joined the room.
           callIdRef.current = incomingCallId;
-          setState('connected');
           await connectToRoom(incomingWsUrl, incomingToken, incomingCallId);
         } else if (rideId) {
           // Outgoing call — create via API
