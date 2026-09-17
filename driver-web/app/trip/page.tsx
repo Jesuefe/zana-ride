@@ -8,13 +8,13 @@ import VoiceCall, { VoiceCallHandle } from '../../components/VoiceCall';
 import { io, Socket } from 'socket.io-client';
 import { api, getToken } from '../../lib/api/client';
 import RatingModal from '../../components/RatingModal';
-import { getStoredLang, dt } from '../../lib/lang';
+import { getStoredLang, dt, tt } from '../../lib/lang';
 import { fetchMyActiveTrip, arriveAtPickup, startTrip, completeTrip, updateDriverLocation, declineTrip, logRecoveryEvent, DriverTrip } from '../../lib/api/driver';
 import { getCurrentPosition, watchPosition, Coords } from '../../lib/location';
 import DriverMap from '../../components/DriverMap';
 import { Browser } from '@capacitor/browser';
 
-const STATUS_COPY: Record<string, string> = {
+const STATUS_KEYS: Record<string, string> = {
   DRIVER_ASSIGNED: 'Heading to pickup',
   DRIVER_ARRIVED: 'Waiting for passenger',
   RIDE_IN_PROGRESS: 'Trip in progress',
@@ -193,7 +193,7 @@ function TripContent() {
       await declineTrip(trip.id, cancelReason.trim());
       router.push('/');
     } catch (e: any) {
-      setCancelError('Could not cancel. Try again.');
+      setCancelError(tt('Could not cancel. Try again.', lang));
     } finally {
       setCancelling(false);
     }
@@ -250,8 +250,8 @@ function TripContent() {
       setCollectingCash(false);
       setMomoError(
         e?.message === 'PAYMENT_ALREADY_CONFIRMED'
-          ? 'This ride was already paid via MoMo — no need to collect cash.'
-          : (e?.message || 'Could not switch to cash. Please try again.')
+          ? tt('This ride was already paid via MoMo — no need to collect cash.', lang)
+          : (e?.message || tt('Could not switch to cash. Please try again.', lang))
       );
       return;
     }
@@ -283,27 +283,27 @@ function TripContent() {
         if (ticks > 30) {
           clearInterval(momoPollRef.current);
           setMomoState('failed');
-          setMomoError('Payment not confirmed. Ask the customer to check their phone.');
+          setMomoError(tt('Payment not confirmed. Ask the customer to check their phone.', lang));
         }
       }, 4000);
     } catch (e: any) {
       setMomoState('failed');
-      setMomoError(e?.message ?? 'Could not send the payment request');
+      setMomoError(e?.message ?? tt('Could not send the payment request', lang));
     }
   };
 
   useEffect(() => () => clearInterval(momoPollRef.current), []);
 
   if (!trip) {
-    return <div className="p-6 text-center text-zana-muted text-sm">Loading trip…</div>;
+    return <div className="p-6 text-center text-zana-muted text-sm">{tt('Loading trip…', lang)}</div>;
   }
 
   const buttonLabel =
     trip.status === 'DRIVER_ASSIGNED'
-      ? "I've Arrived"
+      ? dt("I've Arrived", lang)
       : trip.status === 'DRIVER_ARRIVED'
-        ? 'Start Trip'
-        : 'Complete Trip';
+        ? dt('Start Trip', lang)
+        : dt('Complete Trip', lang);
 
   // Navigate toward pickup until trip starts, then toward destination.
   // Keep showing the pickup during DRIVER_ARRIVED so the map stays active.
@@ -330,15 +330,15 @@ function TripContent() {
         <div className="absolute top-4 left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl p-4 animate-fade-slide-up">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-bold text-gray-900">Active ride restored</p>
+              <p className="text-sm font-bold text-gray-900">{tt('Active ride restored', lang)}</p>
               <p className="text-xs text-zana-muted mt-0.5">
-                {STATUS_COPY[trip.status] ?? trip.status} · {targetLabel}
+                {dt(STATUS_KEYS[trip.status] ?? trip.status, lang)} · {targetLabel}
               </p>
             </div>
             <button
               onClick={() => setShowRecoveredBanner(false)}
               className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center shrink-0"
-              aria-label="Dismiss"
+              aria-label={tt('Dismiss', lang)}
             >
               <X size={14} className="text-gray-500" />
             </button>
@@ -352,8 +352,8 @@ function TripContent() {
       {showReturnPrompt && (
         <div className="absolute bottom-[92px] left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl p-4 flex items-center gap-3 animate-fade-slide-up">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-gray-900">Back from navigation</p>
-            <p className="text-xs text-zana-muted">Ready to continue?</p>
+            <p className="text-sm font-bold text-gray-900">{tt('Back from navigation', lang)}</p>
+            <p className="text-xs text-zana-muted">{tt('Ready to continue?', lang)}</p>
           </div>
           <button
             onClick={() => { setShowReturnPrompt(false); handleAction(); }}
@@ -364,7 +364,7 @@ function TripContent() {
           <button
             onClick={() => setShowReturnPrompt(false)}
             className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0"
-            aria-label="Dismiss"
+            aria-label={tt('Dismiss', lang)}
           >
             <X size={14} className="text-gray-500" />
           </button>
@@ -383,7 +383,7 @@ function TripContent() {
         <div className="px-4 pb-4">
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] text-zana-muted">{STATUS_COPY[trip.status] ?? trip.status}</p>
+              <p className="text-[11px] text-zana-muted">{dt(STATUS_KEYS[trip.status] ?? trip.status, lang)}</p>
               <p className="text-sm font-semibold text-gray-900 truncate">{targetLabel}</p>
             </div>
             {/* Chat */}
@@ -453,7 +453,7 @@ function TripContent() {
             className="w-full mt-3 bg-blue-50 text-blue-700 font-semibold text-sm py-3 rounded-xl flex items-center justify-center gap-2"
           >
             <Navigation size={16} />
-            Get Directions
+            {tt('Get Directions', lang)}
           </button>
 
           {detailsOpen && (
@@ -461,23 +461,23 @@ function TripContent() {
               <div className="flex items-start gap-2">
                 <MapPin size={14} className="text-zana-primary mt-0.5 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[10px] text-zana-muted">Pickup</p>
+                  <p className="text-[10px] text-zana-muted">{tt('Pickup', lang)}</p>
                   <p className="text-xs text-gray-900">{trip.pickupAddress}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
                 <Navigation size={14} className="text-zana-secondary-dark mt-0.5 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[10px] text-zana-muted">Destination</p>
+                  <p className="text-[10px] text-zana-muted">{tt('Destination', lang)}</p>
                   <p className="text-xs text-gray-900">{trip.destinationAddress}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                <span className="text-[11px] text-zana-muted">Passenger</span>
-                <span className="text-xs font-medium text-gray-900">{trip.customer.firstName ?? 'Passenger'}</span>
+                <span className="text-[11px] text-zana-muted">{tt('Passenger', lang)}</span>
+                <span className="text-xs font-medium text-gray-900">{trip.customer.firstName ?? tt('Passenger', lang)}</span>
               </div>
               <div className="flex items-center justify-between bg-zana-primary-light rounded-lg px-3 py-2">
-                <span className="text-[11px] text-zana-muted">Fare</span>
+                <span className="text-[11px] text-zana-muted">{dt('Fare', lang)}</span>
                 <span className="text-sm font-bold text-gray-900">{trip.estimatedFare.toLocaleString()} RWF</span>
               </div>
             </div>
@@ -496,7 +496,7 @@ function TripContent() {
               onClick={() => setShowCancel(true)}
               className="w-full mt-2 text-zana-error text-sm font-semibold py-2"
             >
-              Cancel this ride
+              {tt('Cancel this ride', lang)}
             </button>
           )}
         </div>
@@ -507,7 +507,7 @@ function TripContent() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowCallOptions(false)} />
           <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg text-gray-900">Call passenger</h2>
+              <h2 className="font-semibold text-lg text-gray-900">{tt('Call passenger', lang)}</h2>
               <button onClick={() => setShowCallOptions(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                 <X size={16} />
               </button>
@@ -535,8 +535,8 @@ function TripContent() {
                 <Phone size={16} className="text-zana-primary" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-gray-900">Free Call</p>
-                <p className="text-xs text-zana-muted">Through Zana — no airtime used</p>
+                <p className="text-sm font-semibold text-gray-900">{tt('Free Call', lang)}</p>
+                <p className="text-xs text-zana-muted">{tt('Through Zana — no airtime used', lang)}</p>
               </div>
             </button>
             <button
@@ -550,8 +550,8 @@ function TripContent() {
                 <Phone size={16} className="text-gray-600" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-gray-900">Call Directly</p>
-                <p className="text-xs text-zana-muted">Using your phone's carrier network</p>
+                <p className="text-sm font-semibold text-gray-900">{tt('Call Directly', lang)}</p>
+                <p className="text-xs text-zana-muted">{tt("Using your phone's carrier network", lang)}</p>
               </div>
             </button>
           </div>
@@ -563,13 +563,13 @@ function TripContent() {
           <div className="absolute inset-0 bg-black/50" onClick={() => !cancelling && setShowCancel(false)} />
           <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl p-6">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="font-semibold text-lg text-gray-900">Cancel this ride?</h2>
+              <h2 className="font-semibold text-lg text-gray-900">{tt('Cancel this ride?', lang)}</h2>
               <button onClick={() => setShowCancel(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                 <X size={16} />
               </button>
             </div>
             <p className="text-sm text-zana-muted mb-4">
-              Tell us why — this goes to the customer and to Zana.
+              {tt('Tell us why — this goes to the customer and to Zana.', lang)}
             </p>
             <textarea
               value={cancelReason}
@@ -586,7 +586,7 @@ function TripContent() {
               disabled={!cancelReason.trim() || cancelling}
               className="w-full mt-4 bg-zana-error text-white font-semibold py-3 rounded-xl disabled:opacity-40"
             >
-              {cancelling ? 'Cancelling…' : 'Confirm cancellation'}
+              {cancelling ? tt('Cancelling…', lang) : tt('Confirm cancellation', lang)}
             </button>
           </div>
         </div>
@@ -594,7 +594,7 @@ function TripContent() {
       {trip?.status === 'RIDE_COMPLETED' && !showRating && (
         <div className="absolute bottom-24 left-4 right-4">
           <button onClick={() => setShowRating(true)} className="w-full bg-zana-secondary text-gray-900 font-bold py-3 rounded-xl text-sm">
-            ⭐ Rate this passenger
+            {tt('⭐ Rate this passenger', lang)}
           </button>
         </div>
       )}
@@ -613,11 +613,11 @@ function TripContent() {
               <circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" />
             </svg>
           </div>
-          <p className="text-xl font-black text-gray-900 mb-2">Ride cancelled</p>
+          <p className="text-xl font-black text-gray-900 mb-2">{tt('Ride cancelled', lang)}</p>
           <p className="text-sm text-gray-500 text-center mb-6">{cancelledNotice}</p>
           <button onClick={() => router.replace('/')}
             className="bg-zana-primary text-white font-bold px-8 py-3 rounded-2xl">
-            Back to home
+            {tt('Back to home', lang)}
           </button>
         </div>
       )}
@@ -630,16 +630,16 @@ function TripContent() {
 
             {momoState === 'prompt' || momoState === 'failed' ? (
               <>
-                <p className="text-xl font-black text-gray-900 mb-1">Collect payment</p>
+                <p className="text-xl font-black text-gray-900 mb-1">{tt('Collect payment', lang)}</p>
                 <p className="text-sm text-gray-500 mb-5">
-                  Send a Mobile Money request for{' '}
+                  {tt('Send a Mobile Money request for', lang)}{' '}
                   <span className="font-bold text-zana-primary">
                     {((trip as any).finalFare ?? trip.estimatedFare)?.toLocaleString()} RWF
                   </span>
                 </p>
 
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Customer's MoMo number
+                  {tt("Customer's MoMo number", lang)}
                 </label>
                 <input
                   value={momoPhone}
@@ -657,40 +657,40 @@ function TripContent() {
 
                 <button onClick={sendMomoPrompt} disabled={!momoPhone.trim()}
                   className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40">
-                  {momoState === 'failed' ? 'Send prompt again' : 'Send payment request'}
+                  {momoState === 'failed' ? tt('Send prompt again', lang) : tt('Send payment request', lang)}
                 </button>
                 <button onClick={handleCollectCash} disabled={collectingCash}
                   className="w-full text-center text-sm text-gray-400 mt-3 py-1 disabled:opacity-50">
-                  {collectingCash ? 'Recording cash payment…' : 'Collect cash instead'}
+                  {collectingCash ? tt('Recording cash payment…', lang) : tt('Collect cash instead', lang)}
                 </button>
               </>
             ) : momoState === 'sending' ? (
               <div className="flex flex-col items-center py-8">
                 <div className="w-10 h-10 border-3 border-zana-primary/20 border-t-zana-primary rounded-full animate-spin mb-4" />
-                <p className="font-bold text-gray-900">Sending request...</p>
+                <p className="font-bold text-gray-900">{tt('Sending request...', lang)}</p>
               </div>
             ) : momoState === 'waiting' ? (
               <div className="flex flex-col items-center py-6">
                 <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-4 animate-pulse">
                   <span className="text-3xl">📱</span>
                 </div>
-                <p className="font-black text-lg text-gray-900 mb-1">Waiting for payment</p>
+                <p className="font-black text-lg text-gray-900 mb-1">{tt('Waiting for payment', lang)}</p>
                 <p className="text-sm text-gray-500 text-center mb-1">
-                  A prompt was sent to {momoPhone}
+                  {tt('A prompt was sent to', lang)} {momoPhone}
                 </p>
                 <p className="text-xs text-gray-400 text-center mb-5">
-                  Ask the customer to enter their PIN
+                  {tt('Ask the customer to enter their PIN', lang)}
                 </p>
                 <div className="w-8 h-8 border-2 border-zana-primary/20 border-t-zana-primary rounded-full animate-spin mb-6" />
 
                 <div className="w-full space-y-2">
                   <button onClick={sendMomoPrompt}
                     className="w-full border-2 border-zana-primary text-zana-primary font-bold py-3 rounded-2xl">
-                    Send prompt again
+                    {tt('Send prompt again', lang)}
                   </button>
                   <button onClick={() => { clearInterval(momoPollRef.current); setMomoState('prompt'); }}
                     className="w-full text-center text-sm text-gray-400 py-2">
-                    Use a different number
+                    {tt('Use a different number', lang)}
                   </button>
                 </div>
               </div>
@@ -701,8 +701,8 @@ function TripContent() {
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                 </div>
-                <p className="font-black text-lg text-gray-900">Payment received</p>
-                <p className="text-sm text-gray-500 mt-1">Trip complete</p>
+                <p className="font-black text-lg text-gray-900">{tt('Payment received', lang)}</p>
+                <p className="text-sm text-gray-500 mt-1">{tt('Trip complete', lang)}</p>
               </div>
             )}
           </div>
@@ -732,9 +732,9 @@ function TripContent() {
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
           </div>
-          <p className="text-white/60 text-sm mb-1">Incoming call</p>
+          <p className="text-white/60 text-sm mb-1">{tt('Incoming call', lang)}</p>
           <p className="text-white text-3xl font-black mb-2">{incomingCall.callerName}</p>
-          <p className="text-white/50 text-xs mb-12">Zana Ride · Free Call</p>
+          <p className="text-white/50 text-xs mb-12">{tt('Zana Ride · Free Call', lang)}</p>
           <div className="flex items-center gap-16">
             <div className="flex flex-col items-center gap-2">
               <button onClick={() => { 
@@ -747,7 +747,7 @@ function TripContent() {
                   <path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4l5.6 5.6L5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6z"/>
                 </svg>
               </button>
-              <p className="text-white/50 text-xs">Decline</p>
+              <p className="text-white/50 text-xs">{dt('Decline', lang)}</p>
             </div>
             <div className="flex flex-col items-center gap-2">
               <button onClick={async () => {
@@ -765,7 +765,7 @@ function TripContent() {
                   <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
                 </svg>
               </button>
-              <p className="text-white/50 text-xs">Accept</p>
+              <p className="text-white/50 text-xs">{dt('Accept', lang)}</p>
             </div>
           </div>
         </div>
