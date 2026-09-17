@@ -29,7 +29,7 @@ const ACTIVE_STATUSES = ['DRIVER_ASSIGNED', 'DRIVER_EN_ROUTE', 'DRIVER_ARRIVED',
 
 type GroupTrip = ApiTrip & { groupSeatIndex: number | null };
 
-function DriverCard({ trip, seatLabel, onChat, onCall }: { trip: ApiTrip; seatLabel?: string; onChat?: () => void; onCall?: () => void }) {
+function DriverCard({ trip, seatLabel, onChat, onCall, hasUnreadMessage }: { trip: ApiTrip; seatLabel?: string; onChat?: () => void; onCall?: () => void; hasUnreadMessage?: boolean }) {
   const driver = trip.driver;
   if (!driver || trip.status === 'RIDE_COMPLETED') return null;
   // Previously the plate was just a small line of plain text at all
@@ -57,9 +57,12 @@ function DriverCard({ trip, seatLabel, onChat, onCall }: { trip: ApiTrip; seatLa
           {onChat && (
             <button
               onClick={onChat}
-              className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center"
+              className="relative w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center"
             >
               <MessageCircle size={16} className="text-zana-primary" />
+              {hasUnreadMessage && (
+                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+              )}
             </button>
           )}
           {onCall && (
@@ -99,6 +102,14 @@ function TrackingContent() {
   const [cancelError, setCancelError] = useState('');
   const [callNotice, setCallNotice] = useState('');
   const [showChat, setShowChat] = useState(false);
+  // Previously there was no indication at all that a new message
+  // arrived while the panel was closed — it only ever polled while
+  // mounted. This tracks whether there's something unseen, using a ref
+  // for the socket handler (which closes over state once) to check the
+  // panel's current open/closed status without going stale.
+  const [hasUnreadMessage, setHasUnreadMessage] = useState(false);
+  const showChatRef = useRef(showChat);
+  useEffect(() => { showChatRef.current = showChat; }, [showChat]);
   const [sosSent, setSosSent] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [showCall, setShowCall] = useState(false);
@@ -207,6 +218,9 @@ function TrackingContent() {
     socket.on('call:declined', () => { setIncomingCallInfo(null); setShowCall(false); });
     socket.on('call:cancelled', () => { setIncomingCallInfo(null); setShowCall(false); });
     socket.on('call:ended', () => { setIncomingCallInfo(null); setShowCall(false); setCallData(null); });
+    socket.on('chat:message', () => {
+      if (!showChatRef.current) setHasUnreadMessage(true);
+    });
 
     // Driver cancelled the ride
     socket.on('trip:cancelled', (data: { message: string }) => {
@@ -389,7 +403,7 @@ function TrackingContent() {
 
         {isGroup
           ? groupTrips.map((t) => (
-              <DriverCard key={t.id} trip={t} seatLabel={`Moto ${t.groupSeatIndex} · ${STATUS_COPY[t.status] ?? t.status}`} onChat={() => setShowChat(true)} onCall={async () => {
+              <DriverCard key={t.id} trip={t} seatLabel={`Moto ${t.groupSeatIndex} · ${STATUS_COPY[t.status] ?? t.status}`} hasUnreadMessage={hasUnreadMessage} onChat={() => { setShowChat(true); setHasUnreadMessage(false); }} onCall={async () => {
                 const tripId = primaryTrip?.id;
                 if (!tripId) return;
                 try {
@@ -403,7 +417,7 @@ function TrackingContent() {
                 }
               }} />
             ))
-          : trip && <DriverCard trip={trip} onChat={() => setShowChat(true)} onCall={async () => {
+          : trip && <DriverCard trip={trip} hasUnreadMessage={hasUnreadMessage} onChat={() => { setShowChat(true); setHasUnreadMessage(false); }} onCall={async () => {
                 const tripId = primaryTrip?.id;
                 if (!tripId) return;
                 try {

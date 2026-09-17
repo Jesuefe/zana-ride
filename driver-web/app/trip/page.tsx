@@ -78,6 +78,9 @@ function TripContent() {
       setTimeout(() => router.replace('/'), 3500);
     });
     socket.on('call:ended', () => { setIncomingCall(null); setShowCall(false); });
+    socket.on('chat:message', () => {
+      if (!showChatRef.current) setHasUnreadMessage(true);
+    });
 
     return () => { socket.disconnect(); };
   }, []);
@@ -85,6 +88,14 @@ function TripContent() {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [acting, setActing] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  // Previously there was no indication at all that a new message
+  // arrived while the panel was closed — it only ever polled while
+  // mounted. This tracks whether there's something unseen, using a ref
+  // for the socket handler (which closes over state once) to check the
+  // panel's current open/closed status without going stale.
+  const [hasUnreadMessage, setHasUnreadMessage] = useState(false);
+  const showChatRef = useRef(showChat);
+  useEffect(() => { showChatRef.current = showChat; }, [showChat]);
   const [showCall, setShowCall] = useState(false);
   const [showCallOptions, setShowCallOptions] = useState(false);
   const [cancelledNotice, setCancelledNotice] = useState<string | null>(null);
@@ -409,10 +420,13 @@ function TripContent() {
             </div>
             {/* Chat */}
             <button
-              onClick={() => setShowChat(true)}
-              className="w-10 h-10 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0"
+              onClick={() => { setShowChat(true); setHasUnreadMessage(false); }}
+              className="relative w-10 h-10 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0"
             >
               <MessageCircle size={16} className="text-zana-primary" />
+              {hasUnreadMessage && (
+                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+              )}
             </button>
 
             {/* Call — asks which method every time, rather than silently
