@@ -15,7 +15,17 @@ export async function getDeliveryKpis(period: 'today' | 'week' | 'month' = 'toda
 }
 
 export async function getUsers(params?: { role?: string; status?: string; search?: string }) {
-  const q = new URLSearchParams(params as any).toString();
+  // URLSearchParams stringifies undefined as the literal text
+  // "undefined" rather than omitting it — this was genuinely crashing
+  // the backend's Prisma query with role: "undefined" whenever a
+  // filter was left unset.
+  const clean: Record<string, string> = {};
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      if (v) clean[k] = v;
+    }
+  }
+  const q = new URLSearchParams(clean).toString();
   return api.get<any[]>(`/admin/users${q ? `?${q}` : ''}`);
 }
 
