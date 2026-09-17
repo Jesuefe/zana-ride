@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Pause, RefreshCw, Play } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
+import MerchantDetailModal from '../../../components/MerchantDetailModal';
 import { getMerchants, approveMerchant, suspendMerchant } from '../../../lib/api/admin';
 
 export default function MerchantsPage() {
@@ -10,6 +11,9 @@ export default function MerchantsPage() {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
   const [toast, setToast] = useState('');
+  // Previously there was no drill-down at all — clicking a merchant did
+  // nothing; the card was the only view admin ever had of them.
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -111,7 +115,7 @@ export default function MerchantsPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="font-bold text-gray-900">{m.businessName}</p>
+                      <p className="font-bold text-zana-primary cursor-pointer hover:underline" onClick={() => setDetailId(m.id)}>{m.businessName}</p>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         m.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
                         m.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
@@ -177,6 +181,7 @@ export default function MerchantsPage() {
           </div>
         )}
       </div>
+      {detailId && <MerchantDetailModal merchantId={detailId} onClose={() => setDetailId(null)} />}
     </AdminShell>
   );
 }

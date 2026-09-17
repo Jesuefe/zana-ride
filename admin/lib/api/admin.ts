@@ -42,6 +42,7 @@ export async function suspendDriver(id: string) { return api.patch(`/admin/drive
 export async function getMerchants(status?: string) {
   return api.get<any[]>(`/admin/merchants${status ? `?status=${status}` : ''}`);
 }
+export async function getMerchantDetail(id: string) { return api.get<any>(`/admin/merchants/${id}/detail`); }
 export async function approveMerchant(id: string) { return api.patch(`/admin/merchants/${id}/approve`); }
 export async function suspendMerchant(id: string) { return api.patch(`/admin/merchants/${id}/suspend`); }
 
@@ -61,6 +62,7 @@ export async function updateMarket(id: string, data: any) { return api.patch(`/a
 export async function addMarketProduct(marketId: string, data: any) { return api.post(`/admin/markets/${marketId}/products`, data); }
 
 export async function getAgents() { return api.get<any[]>('/admin/agents'); }
+export async function getAgentDetail(id: string) { return api.get<any>(`/admin/agents/${id}/detail`); }
 export async function createAgent(data: any) { return api.post('/admin/agents', data); }
 export async function assignAgent(id: string, marketId: string) {
   return api.patch(`/admin/agents/${id}/assign-market`, { marketId });

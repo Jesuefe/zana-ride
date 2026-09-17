@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, ToggleLeft, ToggleRight } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
+import AgentDetailModal from '../../../components/AgentDetailModal';
 import { getAgents, createAgent, toggleAgent, assignAgent, getMarkets } from '../../../lib/api/admin';
 
 export default function AgentsPage() {
@@ -11,6 +12,9 @@ export default function AgentsPage() {
   const [form, setForm] = useState({ phone: '', firstName: '', lastName: '', email: '', password: '', marketId: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Previously there was no drill-down at all — clicking an agent did
+  // nothing; the row was the only view admin ever had of them.
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const load = () => { getAgents().then(setAgents).catch(() => {}); getMarkets().then(setMarkets).catch(() => {}); };
   useEffect(() => { load(); }, []);
@@ -70,7 +74,7 @@ export default function AgentsPage() {
             <tbody>
               {agents.map(a => (
                 <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{a.user.firstName} {a.user.lastName}</td>
+                  <td className="px-4 py-3 font-medium text-zana-primary cursor-pointer hover:underline" onClick={() => setDetailId(a.id)}>{a.user.firstName} {a.user.lastName}</td>
                   <td className="px-4 py-3 text-gray-600">{a.user.phone}</td>
                   <td className="px-4 py-3">
                     <select value={a.marketId ?? ''} onChange={e => assignAgent(a.id, e.target.value).then(load)} className="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white">
@@ -90,6 +94,7 @@ export default function AgentsPage() {
           </table>
         </div>
       </div>
+      {detailId && <AgentDetailModal agentId={detailId} onClose={() => setDetailId(null)} />}
     </AdminShell>
   );
 }
