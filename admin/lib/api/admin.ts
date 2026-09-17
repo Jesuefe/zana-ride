@@ -46,6 +46,7 @@ export async function getDeliveries() { return api.get<any[]>('/admin/deliveries
 export async function getMarkets() { return api.get<any[]>('/admin/markets'); }
 export async function createMarket(data: any) { return api.post('/admin/markets', data); }
 export async function updateMarket(id: string, data: any) { return api.patch(`/admin/markets/${id}`, data); }
+export async function addMarketProduct(marketId: string, data: any) { return api.post(`/admin/markets/${marketId}/products`, data); }
 
 export async function getAgents() { return api.get<any[]>('/admin/agents'); }
 export async function createAgent(data: any) { return api.post('/admin/agents', data); }
