@@ -28,18 +28,14 @@ function calcBearing(a: LatLng, b: LatLng): number {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
-function stripHtml(html: string) {
-  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-}
-
-function maneuverArrow(m: string) {
-  if (m.includes('left')) return '↰';
-  if (m.includes('right')) return '↱';
-  if (m.includes('uturn')) return '↩';
-  if (m.includes('roundabout')) return '↻';
-  return '↑';
-}
-
+// Previously this rendered a full in-app turn-by-turn navigation system —
+// Directions API calls on a 20s timer plus on every meaningful position
+// change, voice synthesis, step-by-step instruction tracking, tilt/heading
+// 3D camera control. All of that is genuinely redundant now that Google's
+// own Navigation app handles real turn-by-turn via the external "Get
+// Directions" button, and was very likely the actual cause of the slow
+// load — this now does exactly what the customer app's own map does:
+// one route fetch, a simple marker, and an ETA pill.
 export default function DriverMap({
   position,
   target,
@@ -53,57 +49,34 @@ export default function DriverMap({
   height?: number | string;
   lang?: 'en' | 'fr' | 'rw';
 }) {
-  // ── Refs — stable across renders ──────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const targetMarkerRef = useRef<any>(null);
   const polylineRef = useRef<any>(null);
   const latestPosRef = useRef<DriverPosition | null>(null);
-  const lastFetchPosRef = useRef<LatLng | null>(null);
+  const fetchedRef = useRef(false);
   const prevPosRef = useRef<LatLng | null>(null);
   const headingRef = useRef(0);
   const followingRef = useRef(true);
-  const spokenRef = useRef('');
-  const fetchTimerRef = useRef<any>(null);
   const boundsFittedRef = useRef(false);
 
-  // ── State — only for UI ───────────────────────────────────────────────────
-  const [steps, setSteps] = useState<{
-    instruction: string; distanceText: string; maneuver: string; endLocation: LatLng;
-  }[]>([]);
-  const [currentStep, setCurrentStep] = useState(0);
   const [eta, setEta] = useState<{ duration: string; distance: string } | null>(null);
-  const [voiceOn, setVoiceOn] = useState(true);
   const [following, setFollowing] = useState(true);
   const [mapsReady, setMapsReady] = useState(false);
 
-  // ── updateCamera — called directly, not via useEffect ────────────────────
   const updateCamera = useCallback((dPos: DriverPosition) => {
     const map = mapRef.current;
     if (!map || !followingRef.current) return;
+    map.panTo({ lat: dPos.lat, lng: dPos.lng });
+  }, []);
 
-    if (navigationMode) {
-      // Center on driver at street-level zoom
-      map.setCenter({ lat: dPos.lat, lng: dPos.lng });
-      if (map.getZoom() !== 18) map.setZoom(18);
-      // Tilt and heading only work with a Cloud mapId — try, ignore if unsupported
-      try { map.setTilt?.(45); } catch {}
-      try { map.setHeading?.(dPos.heading); } catch {}
-    } else {
-      map.panTo({ lat: dPos.lat, lng: dPos.lng });
-    }
-  }, [navigationMode]);
-
-  // ── updateMarker — called directly ───────────────────────────────────────
   const updateMarker = useCallback((dPos: DriverPosition) => {
     const map = mapRef.current;
     const G = (window as any).google?.maps;
     if (!map || !G) return;
 
     const pos = { lat: dPos.lat, lng: dPos.lng };
-
-    // Classic Marker with rotating arrow symbol — works without mapId
     const icon = {
       path: 'M 0,-12 L 8,10 L 0,5 L -8,10 Z',
       fillColor: '#00A082',
@@ -116,109 +89,56 @@ export default function DriverMap({
     };
 
     if (!markerRef.current) {
-      markerRef.current = new G.Marker({
-        position: pos,
-        map,
-        icon,
-        zIndex: 1000,
-        optimized: false,
-      });
+      markerRef.current = new G.Marker({ position: pos, map, icon, zIndex: 1000, optimized: false });
     } else {
       markerRef.current.setPosition(pos);
       markerRef.current.setIcon(icon);
     }
   }, []);
 
-  // ── GPS update handler — single source of truth ───────────────────────────
   const onGpsUpdate = useCallback((dPos: DriverPosition) => {
     latestPosRef.current = dPos;
     updateMarker(dPos);
     updateCamera(dPos);
+  }, [updateMarker, updateCamera]);
 
-    // Advance nav step
-    setCurrentStep(prev => {
-      if (!steps.length || prev >= steps.length - 1) return prev;
-      return haversineM(dPos, steps[prev].endLocation) < 30 ? prev + 1 : prev;
-    });
-  }, [updateMarker, updateCamera, steps]);
-
-  // ── fetchRoute — only calculates, never touches camera ───────────────────
+  // Fetches once per target, not on a repeated timer or every GPS tick —
+  // this line is only ever a rough visual reference now, real turn-by-turn
+  // guidance is Google's own Navigation app via "Get Directions".
   const fetchRoute = useCallback((from: LatLng, to: LatLng) => {
     const G = (window as any).google?.maps;
     const map = mapRef.current;
     if (!G || !map) return;
-
-    lastFetchPosRef.current = from;
+    fetchedRef.current = true;
 
     const svc = new G.DirectionsService();
     svc.route(
-      {
-        origin: new G.LatLng(from.lat, from.lng),
-        destination: new G.LatLng(to.lat, to.lng),
-        travelMode: G.TravelMode.DRIVING,
-      },
+      { origin: new G.LatLng(from.lat, from.lng), destination: new G.LatLng(to.lat, to.lng), travelMode: G.TravelMode.DRIVING },
       (result: any, status: any) => {
         if (status !== 'OK') return;
-
         const leg = result.routes[0]?.legs[0];
         if (!leg) return;
 
         setEta({ duration: leg.duration.text, distance: leg.distance.text });
 
-        // Extract path for Polyline
         const path: { lat: number; lng: number }[] = [];
-        const newSteps: typeof steps = [];
-
         leg.steps.forEach((s: any) => {
-          // Google's DirectionsStep exposes the per-step detailed route as
-          // `path`, not `lat_lngs` (that field does not exist on this
-          // object). The old code threw here on every single route fetch —
-          // after the ETA line above had already run, so the ETA appeared
-          // to work while the polyline, turn-by-turn steps, destination
-          // marker and bounds-fit that follow in this callback silently
-          // never ran. Guarded with ?? [] so one malformed step still
-          // cannot take down the whole callback.
           (s.path ?? []).forEach((ll: any) => path.push({ lat: ll.lat(), lng: ll.lng() }));
-          newSteps.push({
-            instruction: stripHtml(s.instructions),
-            distanceText: s.distance.text,
-            maneuver: s.maneuver ?? '',
-            endLocation: { lat: s.end_location.lat(), lng: s.end_location.lng() },
-          });
         });
 
-        setSteps(newSteps);
-        setCurrentStep(0);
-
-        // Draw raw Polyline — never touches camera
         if (polylineRef.current) polylineRef.current.setMap(null);
         polylineRef.current = new G.Polyline({
-          path,
-          strokeColor: '#00A082',
-          strokeWeight: 6,
-          strokeOpacity: 0.95,
-          geodesic: true,
-          map,
+          path, strokeColor: '#00A082', strokeWeight: 6, strokeOpacity: 0.95, geodesic: true, map,
         });
 
-        // Destination marker
         if (!targetMarkerRef.current) {
           targetMarkerRef.current = new G.Marker({
-            position: to,
-            map,
-            icon: {
-              path: G.SymbolPath.CIRCLE,
-              scale: 8,
-              fillColor: '#E6A82E',
-              fillOpacity: 1,
-              strokeColor: '#FFFFFF',
-              strokeWeight: 3,
-            },
+            position: to, map,
+            icon: { path: G.SymbolPath.CIRCLE, scale: 8, fillColor: '#E6A82E', fillOpacity: 1, strokeColor: '#FFFFFF', strokeWeight: 3 },
           });
         }
 
-        // Non-nav: fit bounds ONCE only, never again
-        if (!navigationMode && !boundsFittedRef.current) {
+        if (!boundsFittedRef.current) {
           boundsFittedRef.current = true;
           const bounds = new G.LatLngBounds();
           path.forEach(p => bounds.extend(p));
@@ -226,9 +146,8 @@ export default function DriverMap({
         }
       }
     );
-  }, [navigationMode]);
+  }, []);
 
-  // ── Init map once ─────────────────────────────────────────────────────────
   useEffect(() => {
     loadGoogleMaps().then(() => {
       if (!containerRef.current || mapRef.current) return;
@@ -238,7 +157,7 @@ export default function DriverMap({
 
       const map = new G.Map(containerRef.current, {
         center: { lat: initPos.lat, lng: initPos.lng },
-        zoom: navigationMode ? 18 : 14,
+        zoom: 14,
         disableDefaultUI: true,
         gestureHandling: 'greedy',
         clickableIcons: false,
@@ -249,7 +168,6 @@ export default function DriverMap({
         ],
       });
 
-      // Detect manual drag → stop following
       map.addListener('dragstart', () => {
         followingRef.current = false;
         setFollowing(false);
@@ -257,7 +175,6 @@ export default function DriverMap({
 
       mapRef.current = map;
 
-      // Apply latest GPS immediately if already available
       if (latestPosRef.current) {
         updateMarker(latestPosRef.current);
         updateCamera(latestPosRef.current);
@@ -265,134 +182,38 @@ export default function DriverMap({
 
       setMapsReady(true);
     });
-
-    return () => {
-      clearInterval(fetchTimerRef.current);
-    };
   }, []);
 
-  // ── React to GPS position prop changes ────────────────────────────────────
   useEffect(() => {
     if (!position) return;
 
-    // Calculate heading from movement
     if (prevPosRef.current) {
       const dist = haversineM(prevPosRef.current, position);
       if (dist > 2) headingRef.current = calcBearing(prevPosRef.current, position);
     }
     prevPosRef.current = position;
 
-    const dPos: DriverPosition = {
-      lat: position.lat,
-      lng: position.lng,
-      heading: headingRef.current,
-    };
+    onGpsUpdate({ lat: position.lat, lng: position.lng, heading: headingRef.current });
+  }, [position?.lat, position?.lng, onGpsUpdate]);
 
-    onGpsUpdate(dPos);
-
-    if (mapsReady && target) {
-      if (!lastFetchPosRef.current) {
-        // The very first route fetch. The map almost always finishes
-        // loading before GPS resolves, so by the time this effect first
-        // runs here, mapsReady may still be false — and the other effect
-        // below only reacts to mapsReady/target changing, never to
-        // position changing. Without this, the two effects could each
-        // wait on a signal only the other one provides, and fetchRoute()
-        // would never run at all — exactly what drawing no line looks like.
-        fetchRoute(position, target);
-      } else {
-        // Already have a route — only refetch if actually off course.
-        const drift = haversineM(position, lastFetchPosRef.current);
-        if (drift > 80) fetchRoute(position, target);
-      }
-    }
-  }, [position?.lat, position?.lng, mapsReady, onGpsUpdate]);
-
-  // ── Fetch route when target changes ──────────────────────────────────────
   useEffect(() => {
-    if (!mapsReady || !target || !position) return;
+    if (!mapsReady || !target || !position || fetchedRef.current) return;
     fetchRoute(position, target);
+  }, [mapsReady, target?.lat, target?.lng, position, fetchRoute]);
 
-    // Periodic reroute check every 20s
-    clearInterval(fetchTimerRef.current);
-    fetchTimerRef.current = setInterval(() => {
-      const pos = latestPosRef.current;
-      const last = lastFetchPosRef.current;
-      if (pos && last && haversineM(pos, last) > 80) {
-        fetchRoute(pos, target);
-      }
-    }, 20_000);
-
-    return () => clearInterval(fetchTimerRef.current);
-  }, [mapsReady, target?.lat, target?.lng]);
-
-  // ── Voice instructions ────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!navigationMode || !voiceOn || !steps[currentStep]) return;
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const txt = steps[currentStep].instruction;
-    if (txt === spokenRef.current) return;
-    spokenRef.current = txt;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(txt);
-    u.lang = lang === 'fr' ? 'fr-FR' : lang === 'rw' ? 'rw-RW' : 'en-US';
-    u.rate = 1.05;
-    window.speechSynthesis.speak(u);
-  }, [currentStep, navigationMode, voiceOn, lang]);
-
-  // ── Recenter ──────────────────────────────────────────────────────────────
   const recenter = () => {
     followingRef.current = true;
     setFollowing(true);
-    const pos = latestPosRef.current;
-    if (pos) updateCamera(pos);
+    if (latestPosRef.current) updateCamera(latestPosRef.current);
   };
-
-  const step = steps[currentStep];
 
   return (
     <div style={{ position: 'relative', width: '100%', height }}>
-      {/* Map */}
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
-      {/* Turn instruction */}
-      {navigationMode && step && (
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-          background: 'rgba(0,80,64,0.95)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
-        }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 12,
-            background: 'rgba(255,255,255,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 26, color: 'white', flexShrink: 0,
-          }}>
-            {maneuverArrow(step.maneuver)}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ color: 'white', fontWeight: 800, fontSize: 15, lineHeight: 1.3, margin: 0 }}>
-              {step.instruction}
-            </p>
-            {step.distanceText && (
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, margin: '2px 0 0' }}>
-                in {step.distanceText}
-              </p>
-            )}
-          </div>
-          {eta && (
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <p style={{ color: 'white', fontWeight: 900, fontSize: 17, margin: 0 }}>{eta.duration}</p>
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: 0 }}>{eta.distance}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Recenter button — shows when driver drags map */}
-      {navigationMode && !following && (
+      {!following && (
         <button onClick={recenter} style={{
-          position: 'absolute', bottom: 100, right: 12, zIndex: 10,
+          position: 'absolute', bottom: 12, right: 12, zIndex: 10,
           background: 'white', border: 'none', borderRadius: 12,
           padding: '8px 14px', cursor: 'pointer',
           boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
@@ -403,21 +224,7 @@ export default function DriverMap({
         </button>
       )}
 
-      {/* Voice toggle */}
-      {navigationMode && (
-        <button onClick={() => setVoiceOn(v => !v)} style={{
-          position: 'absolute', bottom: following ? 100 : 148, right: 12, zIndex: 10,
-          width: 44, height: 44, borderRadius: '50%',
-          background: 'white', border: 'none', cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)', fontSize: 20,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          {voiceOn ? '🔊' : '🔇'}
-        </button>
-      )}
-
-      {/* ETA pill — non-nav */}
-      {!navigationMode && eta && (
+      {eta && (
         <div style={{
           position: 'absolute', bottom: 12, left: 12, zIndex: 10,
           background: 'white', borderRadius: 12, padding: '6px 12px',
