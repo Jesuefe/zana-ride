@@ -1,13 +1,25 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Check, Pause, RefreshCw, Play } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
 import MerchantDetailModal from '../../../components/MerchantDetailModal';
 import { getMerchants, approveMerchant, suspendMerchant } from '../../../lib/api/admin';
 
+// useSearchParams() requires a Suspense boundary during static export.
 export default function MerchantsPage() {
+  return (
+    <Suspense fallback={null}>
+      <MerchantsPageInner />
+    </Suspense>
+  );
+}
+
+function MerchantsPageInner() {
+  const params = useSearchParams();
   const [merchants, setMerchants] = useState<any[]>([]);
-  const [filter, setFilter] = useState('');
+  // Previously Overview's pending-merchants count was a dead end.
+  const [filter, setFilter] = useState(params.get('status') ?? '');
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
   const [toast, setToast] = useState('');

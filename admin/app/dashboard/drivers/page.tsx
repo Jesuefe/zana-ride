@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Check, X, Pause } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
 import DriverDetailModal from '../../../components/DriverDetailModal';
@@ -12,9 +13,22 @@ const STATUS_BADGE: Record<string, string> = {
   SUSPENDED: 'bg-gray-100 text-gray-600',
 };
 
+// useSearchParams() requires a Suspense boundary during static export.
 export default function DriversPage() {
+  return (
+    <Suspense fallback={null}>
+      <DriversPageInner />
+    </Suspense>
+  );
+}
+
+function DriversPageInner() {
+  const params = useSearchParams();
   const [drivers, setDrivers] = useState<any[]>([]);
-  const [filter, setFilter] = useState('PENDING');
+  // Previously Overview's driver counts were dead ends with no way to
+  // land here already filtered. ?status= (present but empty) means
+  // "show all"; no param at all keeps the existing Pending default.
+  const [filter, setFilter] = useState(params.has('status') ? (params.get('status') ?? '') : 'PENDING');
   // Previously there was no drill-down at all — clicking a driver did
   // nothing; the list row was the only view admin ever had of them.
   const [detailId, setDetailId] = useState<string | null>(null);

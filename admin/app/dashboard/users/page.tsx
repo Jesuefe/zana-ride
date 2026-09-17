@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Search, Shield, ShieldOff, UserCheck } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
 import UserDetailModal from '../../../components/UserDetailModal';
@@ -13,10 +14,22 @@ const ROLE_BADGE: Record<string, string> = {
   AGENT: 'bg-amber-100 text-amber-700',
 };
 
+// useSearchParams() requires a Suspense boundary during static export.
 export default function UsersPage() {
+  return (
+    <Suspense fallback={null}>
+      <UsersPageInner />
+    </Suspense>
+  );
+}
+
+function UsersPageInner() {
+  const params = useSearchParams();
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
-  const [role, setRole] = useState('');
+  // Previously Overview's "Customers" number was a dead end with no
+  // way to land here already filtered to it.
+  const [role, setRole] = useState(params.get('role') ?? '');
   const [loading, setLoading] = useState(true);
   // Previously there was no drill-down at all — clicking a user did
   // nothing; the list row was the only view admin ever had of them.

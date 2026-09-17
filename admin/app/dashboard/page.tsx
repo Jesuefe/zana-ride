@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Users, Car, Store, Package, Truck, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import AdminShell from '../../components/AdminShell';
 import { getOverview, getDeliveryKpis } from '../../lib/api/admin';
 
@@ -12,9 +13,17 @@ type Overview = {
   totalRevenue: number; totalDeliveries: number; deliveryRevenue: number;
 };
 
-function StatCard({ icon: Icon, label, value, sub, alert }: any) {
+// Previously every number here was a dead end — seeing "4 pending
+// drivers" told you nothing about which four, and finding them meant
+// leaving Overview and re-navigating from scratch. Any card with an
+// href is now the actual first step into that list, not just a count.
+function StatCard({ icon: Icon, label, value, sub, alert, href }: any) {
+  const router = useRouter();
   return (
-    <div className={`bg-white rounded-xl p-4 shadow-sm ${alert ? 'ring-2 ring-amber-400' : ''}`}>
+    <div
+      onClick={href ? () => router.push(href) : undefined}
+      className={`bg-white rounded-xl p-4 shadow-sm ${alert ? 'ring-2 ring-amber-400' : ''} ${href ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+    >
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-zana-primary-light flex items-center justify-center">
           <Icon size={18} className="text-zana-primary" />
@@ -68,24 +77,24 @@ export default function DashboardPage() {
 
         {/* Active now */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-          <StatCard icon={TrendingUp} label="Active rides" value={data?.activeRides} />
-          <StatCard icon={Truck} label="Active deliveries" value={data?.activeDeliveries} />
-          <StatCard icon={Car} label="Pending drivers" value={data?.pendingDrivers} alert={data && data.pendingDrivers > 0} />
-          <StatCard icon={Package} label="Pending products" value={data?.pendingProducts} alert={data && data.pendingProducts > 0} />
+          <StatCard icon={TrendingUp} label="Active rides" value={data?.activeRides} href="/dashboard/rides" />
+          <StatCard icon={Truck} label="Active deliveries" value={data?.activeDeliveries} href="/dashboard/deliveries" />
+          <StatCard icon={Car} label="Pending drivers" value={data?.pendingDrivers} alert={data && data.pendingDrivers > 0} href="/dashboard/drivers" />
+          <StatCard icon={Package} label="Pending products" value={data?.pendingProducts} alert={data && data.pendingProducts > 0} href="/dashboard/products" />
         </div>
 
         {/* Platform totals */}
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Platform totals</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-          <StatCard icon={Users} label="Total users" value={data?.totalUsers} />
-          <StatCard icon={Users} label="Customers" value={data?.customers} />
-          <StatCard icon={Car} label="Drivers" value={data?.drivers} />
-          <StatCard icon={Store} label="Merchants" value={data?.merchants} />
+          <StatCard icon={Users} label="Total users" value={data?.totalUsers} href="/dashboard/users" />
+          <StatCard icon={Users} label="Customers" value={data?.customers} href="/dashboard/users?role=CUSTOMER" />
+          <StatCard icon={Car} label="Drivers" value={data?.drivers} href="/dashboard/drivers?status=" />
+          <StatCard icon={Store} label="Merchants" value={data?.merchants} href="/dashboard/merchants" />
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
-          <StatCard icon={Users} label="Agents" value={data?.agents} />
-          <StatCard icon={Store} label="Pending merchants" value={data?.pendingMerchants} alert={data && data.pendingMerchants > 0} />
+          <StatCard icon={Users} label="Agents" value={data?.agents} href="/dashboard/agents" />
+          <StatCard icon={Store} label="Pending merchants" value={data?.pendingMerchants} alert={data && data.pendingMerchants > 0} href="/dashboard/merchants?status=PENDING" />
           <div className="bg-zana-primary-dark rounded-xl p-4 shadow-sm col-span-2 lg:col-span-1">
             <p className="text-white/70 text-xs">Total revenue (rides)</p>
             <p className="text-2xl font-bold text-white mt-1">{data ? `${(data.totalRevenue).toLocaleString()} RWF` : '…'}</p>
