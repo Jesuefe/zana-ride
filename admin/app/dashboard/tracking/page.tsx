@@ -1,11 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AdminShell from '../../../components/AdminShell';
 import { api } from '../../../lib/api/client';
 
+// useSearchParams() requires a Suspense boundary during static export —
+// the actual query string isn't known at build time. This was missing
+// entirely, which is a hard build failure, not a runtime warning.
 export default function TrackingPage() {
+  return (
+    <Suspense fallback={null}>
+      <TrackingPageInner />
+    </Suspense>
+  );
+}
+
+function TrackingPageInner() {
   const params = useSearchParams();
   const [code, setCode] = useState(params.get('code') ?? '');
   const [result, setResult] = useState<any>(null);

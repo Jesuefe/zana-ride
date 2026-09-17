@@ -10,6 +10,10 @@ export async function getOverview() {
   return api.get<any>('/admin/overview');
 }
 
+export async function getDeliveryKpis(period: 'today' | 'week' | 'month' = 'today') {
+  return api.get<any>(`/admin/delivery-kpis?period=${period}`);
+}
+
 export async function getUsers(params?: { role?: string; status?: string; search?: string }) {
   const q = new URLSearchParams(params as any).toString();
   return api.get<any[]>(`/admin/users${q ? `?${q}` : ''}`);
