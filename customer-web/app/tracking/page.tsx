@@ -32,38 +32,57 @@ type GroupTrip = ApiTrip & { groupSeatIndex: number | null };
 function DriverCard({ trip, seatLabel, onChat, onCall }: { trip: ApiTrip; seatLabel?: string; onChat?: () => void; onCall?: () => void }) {
   const driver = trip.driver;
   if (!driver || trip.status === 'RIDE_COMPLETED') return null;
+  // Previously the plate was just a small line of plain text at all
+  // times — easy to miss exactly when it matters most: right before
+  // getting into an unfamiliar car. Made prominent specifically once
+  // the driver is actually en route or has arrived, with a direct
+  // instruction rather than just displaying the number passively.
+  const showPlateCheck = trip.status === 'DRIVER_EN_ROUTE' || trip.status === 'DRIVER_ARRIVED';
   return (
-    <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 mt-3">
-      <div className="w-11 h-11 rounded-full bg-zana-primary-light flex items-center justify-center">
-        <User size={20} className="text-zana-primary" />
-      </div>
-      <div className="flex-1">
-        {seatLabel && <p className="text-[11px] font-semibold text-zana-primary">{seatLabel}</p>}
-        <p className="text-sm font-semibold text-gray-900">{driver.user.firstName ?? 'Your driver'}</p>
-        <p className="text-xs text-zana-muted">{driver.vehicle} · {driver.plate}</p>
-        <div className="flex items-center gap-2 text-xs text-zana-muted">
-          <span className="flex items-center gap-0.5"><Star size={11} className="text-zana-secondary fill-zana-secondary" /> {driver.rating.toFixed(1)}</span>
-          {(driver as any).totalTrips && <span>· {(driver as any).totalTrips} rides</span>}
+    <div className="mt-3">
+      <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+        <div className="w-11 h-11 rounded-full bg-zana-primary-light flex items-center justify-center">
+          <User size={20} className="text-zana-primary" />
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        {onChat && (
-          <button
-            onClick={onChat}
-            className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center"
-          >
-            <MessageCircle size={16} className="text-zana-primary" />
-          </button>
-        )}
-        {onCall && (
-          <button
-            onClick={onCall}
+        <div className="flex-1">
+          {seatLabel && <p className="text-[11px] font-semibold text-zana-primary">{seatLabel}</p>}
+          <p className="text-sm font-semibold text-gray-900">{driver.user.firstName ?? 'Your driver'}</p>
+          {!showPlateCheck && <p className="text-xs text-zana-muted">{driver.vehicle} · {driver.plate}</p>}
+          <div className="flex items-center gap-2 text-xs text-zana-muted">
+            <span className="flex items-center gap-0.5"><Star size={11} className="text-zana-secondary fill-zana-secondary" /> {driver.rating.toFixed(1)}</span>
+            {(driver as any).totalTrips && <span>· {(driver as any).totalTrips} rides</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {onChat && (
+            <button
+              onClick={onChat}
+              className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center"
+            >
+              <MessageCircle size={16} className="text-zana-primary" />
+            </button>
+          )}
+          {onCall && (
+            <button
+              onClick={onCall}
             className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center"
           >
             <Phone size={16} className="text-green-600" />
           </button>
         )}
       </div>
+      </div>
+
+      {showPlateCheck && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-3 mt-2">
+          <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-1">Check before you get in</p>
+          <p className="text-xs text-amber-700 mb-2">Confirm this plate matches the car in front of you.</p>
+          <div className="bg-white border-2 border-amber-400 rounded-lg py-2 text-center">
+            <p className="text-2xl font-black tracking-widest text-gray-900">{driver.plate}</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">{driver.vehicle}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
