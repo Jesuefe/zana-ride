@@ -96,14 +96,27 @@ export default function VoiceCall({
       if (state !== 'ended') handleEnd();
     });
 
-    room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-      console.log('[CALL] Remote participant connected:', participant.identity);
-      // Start timer immediately on participant connect — don't wait for audio track
+    // Extracted so it can run from two different triggers: the normal
+    // "someone just joined" event (which is all the caller side ever
+    // needs, since the receiver always joins after them), and an
+    // explicit check right after connecting for whoever joins second —
+    // LiveKit's ParticipantConnected event only fires for participants
+    // who join AFTER you, never for someone already in the room when
+    // you arrive, which is exactly the receiver's situation every time.
+    let markedConnected = false;
+    const markConnected = () => {
+      if (markedConnected) return;
+      markedConnected = true;
       if (ringtoneRef.current) { ringtoneRef.current.pause(); ringtoneRef.current = null; }
       setState('connected');
       clearInterval(timerRef.current);
       timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
       api.post(`/calls/${callId}/connected`).catch(() => {});
+    };
+
+    room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+      console.log('[CALL] Remote participant connected:', participant.identity);
+      markConnected();
     });
 
     room.on(RoomEvent.ParticipantDisconnected, () => {
@@ -135,6 +148,13 @@ export default function VoiceCall({
     console.log('[CALL] Connecting to LiveKit...');
     await room.connect(wsUrl, token);
     console.log('[CALL] LiveKit connected — enabling microphone');
+
+    // Handles the case ParticipantConnected structurally cannot: the
+    // other side got here first and is already in the room right now.
+    if (room.remoteParticipants.size > 0) {
+      console.log('[CALL] Other participant already in room on connect');
+      markConnected();
+    }
 
     // Request mic permission and publish
     try {
