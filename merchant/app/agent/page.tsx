@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Store, Plus, Package, Check, Trash2 } from 'lucide-react';
+import { Store, Plus, Package, Check, Trash2, ArrowDownLeft, ArrowUpRight, Loader2, X, Wallet as WalletIcon } from 'lucide-react';
 import { api } from '../../lib/api/client';
 
 /**
@@ -10,7 +10,7 @@ import { api } from '../../lib/api/client';
  */
 export default function AgentPage() {
   const [market, setMarket] = useState<any>(null);
-  const [tab, setTab] = useState<'orders' | 'items'>('orders');
+  const [tab, setTab] = useState<'orders' | 'items' | 'wallet'>('orders');
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +22,35 @@ export default function AgentPage() {
   const [price, setPrice] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Wallet — previously didn't exist at all for agents. They do real
+  // physical fulfillment work (shopping, packing) with no way to ever
+  // see or withdraw what they've earned for it.
+  const [wallet, setWallet] = useState<{ balance: number; transactions: any[] } | null>(null);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawPhone, setWithdrawPhone] = useState('');
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState('');
+  const [withdrawSuccess, setWithdrawSuccess] = useState('');
+
+  const loadWallet = () => api.get<any>('/wallet/me').then(setWallet).catch(() => {});
+
+  const handleWithdraw = async () => {
+    const amt = Number(withdrawAmount);
+    if (!amt || amt < 10000) { setWithdrawError('Minimum withdrawal is 10,000 RWF'); return; }
+    if (amt > (wallet?.balance ?? 0)) { setWithdrawError('Insufficient balance'); return; }
+    if (!withdrawPhone.trim()) { setWithdrawError('Enter your MoMo phone number'); return; }
+    setWithdrawing(true); setWithdrawError('');
+    try {
+      await api.post('/agent/wallet/withdraw', { amount: amt, phone: `+250${withdrawPhone.replace(/\D/g, '')}` });
+      setWithdrawSuccess(`${amt.toLocaleString()} RWF sent to ${withdrawPhone}`);
+      setWithdrawAmount(''); setWithdrawPhone(''); setShowWithdraw(false);
+      loadWallet();
+    } catch (e: any) {
+      setWithdrawError(e?.message ?? 'Withdrawal failed');
+    } finally { setWithdrawing(false); }
+  };
+
   const load = () => {
     api.get<any>('/agent/me').then(r => setMarket(r.market)).catch(e => setError(e?.message ?? ''));
     api.get<any[]>('/agent/orders').then(setOrders).catch(() => {});
@@ -30,6 +59,7 @@ export default function AgentPage() {
 
   useEffect(() => {
     load();
+    loadWallet();
     setLoading(false);
     const t = setInterval(() => {
       api.get<any[]>('/agent/orders').then(setOrders).catch(() => {});
@@ -98,7 +128,7 @@ export default function AgentPage() {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4">
-        {([['orders', `Orders${active.length ? ` (${active.length})` : ''}`], ['items', 'Today\'s items']] as const).map(([id, label]) => (
+        {([['orders', `Orders${active.length ? ` (${active.length})` : ''}`], ['items', 'Today\'s items'], ['wallet', 'Wallet']] as const).map(([id, label]) => (
           <button key={id} onClick={() => setTab(id as any)}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 ${
               tab === id ? 'border-zana-primary bg-zana-primary text-white' : 'border-gray-100 bg-white text-gray-600'
@@ -202,6 +232,95 @@ export default function AgentPage() {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Wallet */}
+      {tab === 'wallet' && (
+        <div className="space-y-4">
+          <div className="bg-zana-primary-dark text-white rounded-2xl p-6">
+            <p className="text-white/60 text-sm">Available balance</p>
+            <p className="text-4xl font-black mt-1">{(wallet?.balance ?? 0).toLocaleString()} RWF</p>
+            <button
+              onClick={() => setShowWithdraw(true)}
+              className="mt-4 flex items-center gap-2 bg-zana-secondary text-gray-900 font-bold text-sm px-5 py-2.5 rounded-xl"
+            >
+              <ArrowUpRight size={16} /> Withdraw to MoMo
+            </button>
+          </div>
+
+          {withdrawSuccess && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2 text-green-800 text-sm">
+              <Check size={15} /> {withdrawSuccess}
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <p className="font-bold text-gray-900">Transaction History</p>
+            </div>
+            {!wallet?.transactions?.length ? (
+              <p className="text-sm text-gray-400 text-center py-8">No transactions yet.</p>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {wallet.transactions.map((t: any) => (
+                  <div key={t.id} className="flex items-center gap-3 px-5 py-3">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${t.amount > 0 ? 'bg-green-100' : 'bg-red-50'}`}>
+                      {t.amount > 0
+                        ? <ArrowDownLeft size={16} className="text-green-600" />
+                        : <ArrowUpRight size={16} className="text-red-500" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900">{t.description ?? t.reference ?? (t.amount > 0 ? 'Credit' : 'Withdrawal')}</p>
+                      <p className="text-xs text-gray-400">{new Date(t.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <p className={`font-bold text-sm ${t.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                      {t.amount > 0 ? '+' : ''}{t.amount?.toLocaleString()} RWF
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw sheet */}
+      {showWithdraw && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/50">
+          <div className="w-full bg-white rounded-t-3xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-black text-lg text-gray-900">Withdraw Funds</h2>
+              <button onClick={() => { setShowWithdraw(false); setWithdrawError(''); }}>
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">
+              Available: <strong>{(wallet?.balance ?? 0).toLocaleString()} RWF</strong> · Minimum: 10,000 RWF
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1.5">Amount (RWF)</label>
+                <input value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value.replace(/\D/g,''))}
+                  placeholder="e.g. 10000" inputMode="numeric"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-zana-primary/30" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1.5">MoMo phone number</label>
+                <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3">
+                  <span className="text-sm text-gray-500">+250</span>
+                  <input value={withdrawPhone} onChange={e => setWithdrawPhone(e.target.value.replace(/\D/g,''))}
+                    placeholder="78XXXXXXX" inputMode="tel"
+                    className="flex-1 text-sm outline-none" />
+                </div>
+              </div>
+              {withdrawError && <p className="text-xs text-red-600">{withdrawError}</p>}
+              <button onClick={handleWithdraw} disabled={withdrawing}
+                className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">
+                {withdrawing ? <><Loader2 size={16} className="animate-spin" /> Processing...</> : 'Withdraw'}
+              </button>
+            </div>
           </div>
         </div>
       )}
