@@ -99,5 +99,6 @@ export async function getSalaryPayments(month?: string) {
 }
 export async function recordSalaryPayment(data: any) { return api.post('/admin/salary-payments', data); }
 export async function getOrders() { return api.get<any[]>('/admin/orders'); }
+export async function getOrderDetail(id: string) { return api.get<any>(`/admin/orders/${id}/detail`); }
 
 export async function deleteProduct(id: string) { return api.delete(`/admin/products/${id}`); }

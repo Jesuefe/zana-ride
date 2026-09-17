@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import AdminShell from '../../../components/AdminShell';
+import OrderDetailModal from '../../../components/OrderDetailModal';
 import { getOrders } from '../../../lib/api/admin';
 import { getToken } from '../../../lib/api/client';
 
@@ -18,6 +19,9 @@ const STATUS_STYLE: Record<string, string> = {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [connected, setConnected] = useState(false);
+  // Previously there was no drill-down at all — clicking an order did
+  // nothing; the row was the only view admin ever had of it.
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const load = () => getOrders().then(setOrders).catch(() => {});
 
@@ -90,7 +94,7 @@ export default function OrdersPage() {
                 // other, never both, never neither.
                 const isMarket = !!o.marketId;
                 return (
-                  <tr key={o.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <tr key={o.id} className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer" onClick={() => setDetailId(o.id)}>
                     <td className="px-4 py-3">{o.customer?.firstName} {o.customer?.lastName}</td>
                     <td className="px-4 py-3">
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded mr-1.5 ${isMarket ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
@@ -110,6 +114,7 @@ export default function OrdersPage() {
           </table>
         </div>
       </div>
+      {detailId && <OrderDetailModal orderId={detailId} onClose={() => setDetailId(null)} />}
     </AdminShell>
   );
 }
