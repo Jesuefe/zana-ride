@@ -11,6 +11,7 @@ import {
   Sun, Moon, Smartphone, ClipboardList, Bell } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
 import { useTheme } from '../lib/ThemeContext';
+import GlobalSearch from './GlobalSearch';
 
 const SENIOR_NAV = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -137,6 +138,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
       {/* Main content */}
       <main className="flex-1 overflow-auto p-4 md:p-6 mt-12 md:mt-0">
+        <div className="hidden md:flex mb-5">
+          <GlobalSearch />
+        </div>
         {children}
       </main>
     </div>
