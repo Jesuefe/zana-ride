@@ -65,7 +65,7 @@ export default function DriverDetailModal({ driverId, onClose }: { driverId: str
               {!d.trips?.length && <p className="text-xs text-gray-400">No rides yet.</p>}
               {d.trips?.map((t: any) => (
                 <div key={t.id} className="flex items-center justify-between text-xs bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-gray-700">{t.customer?.firstName ?? 'Customer'} · {new Date(t.createdAt).toLocaleDateString()}</span>
+                  <span className="text-gray-700">{t.customer?.firstName ?? 'Customer'} · {new Date(t.requestedAt).toLocaleDateString()}</span>
                   <span className="font-semibold text-gray-900">{t.status}</span>
                 </div>
               ))}
