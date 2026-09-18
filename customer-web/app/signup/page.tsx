@@ -33,14 +33,15 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
     try {
+      const fullPhone = `+${country.dial}${phone.replace(/\D/g, '')}`;
       await register({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
-        phone: `+${country.dial}${phone.replace(/\D/g, '')}`,
+        phone: fullPhone,
         password,
       });
-      router.push('/');
+      router.push(`/verify?phone=${encodeURIComponent(fullPhone)}&email=${encodeURIComponent(email.trim())}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
     } finally {

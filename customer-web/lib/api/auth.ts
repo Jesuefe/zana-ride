@@ -33,6 +33,20 @@ export async function register(data: {
   return result;
 }
 
+// Confirms the code register() automatically sends — separate from
+// the older verifyOtp below, which is for a different, unused
+// OTP-only signup path and would try to create a duplicate account.
+export async function verifyPhone(code: string) {
+  return api.post<{ id: string; phoneVerified: boolean }>('/auth/verify-phone', { code });
+}
+
+// useEmail switches delivery channel without starting over — the
+// real foreign-SIM path: SMS never arrives, so ask for the same code
+// by email instead, using the address already given at signup.
+export async function resendVerification(useEmail?: boolean) {
+  return api.post<{ sent: boolean }>('/auth/resend-verification', { email: useEmail });
+}
+
 export async function login(identifier: string, password: string) {
   const result = await api.post<AuthResponse>('/auth/login', { identifier, password });
   setToken(result.token);
