@@ -15,6 +15,7 @@ type EarningsSummary = {
   zanaCommission: number;
   cashCollectedToday: number;
   zanaDue: number;
+  netBalance: number;
   recentDebts: { id: string; amount: number; createdAt: string }[];
 };
 
@@ -49,6 +50,7 @@ export default function EarningsPage() {
         zanaCommission: Math.round((earnings.totalEarnings ?? 0) * 0.15 / 0.85),
         cashCollectedToday: earnings.cashCollectedToday ?? 0,
         zanaDue: earnings.zanaDue ?? 0,
+        netBalance: earnings.netBalance ?? (wallet.balance ?? 0) - (earnings.zanaDue ?? 0),
         recentDebts: earnings.recentDebts ?? [],
       });
     }).catch(() => {});
@@ -131,38 +133,32 @@ export default function EarningsPage() {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Wallet balance */}
-        <div className="bg-zana-primary rounded-2xl p-5 text-white">
+        {/* Net balance — previously shown as two separate, seemingly
+            contradictory numbers: a positive "available to withdraw"
+            balance right next to a much larger amount owed. One real
+            number now, matching how Uber represents this: what a
+            driver would actually have if debt were settled right now. */}
+        <div className={`rounded-2xl p-5 text-white ${data && data.netBalance < 0 ? 'bg-amber-600' : 'bg-zana-primary'}`}>
           <div className="flex items-center gap-2 mb-1">
-            <Wallet size={16} className="text-white/70" />
-            <p className="text-white/70 text-xs">Available to withdraw</p>
+            {data && data.netBalance < 0 ? <AlertCircle size={16} className="text-white/70" /> : <Wallet size={16} className="text-white/70" />}
+            <p className="text-white/70 text-xs">{data && data.netBalance < 0 ? 'Balance owed to Zana' : 'Available to withdraw'}</p>
           </div>
-          <p className="text-3xl font-bold">{data ? fmt(data.walletBalance) : '…'}</p>
-          <p className="text-white/60 text-xs mt-1">After 15% Zana commission deducted</p>
-        </div>
-
-        {/* Zana Due — this was already being tracked correctly on every
-            cash ride, it just had no way to ever actually be seen. Only
-            shown when it's genuinely relevant, so a driver who's never
-            done a cash ride isn't shown an empty warning card. */}
-        {data && data.zanaDue > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertCircle size={16} className="text-amber-600" />
-              <p className="text-amber-800 text-xs font-semibold">Zana due</p>
-            </div>
-            <p className="text-3xl font-bold text-amber-900">{fmt(data.zanaDue)}</p>
-            <p className="text-amber-700 text-xs mt-1">
-              Commission owed from cash rides — deducted automatically from your next digital-ride earnings.
+          <p className="text-3xl font-bold">{data ? fmt(Math.abs(data.netBalance)) : '…'}{data && data.netBalance < 0 ? ' owed' : ''}</p>
+          {data && data.zanaDue > 0 && (
+            <p className="text-white/70 text-xs mt-1">
+              {fmt(data.walletBalance)} in wallet · {fmt(data.zanaDue)} owed from cash rides
             </p>
+          )}
+          {!data?.zanaDue && <p className="text-white/60 text-xs mt-1">After 15% Zana commission deducted</p>}
+          {data && data.netBalance < 0 && (
             <button
               onClick={() => setShowSettle(true)}
-              className="w-full mt-3 bg-amber-600 text-white font-semibold py-2.5 rounded-xl text-sm"
+              className="w-full mt-3 bg-white text-amber-700 font-semibold py-2.5 rounded-xl text-sm"
             >
               Pay now with MoMo
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Earnings grid */}
         <div className="grid grid-cols-2 gap-3">
