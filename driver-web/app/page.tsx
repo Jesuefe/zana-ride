@@ -24,7 +24,7 @@ import { ZANA_MAP_STYLE } from '../lib/mapStyle';
 const TIMEOUT = 20;
 
 // Slide-to-accept component
-function SlideToAccept({ label, onAccept, color = '#00A082' }: { label: string; onAccept: () => void; color?: string }) {
+function SlideToAccept({ label, onAccept, color = '#00A082', acceptedLabel = 'Accepted!' }: { label: string; onAccept: () => void; color?: string; acceptedLabel?: string }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const startX = useRef(0);
@@ -68,7 +68,7 @@ function SlideToAccept({ label, onAccept, color = '#00A082' }: { label: string; 
       onTouchEnd={handleEnd}
     >
       <p className="absolute inset-0 flex items-center justify-center text-sm font-bold" style={{ color }}>
-        {accepted ? 'Accepted!' : label}
+        {accepted ? acceptedLabel : label}
       </p>
       <div
         ref={thumbRef}
@@ -656,30 +656,22 @@ export default function DriverHome() {
             </button>
           </div>
 
-          {/* Go Online / Offline — Slide button */}
+          {/* Go Online / Offline — both a slide gesture now, previously
+              online was a slide but offline was just a single tap
+              button — inconsistent and easier to trigger by accident.
+              Same gesture both directions, just a different color and
+              label. */}
           {online ? (
-            <button
-              onClick={handleToggle}
-              disabled={loading}
-              className="w-full bg-amber-400 rounded-2xl py-4 flex items-center justify-between px-5 disabled:opacity-50"
-            >
-              <div className="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="9" stroke="white" strokeWidth="2.5"/>
-                  <path d="M12 7v5l3 3" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              </div>
-              <div className="text-center flex-1">
-                <p className="text-gray-900 font-black text-base">
-                  {t('Go Offline')}
-                </p>
-                <p className="text-gray-700 text-xs">Go offline →</p>
-              </div>
-              <ChevronRight size={18} className="text-gray-700" />
-            </button>
+            <SlideToAccept
+              label={loading ? 'Going offline...' : 'Slide to go offline'}
+              acceptedLabel="Offline"
+              onAccept={handleToggle}
+              color="#E6A82E"
+            />
           ) : (
             <SlideToAccept
               label={loading ? 'Going online...' : `Slide to go online`}
+              acceptedLabel="Online"
               onAccept={() => { setShowMenu(false); setShowMode(true); }}
               color="#00A082"
             />
