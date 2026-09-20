@@ -7,12 +7,10 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.1'
+        classpath 'com.android.tools.build:gradle:8.10.1'
         classpath 'com.google.gms:google-services:4.4.0'
-        // 2.0.0 sits well inside AGP 8.2.1's supported range (Kotlin 2.0
-        // needs AGP 7.4.2–8.3) — needed only for the Mapbox navigation
-        // plugin, which is written in Kotlin since Mapbox's own SDK is
-        // Kotlin-first and its API is documented that way, not in Java.
+        // Kotlin 2.0.0 is intentionally unchanged for the API 36 toolchain
+        // upgrade. Keep the Mapbox-related dependency stack stable.
         classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.0'
 
         // NOTE: Do not place your application dependencies here; they belong

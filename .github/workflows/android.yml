@@ -5,7 +5,7 @@ name: Build Android APKs
 # what you want for field testing.
 on:
   push:
-    branches: [main]
+    branches: [main, api-36-build]
     paths:
       - 'native/**'
       - '.github/workflows/android.yml'
@@ -31,6 +31,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      - name: Install Android 16 SDK platform
+        run: |
+          sdkmanager --install "platforms;android-36"
 
       - name: Set up Node
         uses: actions/setup-node@v4
