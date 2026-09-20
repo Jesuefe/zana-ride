@@ -5,7 +5,7 @@ name: Build Android APKs
 # what you want for field testing.
 on:
   push:
-    branches: [main]
+    branches: [main, api-36-build]
     paths:
       - 'native/**'
       - '.github/workflows/android.yml'
