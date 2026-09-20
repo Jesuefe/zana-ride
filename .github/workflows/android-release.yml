@@ -43,6 +43,14 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 16 SDK platform
+        run: |
+          sdkmanager "platforms;android-36"
+          yes | sdkmanager --licenses >/dev/null || true
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
