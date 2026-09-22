@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Package, MapPin, AlertTriangle, Clock, Layers } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import DriverBottomNav from '../../components/DriverBottomNav';
+import { useLang } from '../../lib/LangContext';
 
 type Pending = {
   id: string;
@@ -35,6 +36,7 @@ type Active = {
 
 export default function DeliveryPoolPage() {
   const router = useRouter();
+  const { dt } = useLang();
   const [pool, setPool] = useState<Pending[]>([]);
   const [active, setActive] = useState<Active[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,15 +75,15 @@ export default function DeliveryPoolPage() {
       const msg = e?.message ?? '';
       if (msg.includes('TOO_MANY_ACTIVE')) {
         const p = msg.split(':');
-        setError(`You are already carrying ${p[1]} parcels. Finish one before taking another.`);
+        setError(`${dt('You are already carrying')} ${p[1]} ${dt('parcels. Finish one before taking another.')}`);
       } else if (msg.includes('OFF_ROUTE')) {
         const p = msg.split(':');
-        setError(`That job is ${p[1]} km off your current route. Only jobs within ${p[2]} km can be added.`);
+        setError(`${dt('That job is')} ${p[1]} ${dt('km off your current route. Only jobs within')} ${p[2]} ${dt('km can be added.')}`);
       } else if (msg.includes('ALREADY_ACCEPTED')) {
-        setError('Another rider took that one.');
+        setError(dt('Another rider took that one.'));
         load();
       } else {
-        setError('Could not accept that delivery.');
+        setError(dt('Could not accept that delivery.'));
       }
     } finally {
       setAccepting(null);
@@ -91,9 +93,9 @@ export default function DeliveryPoolPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <div className="bg-white px-4 pt-12 pb-4">
-        <h1 className="text-xl font-black text-gray-900">Delivery pool</h1>
+        <h1 className="text-xl font-black text-gray-900">{dt('Delivery pool')}</h1>
         <p className="text-xs text-gray-500 mt-0.5">
-          Pick jobs that fit your route. Up to 3 at a time.
+          {dt('Pick jobs that fit your route. Up to 3 at a time.')}
         </p>
       </div>
 
@@ -107,7 +109,7 @@ export default function DeliveryPoolPage() {
             <div className="flex items-center gap-2 mb-2">
               <Layers size={15} className="text-white" />
               <p className="text-white font-black text-sm">
-                Carrying {active.length} parcel{active.length === 1 ? '' : 's'}
+                {dt('Carrying')} {active.length} {active.length === 1 ? dt('parcel') : dt('parcels')}
               </p>
             </div>
             <div className="space-y-1">
@@ -120,12 +122,12 @@ export default function DeliveryPoolPage() {
                     {a.itemDescription}
                   </p>
                   <span className="text-white/60 text-[10px] shrink-0">
-                    {a.status === 'PICKED_UP' ? 'On board' : 'To collect'}
+                    {a.status === 'PICKED_UP' ? dt('On board') : dt('To collect')}
                   </span>
                 </div>
               ))}
             </div>
-            <p className="text-white/70 text-[11px] mt-2">Tap to continue →</p>
+            <p className="text-white/70 text-[11px] mt-2">{dt('Tap to continue →')}</p>
           </button>
         </div>
       )}
@@ -150,7 +152,7 @@ export default function DeliveryPoolPage() {
         {!loading && pool.length === 0 && (
           <div className="text-center py-14">
             <Package size={34} className="text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No deliveries waiting near you</p>
+            <p className="text-sm text-gray-500">{dt('No deliveries waiting near you')}</p>
           </div>
         )}
 
@@ -166,7 +168,7 @@ export default function DeliveryPoolPage() {
                 <div className="flex items-center gap-2">
                   {d.overdue && (
                     <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-red-100 text-red-600 shrink-0">
-                      URGENT
+                      {dt('URGENT')}
                     </span>
                   )}
                   {d.trackingCode && (
@@ -197,14 +199,14 @@ export default function DeliveryPoolPage() {
 
             <div className="flex items-center gap-3 text-[11px] text-gray-400 mb-3">
               <span className="flex items-center gap-1">
-                <MapPin size={10} /> {d.distanceKm} km away
+                <MapPin size={10} /> {d.distanceKm} {dt('km away')}
               </span>
               <span className={`flex items-center gap-1 ${d.overdue ? 'text-red-500 font-bold' : ''}`}>
-                <Clock size={10} /> waiting {d.waitingMinutes} min
+                <Clock size={10} /> {dt('waiting')} {d.waitingMinutes} {dt('min')}
               </span>
               {active.length > 0 && d.detourKm > 0 && (
                 <span className={d.canAccept ? 'text-gray-400' : 'text-red-500 font-bold'}>
-                  +{d.detourKm} km detour
+                  +{d.detourKm} {dt('km detour')}
                 </span>
               )}
             </div>
@@ -215,14 +217,14 @@ export default function DeliveryPoolPage() {
                 disabled={accepting === d.id}
                 className="w-full bg-zana-primary text-white font-bold py-3 rounded-xl disabled:opacity-50"
               >
-                {accepting === d.id ? 'Accepting…' : 'Accept delivery'}
+                {accepting === d.id ? dt('Accepting…') : dt('Accept delivery')}
               </button>
             ) : (
               <div className="w-full bg-gray-50 rounded-xl py-3 text-center">
                 <p className="text-xs font-semibold text-gray-400">
                   {d.blockedReason === 'AT_CAPACITY'
-                    ? 'You are carrying the maximum of 3'
-                    : 'Too far off your current route'}
+                    ? dt('You are carrying the maximum of 3')
+                    : dt('Too far off your current route')}
                 </p>
               </div>
             )}

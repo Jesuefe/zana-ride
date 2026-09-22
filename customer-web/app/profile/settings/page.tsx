@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import ThemePicker from '../../../components/ThemePicker';
+import LanguageSelector from '../../../components/LanguageSelector';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, Phone, Mail, Save, Loader2 } from 'lucide-react';
 import { fetchMe, ApiUser } from '../../../lib/api/auth';
@@ -40,6 +41,10 @@ export default function AccountSettingsPage() {
   return (
     <div className="p-4">
       <div className="mb-6"><ThemePicker /></div>
+      <div className="mb-6">
+        <label className="text-xs font-medium text-gray-500 block mb-2">Language</label>
+        <LanguageSelector variant="light" />
+      </div>
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />

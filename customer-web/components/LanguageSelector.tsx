@@ -7,7 +7,7 @@ import { useLang } from '../lib/LangContext';
 
 const LANGS: Lang[] = ['en', 'fr', 'rw'];
 
-export default function LanguageSelector() {
+export default function LanguageSelector({ variant = 'dark' }: { variant?: 'dark' | 'light' }) {
   const { lang, setLang } = useLang();
   const [open, setOpen] = useState(false);
 
@@ -20,7 +20,11 @@ export default function LanguageSelector() {
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 text-sm font-medium bg-white/20 text-white px-3 py-1.5 rounded-lg backdrop-blur-sm"
+        className={
+          variant === 'light'
+            ? 'flex items-center gap-1.5 text-sm font-medium bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg'
+            : 'flex items-center gap-1.5 text-sm font-medium bg-white/20 text-white px-3 py-1.5 rounded-lg backdrop-blur-sm'
+        }
       >
         <Globe size={14} />
         {LANG_LABELS[lang]}

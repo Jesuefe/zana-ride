@@ -11,6 +11,7 @@ import DriverMap from '../../components/DriverMap';
 import { watchPosition, Coords } from '../../lib/location';
 import { updateDriverLocation } from '../../lib/api/driver';
 import { Browser } from '@capacitor/browser';
+import { useLang } from '../../lib/LangContext';
 
 // Straight-line distance in meters — same small, self-contained pattern
 // already used in a few other files in this app rather than a shared
@@ -48,6 +49,7 @@ type ActiveDelivery = {
 
 function ActiveDeliveryContent() {
   const router = useRouter();
+  const { dt } = useLang();
   const searchParams = useSearchParams();
   // Only ever set by the home screen's crash-recovery redirect — its
   // presence is what tells the driver "this wasn't a normal open, Zana
@@ -167,7 +169,7 @@ function ActiveDeliveryContent() {
     } catch {
       // Upload failed — record it but let the delivery continue. A rider
       // should never be stuck at a door because a photo did not send.
-      setPhotoNote('Photo could not upload. Continuing without it.');
+      setPhotoNote(dt('Photo could not upload. Continuing without it.'));
     } finally {
       setUploading(false);
       if (stage === 'pickup') await doPickup();
@@ -185,7 +187,7 @@ function ActiveDeliveryContent() {
       // state, payment never confirmed, anything else) left the driver
       // staring at an unexplained stuck screen with no idea why nothing
       // happened.
-      setActionError(e?.message || 'Could not confirm pickup. Please try again.');
+      setActionError(e?.message || dt('Could not confirm pickup. Please try again.'));
       setActing(false);
       return;
     }
@@ -200,7 +202,7 @@ function ActiveDeliveryContent() {
     try {
       await api.post(`/driver/deliveries/${delivery.id}/complete`);
     } catch (e: any) {
-      setActionError(e?.message || 'Could not confirm delivery. Please try again.');
+      setActionError(e?.message || dt('Could not confirm delivery. Please try again.'));
       setActing(false);
       return;
     }
@@ -230,9 +232,9 @@ function ActiveDeliveryContent() {
   if (!delivery) return (
     <div className="flex flex-col items-center justify-center h-screen gap-3 p-6 text-center">
       <Package size={40} className="text-gray-200" />
-      <p className="font-semibold text-gray-700">No active delivery</p>
+      <p className="font-semibold text-gray-700">{dt('No active delivery')}</p>
       <button onClick={() => router.push('/deliveries')} className="bg-zana-primary text-white px-6 py-2.5 rounded-xl text-sm font-semibold">
-        Browse deliveries
+        {dt('Browse deliveries')}
       </button>
     </div>
   );
@@ -255,7 +257,7 @@ function ActiveDeliveryContent() {
       {allActive.length > 1 && (
         <div className="px-4 py-2 bg-white border-b border-gray-100">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">
-            Carrying {allActive.length} parcels
+            {dt('Carrying')} {allActive.length} {dt('parcels')}
           </p>
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {allActive.map((a: any, i: number) => {
@@ -274,7 +276,7 @@ function ActiveDeliveryContent() {
                   }`}
                 >
                   <p className="text-[10px] font-bold text-gray-400">
-                    Stop {a.routeSequence ?? i + 1}
+                    {dt('Stop')} {a.routeSequence ?? i + 1}
                   </p>
                   <p className={`text-xs font-bold line-clamp-1 max-w-32 ${
                     isCurrent ? 'text-zana-primary' : 'text-gray-800'
@@ -282,7 +284,7 @@ function ActiveDeliveryContent() {
                     {a.itemDescription}
                   </p>
                   <p className="text-[9px] text-gray-400">
-                    {a.status === 'PICKED_UP' ? 'On board' : 'To collect'}
+                    {a.status === 'PICKED_UP' ? dt('On board') : dt('To collect')}
                   </p>
                 </div>
               );
@@ -295,8 +297,8 @@ function ActiveDeliveryContent() {
       {uploading && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60">
           <div className="w-12 h-12 border-3 border-white/30 border-t-white rounded-full animate-spin mb-4" />
-          <p className="text-white font-bold">Uploading photo…</p>
-          <p className="text-white/60 text-xs mt-1">Proof of handling</p>
+          <p className="text-white font-bold">{dt('Uploading photo…')}</p>
+          <p className="text-white/60 text-xs mt-1">{dt('Proof of handling')}</p>
         </div>
       )}
 
@@ -320,13 +322,13 @@ function ActiveDeliveryContent() {
         <div className="absolute top-4 left-4 right-4 z-50 bg-white rounded-2xl shadow-2xl p-4 animate-fade-slide-up">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-bold text-gray-900">Active delivery restored</p>
+              <p className="text-sm font-bold text-gray-900">{dt('Active delivery restored')}</p>
               <p className="text-xs text-zana-muted mt-0.5">
                 {delivery.trackingCode ?? delivery.itemDescription}
                 {' · '}
-                {isPickup ? 'Status: To collect' : 'Status: Picked up'}
+                {isPickup ? dt('Status: To collect') : dt('Status: Picked up')}
                 {' · '}
-                {isPickup ? 'Next stop: Pickup' : 'Next stop: Customer'}
+                {isPickup ? dt('Next stop: Pickup') : dt('Next stop: Customer')}
               </p>
             </div>
             <button
@@ -362,7 +364,7 @@ function ActiveDeliveryContent() {
             </div>
             <div>
               <p className={`font-bold text-sm ${isPickup ? 'text-amber-800' : 'text-zana-primary'}`}>
-                {isPickup ? 'Go to pickup location' : 'Deliver to customer'}
+                {isPickup ? dt('Go to pickup location') : dt('Deliver to customer')}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
                 {isPickup ? delivery.pickupAddress : delivery.dropoffAddress}
@@ -372,10 +374,10 @@ function ActiveDeliveryContent() {
 
           {/* Package info */}
           <div className="bg-gray-50 rounded-2xl p-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Package</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{dt('Package')}</p>
             <p className="font-semibold text-gray-900">{delivery.itemDescription}</p>
             {delivery.merchant && (
-              <p className="text-xs text-gray-400 mt-1">From: {delivery.merchant.businessName}</p>
+              <p className="text-xs text-gray-400 mt-1">{dt('From:')} {delivery.merchant.businessName}</p>
             )}
           </div>
 
@@ -389,11 +391,11 @@ function ActiveDeliveryContent() {
               </div>
               <div className="flex-1 space-y-3">
                 <div>
-                  <p className="text-[10px] text-gray-400 uppercase">Pickup</p>
+                  <p className="text-[10px] text-gray-400 uppercase">{dt('Pickup')}</p>
                   <p className="text-sm text-gray-800">{delivery.pickupAddress}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-400 uppercase">Dropoff</p>
+                  <p className="text-[10px] text-gray-400 uppercase">{dt('Dropoff')}</p>
                   <p className="text-sm text-gray-800">{delivery.dropoffAddress}</p>
                 </div>
               </div>
@@ -404,7 +406,7 @@ function ActiveDeliveryContent() {
           {delivery.customer && (
             <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl px-4 py-3">
               <div>
-                <p className="text-xs text-gray-400">Customer</p>
+                <p className="text-xs text-gray-400">{dt('Customer')}</p>
                 <p className="font-semibold text-gray-900">{delivery.customer.firstName} {delivery.customer.lastName}</p>
               </div>
               <a href={`tel:${delivery.customer.phone}`}
@@ -416,7 +418,7 @@ function ActiveDeliveryContent() {
 
           {/* Earnings */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">Your earnings</span>
+            <span className="text-sm text-gray-500">{dt('Your earnings')}</span>
             <span className="text-lg font-black text-zana-primary">{Math.round(delivery.fee * 0.85).toLocaleString()} RWF</span>
           </div>
 
@@ -424,7 +426,7 @@ function ActiveDeliveryContent() {
               just because GPS hasn't resolved yet */}
           {!closeEnough && distanceToTarget !== null && (
             <p className="text-xs text-amber-600 text-center -mb-1">
-              {Math.round(distanceToTarget)}m away — move closer to confirm
+              {Math.round(distanceToTarget)}{dt('m away — move closer to confirm')}
             </p>
           )}
 
@@ -445,7 +447,7 @@ function ActiveDeliveryContent() {
             }}
             className="w-full bg-white border-2 border-zana-primary text-zana-primary font-black py-3.5 rounded-2xl text-base flex items-center justify-center gap-2">
             <Navigation size={18} />
-            Navigate
+            {dt('Navigate')}
           </button>
 
           {/* Action button */}
@@ -453,7 +455,7 @@ function ActiveDeliveryContent() {
             <button onClick={handlePickup} disabled={acting || !closeEnough}
               className="w-full bg-amber-500 text-white font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 disabled:opacity-50">
               {acting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check size={18} />}
-              Confirm Pickup
+              {dt('Confirm Pickup')}
             </button>
           )}
 
@@ -461,7 +463,7 @@ function ActiveDeliveryContent() {
             <button onClick={handleComplete} disabled={acting || !closeEnough}
               className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 disabled:opacity-50">
               {acting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check size={18} />}
-              Confirm Delivery
+              {dt('Confirm Delivery')}
             </button>
           )}
         </div>
