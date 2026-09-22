@@ -1,0 +1,55 @@
+name: Generate iOS certificate and provisioning profiles (one-time)
+
+# Run this ONCE to create the Apple Distribution certificate and both
+# provisioning profiles under Bastion Holdings' own Developer account.
+# Uses fastlane's cert/sigh actions with an app-specific password —
+# this bypasses 2FA prompts by design (that's what app-specific
+# passwords are for), never touches the real Apple ID password, and
+# can be revoked instantly from appleid.apple.com with no other effect.
+#
+# After downloading the artifact, delete this workflow file and this
+# run, and consider revoking the app-specific password used here too,
+# since its job is done once the cert/profiles exist.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  generate:
+    runs-on: macos-latest
+    env:
+      FASTLANE_USER: ${{ secrets.APPLE_ID_EMAIL }}
+      FASTLANE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      FASTLANE_HIDE_CHANGELOG: "true"
+      FASTLANE_SKIP_UPDATE_CHECK: "true"
+    steps:
+      - name: Install fastlane
+        run: gem install fastlane -N
+
+      - name: Generate Distribution certificate
+        run: |
+          mkdir -p out
+          fastlane cert --output_path out/ --username "$FASTLANE_USER"
+
+      - name: Generate provisioning profile — customer app
+        run: |
+          fastlane sigh --app_identifier "com.bastionholdings.zana" \
+            --username "$FASTLANE_USER" \
+            --output_path out/ \
+            --filename "zana-customer.mobileprovision"
+
+      - name: Generate provisioning profile — driver app
+        run: |
+          fastlane sigh --app_identifier "com.bastionholdings.zana.driver" \
+            --username "$FASTLANE_USER" \
+            --output_path out/ \
+            --filename "zana-driver.mobileprovision"
+
+      - name: List generated files
+        run: ls -la out/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zana-ios-signing-KEEP-PRIVATE
+          path: out/*
+          retention-days: 1

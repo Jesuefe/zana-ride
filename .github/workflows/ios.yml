@@ -17,11 +17,11 @@ jobs:
       matrix:
         app:
           - dir: driver
-            bundle_id: rw.zanaride.driver
+            bundle_id: com.bastionholdings.zana.driver
             profile_name: "Zana Driver Distribution"
             profile_secret: IOS_DRIVER_PROVISION_BASE64
           - dir: customer
-            bundle_id: rw.zanaride.app
+            bundle_id: com.bastionholdings.zana
             profile_name: "Zana Customer Distribution"
             profile_secret: IOS_CUSTOMER_PROVISION_BASE64
 
