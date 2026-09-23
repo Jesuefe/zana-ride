@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Plus, ArrowDownLeft, ArrowUpRight, X, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { fetchWallet, initiateMomoTopUp, checkMomoTopUpStatus } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 type WalletData = {
   balance: number;
@@ -13,6 +14,7 @@ type WalletData = {
 type TopUpStage = 'form' | 'waiting' | 'success' | 'failed';
 
 export default function WalletPage() {
+  const { t } = useLang();
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [showTopUp, setShowTopUp] = useState(false);
   const [stage, setStage] = useState<TopUpStage>('form');
@@ -44,7 +46,7 @@ export default function WalletPage() {
         }
       }, 3000);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not reach the payment provider.');
+      setError(err instanceof ApiError ? err.message : t('Could not reach the payment provider.'));
     }
   };
 
@@ -58,28 +60,28 @@ export default function WalletPage() {
 
   return (
     <div className="p-4">
-      <h1 className="text-xl font-bold text-gray-900 mb-4">Wallet</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-4">{t('Wallet')}</h1>
 
       <div className="bg-zana-primary-dark rounded-2xl p-5 text-white">
-        <p className="text-white/70 text-sm">Available balance</p>
+        <p className="text-white/70 text-sm">{t('Available balance')}</p>
         <p className="text-3xl font-bold mt-1">{wallet ? wallet.balance.toLocaleString() : '…'} RWF</p>
         <button
           onClick={() => setShowTopUp(true)}
           className="mt-4 flex items-center gap-1.5 bg-zana-secondary text-gray-900 text-xs font-bold px-4 py-2 rounded-full transition-transform active:scale-95"
         >
-          <Plus size={14} /> Top Up
+          <Plus size={14} /> {t('Top Up')}
         </button>
       </div>
 
-      <h2 className="text-sm font-semibold text-gray-900 mt-6 mb-2">Recent transactions</h2>
+      <h2 className="text-sm font-semibold text-gray-900 mt-6 mb-2">{t('Recent transactions')}</h2>
       <div className="space-y-2">
-        {wallet?.transactions.length === 0 && <p className="text-sm text-zana-muted">No transactions yet.</p>}
-        {wallet?.transactions.map((t: any) => {
-          const isCredit = t.amount > 0;
-          const isDebit = t.amount < 0;
-          const isInfo = t.amount === 0; // cash/momo rides — recorded for history but no balance change
+        {wallet?.transactions.length === 0 && <p className="text-sm text-zana-muted">{t('No transactions yet.')}</p>}
+        {wallet?.transactions.map((tx: any) => {
+          const isCredit = tx.amount > 0;
+          const isDebit = tx.amount < 0;
+          const isInfo = tx.amount === 0; // cash/momo rides — recorded for history but no balance change
           return (
-            <div key={t.id} className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm">
+            <div key={tx.id} className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                 isCredit ? 'bg-green-50 text-green-600' :
                 isDebit ? 'bg-red-50 text-red-500' :
@@ -89,20 +91,20 @@ export default function WalletPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-900 truncate">
-                  {t.description ?? (isCredit ? 'Top up' : isDebit ? 'Payment' : 'Ride recorded')}
+                  {tx.description ?? (isCredit ? t('Top up') : isDebit ? t('Payment') : t('Ride recorded'))}
                 </p>
                 <p className="text-xs text-zana-muted">
-                  {new Date(t.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  {t.status === 'PENDING' && ' · Pending'}
+                  {new Date(tx.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {tx.status === 'PENDING' && ` · ${t('Pending')}`}
                 </p>
               </div>
               <div className="text-right shrink-0">
                 <span className={`text-sm font-bold ${isCredit ? 'text-green-600' : isDebit ? 'text-red-500' : 'text-gray-500'}`}>
-                  {isCredit ? '+' : ''}{t.amount.toLocaleString()} RWF
+                  {isCredit ? '+' : ''}{tx.amount.toLocaleString()} RWF
                 </span>
-                {isInfo && <p className="text-[10px] text-gray-400">No charge</p>}
-                {(isCredit || isDebit) && t.balanceAfter !== undefined && (
-                  <p className="text-[10px] text-gray-400">Bal: {t.balanceAfter?.toLocaleString()} RWF</p>
+                {isInfo && <p className="text-[10px] text-gray-400">{t('No charge')}</p>}
+                {(isCredit || isDebit) && tx.balanceAfter !== undefined && (
+                  <p className="text-[10px] text-gray-400">{t('Bal:')} {tx.balanceAfter?.toLocaleString()} RWF</p>
                 )}
               </div>
             </div>
@@ -117,14 +119,14 @@ export default function WalletPage() {
             {stage === 'form' && (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-semibold text-lg text-gray-900">Top up with Mobile Money</h2>
+                  <h2 className="font-semibold text-lg text-gray-900">{t('Top up with Mobile Money')}</h2>
                   <button onClick={closeModal} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                     <X size={16} />
                   </button>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-medium text-zana-muted block mb-1.5">Mobile money number</label>
+                    <label className="text-xs font-medium text-zana-muted block mb-1.5">{t('Mobile money number')}</label>
                     <input
                       value={phone}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
@@ -134,7 +136,7 @@ export default function WalletPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-zana-muted block mb-1.5">Amount (RWF)</label>
+                    <label className="text-xs font-medium text-zana-muted block mb-1.5">{t('Amount (RWF)')}</label>
                     <input
                       value={amount}
                       onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
@@ -150,7 +152,7 @@ export default function WalletPage() {
                   disabled={phone.length < 10 || !amount || Number(amount) < 100}
                   className="w-full mt-5 bg-zana-primary text-white font-semibold py-3 rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
                 >
-                  Request payment
+                  {t('Request payment')}
                 </button>
               </>
             )}
@@ -158,9 +160,9 @@ export default function WalletPage() {
             {stage === 'waiting' && (
               <div className="text-center py-6">
                 <Loader2 size={32} className="animate-spin text-zana-primary mx-auto mb-4" />
-                <p className="font-semibold text-gray-900">Check your phone</p>
+                <p className="font-semibold text-gray-900">{t('Check your phone')}</p>
                 <p className="text-sm text-zana-muted mt-1">
-                  Approve the {Number(amount).toLocaleString()} RWF mobile money request sent to {phone}.
+                  {t('Approve the')} {Number(amount).toLocaleString()} RWF {t('mobile money request sent to')} {phone}.
                 </p>
               </div>
             )}
@@ -168,10 +170,10 @@ export default function WalletPage() {
             {stage === 'success' && (
               <div className="text-center py-6">
                 <CheckCircle2 size={40} className="text-zana-success mx-auto mb-4" />
-                <p className="font-semibold text-gray-900">Top-up successful</p>
-                <p className="text-sm text-zana-muted mt-1">Your wallet has been credited.</p>
+                <p className="font-semibold text-gray-900">{t('Top-up successful')}</p>
+                <p className="text-sm text-zana-muted mt-1">{t('Your wallet has been credited.')}</p>
                 <button onClick={closeModal} className="mt-5 text-sm font-semibold text-zana-primary">
-                  Done
+                  {t('Done')}
                 </button>
               </div>
             )}
@@ -179,9 +181,9 @@ export default function WalletPage() {
             {stage === 'failed' && (
               <div className="text-center py-6">
                 <XCircle size={40} className="text-zana-error mx-auto mb-4" />
-                <p className="font-semibold text-gray-900">Payment failed or was declined</p>
+                <p className="font-semibold text-gray-900">{t('Payment failed or was declined')}</p>
                 <button onClick={() => setStage('form')} className="mt-5 text-sm font-semibold text-zana-primary">
-                  Try again
+                  {t('Try again')}
                 </button>
               </div>
             )}

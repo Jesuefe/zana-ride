@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Car, MapPin, Clock, ChevronRight, Star } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 type TripSummary = {
   id: string; status: string; serviceType: string;
@@ -15,6 +16,7 @@ type TripSummary = {
 
 export default function HistoryPage() {
   const router = useRouter();
+  const { t } = useLang();
   const [trips, setTrips] = useState<TripSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalSpent, setTotalSpent] = useState(0);
@@ -37,9 +39,9 @@ export default function HistoryPage() {
   };
 
   const statusLabel = (s: string) => {
-    if (s === 'RIDE_COMPLETED') return 'Completed';
-    if (s === 'CUSTOMER_CANCELLED') return 'Cancelled';
-    if (s === 'DRIVER_CANCELLED') return 'Driver cancelled';
+    if (s === 'RIDE_COMPLETED') return t('Completed');
+    if (s === 'CUSTOMER_CANCELLED') return t('Cancelled');
+    if (s === 'DRIVER_CANCELLED') return t('Driver cancelled');
     return s.replace(/_/g, ' ');
   };
 
@@ -60,6 +62,10 @@ export default function HistoryPage() {
   const monthSpent = visible
     .filter(t => t.status === 'RIDE_COMPLETED')
     .reduce((s, t) => s + ((t as any).finalFare ?? (t as any).estimatedFare ?? 0), 0);
+  // Computed once outside the trip-list loop below, since that loop's own
+  // variable is also named "t" (each trip) and would otherwise shadow
+  // this t() translation function of the same name.
+  const noDriverLabel = t('No driver');
 
   return (
     <div className="p-4">
@@ -67,14 +73,14 @@ export default function HistoryPage() {
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />
         </button>
-        <h1 className="text-lg font-bold text-gray-900">Ride History</h1>
+        <h1 className="text-lg font-bold text-gray-900">{t('Ride History')}</h1>
       </div>
 
       {/* Total spent */}
       <div className="bg-zana-primary rounded-2xl p-4 mb-5 flex items-center justify-between">
         <div>
           <p className="text-white/70 text-xs">
-            {month === 'ALL' ? 'Total spent on rides' : `Spent in ${monthLabel(month)}`}
+            {month === 'ALL' ? t('Total spent on rides') : `${t('Spent in')} ${monthLabel(month)}`}
           </p>
           <p className="text-white text-2xl font-bold">
             {(month === 'ALL' ? totalSpent : monthSpent).toLocaleString()} RWF
@@ -82,7 +88,7 @@ export default function HistoryPage() {
         </div>
         <div className="text-right">
           <p className="text-white/70 text-xs">
-            {month === 'ALL' ? 'Total rides' : 'Rides'}
+            {month === 'ALL' ? t('Total rides') : t('Rides')}
           </p>
           <p className="text-white text-2xl font-bold">
             {visible.filter(t => t.status === 'RIDE_COMPLETED').length}
@@ -101,7 +107,7 @@ export default function HistoryPage() {
                 : 'bg-white text-gray-600 border-gray-100'
             }`}
           >
-            All time
+            {t('All time')}
           </button>
           {months.map(m => (
             <button
@@ -125,7 +131,7 @@ export default function HistoryPage() {
         {visible.length === 0 && !loading && (
           <div className="text-center py-12">
             <Car size={36} className="text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">{month === 'ALL' ? 'No rides yet' : `No rides in ${monthLabel(month)}`}</p>
+            <p className="text-sm text-gray-500">{month === 'ALL' ? t('No rides yet') : `${t('No rides in')} ${monthLabel(month)}`}</p>
           </div>
         )}
         {visible.map(t => (
@@ -134,7 +140,7 @@ export default function HistoryPage() {
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Car size={14} className="text-zana-primary" />
-                <span className="text-sm font-semibold text-gray-900">{t.driver?.user?.firstName ?? 'No driver'}</span>
+                <span className="text-sm font-semibold text-gray-900">{t.driver?.user?.firstName ?? noDriverLabel}</span>
                 {t.driver && <span className="flex items-center gap-0.5 text-xs text-gray-400"><Star size={9} className="text-zana-secondary fill-zana-secondary" />{t.driver.rating.toFixed(1)}</span>}
               </div>
               <div className="flex items-center gap-2">
