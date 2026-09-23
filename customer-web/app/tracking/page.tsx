@@ -13,6 +13,7 @@ import { api } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 import ReportModal from '../../components/ReportModal';
 import { useShakeDetector, requestMotionPermission } from '../../lib/shake';
+import { useLang } from '../../lib/LangContext';
 
 const STATUS_COPY: Record<string, string> = {
   SEARCHING_DRIVER: 'Finding your driver…',
@@ -30,6 +31,7 @@ const ACTIVE_STATUSES = ['DRIVER_ASSIGNED', 'DRIVER_EN_ROUTE', 'DRIVER_ARRIVED',
 type GroupTrip = ApiTrip & { groupSeatIndex: number | null };
 
 function DriverCard({ trip, seatLabel, onChat, onCall, hasUnreadMessage }: { trip: ApiTrip; seatLabel?: string; onChat?: () => void; onCall?: () => void; hasUnreadMessage?: boolean }) {
+  const { t } = useLang();
   const driver = trip.driver;
   if (!driver || trip.status === 'RIDE_COMPLETED') return null;
   // Previously the plate was just a small line of plain text at all
@@ -46,11 +48,11 @@ function DriverCard({ trip, seatLabel, onChat, onCall, hasUnreadMessage }: { tri
         </div>
         <div className="flex-1">
           {seatLabel && <p className="text-[11px] font-semibold text-zana-primary">{seatLabel}</p>}
-          <p className="text-sm font-semibold text-gray-900">{driver.user.firstName ?? 'Your driver'}</p>
+          <p className="text-sm font-semibold text-gray-900">{driver.user.firstName ?? t('Your driver')}</p>
           {!showPlateCheck && <p className="text-xs text-zana-muted">{driver.vehicle} · {driver.plate}</p>}
           <div className="flex items-center gap-2 text-xs text-zana-muted">
             <span className="flex items-center gap-0.5"><Star size={11} className="text-zana-secondary fill-zana-secondary" /> {driver.rating.toFixed(1)}</span>
-            {(driver as any).totalTrips && <span>· {(driver as any).totalTrips} rides</span>}
+            {(driver as any).totalTrips && <span>· {(driver as any).totalTrips} {t('rides')}</span>}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -78,8 +80,8 @@ function DriverCard({ trip, seatLabel, onChat, onCall, hasUnreadMessage }: { tri
 
       {showPlateCheck && (
         <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-3 mt-2">
-          <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-1">Check before you get in</p>
-          <p className="text-xs text-amber-700 mb-2">Confirm this plate matches the car in front of you.</p>
+          <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-1">{t('Check before you get in')}</p>
+          <p className="text-xs text-amber-700 mb-2">{t('Confirm this plate matches the car in front of you.')}</p>
           <div className="bg-white border-2 border-amber-400 rounded-lg py-2 text-center">
             <p className="text-2xl font-black tracking-widest text-gray-900">{driver.plate}</p>
             <p className="text-[10px] text-gray-500 mt-0.5">{driver.vehicle}</p>
@@ -92,6 +94,7 @@ function DriverCard({ trip, seatLabel, onChat, onCall, hasUnreadMessage }: { tri
 
 function TrackingContent() {
   const router = useRouter();
+  const { t } = useLang();
   const params = useSearchParams();
   const tripId = params.get('tripId');
   const groupId = params.get('groupId');
@@ -209,7 +212,7 @@ function TrackingContent() {
         setCallData({ callId: data.callId, roomName: res.roomName, wsUrl: res.wsUrl, token: res.token });
         setShowCall(true);
       } catch {
-        setCallNotice('Could not join the call. Try calling again.');
+        setCallNotice(t('Could not join the call. Try calling again.'));
         setTimeout(() => setCallNotice(''), 4000);
       }
     });
@@ -227,7 +230,7 @@ function TrackingContent() {
       try { (window as any).__zanaRingtone?.pause(); } catch {}
       setShowCall(false);
       setIncomingCallInfo(null);
-      setCancelNotice(data?.message ?? 'Your driver cancelled this ride');
+      setCancelNotice(data?.message ?? t('Your driver cancelled this ride'));
     });
 
     return () => { socket.disconnect(); };
@@ -314,8 +317,8 @@ function TrackingContent() {
       // A cancel that silently fails leaves someone standing at the
       // roadside believing a ride they don't want is no longer coming.
       setCancelError(e?.message?.includes('RIDE_ALREADY_IN_PROGRESS')
-        ? 'This ride has already started — report a problem instead.'
-        : 'Could not cancel. Try again.');
+        ? t('This ride has already started — report a problem instead.')
+        : t('Could not cancel. Try again.'));
     }
   };
 
@@ -359,7 +362,7 @@ function TrackingContent() {
         {showRouteBanner && (
           <div className="absolute top-4 left-4 right-24 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full text-xs text-gray-900 shadow animate-fade-slide-up">
             <Navigation size={13} className="text-zana-primary shrink-0" />
-            <span className="truncate">Driver is following the recommended route</span>
+            <span className="truncate">{t('Driver is following the recommended route')}</span>
           </div>
         )}
 
@@ -373,8 +376,8 @@ function TrackingContent() {
 
       <div className="p-5">
         <h2 className="font-semibold text-lg text-gray-900">
-          {isGroup && !allCompleted ? `${groupTrips.length} motos · ` : ''}
-          {allCompleted ? 'All trips completed' : STATUS_COPY[status] ?? status}
+          {isGroup && !allCompleted ? `${groupTrips.length} ${t('motos')} · ` : ''}
+          {allCompleted ? t('All trips completed') : t(STATUS_COPY[status] ?? status)}
         </h2>
         {/* Driver on the way — show how far away they are */}
         {driverEta && (
@@ -382,7 +385,7 @@ function TrackingContent() {
             <div className="w-2 h-2 rounded-full bg-zana-primary animate-pulse" />
             <div>
               <span className="text-base font-black text-zana-primary">
-                {driverEta.durationText} to your pickup
+                {driverEta.durationText} {t('to your pickup')}
               </span>
               <span className="text-xs text-gray-500 ml-1.5">· {driverEta.distanceText}</span>
             </div>
@@ -391,14 +394,14 @@ function TrackingContent() {
         {rideIsActive && routeInfo && !driverEta && (
           <div className="flex items-center gap-2 mt-2">
             <span className="text-lg font-bold text-zana-primary">{routeInfo.durationText}</span>
-            <span className="text-xs text-zana-muted">· {routeInfo.distanceText} remaining</span>
+            <span className="text-xs text-zana-muted">· {routeInfo.distanceText} {t('remaining')}</span>
           </div>
         )}
         {rideIsActive && !routeInfo && primaryTrip?.driver && (
-          <p className="text-sm text-zana-primary font-semibold mt-1">Calculating ETA…</p>
+          <p className="text-sm text-zana-primary font-semibold mt-1">{t('Calculating ETA…')}</p>
         )}
         {rideIsActive && (
-          <p className="text-xs text-zana-muted mt-1">Shake your phone anytime to report a safety concern.</p>
+          <p className="text-xs text-zana-muted mt-1">{t('Shake your phone anytime to report a safety concern.')}</p>
         )}
 
         {isGroup
@@ -444,10 +447,10 @@ function TrackingContent() {
           }`}
         >
           {status === 'RIDE_COMPLETED' || allCompleted
-            ? 'Rate your ride'
+            ? t('Rate your ride')
             : rideInProgress
-              ? 'Report a problem'
-              : 'Cancel Ride'}
+              ? t('Report a problem')
+              : t('Cancel Ride')}
         </button>
       </div>
 
@@ -457,7 +460,7 @@ function TrackingContent() {
       {showRating && primaryTrip && (
         <RatingModal
           tripId={primaryTrip.id}
-          driverName={primaryTrip.driver?.user?.firstName ?? 'your driver'}
+          driverName={primaryTrip.driver?.user?.firstName ?? t('your driver')}
           onClose={() => {
             setShowRating(false);
             router.push(`/receipt?tripId=${primaryTrip.id}`);
@@ -474,8 +477,8 @@ function TrackingContent() {
               </svg>
             </div>
             <div>
-              <p className="text-white font-black text-base">Incoming call</p>
-              <p className="text-white/70 text-xs">Your driver is calling</p>
+              <p className="text-white font-black text-base">{t('Incoming call')}</p>
+              <p className="text-white/70 text-xs">{t('Your driver is calling')}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -503,7 +506,7 @@ function TrackingContent() {
           roomName={callData.roomName}
           wsUrl={callData.wsUrl}
           token={callData.token}
-          participantLabel={primaryTrip?.driver?.user?.firstName ?? 'Driver'}
+          participantLabel={primaryTrip?.driver?.user?.firstName ?? t('Driver')}
           onClose={() => { setShowCall(false); setCallData(null); }}
         />
       )}
@@ -516,11 +519,11 @@ function TrackingContent() {
               <circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" />
             </svg>
           </div>
-          <p className="text-xl font-black text-gray-900 mb-2">Ride cancelled</p>
+          <p className="text-xl font-black text-gray-900 mb-2">{t('Ride cancelled')}</p>
           <p className="text-sm text-gray-500 text-center mb-6">{cancelNotice}</p>
           <button onClick={() => router.replace('/')}
             className="bg-zana-primary text-white font-bold px-8 py-3 rounded-2xl">
-            Book another ride
+            {t('Book another ride')}
           </button>
         </div>
       )}
@@ -536,7 +539,7 @@ function TrackingContent() {
             </div>
             <div>
               <p className="text-white font-black text-base">Incoming call</p>
-              <p className="text-white/70 text-xs">{incomingCallInfo.driverName} is calling</p>
+              <p className="text-white/70 text-xs">{incomingCallInfo.driverName} {t('is calling')}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
