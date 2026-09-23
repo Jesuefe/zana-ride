@@ -163,10 +163,10 @@ function StoreContent() {
           {cartCount > 0 && (
             <button
               onClick={() => setShowCart(true)}
-              className="absolute top-10 right-4 flex items-center gap-2 bg-zana-primary text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow"
+              className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[448px] z-40 flex items-center justify-center gap-2 bg-zana-primary text-white px-4 py-3.5 rounded-2xl text-sm font-black shadow-lg"
             >
-              <ShoppingCart size={14} />
-              {cartCount} · {cartTotal.toLocaleString()} RWF
+              <ShoppingCart size={16} />
+              View cart · {cartCount} item{cartCount === 1 ? '' : 's'} · {cartTotal.toLocaleString()} RWF
             </button>
           )}
         </div>
