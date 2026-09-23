@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { requestLoginCode, loginWithCode } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 /**
  * Signing in with an SMS code. Most people here do not want to remember a
@@ -13,6 +14,7 @@ import { ApiError } from '../../lib/api/client';
  */
 export default function LoginWithCode() {
   const router = useRouter();
+  const { dt } = useLang();
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -31,7 +33,7 @@ export default function LoginWithCode() {
 
   const send = async () => {
     const digits = phone.replace(/\D/g, '');
-    if (digits.length < 9) { setError('Enter your full phone number.'); return; }
+    if (digits.length < 9) { setError(dt('Enter your full phone number.')); return; }
 
     setBusy(true);
     setError('');
@@ -56,9 +58,9 @@ export default function LoginWithCode() {
       router.replace('/');
     } catch (e: any) {
       const msg = e instanceof ApiError ? e.message : '';
-      if (msg.includes('CODE_EXPIRED')) setError('That code has expired. Ask for a new one.');
-      else if (msg.includes('ACCOUNT_SUSPENDED')) setError('This account is suspended. Contact support.');
-      else setError('That code is not right, or there is no account on this number.');
+      if (msg.includes('CODE_EXPIRED')) setError(dt('That code has expired. Ask for a new one.'));
+      else if (msg.includes('ACCOUNT_SUSPENDED')) setError(dt('This account is suspended. Contact support.'));
+      else setError(dt('That code is not right, or there is no account on this number.'));
     } finally {
       setBusy(false);
     }
@@ -75,13 +77,13 @@ export default function LoginWithCode() {
 
       {step === 'phone' ? (
         <>
-          <h1 className="text-2xl font-black text-gray-900">Sign in with a code</h1>
+          <h1 className="text-2xl font-black text-gray-900">{dt('Sign in with a code')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-7">
-            No password needed. We&rsquo;ll text you a six-digit code.
+            {dt("No password needed. We'll text you a six-digit code.")}
           </p>
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-            Phone number
+            {dt('Phone number')}
           </label>
           <div className="flex items-center border-2 border-gray-100 rounded-2xl mt-2 focus-within:border-zana-primary">
             <span className="pl-4 pr-2 text-sm font-bold text-gray-400">+250</span>
@@ -103,21 +105,21 @@ export default function LoginWithCode() {
             disabled={busy || phone.replace(/\D/g, '').length < 9}
             className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl mt-6 disabled:opacity-40"
           >
-            {busy ? 'Sending…' : 'Send code'}
+            {busy ? dt('Sending…') : dt('Send code')}
           </button>
 
           <button
             onClick={() => router.push('/login')}
             className="w-full text-sm text-gray-500 py-3 mt-2 font-semibold"
           >
-            Use a password instead
+            {dt('Use a password instead')}
           </button>
         </>
       ) : (
         <>
-          <h1 className="text-2xl font-black text-gray-900">Enter your code</h1>
+          <h1 className="text-2xl font-black text-gray-900">{dt('Enter your code')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-7">
-            Sent to {fullPhone()}. Valid for five minutes.
+            {dt('Sent to')} {fullPhone()}{dt('. Valid for five minutes.')}
           </p>
 
           <input
@@ -138,7 +140,7 @@ export default function LoginWithCode() {
             disabled={busy || code.length < 6}
             className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl mt-6 disabled:opacity-40"
           >
-            {busy ? 'Checking…' : 'Sign in'}
+            {busy ? dt('Checking…') : dt('Sign in')}
           </button>
 
           <button
@@ -146,7 +148,7 @@ export default function LoginWithCode() {
             disabled={busy || cooldown > 0}
             className="w-full text-sm text-gray-400 py-3 mt-1 disabled:opacity-50"
           >
-            {cooldown > 0 ? `Send again in ${cooldown}s` : 'Send the code again'}
+            {cooldown > 0 ? `${dt('Send again in')} ${cooldown}s` : dt('Send the code again')}
           </button>
         </>
       )}

@@ -6,9 +6,11 @@ import Link from 'next/link';
 import { Car } from 'lucide-react';
 import { login } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { dt } = useLang();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,7 +24,7 @@ export default function LoginPage() {
       await login(identifier.trim(), password);
       router.push('/');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
+      setError(err instanceof ApiError ? err.message : dt('Could not reach the server.'));
     } finally {
       setLoading(false);
     }
@@ -36,14 +38,14 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Driver Login</h1>
-        <p className="text-sm text-zana-muted mt-1">Log in with your email or phone number.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{dt('Driver Login')}</h1>
+        <p className="text-sm text-zana-muted mt-1">{dt('Log in with your email or phone number.')}</p>
 
         <div className="mt-6 space-y-3">
           <input
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="Email or phone number"
+            placeholder={dt('Email or phone number')}
             className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             autoFocus
           />
@@ -51,7 +53,7 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type="password"
-            placeholder="Password"
+            placeholder={dt('Password')}
             className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             onKeyDown={(e) => e.key === 'Enter' && valid && handleLogin()}
           />
@@ -64,7 +66,7 @@ export default function LoginPage() {
           onClick={handleLogin}
           className="w-full mt-6 bg-zana-primary text-white font-semibold py-3 rounded-lg disabled:opacity-40 hover:bg-zana-primary-dark transition-colors active:scale-[0.98]"
         >
-          {loading ? 'Logging in…' : 'Log In'}
+          {loading ? dt('Logging in…') : dt('Log In')}
         </button>
 
         <div className="flex flex-col items-center gap-1 mt-3">
@@ -72,20 +74,20 @@ export default function LoginPage() {
             onClick={() => router.push('/login-code')}
             className="text-sm font-bold text-zana-primary py-1.5"
           >
-            Sign in with a code instead
+            {dt('Sign in with a code instead')}
           </button>
           <button
             onClick={() => router.push('/forgot-password')}
             className="text-sm text-gray-500 py-1"
           >
-            Forgot your password?
+            {dt('Forgot your password?')}
           </button>
         </div>
 
         <p className="text-center text-sm text-zana-muted mt-4">
-          New driver?{' '}
+          {dt('New driver?')}{' '}
           <Link href="/signup" className="text-zana-primary font-semibold">
-            Apply to drive
+            {dt('Apply to drive')}
           </Link>
         </p>
       </div>

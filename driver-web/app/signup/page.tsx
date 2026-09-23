@@ -6,15 +6,17 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { registerDriver } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 const services: { value: 'BIKE' | 'ECONOMY' | 'COMFORT'; label: string }[] = [
   { value: 'BIKE', label: 'Moto' },
   { value: 'ECONOMY', label: 'Car (Basic)' },
-  { value: 'COMFORT', label: 'Car (Premium)' },
+  { value: 'COMFORT', label: 'Car (Premium)' },  // translated at render via dt()
 ];
 
 export default function SignupPage() {
   const router = useRouter();
+  const { dt } = useLang();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -51,7 +53,7 @@ export default function SignupPage() {
       });
       router.push('/');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
+      setError(err instanceof ApiError ? err.message : dt('Could not reach the server.'));
     } finally {
       setLoading(false);
     }
@@ -63,22 +65,22 @@ export default function SignupPage() {
         <ArrowLeft size={16} />
       </button>
 
-      <h1 className="text-2xl font-bold text-gray-900">Apply to drive</h1>
-      <p className="text-sm text-zana-muted mt-1">Your account needs approval before you can go online.</p>
+      <h1 className="text-2xl font-bold text-gray-900">{dt('Apply to drive')}</h1>
+      <p className="text-sm text-zana-muted mt-1">{dt('Your account needs approval before you can go online.')}</p>
 
       <div className="mt-6 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <input
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            placeholder="First name"
+            placeholder={dt('First name')}
             className="border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             autoFocus
           />
           <input
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            placeholder="Last name"
+            placeholder={dt('Last name')}
             className="border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
           />
         </div>
@@ -86,7 +88,7 @@ export default function SignupPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           type="email"
-          placeholder="Email address"
+          placeholder={dt('Email address')}
           className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
         />
         <div className="flex gap-2">
@@ -103,12 +105,12 @@ export default function SignupPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           type="password"
-          placeholder="Password (min. 6 characters)"
+          placeholder={dt('Password (min. 6 characters)')}
           className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
         />
 
         <div className="pt-2">
-          <p className="text-xs font-medium text-zana-muted mb-2">Vehicle type</p>
+          <p className="text-xs font-medium text-zana-muted mb-2">{dt('Vehicle type')}</p>
           <div className="grid grid-cols-3 gap-2">
             {services.map((s) => (
               <button
@@ -119,7 +121,7 @@ export default function SignupPage() {
                 }`}
                 style={{ borderWidth: 1.5 }}
               >
-                {s.label}
+                {dt(s.label)}
               </button>
             ))}
           </div>
@@ -128,13 +130,13 @@ export default function SignupPage() {
         <input
           value={vehicle}
           onChange={(e) => setVehicle(e.target.value)}
-          placeholder="Vehicle description (e.g. TVS Motorcycle - Black)"
+          placeholder={dt('Vehicle description (e.g. TVS Motorcycle - Black)')}
           className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
         />
         <input
           value={plate}
           onChange={(e) => setPlate(e.target.value)}
-          placeholder="License plate"
+          placeholder={dt('License plate')}
           className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
           onKeyDown={(e) => e.key === 'Enter' && valid && handleSignup()}
         />
@@ -147,13 +149,13 @@ export default function SignupPage() {
         onClick={handleSignup}
         className="w-full mt-6 bg-zana-primary text-white font-semibold py-3 rounded-lg disabled:opacity-40 hover:bg-zana-primary-dark transition-colors active:scale-[0.98]"
       >
-        {loading ? 'Submitting…' : 'Submit Application'}
+        {loading ? dt('Submitting…') : dt('Submit Application')}
       </button>
 
       <p className="text-center text-sm text-zana-muted mt-4">
-        Already approved?{' '}
+        {dt('Already approved?')}{' '}
         <Link href="/login" className="text-zana-primary font-semibold">
-          Log in
+          {dt('Log in')}
         </Link>
       </p>
     </div>
