@@ -16,10 +16,15 @@ export class TripsService {
   estimate(pickup: LatLng, destination: LatLng, serviceType: ServiceType) {
     const distanceKm = Math.max(0.8, haversineKm(pickup.lat, pickup.lng, destination.lat, destination.lng));
     const durationMin = estimateDurationMinutes(distanceKm);
+    const fare = estimateFare(serviceType, distanceKm, durationMin);
+
     return {
       distanceKm: Math.round(distanceKm * 10) / 10,
       durationMinutes: durationMin,
-      fare: estimateFare(serviceType, distanceKm, durationMin),
+      fare: fare.fare,
+      normalFare: fare.normalFare,
+      rushMultiplier: fare.rushMultiplier,
+      isRushHour: fare.isRushHour,
     };
   }
 
