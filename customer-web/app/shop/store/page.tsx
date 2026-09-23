@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ShoppingCart, Plus, Minus, MapPin, Loader2, Store, Package, Search } from 'lucide-react';
 import { fetchMarketplaceWithLocation, placeOrder, MarketplaceMerchant, MarketplaceProduct, CartItem } from '../../../lib/api/marketplace';
 import { getStoredPickup } from '../../../lib/location';
+import OrderRecipient, { OrderRecipient as OrderRecipientValue } from '../../../components/OrderRecipient';
 
 function StoreContent() {
   const router = useRouter();
@@ -23,6 +24,7 @@ function StoreContent() {
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [recipient, setRecipient] = useState<OrderRecipientValue>({ forSomeoneElse: false, name: '', phone: '', address: pickup.address ?? 'Current location', lat: pickup.lat, lng: pickup.lng, note: '' });
 
   useEffect(() => {
     import('../../../lib/api/trips').then(({ fetchWallet }) => {
@@ -82,17 +84,25 @@ function StoreContent() {
 
   const handleOrder = async () => {
     if (!cart.length || !merchant) return;
+    if (recipient.forSomeoneElse && (!recipient.name.trim() || !recipient.phone.trim() || !recipient.address.trim())) {
+      setError('Add the recipient name, phone number and delivery address.');
+      setShowCart(true);
+      return;
+    }
     setOrdering(true);
     setError('');
     try {
       const order = await placeOrder({
         merchantId: merchant.id,
         items: cart.map(i => ({ productId: i.product.id, quantity: i.quantity })),
-        dropoffLat: pickup.lat,
-        dropoffLng: pickup.lng,
-        dropoffAddress: 'Current location',
+        dropoffLat: recipient.lat,
+        dropoffLng: recipient.lng,
+        dropoffAddress: recipient.address || 'Current location',
         paymentMethod,
         deliveryFee,
+        receiverName: recipient.forSomeoneElse ? recipient.name.trim() : undefined,
+        receiverPhone: recipient.forSomeoneElse ? recipient.phone.trim() : undefined,
+        note: recipient.note.trim() || undefined,
       });
       router.push(`/orders?highlight=${order.id}`);
     } catch (e: any) {
@@ -261,8 +271,14 @@ function StoreContent() {
           <div className="w-full bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
 
-            <p className="font-black text-lg text-gray-900">Your basket</p>
-            <p className="text-xs text-gray-400 mb-4">{merchant.businessName}</p>
+            <div className="flex items-center justify-between mb-4">
+              <div><p className="font-black text-lg text-gray-900">Your basket</p><p className="text-xs text-gray-400">{merchant.businessName}</p></div>
+              <button type="button" onClick={() => setShowCart(false)} className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 text-lg">×</button>
+            </div>
+
+            <OrderRecipient value={recipient} onChange={setRecipient} defaultAddress={pickup.address ?? "Current location"} defaultLat={pickup.lat} defaultLng={pickup.lng} />
+
+            <div className="space-y-1.5 my-4">
 
             <div className="space-y-1.5 mb-4">
               {cart.map(i => (
