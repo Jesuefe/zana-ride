@@ -115,3 +115,13 @@ export async function getOrders() { return api.get<any[]>('/admin/orders'); }
 export async function getOrderDetail(id: string) { return api.get<any>(`/admin/orders/${id}/detail`); }
 
 export async function deleteProduct(id: string) { return api.delete(`/admin/products/${id}`); }
+
+// Live-testing only — overrides a specific driver's reported GPS with
+// fixed coordinates for testing, without touching their real device
+// location. Off by default for every driver.
+export async function getDriverTestLocations() {
+  return api.get<any[]>('/admin/drivers/test-locations');
+}
+export async function setDriverTestLocation(driverId: string, lat: number | null, lng: number | null) {
+  return api.patch(`/admin/drivers/${driverId}/test-location`, { lat, lng });
+}

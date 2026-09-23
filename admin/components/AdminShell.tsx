@@ -5,7 +5,7 @@ import { ZanaMark, ZanaWordmark, ZanaHorizontal } from './ZanaLogo';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  LayoutDashboard, Users, Car, Store, Package, MapPin,
+  LayoutDashboard, Users, Car, Store, Package, MapPin, Crosshair,
   UserCheck, TrendingUp, LogOut, ChevronRight,
   Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
   Sun, Moon, Smartphone, ClipboardList, Bell } from 'lucide-react';
@@ -32,6 +32,7 @@ const SENIOR_NAV = [
   { label: 'Merchant Invites', href: '/dashboard/invites', icon: ShieldCheck },
   { label: 'Expenses', href: '/dashboard/expenses', icon: DollarSign },
   { label: 'Audit Log', href: '/dashboard/audit-log', icon: ClipboardList },
+  { label: 'Test Locations', href: '/dashboard/test-locations', icon: Crosshair },
   { label: 'Notifications', href: '/dashboard/notifications', icon: Bell },
 ];
 
