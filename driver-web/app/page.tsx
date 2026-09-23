@@ -23,59 +23,141 @@ import { ZANA_MAP_STYLE } from '../lib/mapStyle';
 
 const TIMEOUT = 20;
 
-// Slide-to-accept component
-function SlideToAccept({ label, onAccept, color = '#00A082', acceptedLabel = 'Accepted!' }: { label: string; onAccept: () => void; color?: string; acceptedLabel?: string }) {
+// A deliberately stable, production-grade slide control.
+// Uses Pointer Events + pointer capture so the thumb cannot jitter, jump,
+// or lose the gesture when the finger moves outside the track.
+function SlideAction({
+  label,
+  busyLabel,
+  successLabel,
+  onComplete,
+  color = '#00A082',
+  disabled = false,
+}: {
+  label: string;
+  busyLabel: string;
+  successLabel: string;
+  onComplete: () => Promise<void> | void;
+  color?: string;
+  disabled?: boolean;
+}) {
   const trackRef = useRef<HTMLDivElement>(null);
-  const thumbRef = useRef<HTMLDivElement>(null);
-  const startX = useRef(0);
-  const isDragging = useRef(false);
+  const [dragging, setDragging] = useState(false);
   const [offset, setOffset] = useState(0);
-  const [accepted, setAccepted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const pointerId = useRef<number | null>(null);
+  const startX = useRef(0);
+  const startOffset = useRef(0);
 
-  const getTrackWidth = () => (trackRef.current?.clientWidth ?? 300) - 64;
+  const THUMB = 52;
+  const EDGE = 6;
+  const getMax = () => Math.max(0, (trackRef.current?.clientWidth ?? 320) - THUMB - EDGE * 2);
 
-  const handleStart = (clientX: number) => {
-    isDragging.current = true;
-    startX.current = clientX;
+  const reset = () => {
+    setDragging(false);
+    setOffset(0);
+    pointerId.current = null;
   };
 
-  const handleMove = (clientX: number) => {
-    if (!isDragging.current) return;
-    const max = getTrackWidth();
-    const delta = Math.max(0, Math.min(max, clientX - startX.current));
-    setOffset(delta);
-    if (delta >= max - 4) {
-      isDragging.current = false;
-      setAccepted(true);
-      setTimeout(onAccept, 200);
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (disabled || busy || completed) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+    pointerId.current = e.pointerId;
+    startX.current = e.clientX;
+    startOffset.current = offset;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setDragging(true);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging || pointerId.current !== e.pointerId) return;
+    const max = getMax();
+    const next = Math.max(0, Math.min(max, startOffset.current + e.clientX - startX.current));
+    setOffset(next);
+  };
+
+  const handlePointerUp = async (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging || pointerId.current !== e.pointerId) return;
+
+    const max = getMax();
+    const threshold = Math.max(48, max * 0.82);
+    setDragging(false);
+    pointerId.current = null;
+
+    if (offset >= threshold) {
+      setOffset(max);
+      setBusy(true);
+      try {
+        await onComplete();
+        setCompleted(true);
+      } catch {
+        setBusy(false);
+        setOffset(0);
+      }
+    } else {
+      setOffset(0);
     }
   };
 
-  const handleEnd = () => {
-    if (!accepted) { isDragging.current = false; setOffset(0); }
+  const handlePointerCancel = () => {
+    if (!busy && !completed) reset();
   };
 
   return (
     <div
       ref={trackRef}
-      className="relative h-14 rounded-full flex items-center px-2 select-none overflow-hidden"
-      style={{ background: `${color}22` }}
-      onMouseDown={e => { handleStart(e.clientX); }}
-      onMouseMove={e => { handleMove(e.clientX); }}
-      onMouseUp={handleEnd}
-      onTouchStart={e => handleStart(e.touches[0].clientX)}
-      onTouchMove={e => handleMove(e.touches[0].clientX)}
-      onTouchEnd={handleEnd}
+      role="button"
+      aria-disabled={disabled || busy || completed}
+      aria-label={busy ? busyLabel : completed ? successLabel : label}
+      className="relative h-[60px] rounded-full select-none touch-none overflow-hidden border-2 shadow-sm"
+      style={{
+        borderColor: disabled ? '#E5E7EB' : color,
+        background: disabled ? '#F3F4F6' : '#FFFFFF',
+        opacity: disabled ? 0.65 : 1,
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onLostPointerCapture={handlePointerCancel}
     >
-      <p className="absolute inset-0 flex items-center justify-center text-sm font-bold" style={{ color }}>
-        {accepted ? acceptedLabel : label}
-      </p>
       <div
-        ref={thumbRef}
-        className="w-12 h-12 rounded-full z-10 flex items-center justify-center shadow-md transition-colors"
-        style={{ transform: `translateX(${offset}px)`, background: color, transition: offset === 0 ? 'transform 0.3s' : 'none' }}
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        style={{ color: disabled ? '#9CA3AF' : color }}
       >
-        <ChevronRight size={22} color="white" />
+        <span className="text-[13px] font-extrabold tracking-wide">
+          {busy ? busyLabel : completed ? successLabel : label}
+        </span>
+      </div>
+
+      {!busy && !completed && (
+        <div
+          className="absolute left-[6px] top-[6px] bottom-[6px] rounded-full pointer-events-none"
+          style={{
+            width: offset + THUMB,
+            background: \`\${color}16\`,
+            transition: dragging ? 'none' : 'width 180ms ease-out',
+          }}
+        />
+      )}
+
+      <div
+        className="absolute top-[4px] left-[4px] w-[52px] h-[52px] rounded-full z-10 flex items-center justify-center shadow-lg border-2 border-white"
+        style={{
+          transform: \`translateX(\${offset}px)\`,
+          background: disabled ? '#9CA3AF' : color,
+          transition: dragging ? 'none' : 'transform 180ms cubic-bezier(.2,.8,.2,1)',
+        }}
+      >
+        {busy ? (
+          <span className="w-5 h-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+        ) : completed ? (
+          <span className="text-white text-lg font-black">✓</span>
+        ) : (
+          <ChevronRight size={24} color="white" strokeWidth={3} />
+        )}
       </div>
     </div>
   );
@@ -448,14 +530,24 @@ export default function DriverHome() {
 
 
   const handleToggle = async () => {
-    if (online) {
-      setLoading(true);
-      await goOffline().catch(() => {});
-      setOnline(false);
-      setLoading(false);
-    } else {
-      setShowMenu(false); // don't let the side menu sit open underneath
+    if (!online) {
+      setShowMenu(false);
       setShowMode(true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await goOffline();
+      setOnline(false);
+      setOffers([]);
+      setIncomingDelivery(null);
+    } catch {
+      setTopBannerError('Could not go offline. Check your connection and try again.');
+      setTimeout(() => setTopBannerError(''), 4000);
+      throw new Error('GO_OFFLINE_FAILED');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -690,18 +782,22 @@ export default function DriverHome() {
               Same gesture both directions, just a different color and
               label. */}
           {online ? (
-            <SlideToAccept
-              label={loading ? 'Going offline...' : 'Slide to go offline'}
-              acceptedLabel="Offline"
-              onAccept={handleToggle}
+            <SlideAction
+              label="Slide to go offline"
+              busyLabel="Going offline..."
+              successLabel="Offline"
+              onComplete={handleToggle}
               color="#E6A82E"
+              disabled={loading}
             />
           ) : (
-            <SlideToAccept
-              label={loading ? 'Going online...' : `Slide to go online`}
-              acceptedLabel="Online"
-              onAccept={() => { setShowMenu(false); setShowMode(true); }}
+            <SlideAction
+              label="Slide to go online"
+              busyLabel="Choose your mode..."
+              successLabel="Online"
+              onComplete={async () => { setShowMenu(false); setShowMode(true); }}
               color="#00A082"
+              disabled={loading}
             />
           )}
 
