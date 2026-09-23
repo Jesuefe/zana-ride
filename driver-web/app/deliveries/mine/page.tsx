@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Package, MapPin, Check, Clock } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import DriverBottomNav from '../../../components/DriverBottomNav';
+import { useLang } from '../../../lib/LangContext';
 
 type Delivery = {
   id: string;
@@ -38,6 +39,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 export default function MyDeliveriesPage() {
   const router = useRouter();
+  const { dt } = useLang();
   const [items, setItems] = useState<Delivery[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,7 +70,7 @@ export default function MyDeliveriesPage() {
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center">
           <ArrowLeft size={18} className="text-gray-700" />
         </button>
-        <h1 className="text-xl font-black text-gray-900">My deliveries</h1>
+        <h1 className="text-xl font-black text-gray-900">{dt('My deliveries')}</h1>
       </div>
 
       {/* Earnings */}
@@ -76,16 +78,16 @@ export default function MyDeliveriesPage() {
         <div className="px-4 pt-4">
           <div className="bg-zana-primary rounded-2xl p-4 flex items-center justify-between">
             <div>
-              <p className="text-white/70 text-xs">Earned today</p>
+              <p className="text-white/70 text-xs">{dt('Earned today')}</p>
               <p className="text-white text-2xl font-black">{stats.todayEarned.toLocaleString()} RWF</p>
               <p className="text-white/60 text-[11px] mt-0.5">
-                {stats.todayDeliveries} deliver{stats.todayDeliveries === 1 ? 'y' : 'ies'}
+                {stats.todayDeliveries} {stats.todayDeliveries === 1 ? dt('delivery') : dt('deliveries_short')}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-white/70 text-xs">All time</p>
+              <p className="text-white/70 text-xs">{dt('All time')}</p>
               <p className="text-white text-lg font-bold">{stats.totalEarned.toLocaleString()} RWF</p>
-              <p className="text-white/60 text-[11px] mt-0.5">{stats.totalDeliveries} completed</p>
+              <p className="text-white/60 text-[11px] mt-0.5">{stats.totalDeliveries} {dt('completed')}</p>
             </div>
           </div>
 
@@ -96,7 +98,7 @@ export default function MyDeliveriesPage() {
             >
               <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
               <p className="text-sm font-bold text-amber-800 flex-1 text-left">
-                {stats.active} delivery in progress — tap to continue
+                {stats.active} {dt('delivery in progress — tap to continue')}
               </p>
             </button>
           )}
@@ -112,7 +114,7 @@ export default function MyDeliveriesPage() {
                 ? 'bg-zana-primary text-white border-zana-primary'
                 : 'bg-white text-gray-600 border-gray-100'
             }`}>
-            {f === 'ALL' ? 'All' : f === 'ACTIVE' ? 'In progress' : 'Completed'}
+            {f === 'ALL' ? dt('All') : f === 'ACTIVE' ? dt('In progress') : dt('Completed')}
           </button>
         ))}
       </div>
@@ -127,7 +129,7 @@ export default function MyDeliveriesPage() {
         {!loading && visible.length === 0 && (
           <div className="text-center py-14">
             <Package size={34} className="text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">Nothing here yet</p>
+            <p className="text-sm text-gray-500">{dt('Nothing here yet')}</p>
           </div>
         )}
 
@@ -174,14 +176,14 @@ export default function MyDeliveriesPage() {
                   <a href={d.pickupPhotoUrl} target="_blank" rel="noreferrer" className="flex-1">
                     <img src={d.pickupPhotoUrl} alt="Pickup"
                       className="w-full h-20 object-cover rounded-xl border border-gray-100" />
-                    <p className="text-[9px] text-gray-400 mt-1 text-center">Pickup</p>
+                    <p className="text-[9px] text-gray-400 mt-1 text-center">{dt('Pickup')}</p>
                   </a>
                 )}
                 {d.dropoffPhotoUrl && (
                   <a href={d.dropoffPhotoUrl} target="_blank" rel="noreferrer" className="flex-1">
                     <img src={d.dropoffPhotoUrl} alt="Drop-off"
                       className="w-full h-20 object-cover rounded-xl border border-gray-100" />
-                    <p className="text-[9px] text-gray-400 mt-1 text-center">Drop-off</p>
+                    <p className="text-[9px] text-gray-400 mt-1 text-center">{dt('Drop-off')}</p>
                   </a>
                 )}
               </div>

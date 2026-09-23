@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Star } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 type RatingItem = {
   id: string;
@@ -35,6 +36,7 @@ function Stars({ value, size = 14 }: { value: number; size?: number }) {
 
 export default function RatingsPage() {
   const router = useRouter();
+  const { dt } = useLang();
   const [data, setData] = useState<RatingsResponse | null>(null);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function RatingsPage() {
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center">
           <ArrowLeft size={18} className="text-gray-700" />
         </button>
-        <h1 className="text-xl font-black text-gray-900">Your rating</h1>
+        <h1 className="text-xl font-black text-gray-900">{dt('Your rating')}</h1>
       </div>
 
       {data && (
@@ -60,12 +62,12 @@ export default function RatingsPage() {
               <Stars value={data.average} size={20} />
             </div>
             <p className="text-xs text-zana-muted">
-              From {data.count} {data.count === 1 ? 'rating' : 'ratings'}
+              {dt('From')} {data.count} {data.count === 1 ? dt('rating') : dt('ratings')}
             </p>
           </div>
 
           {data.ratings.length === 0 && (
-            <p className="text-center text-sm text-zana-muted py-8">No ratings yet</p>
+            <p className="text-center text-sm text-zana-muted py-8">{dt('No ratings yet')}</p>
           )}
 
           <div className="space-y-3">

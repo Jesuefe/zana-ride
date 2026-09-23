@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Clock, Upload, FileText } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { capturePhoto } from '../../lib/photoCapture';
+import { useLang } from '../../lib/LangContext';
 
 type Doc = {
   label: string;
@@ -14,13 +15,14 @@ type Doc = {
 };
 
 const STATUS = {
-  VERIFIED: { label: 'Verified', cls: 'bg-green-50 text-green-700', icon: Check },
+  VERIFIED: { label: 'Verified', cls: 'bg-green-50 text-green-700', icon: Check },  // keys used for lookup, translated at render
   PENDING: { label: 'Under review', cls: 'bg-amber-50 text-amber-700', icon: Clock },
   MISSING: { label: 'Not uploaded', cls: 'bg-gray-100 text-gray-500', icon: Upload },
 };
 
 export default function Documents() {
   const router = useRouter();
+  const { dt } = useLang();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
@@ -66,10 +68,10 @@ export default function Documents() {
       });
 
       await api.post('/driver/documents', { label, imageBase64: base64 });
-      setNote(`${label} uploaded. Zana will review it.`);
+      setNote(`${label} ${dt('uploaded. Zana will review it.')}`);
       load();
     } catch {
-      setNote('That upload failed. Try again on a better connection.');
+      setNote(dt('That upload failed. Try again on a better connection.'));
     } finally {
       setUploading(null);
     }
@@ -84,11 +86,11 @@ export default function Documents() {
           <ArrowLeft size={18} className="text-gray-700" />
         </button>
         <div>
-          <h1 className="text-xl font-black text-gray-900">Your documents</h1>
+          <h1 className="text-xl font-black text-gray-900">{dt('Your documents')}</h1>
           <p className="text-xs text-gray-500">
             {outstanding > 0
-              ? `${outstanding} still needed before you can be approved`
-              : 'All documents received'}
+              ? `${outstanding} ${dt('still needed before you can be approved')}`
+              : dt('All documents received')}
           </p>
         </div>
       </div>
@@ -100,7 +102,7 @@ export default function Documents() {
       )}
 
       <div className="px-4 pt-4 space-y-2">
-        {loading && <p className="text-sm text-gray-500 py-8 text-center">Loading…</p>}
+        {loading && <p className="text-sm text-gray-500 py-8 text-center">{dt('Loading…')}</p>}
 
         {docs.map(d => {
           const s = STATUS[d.status];
@@ -113,7 +115,7 @@ export default function Documents() {
                   <p className="font-bold text-sm text-gray-900">{d.label}</p>
                 </div>
                 <span className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full ${s.cls}`}>
-                  <Icon size={10} /> {s.label}
+                  <Icon size={10} /> {dt(s.label)}
                 </span>
               </div>
 
@@ -137,10 +139,10 @@ export default function Documents() {
                 } disabled:opacity-50`}
               >
                 {uploading === d.label
-                  ? 'Uploading…'
+                  ? dt('Uploading…')
                   : d.status === 'MISSING'
-                    ? 'Upload'
-                    : 'Replace'}
+                    ? dt('Upload')
+                    : dt('Replace')}
               </button>
             </div>
           );
@@ -149,8 +151,7 @@ export default function Documents() {
 
       <div className="px-4 pt-5">
         <p className="text-[11px] text-gray-400 leading-relaxed">
-          Documents are used to verify you before approval and are visible only
-          to Zana staff. Replacing a document means it must be reviewed again.
+          {dt('Documents are used to verify you before approval and are visible only to Zana staff. Replacing a document means it must be reviewed again.')}
         </p>
       </div>
     </div>
