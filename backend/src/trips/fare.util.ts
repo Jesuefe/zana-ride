@@ -90,24 +90,6 @@ export function isRushHour(date = new Date()) {
   return morningRush || eveningRush;
 }
 
-/**
- * RURA motorcycle fare reference from Board Decision
- * No. 03/BD/RD-TRP/2021.
- *
- * This is a comparison value only. It is intentionally not substituted
- * into the ZANA fare because the ZANA product model is calibrated against
- * the two real Kigali route anchors above.
- */
-export function ruraMotoReferenceFare(distanceKm: number) {
-  if (distanceKm <= 2) return 300;
-
-  if (distanceKm <= 40) {
-    return 300 + (distanceKm - 2) * 107;
-  }
-
-  return 300 + (38 * 107) + (distanceKm - 40) * 187;
-}
-
 export function estimateFare(
   serviceType: ServiceType,
   distanceKm: number,
@@ -133,10 +115,6 @@ export function estimateFare(
     rushMultiplier: multiplier,
     isRushHour: rush,
   };
-
-  if (serviceType === ServiceType.BIKE) {
-    result.ruraReferenceFare = Math.round(ruraMotoReferenceFare(safeDistanceKm));
-  }
 
   return result;
 }
