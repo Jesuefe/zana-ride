@@ -205,10 +205,10 @@ export default function HomePage() {
               style={{ width: 72 }}>
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden"
                 style={{ background: s.bg }}>
-                <Image src={s.image} alt={s.title} width={44} height={44} className="object-contain" />
+                <Image src={s.image} alt={t(s.title)} width={44} height={44} className="object-contain" />
               </div>
-              <p className="text-[11px] font-bold text-gray-900 text-center leading-tight w-full">{s.title}</p>
-              <p className="text-[9px] text-gray-400 text-center leading-tight -mt-1 w-full">{s.sub}</p>
+              <p className="text-[11px] font-bold text-gray-900 text-center leading-tight w-full">{t(s.title)}</p>
+              <p className="text-[9px] text-gray-400 text-center leading-tight -mt-1 w-full">{t(s.sub)}</p>
             </button>
           ))}
         </div>

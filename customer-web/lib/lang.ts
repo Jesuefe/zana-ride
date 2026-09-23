@@ -132,6 +132,21 @@ export const UI: Record<string, Record<Lang, string>> = {
   'Your deliveries will show up here.': { en: 'Your deliveries will show up here.', fr: 'Ibicuruzwa byawe bizagaragara hano.', rw: 'Ibicuruzwa byawe bizagaragara hano.' },
   'How was this delivery?': { en: 'How was this delivery?', fr: 'Ese iki gicuruzwa cyagenze gite?', rw: 'Ese iki gicuruzwa cyagenze gite?' },
   'Rate this delivery': { en: 'Rate this delivery', fr: 'Tanga amanota kuri iki gicuruzwa', rw: 'Tanga amanota kuri iki gicuruzwa' },
+  'Ride': { en: 'Ride', fr: 'Urugendo', rw: 'Urugendo' },
+  'Affordable & safe': { en: 'Affordable & safe', fr: 'Bihendutse kandi bafite umutekano', rw: 'Bihendutse kandi bafite umutekano' },
+  'Moto Ride': { en: 'Moto Ride', fr: 'Urugendo rwa Moto', rw: 'Urugendo rwa Moto' },
+  'Fast & reliable': { en: 'Fast & reliable', fr: 'Byihuta kandi byizewe', rw: 'Byihuta kandi byizewe' },
+  'Delivery': { en: 'Delivery', fr: 'Kohereza', rw: 'Kohereza' },
+  'Send anything': { en: 'Send anything', fr: 'Ohereza icyo cyose', rw: 'Ohereza icyo cyose' },
+  'Order Food': { en: 'Order Food', fr: 'Saba Ibiryo', rw: 'Saba Ibiryo' },
+  'Meals & drinks': { en: 'Meals & drinks', fr: 'Ibiryo n\'ibinyobwa', rw: 'Ibiryo n\'ibinyobwa' },
+  'Shop': { en: 'Shop', fr: 'Guhaha', rw: 'Guhaha' },
+  'Groceries & goods': { en: 'Groceries & goods', fr: 'Ibiribwa n\'ibindi bicuruzwa', rw: 'Ibiribwa n\'ibindi bicuruzwa' },
+  'Send Gift': { en: 'Send Gift', fr: 'Ohereza Impano', rw: 'Ohereza Impano' },
+  'Roses & surprises': { en: 'Roses & surprises', fr: 'Amaroza n\'ibitunguranye', rw: 'Amaroza n\'ibitunguranye' },
+  'Market': { en: 'Market', fr: 'Isoko', rw: 'Isoko' },
+  'Agent shops for you': { en: 'Agent shops for you', fr: 'Umukozi arakuguriza', rw: 'Umukozi arakuguriza' },
+  'All services': { en: 'All services', fr: 'Serivisi zose', rw: 'Serivisi zose' },
 };
 
 export function t(key: string, lang: Lang): string {

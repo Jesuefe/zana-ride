@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ArrowLeft } from 'lucide-react';
 import { SERVICES } from '../../lib/services';
+import { useLang } from '../../lib/LangContext';
 
 /**
  * Every Zana service in one grid. The home row only fits what scrolls into
@@ -11,6 +12,7 @@ import { SERVICES } from '../../lib/services';
  */
 export default function ServicesPage() {
   const router = useRouter();
+  const { t } = useLang();
 
   return (
     <div className="min-h-screen bg-white pb-10">
@@ -21,7 +23,7 @@ export default function ServicesPage() {
         >
           <ArrowLeft size={18} className="text-gray-700" />
         </button>
-        <h1 className="text-xl font-black text-gray-900">All services</h1>
+        <h1 className="text-xl font-black text-gray-900">{t('All services')}</h1>
       </div>
 
       <div className="grid grid-cols-3 gap-4 px-4 pt-2">
@@ -35,10 +37,10 @@ export default function ServicesPage() {
               className="w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden"
               style={{ background: s.bg }}
             >
-              <Image src={s.image} alt={s.title} width={44} height={44} className="object-contain" />
+              <Image src={s.image} alt={t(s.title)} width={44} height={44} className="object-contain" />
             </div>
-            <p className="text-[11px] font-bold text-gray-900 text-center leading-tight">{s.title}</p>
-            <p className="text-[9px] text-gray-400 text-center leading-tight -mt-1">{s.sub}</p>
+            <p className="text-[11px] font-bold text-gray-900 text-center leading-tight">{t(s.title)}</p>
+            <p className="text-[9px] text-gray-400 text-center leading-tight -mt-1">{t(s.sub)}</p>
           </button>
         ))}
       </div>
