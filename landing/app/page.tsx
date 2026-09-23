@@ -214,7 +214,7 @@ export default function Landing() {
           </h2>
 
           <p className="lede" style={{ marginTop: '1.8rem' }}>
-            Open Zana in your browser. Nothing to install.
+            Use Zana on the web or download the app — whichever works best for you.
           </p>
 
           <div className="cta-row">
