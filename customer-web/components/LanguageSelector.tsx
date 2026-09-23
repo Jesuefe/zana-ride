@@ -7,7 +7,7 @@ import { useLang } from '../lib/LangContext';
 
 const LANGS: Lang[] = ['en', 'fr', 'rw'];
 
-export default function LanguageSelector({ variant = 'dark' }: { variant?: 'dark' | 'light' }) {
+export default function LanguageSelector({ variant = 'dark' }: { variant?: 'dark' | 'light' | 'floating' }) {
   const { lang, setLang } = useLang();
   const [open, setOpen] = useState(false);
 
@@ -15,6 +15,39 @@ export default function LanguageSelector({ variant = 'dark' }: { variant?: 'dark
     setLang(newLang);
     setOpen(false);
   };
+
+  if (variant === 'floating') {
+    return (
+      <div className="fixed top-4 right-4 z-[100]">
+        <button
+          onClick={() => setOpen(o => !o)}
+          aria-label="Change language"
+          className="relative flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-zana-primary shadow-lg transition-transform active:scale-95"
+        >
+          <Globe size={18} />
+          <span className="absolute -bottom-1 -right-1 min-w-[20px] rounded-full bg-zana-primary px-1 py-0.5 text-[9px] font-bold leading-none text-white">
+            {lang.toUpperCase()}
+          </span>
+        </button>
+        {open && (
+          <div className="absolute right-0 top-14 w-40 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl">
+            {LANGS.map(l => (
+              <button
+                key={l}
+                onClick={() => handleSelect(l)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left text-sm hover:bg-gray-50"
+              >
+                <span className={lang === l ? 'font-semibold text-zana-primary' : 'text-gray-700'}>
+                  {LANG_LABELS[l]}
+                </span>
+                {lang === l && <Check size={14} className="text-zana-primary" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="relative">
