@@ -125,3 +125,12 @@ export async function getDriverTestLocations() {
 export async function setDriverTestLocation(driverId: string, lat: number | null, lng: number | null) {
   return api.patch(`/admin/drivers/${driverId}/test-location`, { lat, lng });
 }
+
+// DANGEROUS — touches every driver account at once. See
+// scatterAllDriverTestLocations in the backend service for details.
+export async function scatterAllDriverTestLocations(centerLat: number, centerLng: number, radiusMeters = 500) {
+  return api.post('/admin/drivers/test-locations/scatter', { centerLat, centerLng, radiusMeters });
+}
+export async function clearAllDriverTestLocations() {
+  return api.post('/admin/drivers/test-locations/clear-all', {});
+}
