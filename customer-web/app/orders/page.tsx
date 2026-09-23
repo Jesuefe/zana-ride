@@ -167,7 +167,31 @@ function OrdersContent() {
           <div className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-t-3xl sm:rounded-3xl p-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4"><p className="font-black text-lg">{selectedOrder.merchant?.businessName ?? 'Order details'}</p><button type="button" onClick={() => setSelectedOrder(null)} className="w-9 h-9 rounded-full bg-gray-100">×</button></div>
             <div className="space-y-2 mb-4">{selectedOrder.items?.map((i: any) => <div key={i.id} className="flex justify-between text-sm"><span>{i.product?.name} ×{i.quantity}</span><span className="font-semibold">{((i.product?.price ?? 0) * i.quantity).toLocaleString()} RWF</span></div>)}</div>
-            <div className="border-t pt-2 flex justify-between font-black mb-4"><span>Total</span><span className="text-zana-primary">{selectedOrder.total?.toLocaleString()} RWF</span></div>
+            {(() => {
+              const itemsTotal = (selectedOrder.items ?? []).reduce(
+                (sum: number, item: any) => sum + (item.product?.price ?? 0) * (item.quantity ?? 0),
+                0,
+              );
+              const grandTotal = Number(selectedOrder.total ?? itemsTotal);
+              const deliveryFee = Math.max(0, grandTotal - itemsTotal);
+              return (
+                <div className="rounded-2xl bg-gray-50 p-4 mb-4">
+                  <p className="text-[10px] font-black uppercase tracking-wide text-gray-400 mb-2">Order summary</p>
+                  <div className="flex justify-between text-sm py-1">
+                    <span className="text-gray-600">Items</span>
+                    <span className="font-semibold text-gray-900">{itemsTotal.toLocaleString()} RWF</span>
+                  </div>
+                  <div className="flex justify-between text-sm py-1">
+                    <span className="text-gray-600">Delivery</span>
+                    <span className="font-semibold text-gray-900">{deliveryFee.toLocaleString()} RWF</span>
+                  </div>
+                  <div className="border-t border-gray-200 mt-2 pt-3 flex justify-between">
+                    <span className="font-black text-gray-900">Total</span>
+                    <span className="font-black text-lg text-zana-primary">{grandTotal.toLocaleString()} RWF</span>
+                  </div>
+                </div>
+              );
+            })()}
             <div className="rounded-xl bg-gray-50 p-3 mb-4 space-y-2">
               <p className="text-[10px] font-black uppercase tracking-wide text-gray-400">Delivery recipient</p>
               <p className="text-sm font-bold text-gray-900">{selectedOrder.receiverName || 'Myself'}</p>
