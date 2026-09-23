@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Eye, BatteryCharging, ShieldCheck } from 'lucide-react';
+import { useLang } from '../../lib/LangContext';
 
 /**
  * Shown before the system location prompt.
@@ -15,6 +16,7 @@ import { MapPin, Eye, BatteryCharging, ShieldCheck } from 'lucide-react';
  */
 export default function LocationNotice() {
   const router = useRouter();
+  const { dt } = useLang();
   const [busy, setBusy] = useState(false);
 
   const accept = async () => {
@@ -40,14 +42,11 @@ export default function LocationNotice() {
       </div>
 
       <h1 className="text-2xl font-black text-gray-900 leading-tight">
-        Zana needs your location,
-        <br />
-        including in the background
+        {dt('Zana needs your location, including in the background')}
       </h1>
 
       <p className="text-sm text-gray-500 mt-3">
-        Before we ask your phone for permission, here is exactly what that
-        means.
+        {dt('Before we ask your phone for permission, here is exactly what that means.')}
       </p>
 
       <div className="space-y-5 mt-8 flex-1">
@@ -55,11 +54,10 @@ export default function LocationNotice() {
           <Eye size={17} className="text-zana-primary shrink-0 mt-0.5" />
           <div>
             <p className="font-bold text-sm text-gray-900">
-              Customers can see where their parcel is
+              {dt('Customers can see where their parcel is')}
             </p>
             <p className="text-xs text-gray-500 leading-relaxed mt-0.5">
-              While you are carrying a job, your position is shared with the
-              customer waiting for it and with Zana support.
+              {dt('While you are carrying a job, your position is shared with the customer waiting for it and with Zana support.')}
             </p>
           </div>
         </div>
@@ -68,12 +66,10 @@ export default function LocationNotice() {
           <BatteryCharging size={17} className="text-zana-primary shrink-0 mt-0.5" />
           <div>
             <p className="font-bold text-sm text-gray-900">
-              It keeps working when your screen is off
+              {dt('It keeps working when your screen is off')}
             </p>
             <p className="text-xs text-gray-500 leading-relaxed mt-0.5">
-              You will put your phone in your pocket while riding. Without
-              background access, tracking stops and the customer sees you frozen
-              in the wrong place.
+              {dt('You will put your phone in your pocket while riding. Without background access, tracking stops and the customer sees you frozen in the wrong place.')}
             </p>
           </div>
         </div>
@@ -82,11 +78,10 @@ export default function LocationNotice() {
           <ShieldCheck size={17} className="text-zana-primary shrink-0 mt-0.5" />
           <div>
             <p className="font-bold text-sm text-gray-900">
-              It stops when you go offline
+              {dt('It stops when you go offline')}
             </p>
             <p className="text-xs text-gray-500 leading-relaxed mt-0.5">
-              Zana does not collect your location when you are offline or have
-              no active job. Traces are kept for 90 days and never sold.
+              {dt('Zana does not collect your location when you are offline or have no active job. Traces are kept for 90 days and never sold.')}
             </p>
           </div>
         </div>
@@ -94,16 +89,14 @@ export default function LocationNotice() {
 
       <div className="bg-gray-50 rounded-2xl px-4 py-3.5 mt-6">
         <p className="text-[11px] text-gray-500 leading-relaxed">
-          You can withdraw this permission at any time in your phone settings,
-          though you will not be able to accept jobs without it. Full detail is
-          in our{' '}
+          {dt('You can withdraw this permission at any time in your phone settings, though you will not be able to accept jobs without it. Full detail is in our')}{' '}
           <a
             href="https://zanaride.rw/privacy"
             target="_blank"
             rel="noreferrer"
             className="text-zana-primary font-semibold"
           >
-            privacy policy
+            {dt('privacy policy')}
           </a>
           .
         </p>
@@ -114,14 +107,14 @@ export default function LocationNotice() {
         disabled={busy}
         className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl mt-5 disabled:opacity-50"
       >
-        {busy ? 'Opening…' : 'I understand — continue'}
+        {busy ? dt('Opening…') : dt('I understand — continue')}
       </button>
 
       <button
         onClick={() => router.back()}
         className="w-full text-sm text-gray-400 py-3"
       >
-        Not now
+        {dt('Not now')}
       </button>
     </div>
   );

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { requestPasswordReset, resetPassword } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 /**
  * Two steps in one screen: ask for the account, then take the code and the
@@ -13,6 +14,7 @@ import { ApiError } from '../../lib/api/client';
  */
 export default function ForgotPassword() {
   const router = useRouter();
+  const { dt } = useLang();
   const [step, setStep] = useState<'identify' | 'reset'>('identify');
 
   const [identifier, setIdentifier] = useState('');
@@ -47,9 +49,9 @@ export default function ForgotPassword() {
   };
 
   const submit = async () => {
-    if (password !== confirm) { setError('Those passwords do not match.'); return; }
-    if (password.length < 6) { setError('Use at least 6 characters.'); return; }
-    if (!phone) { setError('Enter the phone number the code was sent to.'); return; }
+    if (password !== confirm) { setError(dt('Those passwords do not match.')); return; }
+    if (password.length < 6) { setError(dt('Use at least 6 characters.')); return; }
+    if (!phone) { setError(dt('Enter the phone number the code was sent to.')); return; }
 
     setBusy(true);
     setError('');
@@ -58,10 +60,10 @@ export default function ForgotPassword() {
       router.replace('/');
     } catch (e: any) {
       const msg = e instanceof ApiError ? e.message : '';
-      if (msg.includes('INVALID_CODE')) setError('That code is not right. Check and try again.');
-      else if (msg.includes('CODE_EXPIRED')) setError('That code has expired. Ask for a new one.');
-      else if (msg.includes('PASSWORD_TOO_SHORT')) setError('Use at least 6 characters.');
-      else setError('Could not reset your password. Try again.');
+      if (msg.includes('INVALID_CODE')) setError(dt('That code is not right. Check and try again.'));
+      else if (msg.includes('CODE_EXPIRED')) setError(dt('That code has expired. Ask for a new one.'));
+      else if (msg.includes('PASSWORD_TOO_SHORT')) setError(dt('Use at least 6 characters.'));
+      else setError(dt('Could not reset your password. Try again.'));
     } finally {
       setBusy(false);
     }
@@ -78,14 +80,13 @@ export default function ForgotPassword() {
 
       {step === 'identify' ? (
         <>
-          <h1 className="text-2xl font-black text-gray-900">Forgot your password?</h1>
+          <h1 className="text-2xl font-black text-gray-900">{dt('Forgot your password?')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-7">
-            Enter the phone number or email on your account and we&rsquo;ll send a
-            code by SMS.
+            {dt("Enter the phone number or email on your account and we'll send a code by SMS.")}
           </p>
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-            Phone or email
+            {dt('Phone or email')}
           </label>
           <input
             value={identifier}
@@ -101,21 +102,21 @@ export default function ForgotPassword() {
             disabled={busy || !identifier.trim()}
             className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl mt-6 disabled:opacity-40"
           >
-            {busy ? 'Sending…' : 'Send code'}
+            {busy ? dt('Sending…') : dt('Send code')}
           </button>
         </>
       ) : (
         <>
-          <h1 className="text-2xl font-black text-gray-900">Enter your code</h1>
+          <h1 className="text-2xl font-black text-gray-900">{dt('Enter your code')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-6">
-            If that account exists, a code is on its way
-            {hint ? ` to ${hint}` : ''}. It is valid for five minutes.
+            {dt('If that account exists, a code is on its way')}
+            {hint ? ` ${dt('to')} ${hint}` : ''}{dt('. It is valid for five minutes.')}
           </p>
 
           {!phone && (
             <div className="mb-4">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                Phone number the code went to
+                {dt('Phone number the code went to')}
               </label>
               <input
                 value={phone}
@@ -127,7 +128,7 @@ export default function ForgotPassword() {
           )}
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-            6-digit code
+            {dt('6-digit code')}
           </label>
           <input
             value={code}
@@ -139,19 +140,19 @@ export default function ForgotPassword() {
           />
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-            New password
+            {dt('New password')}
           </label>
           <input
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             autoComplete="new-password"
-            placeholder="At least 6 characters"
+            placeholder={dt('At least 6 characters')}
             className="w-full border-2 border-gray-100 rounded-2xl px-4 py-3.5 mt-2 mb-4 text-sm focus:border-zana-primary focus:outline-none"
           />
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-            Confirm password
+            {dt('Confirm password')}
           </label>
           <input
             type="password"
@@ -169,7 +170,7 @@ export default function ForgotPassword() {
             disabled={busy || code.length < 6 || !password}
             className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl mt-6 disabled:opacity-40"
           >
-            {busy ? 'Saving…' : 'Set new password'}
+            {busy ? dt('Saving…') : dt('Set new password')}
           </button>
 
           <button
@@ -177,7 +178,7 @@ export default function ForgotPassword() {
             disabled={busy}
             className="w-full text-sm text-gray-400 py-3 mt-1"
           >
-            Send the code again
+            {dt('Send the code again')}
           </button>
         </>
       )}
@@ -185,8 +186,7 @@ export default function ForgotPassword() {
       <div className="flex items-start gap-2 mt-8 pt-6 border-t border-gray-100">
         <ShieldCheck size={14} className="text-gray-300 shrink-0 mt-0.5" />
         <p className="text-[11px] text-gray-400 leading-relaxed">
-          Zana will never ask for your password or your code by phone or
-          message. If someone does, it is not us.
+          {dt('Zana will never ask for your password or your code by phone or message. If someone does, it is not us.')}
         </p>
       </div>
     </div>
