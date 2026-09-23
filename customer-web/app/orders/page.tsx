@@ -7,11 +7,12 @@ import ReviewSheet from '../../components/ReviewSheet';
 import DeliveryTracker from '../../components/DeliveryTracker';
 import { fetchMyDeliveries, Delivery } from '../../lib/api/deliveries';
 import { fetchMyOrders } from '../../lib/api/trips';
+import { useLang } from '../../lib/LangContext';
 
 const DELIVERY_STATUS: Record<string, string> = {
   REQUESTED: 'Finding courier', COURIER_ASSIGNED: 'Courier assigned',
   PICKED_UP: 'On the way', DELIVERED: 'Delivered', CANCELLED: 'Cancelled',
-};
+};  // translated at each render site via t()
 
 const ORDER_STATUS: Record<string, string> = {
   PENDING: 'Pending', CONFIRMED: 'Confirmed', PREPARING: 'Preparing',
@@ -29,6 +30,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 function OrdersContent() {
+  const { t } = useLang();
   const [review, setReview] = useState<any>(null);
   const params = useSearchParams();
   const highlightId = params.get('highlight');
@@ -48,12 +50,12 @@ function OrdersContent() {
 
   return (
     <div className="p-4">
-      <h1 className="text-xl font-bold text-gray-900 mb-4">My Activity</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-4">{t('My Activity')}</h1>
 
       <div className="flex gap-2 mb-4">
-        {(['orders', 'deliveries'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-lg text-sm font-semibold ${tab === t ? 'bg-zana-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>
-            {t === 'orders' ? `Orders (${orders.length})` : `Deliveries (${deliveries.length})`}
+        {(['orders', 'deliveries'] as const).map(tabName => (
+          <button key={tabName} onClick={() => setTab(tabName)} className={`px-4 py-2 rounded-lg text-sm font-semibold ${tab === tabName ? 'bg-zana-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>
+            {tabName === 'orders' ? `${t('Orders')} (${orders.length})` : `${t('Deliveries')} (${deliveries.length})`}
           </button>
         ))}
       </div>
@@ -65,7 +67,7 @@ function OrdersContent() {
               <div className="w-14 h-14 rounded-full bg-zana-primary-light flex items-center justify-center mb-3">
                 <ShoppingBag size={22} className="text-zana-primary" />
               </div>
-              <p className="text-sm text-zana-muted">No orders yet. Try Food or Gifts!</p>
+              <p className="text-sm text-zana-muted">{t('No orders yet. Try Food or Gifts!')}</p>
             </div>
           )}
           {orders.map((o: any) => (
@@ -76,7 +78,7 @@ function OrdersContent() {
                   <p className="text-xs text-zana-muted mt-0.5">{o.items?.map((i: any) => `${i.product?.name} ×${i.quantity}`).join(', ')}</p>
                 </div>
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${STATUS_STYLE[o.status] ?? ''}`}>
-                  {ORDER_STATUS[o.status] ?? o.status}
+                  {t(ORDER_STATUS[o.status]) ?? o.status}
                 </span>
               </div>
               <p className="text-sm font-bold text-zana-primary">{o.total?.toLocaleString()} RWF</p>
@@ -92,7 +94,7 @@ function OrdersContent() {
               <div className="w-14 h-14 rounded-full bg-zana-primary-light flex items-center justify-center mb-3">
                 <Package size={22} className="text-zana-primary" />
               </div>
-              <p className="text-sm text-zana-muted">Your deliveries will show up here.</p>
+              <p className="text-sm text-zana-muted">{t('Your deliveries will show up here.')}</p>
             </div>
           )}
           {deliveries.map(d => (
@@ -106,7 +108,7 @@ function OrdersContent() {
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-semibold text-gray-900 truncate">{d.itemDescription}</p>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${STATUS_STYLE[d.status] ?? ''}`}>
-                      {DELIVERY_STATUS[d.status] ?? d.status}
+                      {t(DELIVERY_STATUS[d.status]) ?? d.status}
                     </span>
                   </div>
                   <p className="text-xs text-zana-muted mt-1">{d.fee.toLocaleString()} RWF · {d.distanceKm} km</p>
@@ -115,12 +117,12 @@ function OrdersContent() {
                       onClick={() => setReview({
                         target: 'DELIVERY',
                         deliveryId: d.id,
-                        title: 'How was this delivery?',
+                        title: t('How was this delivery?'),
                         subtitle: d.itemDescription,
                       })}
                       className="mt-2 flex items-center gap-1 text-[11px] font-bold text-zana-primary"
                     >
-                      <Star size={11} /> Rate this delivery
+                      <Star size={11} /> {t('Rate this delivery')}
                     </button>
                   )}
                 </div>

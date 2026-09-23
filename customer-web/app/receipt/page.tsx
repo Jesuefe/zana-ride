@@ -5,12 +5,11 @@ import { ZanaMark } from '../../components/ZanaLogo';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { MapPin, Navigation, Star, Car, Clock, CreditCard, Download, Home } from 'lucide-react';
 import { fetchTrip, ApiTrip } from '../../lib/api/trips';
+import { useLang } from '../../lib/LangContext';
 
-const PAYMENT_LABELS: Record<string, string> = {
-  CASH: 'Cash Cash', WALLET: 'Wallet Zana Wallet', MOBILE_MONEY: 'MoMo Mobile Money',
-};
 
 function ReceiptContent() {
+  const { t } = useLang();
   const params = useSearchParams();
   const router = useRouter();
   const tripId = params.get('tripId');
@@ -36,7 +35,7 @@ function ReceiptContent() {
         <div className="mx-auto mb-3 w-fit"><ZanaMark size={48} /></div>
         <p className="text-white/80 text-xs uppercase tracking-widest font-semibold">Zana Ride</p>
         <p className="text-white text-2xl font-bold mt-1">{fare.toLocaleString()} RWF</p>
-        <p className="text-white/60 text-sm mt-0.5">Trip completed · {new Date(trip.requestedAt).toLocaleDateString()}</p>
+        <p className="text-white/60 text-sm mt-0.5">{t('Trip completed ·')} {new Date(trip.requestedAt).toLocaleDateString()}</p>
       </div>
 
       <div className="px-4 -mt-4 space-y-3">
@@ -59,7 +58,7 @@ function ReceiptContent() {
 
         {/* Route */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase">Route</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase">{t('Route')}</p>
           <div className="flex items-start gap-3">
             <div className="flex flex-col items-center gap-1 mt-1">
               <div className="w-3 h-3 rounded-full bg-zana-primary" />
@@ -68,11 +67,11 @@ function ReceiptContent() {
             </div>
             <div className="flex-1 space-y-4">
               <div>
-                <p className="text-[10px] text-gray-400">Pickup</p>
+                <p className="text-[10px] text-gray-400">{t('Pickup')}</p>
                 <p className="text-sm text-gray-900">{trip.pickupAddress}</p>
               </div>
               <div>
-                <p className="text-[10px] text-gray-400">Destination</p>
+                <p className="text-[10px] text-gray-400">{t('Destination')}</p>
                 <p className="text-sm text-gray-900">{trip.destinationAddress}</p>
               </div>
             </div>
@@ -81,10 +80,10 @@ function ReceiptContent() {
 
         {/* Fare breakdown */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Fare breakdown</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase mb-3">{t('Fare breakdown')}</p>
           <div className="space-y-2">
             {[
-              { label: 'Base fare', value: fare, color: 'text-gray-700' },
+              { label: t('Base fare'), value: fare, color: 'text-gray-700' },
             ].map(({ label, value, color }) => (
               <div key={label} className="flex justify-between">
                 <span className={`text-sm ${color ?? 'text-gray-700'}`}>{label}</span>
@@ -94,7 +93,7 @@ function ReceiptContent() {
               </div>
             ))}
             <div className="border-t border-gray-100 pt-2 flex justify-between">
-              <span className="font-bold text-gray-900">Total charged</span>
+              <span className="font-bold text-gray-900">{t('Total charged')}</span>
               <span className="font-bold text-gray-900">{fare.toLocaleString()} RWF</span>
             </div>
           </div>
@@ -104,27 +103,32 @@ function ReceiptContent() {
         <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CreditCard size={16} className="text-gray-400" />
-            <span className="text-sm text-gray-700">Payment</span>
+            <span className="text-sm text-gray-700">{t('Payment')}</span>
           </div>
           <span className="text-sm font-semibold text-gray-900">
-            {PAYMENT_LABELS[(trip as any).paymentMethod] ?? 'Cash Cash'}
+            {(() => {
+              const method = (trip as any).paymentMethod;
+              if (method === 'WALLET') return t('Zana Wallet');
+              if (method === 'MOBILE_MONEY') return t('Mobile Money');
+              return t('Cash');
+            })()}
           </span>
         </div>
 
         {/* Trip details */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Trip details</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase mb-3">{t('Trip details')}</p>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500 flex items-center gap-1"><Clock size={13} /> Date</span>
+              <span className="text-gray-500 flex items-center gap-1"><Clock size={13} /> {t('Date')}</span>
               <span className="text-gray-900">{new Date(trip.requestedAt).toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Service type</span>
+              <span className="text-gray-500">{t('Service type')}</span>
               <span className="text-gray-900 capitalize">{trip.serviceType?.toLowerCase()}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Trip ID</span>
+              <span className="text-gray-500">{t('Trip ID')}</span>
               <span className="text-gray-400 font-mono text-xs">{trip.id.slice(0, 8)}</span>
             </div>
           </div>
@@ -134,8 +138,8 @@ function ReceiptContent() {
         <div className="bg-zana-primary-light rounded-2xl p-4 flex items-center gap-3">
           <span className="text-2xl"></span>
           <div>
-            <p className="font-semibold text-zana-primary text-sm">+{Math.floor(fare / 100)} Zana Points earned</p>
-            <p className="text-xs text-gray-500">Points added to your account</p>
+            <p className="font-semibold text-zana-primary text-sm">+{Math.floor(fare / 100)} {t('Zana Points earned')}</p>
+            <p className="text-xs text-gray-500">{t('Points added to your account')}</p>
           </div>
         </div>
 
@@ -144,7 +148,7 @@ function ReceiptContent() {
           onClick={() => router.push('/')}
           className="w-full bg-zana-primary text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2"
         >
-          <Home size={16} /> Back to Home
+          <Home size={16} /> {t('Back to Home')}
         </button>
       </div>
     </div>
