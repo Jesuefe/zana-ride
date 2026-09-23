@@ -6,24 +6,64 @@ type FareRates = {
   min: number;
 };
 
-// ZANA Kigali fare structure.
-// BIKE = motorcycle/moto.
-// ECONOMY and COMFORT = car categories.
+// ZANA Kigali calibrated fare model.
 //
-// Fare formula:
-//   normal = max(minimum, base + distanceKm * perKm)
-//   rush   = round(normal * 1.20)
+// REAL ROUTE ANCHORS supplied from Google Maps + observed/accepted fares:
+//   Ihumure Apartment (KG 125 St) -> Rwanco Village: 8.8 km
+//     Moto = 1,500 RWF
+//     Car  = 9,000 RWF
+//   Rwanco Village - Busanza -> Kigali Car Free Zone: 16.4 km
+//     Moto = 2,500 RWF
+//     Car  = 20,000 RWF
+//
+// The two anchors are used to fit separate linear curves for moto and car.
+// This is deliberately different from the old generic placeholder rates.
+//
+// Moto fitted curve:
+//   fare = 342.105 + (131.579 * km)
+//   => 8.8 km = 1,500 RWF
+//   => 16.4 km = 2,500 RWF
+//
+// Car fitted curve:
+//   fare = -3,736.842 + (1,447.368 * km)
+//   => 8.8 km = 9,000 RWF
+//   => 16.4 km = 20,000 RWF
+//
+// Because the car curve is fitted from long-trip anchors, a minimum fare
+// protects short trips from the negative theoretical intercept. The short-trip
+// floor is a ZANA product setting, not a claim about a RURA tariff.
+//
+// RURA reference (NOT used as the ZANA fare):
+// The RURA 2021 motorcycle decision lists 300 RWF for up to 2 km,
+// 107 RWF/km after 2 km through 40 km, and 187 RWF/km beyond 40 km.
+// We expose that reference separately so the admin/audit layer can compare
+// ZANA's calibrated price against the regulatory reference.
 //
 // Rush periods use Kigali local time (Africa/Kigali):
 //   Morning: 07:00–10:00
 //   Evening: 17:00–19:00
 //
-// Keep the rush multiplier separate from the vehicle tariff so moto and car
-// fares remain independently configurable.
+// Rush is applied after the normal vehicle fare: normal * 1.20.
+
+const MOTO: FareRates = {
+  base: 342.10526315789434,
+  perKm: 131.5789473684211,
+  min: 500,
+};
+
+const CAR: FareRates = {
+  base: -3736.842105263162,
+  perKm: 1447.368421052632,
+  min: 4000,
+};
+
+// ECONOMY and COMFORT are both car categories for the current calibrated model.
+// We keep one car curve until we have real COMFORT route anchors rather than
+// inventing a second pricing curve.
 const RATES: Record<ServiceType, FareRates> = {
-  BIKE: { base: 300, perKm: 150, min: 700 },
-  ECONOMY: { base: 1000, perKm: 550, min: 2000 },
-  COMFORT: { base: 1500, perKm: 600, min: 2500 },
+  BIKE: MOTO,
+  ECONOMY: CAR,
+  COMFORT: CAR,
 };
 
 const RUSH_MULTIPLIER = 1.2;
@@ -50,6 +90,24 @@ export function isRushHour(date = new Date()) {
   return morningRush || eveningRush;
 }
 
+/**
+ * RURA motorcycle fare reference from Board Decision
+ * No. 03/BD/RD-TRP/2021.
+ *
+ * This is a comparison value only. It is intentionally not substituted
+ * into the ZANA fare because the ZANA product model is calibrated against
+ * the two real Kigali route anchors above.
+ */
+export function ruraMotoReferenceFare(distanceKm: number) {
+  if (distanceKm <= 2) return 300;
+
+  if (distanceKm <= 40) {
+    return 300 + (distanceKm - 2) * 107;
+  }
+
+  return 300 + (38 * 107) + (distanceKm - 40) * 187;
+}
+
 export function estimateFare(
   serviceType: ServiceType,
   distanceKm: number,
@@ -58,17 +116,29 @@ export function estimateFare(
 ) {
   const r = RATES[serviceType];
 
-  // Vehicle fare is calculated independently by service type.
-  const normalFare = Math.max(r.min, r.base + distanceKm * r.perKm);
+  const safeDistanceKm = Math.max(0, distanceKm);
+  const normalFare = Math.max(r.min, r.base + safeDistanceKm * r.perKm);
   const rush = isRushHour(date);
   const multiplier = rush ? RUSH_MULTIPLIER : 1;
 
-  return {
+  const result: {
+    fare: number;
+    normalFare: number;
+    rushMultiplier: number;
+    isRushHour: boolean;
+    ruraReferenceFare?: number;
+  } = {
     fare: Math.round(normalFare * multiplier),
     normalFare: Math.round(normalFare),
     rushMultiplier: multiplier,
     isRushHour: rush,
   };
+
+  if (serviceType === ServiceType.BIKE) {
+    result.ruraReferenceFare = Math.round(ruraMotoReferenceFare(safeDistanceKm));
+  }
+
+  return result;
 }
 
 export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
