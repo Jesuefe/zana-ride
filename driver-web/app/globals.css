@@ -132,3 +132,17 @@ body > .skiptranslate {
 .goog-te-menu-frame {
   display: none !important;
 }
+/* The hover-tooltip Google shows on translated words, and the inline
+   highlight (background-color box) it wraps around each translated
+   text node by default — separate artifacts from the top banner,
+   easy to miss since they only appear scattered through the content
+   rather than in one fixed spot. */
+#goog-gt-tt,
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
