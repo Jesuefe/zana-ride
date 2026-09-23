@@ -164,10 +164,17 @@ function OrdersContent() {
       )}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={() => setSelectedOrder(null)}>
-          <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5" onClick={e => e.stopPropagation()}>
+          <div className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-t-3xl sm:rounded-3xl p-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4"><p className="font-black text-lg">{selectedOrder.merchant?.businessName ?? 'Order details'}</p><button type="button" onClick={() => setSelectedOrder(null)} className="w-9 h-9 rounded-full bg-gray-100">×</button></div>
             <div className="space-y-2 mb-4">{selectedOrder.items?.map((i: any) => <div key={i.id} className="flex justify-between text-sm"><span>{i.product?.name} ×{i.quantity}</span><span className="font-semibold">{((i.product?.price ?? 0) * i.quantity).toLocaleString()} RWF</span></div>)}</div>
             <div className="border-t pt-2 flex justify-between font-black mb-4"><span>Total</span><span className="text-zana-primary">{selectedOrder.total?.toLocaleString()} RWF</span></div>
+            <div className="rounded-xl bg-gray-50 p-3 mb-4 space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-wide text-gray-400">Delivery recipient</p>
+              <p className="text-sm font-bold text-gray-900">{selectedOrder.receiverName || 'Myself'}</p>
+              {selectedOrder.receiverPhone && <p className="text-xs text-gray-600">{selectedOrder.receiverPhone}</p>}
+              {selectedOrder.dropoffAddress && <p className="text-xs text-gray-600 flex items-start gap-1"><MapPin size={12} className="text-zana-primary mt-0.5 shrink-0" />{selectedOrder.dropoffAddress}</p>}
+              {selectedOrder.note && <p className="text-xs text-gray-500">Note: {selectedOrder.note}</p>}
+            </div>
             {selectedOrder.status === 'PENDING' && <button type="button" disabled={cancelling === selectedOrder.id} onClick={async () => { setCancelling(selectedOrder.id); try { await cancelOrder(selectedOrder.id); const fresh = await fetchMyOrders(); setOrders(fresh); setSelectedOrder(fresh.find((x:any) => x.id === selectedOrder.id) ?? {...selectedOrder,status:'CANCELLED'}); } finally { setCancelling(null); } }} className="w-full py-3 rounded-xl border border-red-200 text-red-600 font-bold disabled:opacity-50">{cancelling === selectedOrder.id ? 'Cancelling…' : 'Cancel order'}</button>}
           </div>
         </div>
