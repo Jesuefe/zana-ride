@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Lang, getStoredLang, setStoredLang, LANG_LABELS, UI } from './lang';
 import { updateLanguage } from './api/chat';
-import { loadGoogleTranslate, setGoogleTranslateLanguage } from './googleTranslate';
+import { loadGoogleTranslate, setGoogleTranslateLanguage, prepareGoogleTranslateLanguage } from './googleTranslate';
 
 type LangContextType = {
   lang: Lang;
@@ -18,11 +18,14 @@ const LangContext = createContext<LangContextType>({
 });
 
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>('en');
+  // Resolve the cached/browser language during the first client render so
+  // the app does not briefly render English before restoring the preference.
+  const [lang, setLangState] = useState<Lang>(() => getStoredLang());
 
   useEffect(() => {
-    setLangState(getStoredLang());
-    loadGoogleTranslate();
+    // Cookie + localStorage are established before the Google script starts.
+    prepareGoogleTranslateLanguage(lang);
+    loadGoogleTranslate(lang);
   }, []);
 
   const setLang = (newLang: Lang) => {
