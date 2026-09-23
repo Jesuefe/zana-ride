@@ -134,3 +134,21 @@ export async function scatterAllDriverTestLocations(centerLat: number, centerLng
 export async function clearAllDriverTestLocations() {
   return api.post('/admin/drivers/test-locations/clear-all', {});
 }
+
+// ---- Same set of test-location operations, for customer accounts ----
+export async function getCustomerTestLocations() {
+  return api.get<any[]>('/admin/customers/test-locations');
+}
+export async function setCustomerTestLocation(userId: string, lat: number | null, lng: number | null) {
+  return api.patch(`/admin/customers/${userId}/test-location`, { lat, lng });
+}
+export async function scatterAllCustomerTestLocations(centerLat: number, centerLng: number, radiusMeters = 500) {
+  return api.post('/admin/customers/test-locations/scatter', { centerLat, centerLng, radiusMeters });
+}
+export async function clearAllCustomerTestLocations() {
+  return api.post('/admin/customers/test-locations/clear-all', {});
+}
+// "Destroy the session" — clears every driver AND customer override at once.
+export async function clearAllTestLocations() {
+  return api.post('/admin/test-locations/clear-all', {});
+}
