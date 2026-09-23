@@ -98,3 +98,11 @@ body {
 .dark .border-gray-200 { border-color: var(--zana-border) !important; }
 .dark .shadow-sm,
 .dark .shadow-md { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important; }
+
+/* Google Translate injects a top banner and shifts <body> down with an
+   inline top:0px !important style by default — this suppresses both,
+   since we drive it entirely from our own language switcher instead. */
+.goog-te-banner-frame.skiptranslate { display: none !important; }
+body { top: 0px !important; }
+.goog-te-gadget { display: none !important; }
+#google_translate_element { display: none !important; }

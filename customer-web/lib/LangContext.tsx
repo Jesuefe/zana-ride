@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Lang, getStoredLang, setStoredLang, LANG_LABELS, UI } from './lang';
 import { updateLanguage } from './api/chat';
+import { loadGoogleTranslate, setGoogleTranslateLanguage } from './googleTranslate';
 
 type LangContextType = {
   lang: Lang;
@@ -21,12 +22,17 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setLangState(getStoredLang());
+    loadGoogleTranslate();
   }, []);
 
   const setLang = (newLang: Lang) => {
     setLangState(newLang);
     setStoredLang(newLang);
     updateLanguage(newLang).catch(() => {});
+    // Drives Google Translate for everything not yet manually wired
+    // into the dt()/t() dictionary — see googleTranslate.ts for why
+    // this is safe alongside the manual translations already in place.
+    setGoogleTranslateLanguage(newLang);
   };
 
   const t = (key: string) => UI[key]?.[lang] ?? key;
