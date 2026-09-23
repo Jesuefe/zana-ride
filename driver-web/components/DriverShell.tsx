@@ -5,6 +5,7 @@ import DriverBottomNav from './DriverBottomNav';
 import SplashGate from './SplashGate';
 import AuthGuard from './AuthGuard';
 import { ThemeProvider } from '../lib/ThemeContext';
+import LanguageSelector from './LanguageSelector';
 
 // Screens reached before a driver has an account. The bottom navigation
 // makes no sense on these, and showing it implies the app is usable.
@@ -23,6 +24,11 @@ export default function DriverShell({ children }: { children: React.ReactNode })
         <SplashGate>
           <ThemeProvider>{children}</ThemeProvider>
         </SplashGate>
+        {!preLogin && (
+          <div className="fixed top-3 right-3 z-[60]">
+            <LanguageSelector variant="floating" />
+          </div>
+        )}
       </div>
       {!preLogin && <DriverBottomNav />}
     </AuthGuard>
