@@ -10,6 +10,7 @@ import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/pl
 import { compressImage } from '../../lib/image';
 import { capturePhoto, stampPhoto } from '../../lib/photoCapture';
 import { fetchMe } from '../../lib/api/auth';
+import FastLoadingPopup from '../../components/FastLoadingPopup';
 import {
   WEIGHT_OPTIONS,
   PackageWeight,
@@ -523,6 +524,11 @@ export default function DeliverPage() {
             </>
           )}
         </button>
+
+        <FastLoadingPopup
+          visible={submitting && !awaitingMomo}
+          messages={['Finding the best route…', 'Calculating your fare…', 'Confirming with Zana…']}
+        />
       </div>
     </div>
   );
