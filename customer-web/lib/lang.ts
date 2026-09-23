@@ -12,7 +12,25 @@ export const LANG_LABELS: Record<Lang, string> = {
 
 export function getStoredLang(): Lang {
   if (typeof window === 'undefined') return 'en';
-  return (localStorage.getItem(STORAGE_KEY) as Lang) ?? 'en';
+
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === 'en' || stored === 'fr' || stored === 'rw') return stored;
+
+  // First visit: use the browser/device language when ZANA supports it.
+  // English is the safe fallback for all other languages.
+  const browserLanguages = navigator.languages?.length
+    ? navigator.languages
+    : [navigator.language];
+
+  const detected: Lang =
+    browserLanguages.some((value) => value.toLowerCase().startsWith('rw'))
+      ? 'rw'
+      : browserLanguages.some((value) => value.toLowerCase().startsWith('fr'))
+        ? 'fr'
+        : 'en';
+
+  localStorage.setItem(STORAGE_KEY, detected);
+  return detected;
 }
 
 export function setStoredLang(lang: Lang) {
