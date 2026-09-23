@@ -25,7 +25,6 @@ export class TripsService {
       normalFare: fare.normalFare,
       rushMultiplier: fare.rushMultiplier,
       isRushHour: fare.isRushHour,
-      ...(fare.ruraReferenceFare !== undefined ? { ruraReferenceFare: fare.ruraReferenceFare } : {}),
     };
   }
 
