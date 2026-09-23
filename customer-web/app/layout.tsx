@@ -5,6 +5,7 @@ import "./globals.css";
 import { LangProvider } from "../lib/LangContext";
 import BottomNav from "../components/BottomNav";
 import AuthGuard from "../components/AuthGuard";
+import LanguageSelector from "../components/LanguageSelector";
 
 export const metadata: Metadata = {
   title: "Zana",
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="overflow-x-hidden bg-gray-50">
         <LangProvider>
+          <LanguageSelector variant="floating" />
           <AuthGuard>
             <div className="min-h-screen pb-16 w-full max-w-[480px] mx-auto relative overflow-x-hidden">
               <SplashGate><ThemeProvider>{children}</ThemeProvider></SplashGate>
