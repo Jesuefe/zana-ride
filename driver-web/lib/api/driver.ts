@@ -1,4 +1,5 @@
 import { api } from './client';
+import { ApiError } from './client';
 
 export type DriverProfile = {
   id: string;
@@ -30,7 +31,11 @@ export async function fetchMyDriverProfile() {
 }
 
 export async function goOnline() {
-  return api.patch<DriverProfile>('/driver/go-online');
+  const result = await api.patch<DriverProfile & { sessionId: string }>('/driver/go-online');
+  // Stored so this device's own location pings can identify themselves —
+  // see updateDriverLocation below for what this actually protects.
+  try { localStorage.setItem('zana_driver_session_id', result.sessionId); } catch {}
+  return result;
 }
 
 export async function goOffline() {
@@ -48,27 +53,36 @@ export async function goOffline() {
 // plain fetch, so this doesn't risk the wider regressions some Capacitor
 // versions have had when native HTTP is patched in globally.
 export async function updateDriverLocation(lat: number, lng: number) {
+  // Identifies this specific device's session to the backend — if a
+  // second device has since gone online on the same account, this
+  // value is now stale there, and the ping below gets rejected. See
+  // handleSessionSuperseded in app/page.tsx for what happens next.
+  let sessionId: string | null = null;
+  try { sessionId = localStorage.getItem('zana_driver_session_id'); } catch {}
+
   try {
     const { Capacitor } = await import('@capacitor/core');
     if (Capacitor.isNativePlatform()) {
       const { CapacitorHttp } = await import('@capacitor/core');
       const { getToken, API_BASE_URL } = await import('./client');
       const token = getToken();
-      await CapacitorHttp.post({
+      const response = await CapacitorHttp.post({
         url: `${API_BASE_URL}/driver/location`,
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        data: { lat, lng },
+        data: { lat, lng, sessionId },
       });
+      if (response.status === 403) throw new ApiError('SESSION_SUPERSEDED', 403);
       return;
     }
-  } catch {
+  } catch (e) {
+    if (e instanceof ApiError && e.message === 'SESSION_SUPERSEDED') throw e;
     // Fall through to the normal path below — a browser tab (no native
     // bridge available at all) is expected to land here every time.
   }
-  return api.post('/driver/location', { lat, lng });
+  return api.post('/driver/location', { lat, lng, sessionId });
 }
 
 export async function fetchSearchingTrips() {

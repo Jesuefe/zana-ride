@@ -83,7 +83,7 @@ function SlideToAccept({ label, onAccept, color = '#00A082', acceptedLabel = 'Ac
 
 export default function DriverHome() {
   const router = useRouter();
-  const { t } = useLang();
+  const { t, dt } = useLang();
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -206,6 +206,15 @@ export default function DriverHome() {
     }).catch(() => {});
   }, []);
   const [online, setOnline] = useState(false);
+  // Set when this device's location ping is rejected because a second
+  // device has gone online on the same account since — see
+  // updateDriverLocation in lib/api/driver.ts for how the backend
+  // signals this.
+  const [sessionSupersededNotice, setSessionSupersededNotice] = useState(false);
+  const handleSessionSuperseded = useCallback(() => {
+    setOnline(false);
+    setSessionSupersededNotice(true);
+  }, []);
   // A single shared slot rather than two separate error states — two
   // independent banners sharing the exact same screen position could both
   // fire close together and silently hide each other; one slot makes that
@@ -324,7 +333,9 @@ export default function DriverHome() {
     const stop = watchPosition(c => {
       if (c) {
         setCoords(c);
-        if (online) updateDriverLocation(c.lat, c.lng).catch(() => {});
+        if (online) updateDriverLocation(c.lat, c.lng).catch((e: any) => {
+          if (e?.message === 'SESSION_SUPERSEDED') handleSessionSuperseded();
+        });
       }
     });
     return stop;
@@ -347,7 +358,9 @@ export default function DriverHome() {
       getCurrentPosition().then(c => {
         if (c) {
           setCoords(c);
-          updateDriverLocation(c.lat, c.lng).catch(() => {});
+          updateDriverLocation(c.lat, c.lng).catch((e: any) => {
+            if (e?.message === 'SESSION_SUPERSEDED') handleSessionSuperseded();
+          });
         }
       });
     }, 30000);
@@ -545,6 +558,21 @@ export default function DriverHome() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-100">
+      {sessionSupersededNotice && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-6">
+          <div className="bg-white rounded-2xl p-6 max-w-sm text-center">
+            <p className="text-sm text-gray-800 leading-relaxed mb-5">
+              {dt("You've been logged in on another device, so this one has been taken offline.")}
+            </p>
+            <button
+              onClick={() => setSessionSupersededNotice(false)}
+              className="w-full bg-zana-primary text-white font-bold py-3 rounded-xl"
+            >
+              {dt('I understand — continue')}
+            </button>
+          </div>
+        </div>
+      )}
       {topBannerError && (
         <div className="fixed top-4 left-4 right-4 z-[60] bg-red-600 text-white text-sm text-center py-3 rounded-xl shadow-lg">
           {topBannerError}
