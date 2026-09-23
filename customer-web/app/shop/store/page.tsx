@@ -278,15 +278,22 @@ function StoreContent() {
 
             <OrderRecipient value={recipient} onChange={setRecipient} defaultAddress={pickup.address ?? "Current location"} defaultLat={pickup.lat} defaultLng={pickup.lng} />
 
-            <div className="space-y-1.5 my-4">
-
-            <div className="space-y-1.5 mb-4">
+            <div className="space-y-2 my-4">
               {cart.map(i => (
-                <div key={i.product.id} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{i.product.name} ×{i.quantity}</span>
-                  <span className="font-semibold">
-                    {(i.product.price * i.quantity).toLocaleString()} RWF
-                  </span>
+                <div key={i.product.id} className="flex items-center gap-3 rounded-xl border border-gray-100 p-2.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{i.product.name}</p>
+                    <p className="text-xs text-gray-400">{(i.product.price * i.quantity).toLocaleString()} RWF</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button type="button" onClick={() => removeFromCart(i.product.id)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Minus size={14} />
+                    </button>
+                    <span className="w-5 text-center text-sm font-bold">{i.quantity}</span>
+                    <button type="button" onClick={() => addToCart(i.product)} className="w-8 h-8 rounded-full bg-zana-primary flex items-center justify-center">
+                      <Plus size={14} className="text-white" />
+                    </button>
+                  </div>
                 </div>
               ))}
               <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
