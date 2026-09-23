@@ -136,10 +136,36 @@ body {
 .dark .shadow-sm,
 .dark .shadow-md { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important; }
 
-/* Google Translate injects a top banner and shifts <body> down with an
-   inline top:0px !important style by default — this suppresses both,
-   since we drive it entirely from our own language switcher instead. */
-.goog-te-banner-frame.skiptranslate { display: none !important; }
-body { top: 0px !important; }
-.goog-te-gadget { display: none !important; }
-#google_translate_element { display: none !important; }
+/* Google Translate is an invisible translation engine only. Never expose
+   Google's toolbar/banner, injected iframe, gadget chrome, or body offset.
+   The ZANA floating language control is the only language UI users see. */
+html,
+body {
+  top: 0 !important;
+  margin-top: 0 !important;
+}
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+iframe[src*="translate.google"],
+.goog-te-gadget,
+.goog-te-gadget-simple,
+#google_translate_element {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  left: -99999px !important;
+  top: -99999px !important;
+}
+body > .skiptranslate {
+  display: none !important;
+  visibility: hidden !important;
+}
+.goog-te-menu-frame {
+  display: none !important;
+}
