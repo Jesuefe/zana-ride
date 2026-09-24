@@ -17,10 +17,9 @@ type Props = {
 };
 
 export default function ReviewSheet({
-  const { t } = useLang();
-  const { t } = useLang();
   target, deliveryId, merchantId, marketId, orderId, title, subtitle, onDone,
 }: Props) {
+  const { t } = useLang();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
