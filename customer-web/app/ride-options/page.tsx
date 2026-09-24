@@ -54,6 +54,7 @@ const PAYMENT_OPTIONS = [
 ];
 
 function RideOptionsContent() {
+  const { t } = useLang();
   const router = useRouter();
   const params = useSearchParams();
 
@@ -422,7 +423,6 @@ function RideOptionsContent() {
 }
 
 export default function RideOptionsPage() {
-  const { t } = useLang();
   return (
     <Suspense fallback={null}>
       <RideOptionsContent />
