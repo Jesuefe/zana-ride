@@ -37,6 +37,7 @@ model User {
   wallet      Wallet?
   tripsAsCustomer Trip[]  @relation("CustomerTrips")
   safetyAlerts    SafetyAlert[]
+  emergencyContacts EmergencyContact[]
   ratingsGiven    Rating[] @relation("RatingsGiven")
   ratingsReceived Rating[] @relation("RatingsReceived")
 }
@@ -117,6 +118,21 @@ enum TripStatus {
   NO_DRIVER_FOUND
 }
 
+model EmergencyContact {
+  id           String   @id @default(uuid())
+  userId       String
+  name         String
+  phone        String
+  relationship String?
+  isPrimary    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isPrimary])
+}
+
 model SafetyAlert {
   id        String   @id @default(uuid())
   userId    String
@@ -126,6 +142,7 @@ model SafetyAlert {
   lng       Float?
   resolved  Boolean  @default(false)
   acknowledgedAt DateTime?
+  smsStatus String @default("NOT_ATTEMPTED")
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id])
