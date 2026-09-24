@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MapPin, Copy, Check, Share2, Clock, Loader2 } from 'lucide-react';
 import { getCurrentPositionFresh } from '../../lib/location';
+import { useLang } from '../../lib/LangContext';
 import { reverseGeocode } from '../../lib/geocode';
 import { createLocationCode, LocationCode } from '../../lib/api/deliveries';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 
 export default function ShareLocationPage() {
+  const { t } = useLang();
   const router = useRouter();
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [address, setAddress] = useState<string>('Locating…');
@@ -130,8 +132,7 @@ export default function ShareLocationPage() {
                 </>
               ) : (
                 <>
-                  <MapPin size={16} /> Send My Location
-                </>
+                  <MapPin size={16} />{t("Send My Location")}</>
               )}
             </button>
           </>
