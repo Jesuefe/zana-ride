@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLang } from '../lib/LangContext';
 import { Star } from 'lucide-react';
 import { api } from '../lib/api/client';
 
@@ -16,6 +17,8 @@ type Props = {
 };
 
 export default function ReviewSheet({
+  const { t } = useLang();
+  const { t } = useLang();
   target, deliveryId, merchantId, marketId, orderId, title, subtitle, onDone,
 }: Props) {
   const [rating, setRating] = useState(0);
@@ -78,7 +81,7 @@ export default function ReviewSheet({
         <textarea
           value={comment}
           onChange={e => setComment(e.target.value)}
-          placeholder="Anything you want to add? (optional)"
+          placeholder={t('Anything you want to add? (optional)')}
           rows={3}
           className="w-full border-2 border-gray-100 rounded-2xl px-4 py-3 text-sm resize-none focus:border-zana-primary focus:outline-none"
         />
