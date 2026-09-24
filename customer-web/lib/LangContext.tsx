@@ -1,9 +1,8 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Lang, getStoredLang, setStoredLang, LANG_LABELS, UI } from './lang';
+import { createContext, useContext, useState, ReactNode } from 'react';
+import { Lang, getStoredLang, setStoredLang, UI } from './lang';
 import { updateLanguage } from './api/chat';
-import { loadGoogleTranslate, setGoogleTranslateLanguage, prepareGoogleTranslateLanguage } from './googleTranslate';
 
 type LangContextType = {
   lang: Lang;
@@ -22,20 +21,10 @@ export function LangProvider({ children }: { children: ReactNode }) {
   // the app does not briefly render English before restoring the preference.
   const [lang, setLangState] = useState<Lang>(() => getStoredLang());
 
-  useEffect(() => {
-    // Cookie + localStorage are established before the Google script starts.
-    prepareGoogleTranslateLanguage(lang);
-    loadGoogleTranslate(lang);
-  }, []);
-
   const setLang = (newLang: Lang) => {
     setLangState(newLang);
     setStoredLang(newLang);
     updateLanguage(newLang).catch(() => {});
-    // Drives Google Translate for everything not yet manually wired
-    // into the dt()/t() dictionary — see googleTranslate.ts for why
-    // this is safe alongside the manual translations already in place.
-    setGoogleTranslateLanguage(newLang);
   };
 
   const t = (key: string) => UI[key]?.[lang] ?? key;
