@@ -92,7 +92,7 @@ export default function ReviewSheet({
           disabled={rating < 1 || saving}
           className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl mt-4 disabled:opacity-40"
         >
-          {saving ? 'Saving…' : 'Submit rating'}
+          {saving ? t('Saving…') : t('Submit rating')}
         </button>
         <button onClick={onDone} className="w-full text-sm text-gray-400 py-2 mt-1">
           Skip
