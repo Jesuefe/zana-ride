@@ -6,12 +6,14 @@ import { ArrowLeft, Home, Briefcase, MapPin, Plus, Trash2, Loader2, Navigation }
 import { api } from '../../../lib/api/client';
 import { loadGoogleMaps } from '../../../lib/mapsLoader';
 import { GOOGLE_MAPS_EMBED_KEY } from '../../../lib/config';
+import { useLang } from '../../../lib/LangContext';
 
 type SavedPlace = { id: string; label: string; address: string; lat: number; lng: number };
 const QUICK_LABELS = ['Home', 'Work', 'Gym', 'School', 'Other'];
 const LABEL_ICONS: Record<string, any> = { Home, Work: Briefcase };
 
 export default function SavedPlacesPage() {
+  const { t } = useLang();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
@@ -77,7 +79,7 @@ export default function SavedPlacesPage() {
     setLocating(true);
     setLocateError('');
     if (!navigator.geolocation) {
-      setLocateError('Location is not available on this device.');
+      setLocateError(t('Location is not available on this device.'));
       setLocating(false);
       return;
     }
@@ -108,7 +110,7 @@ export default function SavedPlacesPage() {
         );
       },
       () => {
-        setLocateError('Could not read your location. Allow location access and try again.');
+        setLocateError(t('Could not read your location. Allow location access and try again.'));
         setLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000 },
@@ -121,12 +123,12 @@ export default function SavedPlacesPage() {
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />
         </button>
-        <h1 className="text-lg font-bold text-gray-900">Saved Places</h1>
+        <h1 className="text-lg font-bold text-gray-900">{t('Saved Places')}</h1>
       </div>
 
       <div className="space-y-2 mb-4">
         {places.length === 0 && !adding && (
-          <p className="text-sm text-gray-400 text-center py-6">No saved places yet.</p>
+          <p className="text-sm text-gray-400 text-center py-6">{t('No saved places yet.')}</p>
         )}
         {places.map(place => {
           const Icon = LABEL_ICONS[place.label] ?? MapPin;
@@ -157,7 +159,7 @@ export default function SavedPlacesPage() {
 
       {adding && (
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-          <p className="font-semibold text-sm text-gray-900">New saved place</p>
+          <p className="font-semibold text-sm text-gray-900">{t('New saved place')}</p>
           <div className="flex gap-2 flex-wrap">
             {QUICK_LABELS.map(l => (
               <button key={l} onClick={() => setLabel(l)}
@@ -189,15 +191,15 @@ export default function SavedPlacesPage() {
 
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-gray-100" />
-            <span className="text-[10px] text-gray-400 uppercase tracking-wide">or</span>
+            <span className="text-[10px] text-gray-400 uppercase tracking-wide">{t('or')}</span>
             <div className="flex-1 h-px bg-gray-100" />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1.5">Search address</label>
+            <label className="text-xs font-medium text-gray-500 block mb-1.5">{t('Search address')}</label>
             <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-zana-primary/30">
               <MapPin size={14} className="text-gray-400 shrink-0" />
-              <input ref={inputRef} placeholder="Type an address..." 
+              <input ref={inputRef} placeholder={t('Type an address...')} 
                 className="flex-1 text-sm outline-none" />
             </div>
             {selectedPlace && (
@@ -208,7 +210,7 @@ export default function SavedPlacesPage() {
           </div>
           <div className="flex gap-2">
             <button onClick={() => { setAdding(false); setSelectedPlace(null); }} 
-              className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-semibold">Cancel</button>
+              className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-semibold">{t('Cancel')}</button>
             <button onClick={handleAdd} disabled={saving || !selectedPlace}
               className="flex-1 bg-zana-primary text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-1">
               {saving ? <Loader2 size={14} className="animate-spin" /> : null}
