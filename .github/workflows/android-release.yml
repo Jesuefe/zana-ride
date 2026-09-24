@@ -67,6 +67,7 @@ jobs:
       - name: Set version
         working-directory: native/${{ matrix.app.dir }}/android
         run: |
+          chmod +x gradlew
           ./gradlew help --no-daemon \
             -PZANA_VERSION_CODE='${{ inputs.versionCode }}' \
             -PZANA_VERSION_NAME='${{ inputs.versionName }}' \
