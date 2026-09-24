@@ -25,7 +25,6 @@ type Props = {
 };
 
 export default function VoiceCall({
-  const { t } = useLang();
   rideId,
   incomingCallId,
   roomName: incomingRoom,
@@ -34,6 +33,7 @@ export default function VoiceCall({
   participantLabel,
   onClose,
 }: Props) {
+  const { t } = useLang();
   const roomRef = useRef<Room | null>(null);
   const audioElementsRef = useRef<HTMLAudioElement[]>([]);
   const heartbeatRef = useRef<any>(null);
