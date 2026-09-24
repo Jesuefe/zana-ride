@@ -125,6 +125,7 @@ model SafetyAlert {
   lat       Float?
   lng       Float?
   resolved  Boolean  @default(false)
+  acknowledgedAt DateTime?
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id])
