@@ -103,15 +103,15 @@ export default function DriverProfilePage() {
         {/* Stats grid */}
         <div className="grid grid-cols-2 gap-3">
           {[
-            { icon: Car, label: 'Total rides', value: stats?.totalTrips ?? '…', color: 'text-zana-primary' },
-            { icon: Truck, label: 'Deliveries', value: stats?.totalDeliveries ?? '…', color: 'text-amber-500' },
-            { icon: Star, label: 'Rating', value: stats ? `${stats.rating.toFixed(1)} ⭐` : '…', color: 'text-yellow-500' },
-            { icon: Calendar, label: 'Member since', value: stats ? new Date(stats.memberSince).toLocaleDateString('en', { month: 'short', year: 'numeric' }) : '…', color: 'text-blue-500' },
+            { icon: Car, label: dt('Total rides'), value: stats?.totalTrips ?? '…', color: 'text-zana-primary' },
+            { icon: Truck, label: dt('Deliveries'), value: stats?.totalDeliveries ?? '…', color: 'text-amber-500' },
+            { icon: Star, label: dt('Rating'), value: stats ? `${stats.rating.toFixed(1)} ⭐` : '…', color: 'text-yellow-500' },
+            { icon: Calendar, label: dt('Member since'), value: stats ? new Date(stats.memberSince).toLocaleDateString('en', { month: 'short', year: 'numeric' }) : '…', color: 'text-blue-500' },
           ].map(({ icon: Icon, label, value, color }) => (
             <div key={label} className="bg-white rounded-xl p-4 shadow-sm">
               <Icon size={16} className={`${color} mb-2`} />
               <p className="text-lg font-bold text-gray-900">{value}</p>
-              <p className="text-xs text-gray-500">{dt(label)}</p>
+              <p className="text-xs text-gray-500">{label}</p>
             </div>
           ))}
         </div>
