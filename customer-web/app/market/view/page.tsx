@@ -5,10 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Store, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { fetchMarket, placeOrder } from '../../../lib/api/marketplace';
 import { fetchWallet } from '../../../lib/api/trips';
+import { useLang } from '../../../lib/LangContext';
 
 type Item = { product: any; quantity: number };
 
 function MarketContent() {
+  const { t } = useLang();
   const router = useRouter();
   const params = useSearchParams();
   const marketId = params.get('id') ?? '';
@@ -228,7 +230,6 @@ function MarketContent() {
 }
 
 export default function MarketPage() {
-  const { t } = useLang();
   return (
     <Suspense fallback={null}>
       <MarketContent />
