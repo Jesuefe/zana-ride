@@ -307,7 +307,7 @@ export default function HomePage() {
               >
                 <Image src="/icons/motorbike.png" alt="Moto" width={44} height={44} className="object-contain" />
                 <p className="text-sm font-black text-gray-900">{t('Moto')}</p>
-                <p className="text-[10px] text-gray-500 -mt-1">{t('Fast &amp; cheap')}</p>
+                <p className="text-[10px] text-gray-500 -mt-1">{t('Fast & cheap')}</p>
               </button>
 
               <button
