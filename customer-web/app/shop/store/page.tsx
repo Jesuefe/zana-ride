@@ -87,7 +87,7 @@ function StoreContent() {
   const handleOrder = async () => {
     if (!cart.length || !merchant) return;
     if (recipient.forSomeoneElse && (!recipient.name.trim() || !recipient.phone.trim() || !recipient.address.trim())) {
-      setError('Add the recipient name, phone number and delivery address.');
+      setError(t('Add the recipient name, phone number and delivery address.'));
       setShowCart(true);
       return;
     }
@@ -113,13 +113,11 @@ function StoreContent() {
         const parts = msg.split(':');
         const bal = Number(parts[1] ?? 0);
         const need = Number(parts[2] ?? 0);
-        setError(
-          `Not enough in your wallet. Balance ${bal.toLocaleString()} RWF, order costs ${need.toLocaleString()} RWF. Top up or pay with Mobile Money.`
-        );
+        setError(t('Not enough in your wallet. Balance {{balance}} RWF, order costs {{cost}} RWF. Top up or pay with Mobile Money.').replace('{{balance}}', bal.toLocaleString()).replace('{{cost}}', need.toLocaleString()));
       } else if (msg.includes('MOMO_CHARGE_FAILED')) {
-        setError('Could not reach Mobile Money. Check the number and try again.');
+        setError(t('Could not reach Mobile Money. Check the number and try again.'));
       } else {
-        setError(msg || 'Could not place order.');
+        setError(msg || t('Could not place order.'));
       }
     } finally { setOrdering(false); }
   };
@@ -136,7 +134,7 @@ function StoreContent() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-6 text-center">
         <Store size={40} className="text-gray-200 mb-3" />
-        <p className="text-sm text-gray-500">This store isn't available right now.</p>
+        <p className="text-sm text-gray-500">{t("This store isn't available right now.")}</p>
         <button onClick={() => router.back()} className="mt-4 text-sm font-bold text-zana-primary">
           Go back
         </button>
@@ -168,7 +166,7 @@ function StoreContent() {
               className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[448px] z-40 flex items-center justify-center gap-2 bg-zana-primary text-white px-4 py-3.5 rounded-2xl text-sm font-black shadow-lg"
             >
               <ShoppingCart size={16} />
-              View cart · {cartCount} item{cartCount === 1 ? '' : 's'} · {cartTotal.toLocaleString()} RWF
+              View cart · {cartCount} {t(cartCount === 1 ? 'item' : 'items')} · {cartTotal.toLocaleString()} RWF
             </button>
           )}
         </div>
@@ -182,7 +180,7 @@ function StoreContent() {
             </span>
             <span className="text-gray-300">·</span>
             <span className="font-bold text-zana-primary">
-              Delivery from {merchant.deliveryFee.toLocaleString()} RWF
+              {t('Delivery from')} {merchant.deliveryFee.toLocaleString()} RWF
             </span>
           </div>
         </div>
@@ -195,7 +193,7 @@ function StoreContent() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={`Search ${merchant.businessName}`}
+            placeholder={`${t('Search')} ${merchant.businessName}`}
             className="flex-1 text-sm outline-none placeholder:text-gray-400"
           />
         </div>
@@ -205,7 +203,7 @@ function StoreContent() {
       <div className="px-4 space-y-5">
         {groupedProducts.length === 0 && (
           <p className="text-center text-sm text-gray-500 py-10">
-            {search ? 'No items match your search.' : 'Nothing listed here yet.'}
+            {search ? t('No items match your search.') : t('Nothing listed here yet.')}
           </p>
         )}
 
@@ -274,7 +272,7 @@ function StoreContent() {
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
 
             <div className="flex items-center justify-between mb-4">
-              <div><p className="font-black text-lg text-gray-900">Your basket</p><p className="text-xs text-gray-400">{merchant.businessName}</p></div>
+              <div><p className="font-black text-lg text-gray-900">{t('Your basket')}</p><p className="text-xs text-gray-400">{merchant.businessName}</p></div>
               <button type="button" onClick={() => setShowCart(false)} className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 text-lg">×</button>
             </div>
 
@@ -303,7 +301,7 @@ function StoreContent() {
                 <span className="font-semibold">{deliveryFee.toLocaleString()} RWF</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-100">
-                <span className="font-black text-gray-900">Total</span>
+                <span className="font-black text-gray-900">{t('Total')}</span>
                 <span className="font-black text-zana-primary text-lg">
                   {grandTotal.toLocaleString()} RWF
                 </span>
@@ -329,20 +327,19 @@ function StoreContent() {
 
             {paymentMethod === 'WALLET' && walletBalance !== null && (
               <p className={`text-[11px] font-semibold ${walletShort ? 'text-red-500' : 'text-gray-500'}`}>
-                Wallet balance: {walletBalance.toLocaleString()} RWF
+                {t('Wallet balance:')} {walletBalance.toLocaleString()} RWF
                 {walletShort ? ` · ${(grandTotal - walletBalance).toLocaleString()} RWF short` : ''}
               </p>
             )}
 
             <p className="text-[10px] text-gray-400 mt-1.5">
-              Cash not accepted. Payment is processed before delivery.
+              {t('Cash not accepted. Payment is processed before delivery.')}
             </p>
 
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-3">
               <span className="text-amber-500 text-sm shrink-0">🛡️</span>
               <p className="text-[10px] text-amber-800 leading-relaxed">
-                All goods are inspected by the rider before pickup to meet Zana
-                security compliance.
+                {t('All goods are inspected by the rider before pickup to meet Zana security compliance.')}
               </p>
             </div>
 
@@ -355,7 +352,7 @@ function StoreContent() {
             >
               {ordering
                 ? <Loader2 size={16} className="animate-spin" />
-                : `Pay & Order · ${grandTotal.toLocaleString()} RWF`}
+                : `${t('Pay & Order')} · ${grandTotal.toLocaleString()} RWF`}
             </button>
           </div>
         </div>
