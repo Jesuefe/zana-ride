@@ -669,3 +669,26 @@ Object.assign(UI, {
 });
 
 // Inner-page localization sweep sync: verify customer sub-pages in production.
+
+
+Object.assign(UI, {
+  'Car Ride': { en: 'Car Ride', fr: 'Course en voiture', rw: 'Urugendo rw’imodoka' },
+  'Car': { en: 'Car', fr: 'Voiture', rw: 'Imodoka' },
+  'Comfortable': { en: 'Comfortable', fr: 'Confortable', rw: 'Yorohewe' },
+  'Redeem': { en: 'Redeem', fr: 'Échanger', rw: 'Koresha amanota' },
+  'Minimum 100 points': { en: 'Minimum 100 points', fr: 'Minimum 100 points', rw: 'Nibura amanota 100' },
+  'points redeemed for': { en: 'points redeemed for', fr: 'points échangés contre', rw: 'amanota yakoreshejwe ku mafaranga' },
+  'Could not redeem points': { en: 'Could not redeem points', fr: 'Impossible d’échanger les points', rw: 'Ntibyashobotse gukoresha amanota' },
+  'value': { en: 'value', fr: 'valeur', rw: 'agaciro' },
+  'earned total': { en: 'earned total', fr: 'total gagné', rw: 'yose wabonye' },
+  'Per ride': { en: 'Per ride', fr: 'Par course', rw: 'Kuri buri rugendo' },
+  '1 point per 100 RWF spent': { en: '1 point per 100 RWF spent', fr: '1 point pour 100 RWF dépensés', rw: 'Inota 1 kuri buri 100 RWF ukoresheje' },
+  'Per delivery': { en: 'Per delivery', fr: 'Par livraison', rw: 'Kuri buri kwohereza' },
+  '1 point per 200 RWF spent': { en: '1 point per 200 RWF spent', fr: '1 point pour 200 RWF dépensés', rw: 'Inota 1 kuri buri 200 RWF ukoresheje' },
+  'Rate a driver': { en: 'Rate a driver', fr: 'Noter un chauffeur', rw: 'Tanga amanota ku mushoferi' },
+  '+2 bonus points': { en: '+2 bonus points', fr: '+2 points bonus', rw: '+2 amanota y’inyongera' },
+  'First ride ever': { en: 'First ride ever', fr: 'Première course', rw: 'Urugendo rwa mbere' },
+  '+5 bonus points': { en: '+5 bonus points', fr: '+5 points bonus', rw: '+5 amanota y’inyongera' },
+  '100 points = 500 RWF wallet credit (min 100 points)': { en: '100 points = 500 RWF wallet credit (min 100 points)', fr: '100 points = 500 RWF crédités au portefeuille (minimum 100 points)', rw: 'Amanota 100 = 500 RWF ashyirwa muri wallet (nibura amanota 100)' },
+  'Points to redeem': { en: 'Points to redeem', fr: 'Points à échanger', rw: 'Amanota ushaka gukoresha' },
+});
