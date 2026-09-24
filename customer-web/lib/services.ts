@@ -1,7 +1,7 @@
 // Single source for the service list — the home row and the "See all" page
 // both read from here, so adding a service only means editing one place.
 export const SERVICES = [
-  { id: 'car',     title: 'Ride',       sub: 'Affordable & safe',   image: '/icons/car.png',            bg: '#EEF9F6', route: '/search?service=ECONOMY' },
+  { id: 'car',     title: 'Car Ride',   sub: 'Affordable & safe',   image: '/icons/car.png',            bg: '#EEF9F6', route: '/search?service=ECONOMY' },
   { id: 'moto',    title: 'Moto Ride',  sub: 'Fast & reliable',     image: '/icons/motorbike.png',      bg: '#FDF6E3', route: '/search?service=BIKE' },
   { id: 'package', title: 'Delivery',   sub: 'Send anything',       image: '/icons/package-box.png',    bg: '#EEF9F6', route: '/deliver' },
   { id: 'food',    title: 'Order Food', sub: 'Meals & drinks',      image: '/icons/burger-drink.png',   bg: '#FDF6E3', route: '/food' },
