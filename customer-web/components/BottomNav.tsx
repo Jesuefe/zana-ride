@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Package, Wallet, User } from 'lucide-react';
+import { useLang } from '../lib/LangContext';
 
 const items = [
   { href: '/', label: 'Home', icon: Home },
@@ -13,6 +14,7 @@ const items = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { t } = useLang();
   const hidden = ['/login', '/verify', '/search', '/ride-options', '/tracking'].includes(pathname);
   if (hidden) return null;
 
@@ -28,7 +30,7 @@ export default function BottomNav() {
             className={`flex flex-col items-center gap-1 px-3 py-1 ${active ? 'text-zana-primary' : 'text-zana-muted'}`}
           >
             <Icon size={20} strokeWidth={active ? 2.4 : 2} />
-            <span className="text-[11px]">{item.label}</span>
+            <span className="text-[11px]">{t(item.label)}</span>
           </Link>
         );
       })}
