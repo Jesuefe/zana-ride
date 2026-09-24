@@ -69,7 +69,7 @@ export default function RidesHistoryPage() {
                   </p>
                 </div>
                 <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${statusInfo.cls}`}>
-                  {statusInfo.text}
+                  {dt(statusInfo.text)}
                 </span>
               </div>
 
