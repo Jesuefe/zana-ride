@@ -42,6 +42,13 @@ export async function goOffline() {
   return api.patch<DriverProfile>('/driver/go-offline');
 }
 
+export async function triggerSOS(tripId?: string, coords?: { lat: number; lng: number }) {
+  return api.post<{ accepted: boolean; id?: string }>('/sos', {
+    ...(tripId ? { tripId } : {}),
+    ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
+  });
+}
+
 // A normal fetch() call made from inside a backgrounded WebView gets
 // throttled by Android after about 5 minutes — this is a real, documented
 // limitation, not a guess, confirmed by Capacitor's own maintainers and the
