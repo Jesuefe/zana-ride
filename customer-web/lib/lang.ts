@@ -590,3 +590,23 @@ Object.assign(UI, {
   'Confirm & Book': { en: 'Confirm & Book', fr: 'Confirmer et réserver', rw: 'Emeza kandi uteganye' },
   'That code was not found or has expired.': { en: 'That code was not found or has expired.', fr: 'Ce code est introuvable ou a expiré.', rw: 'Iyo kode ntibonetse cyangwa yararangiye.' },
 });
+
+
+Object.assign(UI, {
+  'A Zana agent buys these items for you at the market, then a rider delivers them.': { en: 'A Zana agent buys these items for you at the market, then a rider delivers them.', fr: 'Un agent Zana achète ces articles au marché pour vous, puis un motard vous les livre.', rw: 'Umukozi wa Zana akugurira ibi bintu ku isoko, maze umumotari akabikuzanira.' },
+  'Nothing listed here today': { en: 'Nothing listed here today', fr: 'Rien de répertorié ici aujourd’hui', rw: 'Nta kintu cyashyizwe hano uyu munsi' },
+  'Review': { en: 'Review', fr: 'Vérifier', rw: 'Reba' },
+  'Confirm your order': { en: 'Confirm your order', fr: 'Confirmez votre commande', rw: 'Emeza ibyo watumije' },
+  'Delivery (estimate)': { en: 'Delivery (estimate)', fr: 'Livraison (estimation)', rw: 'Kohereza (ikigereranyo)' },
+  'Final delivery fee is calculated from the market to your location.': { en: 'Final delivery fee is calculated from the market to your location.', fr: 'Les frais finaux de livraison sont calculés du marché jusqu’à votre position.', rw: 'Amafaranga ya nyuma yo kugeza abarwa kuva ku isoko kugeza aho uri.' },
+  'Wallet balance:': { en: 'Wallet balance:', fr: 'Solde du portefeuille :', rw: 'Amafaranga ari mu gikapo:' },
+  'Placing order…': { en: 'Placing order…', fr: 'Commande en cours…', rw: 'Turimo gutanga itegeko…' },
+  'Pay & Order': { en: 'Pay & Order', fr: 'Payer et commander', rw: 'Ishyura kandi utegeke' },
+  'Could not place the order.': { en: 'Could not place the order.', fr: 'Impossible de passer la commande.', rw: 'Ntibyashobotse gutanga itegeko.' },
+  'Add a place': { en: 'Add a place', fr: 'Ajouter un lieu', rw: 'Ongeraho ahantu' },
+  'Finding you…': { en: 'Finding you…', fr: 'Recherche de votre position…', rw: 'Turimo kumenya aho uri…' },
+  'Use my current location': { en: 'Use my current location', fr: 'Utiliser ma position actuelle', rw: 'Koresha aho ndi ubu' },
+  'Saving...': { en: 'Saving...', fr: 'Enregistrement...', rw: 'Turabika...' },
+  'Save': { en: 'Save', fr: 'Enregistrer', rw: 'Bika' },
+  'Registered phone number': { en: 'Registered phone number', fr: 'Numéro de téléphone enregistré', rw: 'Nimero ya telefoni yanditswe' },
+});
