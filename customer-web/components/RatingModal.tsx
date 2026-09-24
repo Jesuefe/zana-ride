@@ -74,13 +74,13 @@ export default function RatingModal({
                 <div className="flex flex-wrap gap-2 mb-4">
                   {QUICK.map(tag => (
                     <button
-                      key={tag}
-                      onClick={() => setComment(c => c.includes(tag) ? c.replace(tag, '').trim() : `${c} ${tag}`.trim())}
+                      key={t(tag)}
+                      onClick={() => setComment(c => c.includes(tag) ? c.replace(tag, '').trim() : `${c} ${t(tag)}`.trim())}
                       className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                         comment.includes(tag) ? 'bg-zana-primary text-white border-zana-primary' : 'border-gray-200 text-gray-600'
                       }`}
                     >
-                      {tag}
+                      {t(tag)}
                     </button>
                   ))}
                 </div>
