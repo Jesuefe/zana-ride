@@ -81,7 +81,7 @@ export default function ForgotPassword() {
 
       {step === 'identify' ? (
         <>
-          <h1 className="text-2xl font-black text-gray-900">Forgot your password?</h1>
+          <h1 className="text-2xl font-black text-gray-900">{t('Forgot your password?')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-7">
             Enter the phone number or email on your account and we&rsquo;ll send a
             code by SMS.
@@ -109,7 +109,7 @@ export default function ForgotPassword() {
         </>
       ) : (
         <>
-          <h1 className="text-2xl font-black text-gray-900">Enter your code</h1>
+          <h1 className="text-2xl font-black text-gray-900">{t('Enter your code')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-6">
             If that account exists, a code is on its way
             {hint ? ` to ${hint}` : ''}. It is valid for five minutes.
@@ -148,7 +148,7 @@ export default function ForgotPassword() {
             value={password}
             onChange={e => setPassword(e.target.value)}
             autoComplete="new-password"
-            placeholder="At least 6 characters"
+            placeholder={t('At least 6 characters')}
             className="border-2 border-gray-100 rounded-2xl px-4 py-3.5 mt-2 mb-4 text-sm focus:border-zana-primary focus:outline-none"
           />
 
