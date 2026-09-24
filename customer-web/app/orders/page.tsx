@@ -182,7 +182,7 @@ function OrdersContent() {
                     <span className="font-semibold text-gray-900">{itemsTotal.toLocaleString()} RWF</span>
                   </div>
                   <div className="flex justify-between text-sm py-1">
-                    <span className="text-gray-600">Delivery</span>
+                    <span className="text-gray-600">{t("Delivery")}</span>
                     <span className="font-semibold text-gray-900">{deliveryFee.toLocaleString()} RWF</span>
                   </div>
                   <div className="border-t border-gray-200 mt-2 pt-3 flex justify-between">
