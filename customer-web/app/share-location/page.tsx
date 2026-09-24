@@ -105,7 +105,7 @@ export default function ShareLocationPage() {
           <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
             <ArrowLeft size={16} />
           </button>
-          <h1 className="text-lg font-bold text-gray-900">Send my location</h1>
+          <h1 className="text-lg font-bold text-gray-900">{t('Send my location')}</h1>
         </div>
 
         <div className="flex items-start gap-2 bg-gray-50 rounded-lg px-3 py-2.5 mb-4">
@@ -139,7 +139,7 @@ export default function ShareLocationPage() {
         ) : (
           <div className="animate-fade-slide-up">
             <div className="bg-zana-primary-dark rounded-2xl px-4 py-6 text-center text-white">
-              <p className="text-xs text-white/70">Your location code</p>
+              <p className="text-xs text-white/70">{t('Your location code')}</p>
               <p className="text-3xl font-bold tracking-wider mt-1.5">{code.code}</p>
               {secondsLeft !== null && secondsLeft > 0 ? (
                 <div className="flex items-center justify-center gap-1.5 mt-3 text-white/70 text-xs">
@@ -147,7 +147,7 @@ export default function ShareLocationPage() {
                   Expires in {mins}:{String(secs).padStart(2, '0')}
                 </div>
               ) : (
-                <p className="text-xs text-zana-secondary mt-3">This code has expired</p>
+                <p className="text-xs text-zana-secondary mt-3">{t('This code has expired')}</p>
               )}
             </div>
 
