@@ -138,7 +138,7 @@ export default function SavedPlacesPage() {
                 <Icon size={16} className="text-zana-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-gray-900">{place.label}</p>
+                <p className="font-semibold text-sm text-gray-900">{t(place.label)}</p>
                 <p className="text-xs text-gray-500 truncate">{place.address}</p>
               </div>
               <button onClick={() => handleDelete(place.id)} disabled={deleting === place.id}
@@ -177,12 +177,12 @@ export default function SavedPlacesPage() {
             {locating ? (
               <>
                 <span className="w-4 h-4 border-2 border-zana-primary/30 border-t-zana-primary rounded-full animate-spin" />
-                Finding you…
+                {t('Finding you…')}
               </>
             ) : (
               <>
                 <Navigation size={14} />
-                Use my current location
+                {t('Use my current location')}
               </>
             )}
           </button>
@@ -214,7 +214,7 @@ export default function SavedPlacesPage() {
             <button onClick={handleAdd} disabled={saving || !selectedPlace}
               className="flex-1 bg-zana-primary text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-1">
               {saving ? <Loader2 size={14} className="animate-spin" /> : null}
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? t('Saving...') : t('Save')}
             </button>
           </div>
         </div>
