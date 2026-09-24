@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { requestLoginCode, loginWithCode } from '../../lib/api/auth';
+import { useLang } from '../../lib/LangContext';
 import { ApiError } from '../../lib/api/client';
 
 /**
@@ -12,6 +13,7 @@ import { ApiError } from '../../lib/api/client';
  * a familiar pattern.
  */
 export default function LoginWithCode() {
+  const { t } = useLang();
   const router = useRouter();
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [phone, setPhone] = useState('');
