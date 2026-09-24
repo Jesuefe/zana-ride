@@ -24,7 +24,7 @@ export default function ShareLocationPage() {
   useEffect(() => {
     getCurrentPositionFresh().then((c) => {
       if (!c) {
-        setError('We need your location to create a code. Please allow location access.');
+        setError(t('We need your location to create a code. Please allow location access.'));
         return;
       }
       setCoords(c);
@@ -51,7 +51,7 @@ export default function ShareLocationPage() {
     try {
       setCode(await createLocationCode(coords.lat, coords.lng, address));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not create a code right now.');
+      setError(err instanceof ApiError ? err.message : t('Could not create a code right now.'));
     } finally {
       setGenerating(false);
     }
@@ -76,7 +76,7 @@ export default function ShareLocationPage() {
       } catch {
         // Previously unhandled — the button did nothing at all on failure,
         // with no way to tell whether it had worked.
-        setError('Could not copy. Select and copy the text manually.');
+        setError(t('Could not copy. Select and copy the text manually.'));
       }
     }
   };
@@ -89,7 +89,7 @@ export default function ShareLocationPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError('Could not copy the code. Select and copy it manually.');
+      setError(t('Could not copy the code. Select and copy it manually.'));
     }
   };
 
@@ -118,8 +118,7 @@ export default function ShareLocationPage() {
         {!code ? (
           <>
             <p className="text-sm text-zana-muted mb-5">
-              Generate a short code for this exact spot and send it to whoever is delivering to you. They enter it in
-              Zana and your location appears on their map — no address needed.
+              {t('Generate a short code for this exact spot and send it to whoever is delivering to you. They enter it in Zana and your location appears on their map — no address needed.')}
             </p>
             <button
               onClick={handleGenerate}
@@ -128,7 +127,7 @@ export default function ShareLocationPage() {
             >
               {generating ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" /> Creating code…
+                  <Loader2 size={16} className="animate-spin" /> {t('Creating code…')}
                 </>
               ) : (
                 <>
@@ -144,7 +143,7 @@ export default function ShareLocationPage() {
               {secondsLeft !== null && secondsLeft > 0 ? (
                 <div className="flex items-center justify-center gap-1.5 mt-3 text-white/70 text-xs">
                   <Clock size={12} />
-                  Expires in {mins}:{String(secs).padStart(2, '0')}
+                  {t('Expires in')} {mins}:{String(secs).padStart(2, '0')}
                 </div>
               ) : (
                 <p className="text-xs text-zana-secondary mt-3">{t('This code has expired')}</p>
@@ -157,7 +156,7 @@ export default function ShareLocationPage() {
                 className="flex items-center justify-center gap-1.5 border border-zana-border py-3 rounded-xl text-sm font-semibold text-gray-700"
               >
                 {copied ? <Check size={15} className="text-zana-success" /> : <Copy size={15} />}
-                {copied ? 'Copied' : 'Copy code'}
+                {copied ? t('Copied') : t('Copy code')}
               </button>
               <button
                 onClick={handleShare}
@@ -168,7 +167,7 @@ export default function ShareLocationPage() {
             </div>
 
             <p className="text-[11px] text-zana-muted mt-4 text-center">
-              The code works once and expires after 15 minutes, so your location isn&apos;t shared any longer than needed.
+              {t("The code works once and expires after 15 minutes, so your location isn't shared any longer than needed.")}
             </p>
 
             {secondsLeft === 0 && (
