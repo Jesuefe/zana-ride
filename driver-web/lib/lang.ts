@@ -4,17 +4,33 @@ export type Lang = 'en' | 'fr' | 'rw';
 
 const STORAGE_KEY = 'zana_lang';
 
+function accountStorageKey(accountToken?: string | null): string {
+  if (!accountToken) return STORAGE_KEY;
+  let hash = 2166136261;
+  for (let i = 0; i < accountToken.length; i += 1) {
+    hash ^= accountToken.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return STORAGE_KEY + ':' + (hash >>> 0).toString(16);
+}
+
 export const LANG_LABELS: Record<Lang, string> = {
   en: 'English',
   fr: 'Français',
   rw: 'Ikinyarwanda',
 };
 
-export function getStoredLang(): Lang {
+export function getStoredLang(accountToken?: string | null): Lang {
   if (typeof window === 'undefined') return 'en';
 
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === 'en' || stored === 'fr' || stored === 'rw') return stored;
+  const key = accountStorageKey(accountToken);
+  const stored = localStorage.getItem(key);
+  const legacyStored = stored ? null : localStorage.getItem(STORAGE_KEY);
+  const saved = stored ?? legacyStored;
+  if (saved === 'en' || saved === 'fr' || saved === 'rw') {
+    if (!stored && accountToken) localStorage.setItem(key, saved);
+    return saved;
+  }
 
   // First visit: use the browser/device language when ZANA supports it.
   // English is the safe fallback for all other languages.
@@ -29,13 +45,13 @@ export function getStoredLang(): Lang {
         ? 'fr'
         : 'en';
 
-  localStorage.setItem(STORAGE_KEY, detected);
+  localStorage.setItem(key, detected);
   return detected;
 }
 
-export function setStoredLang(lang: Lang) {
+export function setStoredLang(lang: Lang, accountToken?: string | null) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, lang);
+  localStorage.setItem(accountStorageKey(accountToken), lang);
 }
 
 // UI strings for the customer app in all three languages.
