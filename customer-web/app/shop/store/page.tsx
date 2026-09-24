@@ -276,7 +276,7 @@ function StoreContent() {
               <button type="button" onClick={() => setShowCart(false)} className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 text-lg">×</button>
             </div>
 
-            <OrderRecipient value={recipient} onChange={setRecipient} defaultAddress={pickup.address ?? "Current location"} defaultLat={pickup.lat} defaultLng={pickup.lng} />
+            <OrderRecipient value={recipient} onChange={setRecipient} defaultAddress={pickup.address ?? t('Current location')} defaultLat={pickup.lat} defaultLng={pickup.lng} />
 
             <div className="space-y-2 my-4">
               {cart.map(i => (
