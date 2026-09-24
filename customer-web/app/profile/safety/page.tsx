@@ -17,7 +17,7 @@ export default function SafetyPage() {
           <div className="flex items-center gap-3 mb-3"><Shield size={20} className="text-zana-primary" /><h2 className="font-semibold text-gray-900">{t('Emergency Contact')}</h2></div>
           <p className="text-sm text-gray-500 mb-4">{t('Share your trip details with trusted contacts for added safety.')}</p>
           <a href="tel:112" className="flex items-center gap-2 bg-red-50 text-red-600 font-semibold px-4 py-3 rounded-xl text-sm">
-            <Phone size={16} /> Call Emergency (112)
+            <Phone size={16} /> {t('Call Emergency (112)')}
           </a>
         </div>
         <div className="bg-white rounded-2xl p-5 shadow-sm">
