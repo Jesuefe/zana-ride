@@ -538,7 +538,7 @@ function TrackingContent() {
               </svg>
             </div>
             <div>
-              <p className="text-white font-black text-base">Incoming call</p>
+              <p className="text-white font-black text-base">{t("Incoming call")}</p>
               <p className="text-white/70 text-xs">{incomingCallInfo.driverName} {t('is calling')}</p>
             </div>
           </div>
