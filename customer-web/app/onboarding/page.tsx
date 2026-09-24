@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateProfile } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 export default function OnboardingPage() {
+  const { t } = useLang();
   const router = useRouter();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -27,21 +29,21 @@ export default function OnboardingPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-900">Create your profile</h1>
-      <p className="text-sm text-zana-muted mt-1">Just the basics for now.</p>
+      <h1 className="text-2xl font-bold text-gray-900">{t('Create your profile')}</h1>
+      <p className="text-sm text-zana-muted mt-1">{t('Just the basics for now.')}</p>
 
       <div className="mt-6 space-y-3">
         <input
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
-          placeholder="First name"
+          placeholder={t('First name')}
           className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
           autoFocus
         />
         <input
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
-          placeholder="Last name"
+          placeholder={t('Last name')}
           className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
         />
       </div>
