@@ -22,15 +22,15 @@ export default function PointsPage() {
 
   const handleRedeem = async () => {
     const pts = Number(redeemAmount);
-    if (!pts || pts < 100) { setMsg('Minimum 100 points'); return; }
+    if (!pts || pts < 100) { setMsg(t('Minimum 100 points')); return; }
     setRedeeming(true);
     try {
       const res = await api.post<any>('/points/redeem', { points: pts });
-      setMsg(`✅ ${res.pointsRedeemed} points redeemed for ${res.rwfCredited.toLocaleString()} RWF!`);
+      setMsg(`✅ ${res.pointsRedeemed} ${t('points redeemed for')} ${res.rwfCredited.toLocaleString()} RWF!`);
       const updated = await api.get<PointsData>('/points/me');
       setData(updated);
       setRedeemAmount('');
-    } catch (e: any) { setMsg(e.message ?? 'Could not redeem points'); }
+    } catch (e: any) { setMsg(e.message ?? t('Could not redeem points')); }
     finally { setRedeeming(false); }
   };
 
@@ -47,7 +47,7 @@ export default function PointsPage() {
       <div className="bg-gradient-to-br from-zana-primary to-zana-primary-dark rounded-2xl p-5 text-white mb-5">
         <div className="flex items-center gap-2 mb-1">
           <Star size={18} className="text-zana-secondary fill-zana-secondary" />
-          <p className="text-white/70 text-sm">Your points balance</p>
+          <p className="text-white/70 text-sm">{t('Your points balance')}</p>
         </div>
         <p className="text-4xl font-bold">{data?.balance.toLocaleString() ?? '…'}</p>
         <p className="text-white/60 text-xs mt-1">≈ {data?.rwfValue.toLocaleString() ?? 0} RWF value · {data?.totalEarned.toLocaleString() ?? 0} earned total</p>
@@ -55,7 +55,7 @@ export default function PointsPage() {
 
       {/* How to earn */}
       <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-        <p className="font-semibold text-gray-900 mb-3 text-sm">How to earn points</p>
+        <p className="font-semibold text-gray-900 mb-3 text-sm">{t('How to earn points')}</p>
         <div className="space-y-2">
           {[
             ['', 'Per ride', '1 point per 100 RWF spent'],
@@ -76,11 +76,11 @@ export default function PointsPage() {
 
       {/* Redeem */}
       <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-        <p className="font-semibold text-gray-900 mb-1 text-sm">Redeem points</p>
+        <p className="font-semibold text-gray-900 mb-1 text-sm">{t('Redeem points')}</p>
         <p className="text-xs text-gray-400 mb-3">100 points = 500 RWF wallet credit (min 100 points)</p>
         <div className="flex gap-2">
           <input value={redeemAmount} onChange={e => setRedeemAmount(e.target.value.replace(/\D/g,''))}
-            placeholder="Points to redeem" inputMode="numeric"
+            placeholder={t('Points to redeem')} inputMode="numeric"
             className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none" />
           <button onClick={handleRedeem} disabled={redeeming || !redeemAmount}
             className="bg-zana-primary text-white font-semibold px-4 rounded-xl text-sm disabled:opacity-40 flex items-center gap-1">
@@ -94,7 +94,7 @@ export default function PointsPage() {
       {/* History */}
       {data?.transactions && data.transactions.length > 0 && (
         <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <p className="font-semibold text-gray-900 mb-3 text-sm">Recent activity</p>
+          <p className="font-semibold text-gray-900 mb-3 text-sm">{t('Recent activity')}</p>
           <div className="space-y-2">
             {data.transactions.map((t: any) => (
               <div key={t.id} className="flex items-center justify-between">
