@@ -97,7 +97,7 @@ export default function ReportModal({ tripId, onClose }: { tripId: string; onClo
               disabled={!selected || submitting}
               className="w-full mt-5 bg-zana-error text-white font-semibold py-3 rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
             >
-              {submitting ? 'Sending…' : 'Send report to Zana Safety'}
+              {submitting ? t('Sending…') : t('Send report to Zana Safety')}
             </button>
           </>
         )}
