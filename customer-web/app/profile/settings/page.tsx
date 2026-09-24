@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useLang } from '../../../lib/LangContext';
 import ThemePicker from '../../../components/ThemePicker';
 import LanguageSelector from '../../../components/LanguageSelector';
 import { useRouter } from 'next/navigation';
@@ -35,7 +36,7 @@ export default function AccountSettingsPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not save changes.');
+      setError(err instanceof ApiError ? err.message : t('Could not save changes.'));
     } finally { setSaving(false); }
   };
 
@@ -50,24 +51,24 @@ export default function AccountSettingsPage() {
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />
         </button>
-        <h1 className="text-lg font-bold text-gray-900">Account Settings</h1>
+        <h1 className="text-lg font-bold text-gray-900">{t('Account Settings')}</h1>
       </div>
 
       <div className="space-y-4">
         <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-          <h2 className="font-semibold text-gray-900">Personal Info</h2>
+          <h2 className="font-semibold text-gray-900">{t('Personal Info')}</h2>
           <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">First Name</label>
+            <label className="text-xs font-medium text-gray-500 block mb-1">{t('First Name')}</label>
             <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2.5">
               <User size={15} className="text-gray-400" />
-              <input value={firstName} onChange={e => setFirstName(e.target.value)} className="flex-1 text-sm outline-none" placeholder="First name" />
+              <input value={firstName} onChange={e => setFirstName(e.target.value)} className="flex-1 text-sm outline-none" placeholder={t("First name")} />
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">Last Name</label>
+            <label className="text-xs font-medium text-gray-500 block mb-1">{t('Last Name')}</label>
             <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2.5">
               <User size={15} className="text-gray-400" />
-              <input value={lastName} onChange={e => setLastName(e.target.value)} className="flex-1 text-sm outline-none" placeholder="Last name" />
+              <input value={lastName} onChange={e => setLastName(e.target.value)} className="flex-1 text-sm outline-none" placeholder={t("Last name")} />
             </div>
           </div>
           <div>
@@ -79,10 +80,10 @@ export default function AccountSettingsPage() {
             <p className="text-[11px] text-gray-400 mt-1">Phone number cannot be changed.</p>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">Email</label>
+            <label className="text-xs font-medium text-gray-500 block mb-1">{t('Email')}</label>
             <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2.5">
               <Mail size={15} className="text-gray-400" />
-              <input value={email} onChange={e => setEmail(e.target.value)} type="email" className="flex-1 text-sm outline-none" placeholder="Email address" />
+              <input value={email} onChange={e => setEmail(e.target.value)} type="email" className="flex-1 text-sm outline-none" placeholder={t("Email address")} />
             </div>
           </div>
         </div>
