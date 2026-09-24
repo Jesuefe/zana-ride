@@ -324,7 +324,7 @@ export default function HomePage() {
               >
                 <Image src="/icons/car.png" alt={t('Car')} width={44} height={44} className="object-contain" />
                 <p className="text-sm font-black text-gray-900">{t('Car')}</p>
-                <p className="text-[10px] text-gray-500 -mt-1">Comfortable</p>
+                <p className="text-[10px] text-gray-500 -mt-1">{t('Comfortable')}</p>
               </button>
             </div>
 
