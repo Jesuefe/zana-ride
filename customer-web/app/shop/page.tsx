@@ -1,4 +1,8 @@
+'use client';
+
 import ShopPage from '../../components/ShopPage';
+import { useLang } from '../../lib/LangContext';
 export default function ShopDeliverPage() {
-  return <ShopPage category="GOODS" title="Shop & Deliver" emptyMessage="No shops available yet." />;
+  const { t } = useLang();
+  return <ShopPage category="GOODS" title={t('Shop & Deliver')} emptyMessage={t('No shops available yet.')} />;
 }
