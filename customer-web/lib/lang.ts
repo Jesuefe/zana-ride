@@ -529,3 +529,17 @@ Object.assign(UI, {
   'Submit Rating': { en: 'Submit Rating', fr: 'Envoyer la note', rw: 'Ohereza amanota' },
   'Skip': { en: 'Skip', fr: 'Passer', rw: 'Simbuka' },
 });
+
+
+Object.assign(UI, {
+  'How do I cancel a ride?': { en: 'How do I cancel a ride?', fr: 'Comment annuler un trajet ?', rw: 'Nabahagarika nte urugendo?' },
+  'Tap "Cancel Ride" on the tracking screen before your driver arrives.': { en: 'Tap "Cancel Ride" on the tracking screen before your driver arrives.', fr: 'Appuyez sur « Annuler le trajet » sur l’écran de suivi avant l’arrivée du chauffeur.', rw: 'Kanda kuri “Hagarika urugendo” kuri ecran yo gukurikirana mbere y’uko umushoferi agera.' },
+  'How do I top up my wallet?': { en: 'How do I top up my wallet?', fr: 'Comment recharger mon portefeuille ?', rw: 'Nongeramo nte amafaranga mu gikapo?' },
+  'Go to Wallet → Top Up, enter an amount and your MTN/Airtel number.': { en: 'Go to Wallet → Top Up, enter an amount and your MTN/Airtel number.', fr: 'Allez dans Portefeuille → Recharger, saisissez un montant et votre numéro MTN/Airtel.', rw: 'Jya kuri Amafaranga → Shyiramo amafaranga, wandike umubare n’inimero ya MTN/Airtel.' },
+  'What is a Zana location code?': { en: 'What is a Zana location code?', fr: 'Qu’est-ce qu’un code de localisation Zana ?', rw: 'Kode y’aho uri ya Zana ni iki?' },
+  'A short code (e.g. ZANA-8XK29) that represents your exact GPS location. Share it when you can\'t explain your address.': { en: 'A short code (e.g. ZANA-8XK29) that represents your exact GPS location. Share it when you can\'t explain your address.', fr: 'Un code court qui représente votre position GPS exacte. Partagez-le lorsque vous ne pouvez pas expliquer votre adresse.', rw: 'Ni kode ngufi igaragaza neza aho GPS yawe iri. Yisangize abandi igihe udashobora gusobanura aderesi yawe.' },
+  'How do I track my delivery?': { en: 'How do I track my delivery?', fr: 'Comment suivre ma livraison ?', rw: 'Nakurikirana nte ibyo natumije?' },
+  'Go to Orders → Deliveries to see real-time status of all your packages.': { en: 'Go to Orders → Deliveries to see real-time status of all your packages.', fr: 'Allez dans Commandes → Livraisons pour voir le statut en temps réel de vos colis.', rw: 'Jya kuri Ibyagurijwe → Ibyoherejwe urebe uko amapaki yawe ahagaze ubu.' },
+  'How does the fare work?': { en: 'How does the fare work?', fr: 'Comment fonctionne le tarif ?', rw: 'Igiciro cy’urugendo gitegurwa gite?' },
+  'Fares are calculated by distance and time. You see the estimate before booking.': { en: 'Fares are calculated by distance and time. You see the estimate before booking.', fr: 'Les tarifs sont calculés selon la distance et le temps. Vous voyez l’estimation avant de réserver.', rw: 'Ibiciro bibarwa hashingiwe ku ntera n’igihe. Ubona ikigereranyo mbere yo gutanga ubusabe.' },
+});
