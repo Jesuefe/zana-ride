@@ -77,7 +77,7 @@ export default function LoginWithCode() {
 
       {step === 'phone' ? (
         <>
-          <h1 className="text-2xl font-black text-gray-900">Sign in with a code</h1>
+          <h1 className="text-2xl font-black text-gray-900">{t('Sign in with a code')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-7">
             No password needed. We&rsquo;ll text you a six-digit code.
           </p>
@@ -117,7 +117,7 @@ export default function LoginWithCode() {
         </>
       ) : (
         <>
-          <h1 className="text-2xl font-black text-gray-900">Enter your code</h1>
+          <h1 className="text-2xl font-black text-gray-900">{t('Enter your code')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-7">
             Sent to {fullPhone()}. Valid for five minutes.
           </p>
