@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MapPin, Navigation, XCircle } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 type RideHistoryItem = {
   id: string;
@@ -23,6 +24,7 @@ const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
 };
 
 export default function RidesHistoryPage() {
+  const { dt } = useLang();
   const router = useRouter();
   const [rides, setRides] = useState<RideHistoryItem[] | null>(null);
 
@@ -38,17 +40,17 @@ export default function RidesHistoryPage() {
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center">
           <ArrowLeft size={18} className="text-gray-700" />
         </button>
-        <h1 className="text-xl font-black text-gray-900">Your rides</h1>
+        <h1 className="text-xl font-black text-gray-900">{dt("Your rides")}</h1>
       </div>
 
       <div className="px-4 pt-4 space-y-3">
         {rides === null && (
-          <p className="text-center text-sm text-zana-muted py-12">Loading…</p>
+          <p className="text-center text-sm text-zana-muted py-12">{dt("Loading…")}</p>
         )}
 
         {rides !== null && rides.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-sm text-zana-muted">No rides yet</p>
+            <p className="text-sm text-zana-muted">{dt("No rides yet")}</p>
           </div>
         )}
 
@@ -91,7 +93,7 @@ export default function RidesHistoryPage() {
 
               {!isCancelled && (
                 <div className="flex items-center justify-between bg-zana-primary-light rounded-lg px-3 py-2">
-                  <span className="text-[11px] text-zana-muted">Fare</span>
+                  <span className="text-[11px] text-zana-muted">{dt("Fare")}</span>
                   <span className="text-sm font-bold text-gray-900">{r.fare.toLocaleString()} RWF</span>
                 </div>
               )}
