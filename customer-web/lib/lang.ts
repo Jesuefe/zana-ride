@@ -378,3 +378,31 @@ Object.assign(UI, {
   'Confirming with Zana…': { en: 'Confirming with Zana…', fr: 'Confirmation avec Zana…', rw: 'Turimo kwemeza na Zana…' },
 });
 
+
+Object.assign(UI, {
+  'Minimum 100 points': { en: 'Minimum 100 points', fr: 'Minimum 100 points', rw: 'Nibura amanota 100' },
+  'points redeemed for': { en: 'points redeemed for', fr: 'points échangés contre', rw: 'amanota yakoreshejwe kuri' },
+  'Could not redeem points': { en: 'Could not redeem points', fr: 'Impossible d’échanger les points', rw: 'Ntibyashobotse gukoresha amanota' },
+  'Your points balance': { en: 'Your points balance', fr: 'Votre solde de points', rw: 'Amanota ufite' },
+  'How to earn points': { en: 'How to earn points', fr: 'Comment gagner des points', rw: 'Uko wabona amanota' },
+  'Redeem points': { en: 'Redeem points', fr: 'Échanger des points', rw: 'Koresha amanota' },
+  'Points to redeem': { en: 'Points to redeem', fr: 'Points à échanger', rw: 'Amanota yo gukoresha' },
+  'Recent activity': { en: 'Recent activity', fr: 'Activité récente', rw: 'Ibikorwa bya vuba' },
+  'Help & Support': { en: 'Help & Support', fr: 'Aide et assistance', rw: 'Ubufasha n’ubwunganizi' },
+  'Still need help?': { en: 'Still need help?', fr: 'Besoin d’aide ?', rw: 'Uracyakeneye ubufasha?' },
+  'WhatsApp Support': { en: 'WhatsApp Support', fr: 'Assistance WhatsApp', rw: 'Ubufasha kuri WhatsApp' },
+  'Location is not available on this device.': { en: 'Location is not available on this device.', fr: 'La localisation n’est pas disponible sur cet appareil.', rw: 'Aho uri ntihaboneka kuri iki gikoresho.' },
+  'Could not read your location. Allow location access and try again.': { en: 'Could not read your location. Allow location access and try again.', fr: 'Impossible de lire votre position. Autorisez l’accès à la localisation et réessayez.', rw: 'Ntibyashobotse kumenya aho uri. Emera ko igikoresho kibona aho uri wongere ugerageze.' },
+  'Saved Places': { en: 'Saved Places', fr: 'Lieux enregistrés', rw: 'Ahantu wabikiye' },
+  'No saved places yet.': { en: 'No saved places yet.', fr: 'Aucun lieu enregistré pour le moment.', rw: 'Nta hantu wabika kugeza ubu.' },
+  'New saved place': { en: 'New saved place', fr: 'Nouveau lieu enregistré', rw: 'Bika ahantu hashya' },
+  'or': { en: 'or', fr: 'ou', rw: 'cyangwa' },
+  'Search address': { en: 'Search address', fr: 'Rechercher une adresse', rw: 'Shaka aderesi' },
+  'Type an address...': { en: 'Type an address...', fr: 'Saisissez une adresse...', rw: 'Andika aderesi...' },
+  'Cancel': { en: 'Cancel', fr: 'Annuler', rw: 'Hagarika' },
+  'Safety': { en: 'Safety', fr: 'Sécurité', rw: 'Umutekano' },
+  'Emergency Contact': { en: 'Emergency Contact', fr: 'Contact d’urgence', rw: 'Uwo wahamagara mu gihe cy’amage' },
+  'Share your trip details with trusted contacts for added safety.': { en: 'Share your trip details with trusted contacts for added safety.', fr: 'Partagez les détails de votre trajet avec des contacts de confiance pour plus de sécurité.', rw: 'Sangiza abo wizera amakuru y’urugendo rwawe kugira ngo urusheho kugira umutekano.' },
+  'SOS Feature': { en: 'SOS Feature', fr: 'Fonction SOS', rw: 'Serivisi ya SOS' },
+  'During any active ride, shake your phone or tap the SOS button to report a safety concern. Our team will be alerted immediately.': { en: 'During any active ride, shake your phone or tap the SOS button to report a safety concern. Our team will be alerted immediately.', fr: 'Pendant tout trajet actif, secouez votre téléphone ou appuyez sur le bouton SOS pour signaler un problème de sécurité. Notre équipe sera alertée immédiatement.', rw: 'Mu rugendo urimo, nyeganyeza telefoni cyangwa ukande kuri SOS kugira ngo utange amakuru ku kibazo cy’umutekano. Itsinda ryacu rizahita ribimenyeshwa.' },
+});
