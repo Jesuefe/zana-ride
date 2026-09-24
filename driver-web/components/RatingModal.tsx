@@ -13,6 +13,7 @@ export default function RatingModal({
   driverName: string;
   onClose: () => void;
 }) {
+  const { dt, lang } = useLang();
   const [score, setScore] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState('');
@@ -39,7 +40,7 @@ export default function RatingModal({
     <div className="fixed inset-0 z-50 flex items-end bg-black/50">
       <div className="w-full bg-white rounded-t-2xl p-6 animate-fade-slide-up">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-gray-900">Rate your ride</h2>
+          <h2 className="text-lg font-bold text-gray-900">{dt('Rate your ride', lang)}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
             <X size={15} />
           </button>
@@ -52,7 +53,7 @@ export default function RatingModal({
           </div>
         ) : (
           <>
-            <p className="text-sm text-gray-500 mb-4 text-center">How was your ride with <strong>{driverName}</strong>?</p>
+            <p className="text-sm text-gray-500 mb-4 text-center">{dt('How was your ride with', lang)} <strong>{driverName}</strong>?{dt('?', lang)}</p>
 
             {/* Stars */}
             <div className="flex justify-center gap-3 mb-5">
@@ -86,7 +87,7 @@ export default function RatingModal({
                 <textarea
                   value={comment}
                   onChange={e => setComment(e.target.value)}
-                  placeholder="Add a comment (optional)"
+                  placeholder={dt('Add a comment (optional)', lang)}
                   rows={2}
                   className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none resize-none mb-4"
                 />
