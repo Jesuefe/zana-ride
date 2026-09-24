@@ -1,5 +1,7 @@
 'use client';
 
+import { useLang } from '../lib/LangContext';
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MapPin, Store } from 'lucide-react';
@@ -19,7 +21,8 @@ type Props = {
 // stores and pick one. Everything about a specific store — its products,
 // search, and the cart itself — now lives on that store's own dedicated
 // page, which is where a customer would naturally expect it to be.
-export default function ShopPage({ category, title, emptyMessage }: Props) {
+export default function ShopPage({
+  const { t } = useLang(); category, title, emptyMessage }: Props) {
   const router = useRouter();
   const pickup = getStoredPickup();
 
@@ -53,7 +56,7 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
           <div className="text-center py-16">
             <Store size={40} className="text-gray-200 mx-auto mb-3" />
             <p className="text-sm text-gray-500">{emptyMessage}</p>
-            <p className="text-xs text-gray-400 mt-1">Check back soon.</p>
+            <p className="text-xs text-gray-400 mt-1">{t('Check back soon.')}</p>
           </div>
         )}
 
