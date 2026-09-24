@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Star, Car, Truck, TrendingUp, Calendar, AlertTriangle, CheckCircle, LogOut } from 'lucide-react';
 import { api, clearToken } from '../../lib/api/client';
 import { goOffline } from '../../lib/api/driver';
+import { useLang } from '../../lib/LangContext';
 import { fetchMyDriverProfile } from '../../lib/api/driver';
 
 type DriverStats = {
@@ -19,6 +20,7 @@ type Debt = { totalDebt: number; debtCount: number };
 
 export default function DriverProfilePage() {
   const router = useRouter();
+  const { dt } = useLang();
   const [stats, setStats] = useState<DriverStats | null>(null);
   const [debt, setDebt] = useState<Debt | null>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -53,13 +55,13 @@ export default function DriverProfilePage() {
           onClick={() => router.push('/documents')}
           className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3.5 shadow-sm"
         >
-          <span className="text-sm font-bold text-gray-900">Your documents</span>
-          <span className="text-xs font-bold text-zana-primary">Manage</span>
+          <span className="text-sm font-bold text-gray-900">{dt('Your documents')}</span>
+          <span className="text-xs font-bold text-zana-primary">{dt('Manage')}</span>
         </button>
       </div>
 
       <div className="bg-zana-primary-dark px-4 pt-12 pb-6">
-        <button onClick={() => router.back()} className="text-white/70 text-sm mb-4">← Back</button>
+        <button onClick={() => router.back()} className="text-white/70 text-sm mb-4">{dt('← Back')}</button>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-white/15 flex items-center justify-center">
             <Car size={28} className="text-white" />
@@ -70,7 +72,7 @@ export default function DriverProfilePage() {
             <div className="flex items-center gap-1 mt-1">
               <Star size={14} className="text-zana-secondary fill-zana-secondary" />
               <span className="text-white font-semibold">{profile?.rating?.toFixed(1) ?? '0.0'}</span>
-              <span className="text-white/50 text-xs">rating</span>
+              <span className="text-white/50 text-xs">{dt('rating')}</span>
             </div>
           </div>
         </div>
@@ -82,11 +84,11 @@ export default function DriverProfilePage() {
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
             <AlertTriangle size={18} className="text-amber-600 mt-0.5 shrink-0" />
             <div>
-              <p className="font-semibold text-amber-800 text-sm">Outstanding commission debt</p>
+              <p className="font-semibold text-amber-800 text-sm">{dt('Outstanding commission debt')}</p>
               <p className="text-xs text-amber-600 mt-0.5">
-                You owe <strong>{debt.totalDebt.toLocaleString()} RWF</strong> in commission from {debt.debtCount} cash trip{debt.debtCount > 1 ? 's' : ''}. This will be deducted from your next wallet earning.
+                {dt('You owe')} <strong>{debt.totalDebt.toLocaleString()} RWF</strong> {dt('in commission from')} {debt.debtCount} {dt(debt.debtCount > 1 ? 'cash trips' : 'cash trip')}. {dt('This will be deducted from your next wallet earning.')}
               </p>
-              <p className="text-xs text-amber-500 mt-1">💡 Tip: Keep at least 5,000 RWF in your wallet to avoid debt.</p>
+              <p className="text-xs text-amber-500 mt-1">{dt('💡 Tip: Keep at least 5,000 RWF in your wallet to avoid debt.')}</p>
             </div>
           </div>
         )}
@@ -94,7 +96,7 @@ export default function DriverProfilePage() {
         {debt && debt.totalDebt === 0 && (
           <div className="bg-green-50 border border-green-100 rounded-2xl p-3 flex items-center gap-2">
             <CheckCircle size={16} className="text-green-600" />
-            <p className="text-sm text-green-700 font-semibold">No outstanding debt — you're all clear!</p>
+            <p className="text-sm text-green-700 font-semibold">{dt("No outstanding debt — you're all clear!")}</p>
           </div>
         )}
 
@@ -118,13 +120,13 @@ export default function DriverProfilePage() {
         {profile?.approvalStatus && profile.approvalStatus !== 'APPROVED' && (
           <div className={`rounded-2xl p-4 ${profile.approvalStatus === 'REJECTED' ? 'bg-red-50 border border-red-100' : 'bg-amber-50 border border-amber-100'}`}>
             <p className="font-semibold text-sm mb-1">
-              {profile.approvalStatus === 'REJECTED' ? '❌ Account rejected' : '⏳ Pending approval'}
+              {profile.approvalStatus === 'REJECTED' ? dt('❌ Account rejected') : dt('⏳ Pending approval')}
             </p>
             {profile.rejectionReason && (
-              <p className="text-xs text-gray-600">Reason: <strong>{profile.rejectionReason}</strong></p>
+              <p className="text-xs text-gray-600">{dt('Reason')}: <strong>{profile.rejectionReason}</strong></p>
             )}
             {profile.approvalStatus === 'REJECTED' && (
-              <p className="text-xs text-gray-500 mt-1">Please contact support@zana.rw to appeal.</p>
+              <p className="text-xs text-gray-500 mt-1">{dt('Please contact support@zana.rw to appeal.')}</p>
             )}
           </div>
         )}
@@ -132,7 +134,7 @@ export default function DriverProfilePage() {
         {/* Recent ratings */}
         {stats?.recentRatings && stats.recentRatings.length > 0 && (
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <p className="font-semibold text-gray-900 text-sm mb-3">Recent ratings from passengers</p>
+            <p className="font-semibold text-gray-900 text-sm mb-3">{dt('Recent ratings from passengers')}</p>
             <div className="space-y-3">
               {stats.recentRatings.map((r, i) => (
                 <div key={i} className="flex items-start gap-2">
@@ -156,7 +158,7 @@ export default function DriverProfilePage() {
         </div>
 
         <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Language</p>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{dt('Language')}</p>
           <LanguageSelector variant="light" />
         </div>
 
@@ -178,7 +180,7 @@ export default function DriverProfilePage() {
           className="w-full flex items-center justify-center gap-2 bg-white rounded-2xl shadow-sm px-4 py-3.5 text-red-600 font-semibold text-sm"
         >
           <LogOut size={16} />
-          Log out
+          {dt('Log out')}
         </button>
       </div>
     </div>
