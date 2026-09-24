@@ -563,3 +563,30 @@ Object.assign(UI, {
   'Change ride type': { en: 'Change ride type', fr: 'Changer de type de trajet', rw: 'Hindura ubwoko bw’urugendo' },
   'Could not reach the server.': { en: 'Could not reach the server.', fr: 'Impossible de joindre le serveur.', rw: 'Ntibyashobotse kugera kuri seriveri.' },
 });
+
+
+Object.assign(UI, {
+  'Drag the green pin to adjust pickup': { en: 'Drag the green pin to adjust pickup', fr: 'Déplacez le repère vert pour ajuster le départ', rw: 'Kurura akamenyetso k’icyatsi uhindure aho ufatira' },
+  'Search pickup location': { en: 'Search pickup location', fr: 'Rechercher le lieu de prise en charge', rw: 'Shaka aho ufatira' },
+  'How many motos?': { en: 'How many motos?', fr: 'Combien de motos ?', rw: 'Amamoto angahe?' },
+  'Booking': { en: 'Booking', fr: 'Réservation de', rw: 'Guteganya' },
+  'Booking your moto…': { en: 'Booking your moto…', fr: 'Réservation de votre moto…', rw: 'Turimo guteganya moto yawe…' },
+  'moto': { en: 'moto', fr: 'moto', rw: 'moto' },
+  'car': { en: 'car', fr: 'voiture', rw: 'imodoka' },
+  's': { en: 's', fr: 's', rw: '' },
+  'available nearby': { en: 'available nearby', fr: 'disponibles à proximité', rw: 'ziboneka hafi' },
+  'Searching…': { en: 'Searching…', fr: 'Recherche…', rw: 'Turashakisha…' },
+  'Receiver shared a Zana location code? Enter it as your destination.': { en: 'Receiver shared a Zana location code? Enter it as your destination.', fr: 'Le destinataire a partagé un code de localisation Zana ? Saisissez-le comme destination.', rw: 'Uwo wohereje yasangiye kode y’aho ari ya Zana? Yandike nk’aho ujya.' },
+  'Use': { en: 'Use', fr: 'Utiliser', rw: 'Koresha' },
+  'No matching places.': { en: 'No matching places.', fr: 'Aucun lieu correspondant.', rw: 'Nta hantu hahuye habonetse.' },
+  'How will you pay?': { en: 'How will you pay?', fr: 'Comment allez-vous payer ?', rw: 'Ugiye kwishyura ute?' },
+  'seats': { en: 'seats', fr: 'places', rw: 'imyanya' },
+  'seat': { en: 'seat', fr: 'place', rw: 'umwanya' },
+  'Moto ride': { en: 'Moto ride', fr: 'Trajet en moto', rw: 'Urugendo rwa moto' },
+  'Calculating...': { en: 'Calculating...', fr: 'Calcul en cours...', rw: 'Turimo kubara...' },
+  'Insufficient balance.': { en: 'Insufficient balance.', fr: 'Solde insuffisant.', rw: 'Amafaranga asigaye ntabwo ahagije.' },
+  'Your wallet has': { en: 'Your wallet has', fr: 'Votre portefeuille contient', rw: 'Igikapo cyawe gifite' },
+  'Choose another payment method or top up.': { en: 'Choose another payment method or top up.', fr: 'Choisissez un autre mode de paiement ou rechargez.', rw: 'Hitamo ubundi buryo bwo kwishyura cyangwa wongere amafaranga.' },
+  'Confirm & Book': { en: 'Confirm & Book', fr: 'Confirmer et réserver', rw: 'Emeza kandi uteganye' },
+  'That code was not found or has expired.': { en: 'That code was not found or has expired.', fr: 'Ce code est introuvable ou a expiré.', rw: 'Iyo kode ntibonetse cyangwa yararangiye.' },
+});
