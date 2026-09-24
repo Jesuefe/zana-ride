@@ -23,15 +23,15 @@ export default function HelpPage() {
       <div className="space-y-3 mb-5">
         {faqs.map((faq, i) => (
           <div key={i} className="bg-white rounded-xl p-4 shadow-sm">
-            <p className="font-semibold text-sm text-gray-900 mb-1">{faq.q}</p>
-            <p className="text-sm text-gray-500">{faq.a}</p>
+            <p className="font-semibold text-sm text-gray-900 mb-1">{t(faq.q)}</p>
+            <p className="text-sm text-gray-500">{t(faq.a)}</p>
           </div>
         ))}
       </div>
       <div className="bg-zana-primary-light rounded-2xl p-5">
         <p className="font-semibold text-gray-900 mb-3">{t('Still need help?')}</p>
         <a href="mailto:support@zana.rw" className="flex items-center gap-2 text-sm text-zana-primary font-semibold mb-2"><Mail size={15} /> support@zana.rw</a>
-        <a href="https://wa.me/250700000000" className="flex items-center gap-2 text-sm text-zana-primary font-semibold"><MessageCircle size={15} /> WhatsApp Support</a>
+        <a href="https://wa.me/250700000000" className="flex items-center gap-2 text-sm text-zana-primary font-semibold"><MessageCircle size={15} /> {t('WhatsApp Support')}</a>
       </div>
     </div>
   );
