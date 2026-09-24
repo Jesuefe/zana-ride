@@ -96,7 +96,7 @@ export default function SignupPage() {
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
-            placeholder="788 123 456"
+            placeholder={dt('788 123 456')}
             inputMode="numeric"
             className="flex-1 border border-zana-border rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
           />
