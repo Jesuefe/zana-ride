@@ -388,6 +388,27 @@ export function tt(key: string, lang: Lang): string {
 
 
 Object.assign(DRIVER_UI, {
+  'GO ONLINE': { en: 'GO ONLINE', fr: 'SE CONNECTER', rw: 'JYA KUMURONGO' },
+  'GO OFFLINE': { en: 'GO OFFLINE', fr: 'SE DÉCONNECTER', rw: 'JYA HANZE Y’UMURONGO' },
+  'Ready to receive requests': { en: 'Ready to receive requests', fr: 'Prêt à recevoir des demandes', rw: 'Witeguye kwakira ubusabe' },
+  'What do you want to receive?': { en: 'What do you want to receive?', fr: 'Que voulez-vous recevoir ?', rw: 'Urashaka kwakira iki?' },
+  'Choose what you want to receive while you are online.': { en: 'Choose what you want to receive while you are online.', fr: 'Choisissez ce que vous souhaitez recevoir lorsque vous êtes en ligne.', rw: 'Hitamo ibyo ushaka kwakira igihe uri ku murongo.' },
+  'Rides & Deliveries': { en: 'Rides & Deliveries', fr: 'Trajets et livraisons', rw: 'Ingendo no kugeza ibintu' },
+  'Slide to confirm': { en: 'Slide to confirm', fr: 'Glissez pour confirmer', rw: 'Kurura wemeze' },
+  'Slide to go online': { en: 'Slide to go online', fr: 'Glissez pour vous connecter', rw: 'Kurura ujye ku murongo' },
+  'Taking you online...': { en: 'Taking you online...', fr: 'Connexion en cours...', rw: 'Turimo kukujyana ku murongo...' },
+  'Taking you offline...': { en: 'Taking you offline...', fr: 'Déconnexion en cours...', rw: 'Turimo kugukuraho ku murongo...' },
+  'Connecting you to new requests': { en: 'Connecting you to new requests', fr: 'Connexion aux nouvelles demandes', rw: 'Turimo kuguhuza n’ubusabe bushya' },
+  'Stopping new requests': { en: 'Stopping new requests', fr: 'Arrêt des nouvelles demandes', rw: 'Turimo guhagarika ubusabe bushya' },
+  'Go offline?': { en: 'Go offline?', fr: 'Se déconnecter ?', rw: 'Ushaka kuva ku murongo?' },
+  'You will stop receiving new requests.': { en: 'You will stop receiving new requests.', fr: 'Vous ne recevrez plus de nouvelles demandes.', rw: 'Ntuzongera kwakira ubusabe bushya.' },
+  "You're online": { en: "You're online", fr: 'Vous êtes en ligne', rw: 'Uri ku murongo' },
+  'Could not go offline. Check your connection.': { en: 'Could not go offline. Check your connection.', fr: 'Impossible de se déconnecter. Vérifiez votre connexion.', rw: 'Ntibyashobotse kuva ku murongo. Reba internet.' },
+  'Could not go online. Check your connection.': { en: 'Could not go online. Check your connection.', fr: 'Impossible de se connecter. Vérifiez votre connexion.', rw: 'Ntibyashobotse kujya ku murongo. Reba internet.' },
+  "Your account is still pending approval — you can go online once it's reviewed.": { en: "Your account is still pending approval — you can go online once it's reviewed.", fr: 'Votre compte est toujours en attente de validation — vous pourrez vous connecter après sa validation.', rw: 'Konti yawe iracyategereje kwemezwa — uzashobora kujya ku murongo imaze kwemezwa.' },
+});
+
+Object.assign(DRIVER_UI, {
   'vehicle problem, customer not reachable…': { en: 'e.g. vehicle problem, customer not reachable…', fr: 'ex. problème du véhicule, client injoignable…', rw: 'urugero: ikibazo cy’ikinyabiziga, umukiriya ntaboneka…' },
   'passenger': { en: 'passenger', fr: 'passager', rw: 'umugenzi' },
 });
