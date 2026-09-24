@@ -138,7 +138,7 @@ export default function WalletPage() {
                       value={phone || registeredPhone}
                       readOnly
                       inputMode="numeric"
-                      placeholder="Registered phone number"
+                      placeholder={t('Registered phone number')}
                       className="w-full border border-zana-border rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700 focus:outline-none"
                     />
                     <p className="text-[10px] text-zana-muted mt-1.5">{t('Top-ups can only use your registered ZANA phone number.')}</p>
