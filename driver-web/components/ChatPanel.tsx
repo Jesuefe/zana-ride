@@ -5,6 +5,7 @@ import { X, Send, MessageCircle, Loader2 } from 'lucide-react';
 import { sendMessage, getMessages, ChatMessage } from '../lib/api/chat';
 import { getStoredLang, Lang } from '../lib/lang';
 import { getToken } from '../lib/api/client';
+import { useLang } from '../lib/LangContext';
 
 // Decode just the sub from the JWT so we know which messages are "mine"
 // without an extra API call.
@@ -28,6 +29,7 @@ export default function ChatPanel({
   contextId: string;
   onClose: () => void;
 }) {
+  const { t } = useLang();
   const lang = getStoredLang() as Lang;
   const myId = getUserIdFromToken();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
