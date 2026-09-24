@@ -76,7 +76,7 @@ export default function ChatPanel({
         </div>
         <div className="flex-1">
           <p className="text-sm font-semibold text-gray-900">
-            {context === 'trip' ? 'Chat with driver' : 'Chat with courier'}
+            {context === 'trip' ? t('Chat with driver') : t('Chat with courier')}
           </p>
           <p className="text-[10px] text-zana-muted">{t('Messages auto-translate · History clears after ride')}</p>
         </div>
