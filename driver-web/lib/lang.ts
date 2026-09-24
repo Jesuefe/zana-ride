@@ -388,6 +388,17 @@ export function tt(key: string, lang: Lang): string {
 
 
 Object.assign(DRIVER_UI, {
+  'SOS EMERGENCY': { en: 'SOS EMERGENCY', fr: 'URGENCE SOS', rw: 'SOS Y’IHUTIRWA' },
+  'Emergency SOS': { en: 'Emergency SOS', fr: 'SOS d’urgence', rw: 'SOS y’ihutirwa' },
+  'Use SOS if you are in immediate danger or need urgent safety assistance.': { en: 'Use SOS if you are in immediate danger or need urgent safety assistance.', fr: 'Utilisez le SOS si vous êtes en danger immédiat ou avez besoin d’une aide urgente.', rw: 'Koresha SOS niba uri mu kaga ako kanya cyangwa ukeneye ubufasha bwihutirwa.' },
+  'SEND SOS ALERT': { en: 'SEND SOS ALERT', fr: 'ENVOYER L’ALERTE SOS', rw: 'OHEREZA ALERTI YA SOS' },
+  'Sending SOS...': { en: 'Sending SOS...', fr: 'Envoi du SOS...', rw: 'Turimo kohereza SOS...' },
+  'SOS alert sent': { en: 'SOS alert sent', fr: 'Alerte SOS envoyée', rw: 'Alerti ya SOS yoherejwe' },
+  'Zana Safety has received your emergency alert and your location.': { en: 'Zana Safety has received your emergency alert and your location.', fr: 'Zana Safety a reçu votre alerte d’urgence et votre position.', rw: 'Zana Safety yakiriye alerti y’ihutirwa n’aho uri.' },
+  'SOS could not be sent. Check your connection and try again.': { en: 'SOS could not be sent. Check your connection and try again.', fr: 'Impossible d’envoyer le SOS. Vérifiez votre connexion et réessayez.', rw: 'SOS ntiyoherejwe. Reba internet wongere ugerageze.' },
+  'Close': { en: 'Close', fr: 'Fermer', rw: 'Funga' },
+});
+
   'GO ONLINE': { en: 'GO ONLINE', fr: 'SE CONNECTER', rw: 'JYA KUMURONGO' },
   'GO OFFLINE': { en: 'GO OFFLINE', fr: 'SE DÉCONNECTER', rw: 'JYA HANZE Y’UMURONGO' },
   'Ready to receive requests': { en: 'Ready to receive requests', fr: 'Prêt à recevoir des demandes', rw: 'Witeguye kwakira ubusabe' },
