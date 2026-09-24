@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, Bell, MapPin, Navigation, ChevronRight, X } from 'lucide-react';
+import { Menu, Bell, MapPin, Navigation, ChevronRight, X, AlertTriangle } from 'lucide-react';
 import LanguageSelector from '../components/LanguageSelector';
 import { useLang } from '../lib/LangContext';
 import {
@@ -10,7 +10,7 @@ import {
   goOnline, goOffline, updateDriverLocation, updateDriverMode,
   fetchPendingDeliveries, acceptDelivery, fetchEarnings, fetchMyActiveTrip,
   fetchRecentlyCompletedRide, logRecoveryEvent,
-  fetchMyOffers, declineOffer, RideOffer,
+  fetchMyOffers, declineOffer, triggerSOS, RideOffer,
   DriverProfile, DriverTrip, PendingDelivery,
 } from '../lib/api/driver';
 import { io } from 'socket.io-client';
@@ -313,6 +313,8 @@ export default function DriverHome() {
   // count. Remove this line once a real notification source is wired in.
   const notifications = 0;
   const [showMenu, setShowMenu] = useState(false);
+  const [showSOS, setShowSOS] = useState(false);
+  const [sosState, setSosState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [showMode, setShowMode] = useState(false);
   const [onlineFlow, setOnlineFlow] = useState<'online' | 'offline'>('online');
   const [onlineTransition, setOnlineTransition] = useState<'online' | 'offline' | null>(null);
@@ -527,6 +529,31 @@ export default function DriverHome() {
     return () => clearInterval(interval);
   }, [online, coords, offers.length, incomingDelivery, driverMode]);
 
+
+  const handleSOS = async () => {
+    if (sosState === 'sending' || sosState === 'sent') return;
+    setSosState('sending');
+
+    const activeTripId = activeTrip?.id;
+    const send = async (coords?: { lat: number; lng: number }) => {
+      try {
+        await triggerSOS(activeTripId, coords);
+        setSosState('sent');
+      } catch {
+        setSosState('error');
+      }
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => send({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => send(),
+        { enableHighAccuracy: true, timeout: 7000, maximumAge: 5000 },
+      );
+    } else {
+      await send();
+    }
+  };
 
   const handleToggle = async () => {
     if (!online) {
@@ -789,6 +816,15 @@ export default function DriverHome() {
             </button>
           </div>
 
+          {/* Driver SOS */}
+          <button
+            onClick={() => { setSosState('idle'); setShowSOS(true); }}
+            className="w-full mb-3 h-12 rounded-2xl border-2 border-red-200 bg-red-50 text-red-700 flex items-center justify-center gap-2 font-black text-sm active:scale-[0.99] transition-transform"
+          >
+            <AlertTriangle size={17} />
+            {dt('SOS EMERGENCY')}
+          </button>
+
           {/* ZANA online/offline control */}
           {online ? (
             <button
@@ -864,6 +900,53 @@ export default function DriverHome() {
           </div>
         </div>
       </div>
+
+      {showSOS && (
+        <div className="fixed inset-0 z-[75] flex items-end bg-black/60">
+          <div className="w-full bg-white rounded-t-[30px] p-5 pb-7 shadow-2xl">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+
+            {sosState === 'sent' ? (
+              <div className="text-center py-5">
+                <div className="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                  <AlertTriangle size={30} className="text-red-600" />
+                </div>
+                <h2 className="text-xl font-black text-gray-900">{dt('SOS alert sent')}</h2>
+                <p className="text-sm text-gray-500 mt-2">{dt('Zana Safety has received your emergency alert and your location.')}</p>
+                <button onClick={() => setShowSOS(false)} className="w-full mt-6 bg-zana-primary text-white font-bold py-3.5 rounded-xl">
+                  {dt('Close')}
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="text-center mb-5">
+                  <div className="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                    <AlertTriangle size={30} className="text-red-600" />
+                  </div>
+                  <h2 className="text-xl font-black text-gray-900">{dt('Emergency SOS')}</h2>
+                  <p className="text-sm text-gray-500 mt-2">{dt('Use SOS if you are in immediate danger or need urgent safety assistance.')}</p>
+                </div>
+
+                {sosState === 'error' && (
+                  <p className="text-sm text-red-600 text-center font-semibold mb-3">{dt('SOS could not be sent. Check your connection and try again.')}</p>
+                )}
+
+                <button
+                  onClick={handleSOS}
+                  disabled={sosState === 'sending'}
+                  className="w-full py-4 rounded-2xl bg-red-600 text-white font-black text-base disabled:opacity-60"
+                >
+                  {sosState === 'sending' ? dt('Sending SOS...') : dt('SEND SOS ALERT')}
+                </button>
+
+                <button onClick={() => setShowSOS(false)} disabled={sosState === 'sending'} className="w-full mt-3 py-3 text-sm font-semibold text-gray-400">
+                  {dt('Cancel')}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Online / offline confirmation sheet */}
       {showMode && (
