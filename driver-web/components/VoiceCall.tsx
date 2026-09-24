@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import {
+  const { dt } = useLang(); useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { PhoneOff, Mic, MicOff, Loader2 } from 'lucide-react';
 import { api } from '../lib/api/client';
+import { useLang } from '../lib/LangContext';
 import {
   Room, RoomEvent, Track, ConnectionState,
   type RemoteParticipant, type RemoteTrackPublication,
@@ -355,9 +357,7 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
 
         {state === 'failed' && (
           <button onClick={() => { cleanup(); onClose(); }}
-            className="mt-2 bg-white/10 text-white text-sm px-6 py-2 rounded-full">
-            Try again
-          </button>
+            className="mt-2 bg-white/10 text-white text-sm px-6 py-2 rounded-full">{dt("Try again")}</button>
         )}
       </div>
 
