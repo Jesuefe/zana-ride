@@ -316,3 +316,21 @@ Object.assign(UI, {
   'Saved': { en: 'Saved', fr: 'Enregistré', rw: 'Byabitswe' },
   'Could not save changes.': { en: 'Could not save changes.', fr: 'Impossible d’enregistrer les modifications.', rw: 'Ntibyashobotse kubika impinduka.' },
 });
+
+Object.assign(UI, {
+  'Messages auto-translate · History clears after ride': { en: 'Messages auto-translate · History clears after ride', fr: 'Les messages sont traduits automatiquement · L’historique est effacé après le trajet', rw: 'Ubutumwa buhindurwa ururimi mu buryo bwikora · Amateka asibwa urugendo rurangiye' },
+  'No messages yet. Say hello!': { en: 'No messages yet. Say hello!', fr: 'Aucun message pour le moment. Dites bonjour !', rw: 'Nta butumwa burabaho. Vuga uti muraho!' },
+  'Thank you!': { en: 'Thank you!', fr: 'Merci !', rw: 'Murakoze!' },
+  'How was your ride with': { en: 'How was your ride with', fr: 'Urugendo rwanyu na', rw: 'Urugendo rwanyu na' },
+  '?': { en: '?', fr: '?', rw: '?' },
+  'Add a comment (optional)': { en: 'Add a comment (optional)', fr: 'Ajouter un commentaire (facultatif)', rw: 'Ongeraho igitekerezo (ntibitegetswe)' },
+  'Report sent': { en: 'Report sent', fr: 'Rapport envoyé', rw: 'Raporo yoherejwe' },
+  'Report an issue': { en: 'Report an issue', fr: 'Signaler un problème', rw: 'Tanga raporo y’ikibazo' },
+  "Is everything okay? Select what's happening.": { en: "Is everything okay? Select what's happening.", fr: 'Tout va bien ? Sélectionnez ce qui se passe.', rw: 'Byose ni amahoro? Hitamo ikibazo kiri kuba.' },
+  'Tell us what happened': { en: 'Tell us what happened', fr: 'Dites-nous ce qui s’est passé', rw: 'Tubwire ibyabaye' },
+  'Anything you want to add? (optional)': { en: 'Anything you want to add? (optional)', fr: 'Quelque chose à ajouter ? (facultatif)', rw: 'Hari icyo ushaka kongeraho? (ntibitegetswe)' },
+  'Choose a ride': { en: 'Choose a ride', fr: 'Choisissez un trajet', rw: 'Hitamo urugendo' },
+  'Payment method': { en: 'Payment method', fr: 'Mode de paiement', rw: 'Uburyo bwo kwishyura' },
+  '💳 How will you pay?': { en: '💳 How will you pay?', fr: '💳 Comment allez-vous payer ?', rw: '💳 Ugiye kwishyura ute?' },
+  'Insufficient wallet balance': { en: 'Insufficient wallet balance', fr: 'Solde du portefeuille insuffisant', rw: 'Amafaranga ari mu gikapo ntabwo ahagije' },
+});
