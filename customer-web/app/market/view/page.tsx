@@ -158,9 +158,9 @@ function MarketContent() {
       </div>
 
       {cart.length > 0 && !checkout && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[448px] z-40">
           <button onClick={() => setCheckout(true)}
-            className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2">
+            className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg">
             <ShoppingBag size={16} />
             Review {cart.length} item{cart.length === 1 ? '' : 's'} · {subtotal.toLocaleString()} RWF
           </button>

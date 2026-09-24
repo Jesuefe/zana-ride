@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, ArrowDownLeft, ArrowUpRight, X, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { fetchWallet, initiateMomoTopUp, checkMomoTopUpStatus } from '../../lib/api/trips';
+import { fetchMe } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
 import { useLang } from '../../lib/LangContext';
 
@@ -21,15 +22,21 @@ export default function WalletPage() {
   const [phone, setPhone] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [registeredPhone, setRegisteredPhone] = useState('');
 
   const loadWallet = () => fetchWallet().then(setWallet).catch(() => {});
 
   useEffect(() => {
     loadWallet();
+    fetchMe().then((u: any) => setRegisteredPhone(u.phone ?? '')).catch(() => {});
   }, []);
 
   const handleStartTopUp = async () => {
     setError(null);
+    if (!registeredPhone || phone !== registeredPhone.replace(/\D/g, '')) {
+      setError(t('Wallet top-up is only available from your registered ZANA phone number.'));
+      return;
+    }
     try {
       const { ref } = await initiateMomoTopUp(phone, Number(amount));
       setStage('waiting');
@@ -128,12 +135,13 @@ export default function WalletPage() {
                   <div>
                     <label className="text-xs font-medium text-zana-muted block mb-1.5">{t('Mobile money number')}</label>
                     <input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      placeholder="0788 123 456"
+                      value={phone || registeredPhone}
+                      readOnly
                       inputMode="numeric"
-                      className="w-full border border-zana-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
+                      placeholder="Registered phone number"
+                      className="w-full border border-zana-border rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700 focus:outline-none"
                     />
+                    <p className="text-[10px] text-zana-muted mt-1.5">{t('Top-ups can only use your registered ZANA phone number.')}</p>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-zana-muted block mb-1.5">{t('Amount (RWF)')}</label>
@@ -149,7 +157,7 @@ export default function WalletPage() {
                 {error && <p className="text-xs text-zana-error mt-3">{error}</p>}
                 <button
                   onClick={handleStartTopUp}
-                  disabled={phone.length < 10 || !amount || Number(amount) < 100}
+                  disabled={!registeredPhone || !amount || Number(amount) < 100}
                   className="w-full mt-5 bg-zana-primary text-white font-semibold py-3 rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
                 >
                   {t('Request payment')}

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ShoppingCart, Plus, Minus, MapPin, Loader2, Store, Package, Search } from 'lucide-react';
 import { fetchMarketplaceWithLocation, placeOrder, MarketplaceMerchant, MarketplaceProduct, CartItem } from '../../../lib/api/marketplace';
 import { getStoredPickup } from '../../../lib/location';
+import OrderRecipient, { OrderRecipient as OrderRecipientValue } from '../../../components/OrderRecipient';
 
 function StoreContent() {
   const router = useRouter();
@@ -23,6 +24,7 @@ function StoreContent() {
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [recipient, setRecipient] = useState<OrderRecipientValue>({ forSomeoneElse: false, name: '', phone: '', address: pickup.address ?? 'Current location', lat: pickup.lat, lng: pickup.lng, note: '' });
 
   useEffect(() => {
     import('../../../lib/api/trips').then(({ fetchWallet }) => {
@@ -82,17 +84,25 @@ function StoreContent() {
 
   const handleOrder = async () => {
     if (!cart.length || !merchant) return;
+    if (recipient.forSomeoneElse && (!recipient.name.trim() || !recipient.phone.trim() || !recipient.address.trim())) {
+      setError('Add the recipient name, phone number and delivery address.');
+      setShowCart(true);
+      return;
+    }
     setOrdering(true);
     setError('');
     try {
       const order = await placeOrder({
         merchantId: merchant.id,
         items: cart.map(i => ({ productId: i.product.id, quantity: i.quantity })),
-        dropoffLat: pickup.lat,
-        dropoffLng: pickup.lng,
-        dropoffAddress: 'Current location',
+        dropoffLat: recipient.lat,
+        dropoffLng: recipient.lng,
+        dropoffAddress: recipient.address || 'Current location',
         paymentMethod,
         deliveryFee,
+        receiverName: recipient.forSomeoneElse ? recipient.name.trim() : undefined,
+        receiverPhone: recipient.forSomeoneElse ? recipient.phone.trim() : undefined,
+        note: recipient.note.trim() || undefined,
       });
       router.push(`/orders?highlight=${order.id}`);
     } catch (e: any) {
@@ -153,10 +163,10 @@ function StoreContent() {
           {cartCount > 0 && (
             <button
               onClick={() => setShowCart(true)}
-              className="absolute top-10 right-4 flex items-center gap-2 bg-zana-primary text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow"
+              className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[448px] z-40 flex items-center justify-center gap-2 bg-zana-primary text-white px-4 py-3.5 rounded-2xl text-sm font-black shadow-lg"
             >
-              <ShoppingCart size={14} />
-              {cartCount} · {cartTotal.toLocaleString()} RWF
+              <ShoppingCart size={16} />
+              View cart · {cartCount} item{cartCount === 1 ? '' : 's'} · {cartTotal.toLocaleString()} RWF
             </button>
           )}
         </div>
@@ -261,16 +271,29 @@ function StoreContent() {
           <div className="w-full bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
 
-            <p className="font-black text-lg text-gray-900">Your basket</p>
-            <p className="text-xs text-gray-400 mb-4">{merchant.businessName}</p>
+            <div className="flex items-center justify-between mb-4">
+              <div><p className="font-black text-lg text-gray-900">Your basket</p><p className="text-xs text-gray-400">{merchant.businessName}</p></div>
+              <button type="button" onClick={() => setShowCart(false)} className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 text-lg">×</button>
+            </div>
 
-            <div className="space-y-1.5 mb-4">
+            <OrderRecipient value={recipient} onChange={setRecipient} defaultAddress={pickup.address ?? "Current location"} defaultLat={pickup.lat} defaultLng={pickup.lng} />
+
+            <div className="space-y-2 my-4">
               {cart.map(i => (
-                <div key={i.product.id} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{i.product.name} ×{i.quantity}</span>
-                  <span className="font-semibold">
-                    {(i.product.price * i.quantity).toLocaleString()} RWF
-                  </span>
+                <div key={i.product.id} className="flex items-center gap-3 rounded-xl border border-gray-100 p-2.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{i.product.name}</p>
+                    <p className="text-xs text-gray-400">{(i.product.price * i.quantity).toLocaleString()} RWF</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button type="button" onClick={() => removeFromCart(i.product.id)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Minus size={14} />
+                    </button>
+                    <span className="w-5 text-center text-sm font-bold">{i.quantity}</span>
+                    <button type="button" onClick={() => addToCart(i.product)} className="w-8 h-8 rounded-full bg-zana-primary flex items-center justify-center">
+                      <Plus size={14} className="text-white" />
+                    </button>
+                  </div>
                 </div>
               ))}
               <div className="flex justify-between text-sm pt-2 border-t border-gray-100">

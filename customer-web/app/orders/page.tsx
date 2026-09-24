@@ -7,6 +7,7 @@ import ReviewSheet from '../../components/ReviewSheet';
 import DeliveryTracker from '../../components/DeliveryTracker';
 import { fetchMyDeliveries, Delivery } from '../../lib/api/deliveries';
 import { fetchMyOrders } from '../../lib/api/trips';
+import { cancelOrder } from '../../lib/api/orders';
 import { useLang } from '../../lib/LangContext';
 
 const DELIVERY_STATUS: Record<string, string> = {
@@ -37,6 +38,8 @@ function OrdersContent() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [tab, setTab] = useState<'orders' | 'deliveries'>('orders');
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null);
 
   useEffect(() => {
     const load = () => {
@@ -71,7 +74,7 @@ function OrdersContent() {
             </div>
           )}
           {orders.map((o: any) => (
-            <div key={o.id} className={`bg-white rounded-2xl p-4 shadow-sm ${o.id === highlightId ? 'ring-2 ring-zana-primary' : ''}`}>
+            <button type="button" onClick={() => setSelectedOrder(o)} key={o.id} className={`w-full text-left bg-white rounded-2xl p-4 shadow-sm ${o.id === highlightId ? 'ring-2 ring-zana-primary' : ''}`}>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
                   <p className="font-semibold text-sm text-gray-900">{o.merchant?.businessName}</p>
@@ -82,7 +85,8 @@ function OrdersContent() {
                 </span>
               </div>
               <p className="text-sm font-bold text-zana-primary">{o.total?.toLocaleString()} RWF</p>
-            </div>
+              <p className="text-[11px] text-zana-muted mt-2">Tap to view order details</p>
+            </button>
           ))}
         </div>
       )}
@@ -158,6 +162,48 @@ function OrdersContent() {
           ))}
         </div>
       )}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={() => setSelectedOrder(null)}>
+          <div className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-t-3xl sm:rounded-3xl p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4"><p className="font-black text-lg">{selectedOrder.merchant?.businessName ?? 'Order details'}</p><button type="button" onClick={() => setSelectedOrder(null)} className="w-9 h-9 rounded-full bg-gray-100">×</button></div>
+            <div className="space-y-2 mb-4">{selectedOrder.items?.map((i: any) => <div key={i.id} className="flex justify-between text-sm"><span>{i.product?.name} ×{i.quantity}</span><span className="font-semibold">{((i.product?.price ?? 0) * i.quantity).toLocaleString()} RWF</span></div>)}</div>
+            {(() => {
+              const itemsTotal = (selectedOrder.items ?? []).reduce(
+                (sum: number, item: any) => sum + (item.product?.price ?? 0) * (item.quantity ?? 0),
+                0,
+              );
+              const grandTotal = Number(selectedOrder.total ?? itemsTotal);
+              const deliveryFee = Math.max(0, grandTotal - itemsTotal);
+              return (
+                <div className="rounded-2xl bg-gray-50 p-4 mb-4">
+                  <p className="text-[10px] font-black uppercase tracking-wide text-gray-400 mb-2">Order summary</p>
+                  <div className="flex justify-between text-sm py-1">
+                    <span className="text-gray-600">Items</span>
+                    <span className="font-semibold text-gray-900">{itemsTotal.toLocaleString()} RWF</span>
+                  </div>
+                  <div className="flex justify-between text-sm py-1">
+                    <span className="text-gray-600">Delivery</span>
+                    <span className="font-semibold text-gray-900">{deliveryFee.toLocaleString()} RWF</span>
+                  </div>
+                  <div className="border-t border-gray-200 mt-2 pt-3 flex justify-between">
+                    <span className="font-black text-gray-900">Total</span>
+                    <span className="font-black text-lg text-zana-primary">{grandTotal.toLocaleString()} RWF</span>
+                  </div>
+                </div>
+              );
+            })()}
+            <div className="rounded-xl bg-gray-50 p-3 mb-4 space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-wide text-gray-400">Delivery recipient</p>
+              <p className="text-sm font-bold text-gray-900">{selectedOrder.receiverName || 'Myself'}</p>
+              {selectedOrder.receiverPhone && <p className="text-xs text-gray-600">{selectedOrder.receiverPhone}</p>}
+              {selectedOrder.dropoffAddress && <p className="text-xs text-gray-600 flex items-start gap-1"><MapPin size={12} className="text-zana-primary mt-0.5 shrink-0" />{selectedOrder.dropoffAddress}</p>}
+              {selectedOrder.note && <p className="text-xs text-gray-500">Note: {selectedOrder.note}</p>}
+            </div>
+            {selectedOrder.status === 'PENDING' && <button type="button" disabled={cancelling === selectedOrder.id} onClick={async () => { setCancelling(selectedOrder.id); try { await cancelOrder(selectedOrder.id); const fresh = await fetchMyOrders(); setOrders(fresh); setSelectedOrder(fresh.find((x:any) => x.id === selectedOrder.id) ?? {...selectedOrder,status:'CANCELLED'}); } finally { setCancelling(null); } }} className="w-full py-3 rounded-xl border border-red-200 text-red-600 font-bold disabled:opacity-50">{cancelling === selectedOrder.id ? 'Cancelling…' : 'Cancel order'}</button>}
+          </div>
+        </div>
+      )}
+
       {review && (
         <ReviewSheet
           target={review.target}

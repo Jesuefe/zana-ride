@@ -117,11 +117,24 @@ export default function OrdersPage() {
                   ))}
                 </div>
 
-                {/* Total */}
-                <div className="flex items-center justify-between border-t border-gray-100 pt-2 mb-3">
-                  <span className="text-sm font-bold text-gray-900">Total</span>
-                  <span className="font-black text-zana-primary">{o.total?.toLocaleString() ?? '—'} RWF</span>
-                </div>
+                {/* Merchant amount: food/products only. Delivery is paid separately by the customer to Zana. */}
+                {(() => {
+                  const foodTotal = (o.items ?? []).reduce(
+                    (sum: number, item: any) => sum + (item.product?.price ?? 0) * (item.quantity ?? 0),
+                    0,
+                  );
+                  return (
+                    <div className="border-t border-gray-100 pt-3 mb-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-900">Food total</span>
+                        <span className="font-black text-zana-primary">{foodTotal.toLocaleString()} RWF</span>
+                      </div>
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Delivery fee is paid separately by the customer and is not part of your merchant payment.
+                      </p>
+                    </div>
+                  );
+                })()
 
                 {/* Driver handling notice */}
                 {isDriverHandling && (
