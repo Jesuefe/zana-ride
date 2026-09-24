@@ -72,12 +72,12 @@ export default function AccountSettingsPage() {
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">Phone</label>
+            <label className="text-xs font-medium text-gray-500 block mb-1">{t('Phone')}</label>
             <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2.5 bg-gray-50">
               <Phone size={15} className="text-gray-400" />
               <span className="text-sm text-gray-500">{user?.phone ?? '—'}</span>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">Phone number cannot be changed.</p>
+            <p className="text-[11px] text-gray-400 mt-1">{t('Phone number cannot be changed.')}</p>
           </div>
           <div>
             <label className="text-xs font-medium text-gray-500 block mb-1">{t('Email')}</label>
@@ -91,7 +91,7 @@ export default function AccountSettingsPage() {
         {error && <p className="text-xs text-red-600">{error}</p>}
 
         <button onClick={handleSave} disabled={saving} className="w-full bg-zana-primary text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40">
-          {saving ? <Loader2 size={16} className="animate-spin" /> : saved ? <><Save size={16} /> Saved!</> : <><Save size={16} /> Save Changes</>}
+          {saving ? <Loader2 size={16} className="animate-spin" /> : saved ? <><Save size={16} /> {t('Saved!')}</> : <><Save size={16} /> {t('Save Changes')}</>}
         </button>
       </div>
     </div>
