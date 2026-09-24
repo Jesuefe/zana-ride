@@ -94,7 +94,7 @@ export default function OrderRecipient({ value, onChange, defaultAddress, defaul
                 <MapPin size={14} className="text-zana-primary shrink-0" />
                 <input value={value.address} onChange={e => set({ address: e.target.value })} placeholder={t("Delivery address")} className="w-full text-sm outline-none" />
               </div>
-              <p className="text-[10px] text-gray-400 mt-1.5"{t("Drag the pin to the recipient's exact location. The order sends these coordinates with the address.")}/p>
+              <p className="text-[10px] text-gray-400 mt-1.5">{t("Drag the pin to the recipient's exact location. The order sends these coordinates with the address.")}</p>
               <button type="button" onClick={useCurrentLocation} disabled={locating} className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-zana-primary disabled:opacity-50">
                 {locating ? <Loader2 size={12} className="animate-spin" /> : <Navigation size={12} />}
                 {t("Use this device's current location")}
@@ -103,7 +103,7 @@ export default function OrderRecipient({ value, onChange, defaultAddress, defaul
           </div>
 
           <input value={value.note} onChange={e => set({ note: e.target.value })} placeholder={t("Delivery note (optional)")} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-zana-primary" />
-          <p className="text-[10px] text-gray-400"{t('The account holder pays. The recipient only receives the order.')}</p>
+          <p className="text-[10px] text-gray-400">{t('The account holder pays. The recipient only receives the order.')}</p>
         </div>
       ) : (
         <div className="flex items-center gap-2 text-xs text-gray-600 bg-white rounded-xl px-3 py-2.5">
