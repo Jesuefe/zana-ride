@@ -42,7 +42,7 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />
         </button>
-        <h1 className="text-lg font-bold text-gray-900">{title}</h1>
+        <h1 className="text-lg font-bold text-gray-900">{t(title)}</h1>
       </div>
 
       <div className="p-4">
@@ -55,7 +55,7 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
         {!loading && merchants.length === 0 && (
           <div className="text-center py-16">
             <Store size={40} className="text-gray-200 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">{emptyMessage}</p>
+            <p className="text-sm text-gray-500">{t(emptyMessage)}</p>
             <p className="text-xs text-gray-400 mt-1">{t('Check back soon.')}</p>
           </div>
         )}
@@ -99,11 +99,11 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
                 </span>
                 <span className="text-gray-300">·</span>
                 <span className="font-bold text-zana-primary">
-                  {m.deliveryFee.toLocaleString()} RWF delivery
+                  {m.deliveryFee.toLocaleString()} RWF {t('delivery')}
                 </span>
                 <span className="text-gray-300">·</span>
                 <span className="text-gray-500">
-                  {m.products.length} item{m.products.length === 1 ? '' : 's'}
+                  {m.products.length} {t(m.products.length === 1 ? 'item' : 'items')}
                 </span>
               </div>
             </div>
