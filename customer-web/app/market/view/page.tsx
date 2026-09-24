@@ -193,7 +193,7 @@ function MarketContent() {
               </p>
             </div>
 
-            <p className="text-xs font-bold text-gray-500 uppercase mb-2">Payment</p>
+            <p className="text-xs font-bold text-gray-500 uppercase mb-2">{t("Payment")}</p>
             <div className="grid grid-cols-2 gap-2 mb-2">
               {([['WALLET', 'Zana Wallet'], ['MOBILE_MONEY', 'Mobile Money']] as const).map(([id, label]) => (
                 <button key={id} onClick={() => setPaymentMethod(id)}
@@ -228,6 +228,7 @@ function MarketContent() {
 }
 
 export default function MarketPage() {
+  const { t } = useLang();
   return (
     <Suspense fallback={null}>
       <MarketContent />
