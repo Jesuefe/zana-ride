@@ -73,7 +73,7 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon \
-            -PZANA_KEYSTORE_FILE=../zana.jks \
+            -PZANA_KEYSTORE_FILE=zana.jks \
             -PZANA_KEYSTORE_PASSWORD='${{ secrets.ANDROID_KEYSTORE_PASSWORD }}' \
             -PZANA_KEY_ALIAS='${{ secrets.ANDROID_KEY_ALIAS }}' \
             -PZANA_KEY_PASSWORD='${{ secrets.ANDROID_KEY_PASSWORD }}'
