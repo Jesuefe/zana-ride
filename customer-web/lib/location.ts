@@ -2,7 +2,7 @@ import { KIGALI_CENTER } from './places';
 
 const PICKUP_KEY = 'zana_pickup_coords';
 
-export type Coords = { lat: number; lng: number };
+export type Coords = { lat: number; lng: number; address?: string };
 
 // Reads the last known pickup location from localStorage, falling back to
 // Kigali's center if geolocation was never granted or hasn't run yet.
