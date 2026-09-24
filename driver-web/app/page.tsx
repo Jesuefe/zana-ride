@@ -164,6 +164,7 @@ function SlideAction({
 }
 
 export default function DriverHome() {
+  const { dt } = useLang();
   const router = useRouter();
   const { t, dt } = useLang();
   const mapRef = useRef<HTMLDivElement>(null);
@@ -627,20 +628,18 @@ export default function DriverHome() {
         </p>
         <div className="w-full bg-gray-50 rounded-2xl p-4 mb-6 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-zana-muted">Fare</span>
+            <span className="text-xs text-zana-muted">{dt("Fare")}</span>
             <span className="text-sm font-bold text-gray-900">{justCompleted.fare.toLocaleString()} RWF</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-zana-muted">Your earnings</span>
+            <span className="text-xs text-zana-muted">{dt("Your earnings")}</span>
             <span className="text-sm font-bold text-zana-primary">{justCompleted.driverEarnings.toLocaleString()} RWF</span>
           </div>
         </div>
         <button
           onClick={() => { setJustCompleted(null); }}
           className="w-full bg-zana-primary text-white font-bold py-3.5 rounded-2xl"
-        >
-          Done
-        </button>
+        >{dt("Done")}</button>
       </div>
     );
   }
@@ -856,7 +855,7 @@ export default function DriverHome() {
         <div className="fixed inset-0 z-50 flex items-end bg-black/50">
           <div className="w-full bg-white rounded-t-3xl p-6">
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-            <h2 className="text-lg font-black text-gray-900 mb-1">What do you want to receive?</h2>
+            <h2 className="text-lg font-black text-gray-900 mb-1">{dt("What do you want to receive?")}</h2>
             <p className="text-sm text-gray-400 mb-5">Choose your mode for this session.</p>
             <div className="space-y-3">
               {([
@@ -905,7 +904,7 @@ export default function DriverHome() {
                       <div className="w-8 h-8 rounded-full bg-zana-primary-light flex items-center justify-center">
                         <MapPin size={14} className="text-zana-primary" />
                       </div>
-                      <p className="text-xs font-bold text-zana-primary uppercase tracking-wide">New ride request</p>
+                      <p className="text-xs font-bold text-zana-primary uppercase tracking-wide">{dt("New ride request")}</p>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                       <p className="text-sm font-black text-gray-700">{secondsLeft}</p>
@@ -956,13 +955,9 @@ export default function DriverHome() {
             </div>
             <div className="flex gap-2">
               <button onClick={() => setIncomingDelivery(null)}
-                className="flex-1 border border-gray-200 text-gray-600 font-semibold py-3 rounded-xl text-sm">
-                Decline
-              </button>
+                className="flex-1 border border-gray-200 text-gray-600 font-semibold py-3 rounded-xl text-sm">{dt("Decline")}</button>
               <button onClick={async () => { await acceptDelivery(incomingDelivery.id); setIncomingDelivery(null); }}
-                className="flex-1 bg-zana-primary text-white font-bold py-3 rounded-xl text-sm">
-                Accept
-              </button>
+                className="flex-1 bg-zana-primary text-white font-bold py-3 rounded-xl text-sm">{dt("Accept")}</button>
             </div>
           </div>
         </div>
@@ -993,7 +988,7 @@ export default function DriverHome() {
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Language</p>
+              <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">{dt("Language")}</p>
               <div className="px-4">
                 <LanguageSelector variant="light" />
               </div>
