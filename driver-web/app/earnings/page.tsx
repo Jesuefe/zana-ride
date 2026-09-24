@@ -236,7 +236,7 @@ export default function EarningsPage() {
                   <input
                     value={withdrawAmount}
                     onChange={e => setWithdrawAmount(e.target.value.replace(/\D/g,''))}
-                    placeholder="Min 1,000 RWF"
+                    placeholder={dt('Min 1,000 RWF', lang)}
                     inputMode="numeric"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
                   />
@@ -248,7 +248,7 @@ export default function EarningsPage() {
                     <input
                       value={withdrawPhone}
                       onChange={e => setWithdrawPhone(e.target.value.replace(/\D/g,'').slice(0,9))}
-                      placeholder="788 123 456"
+                      placeholder={dt('788 123 456', lang)}
                       inputMode="numeric"
                       className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
                     />
@@ -291,7 +291,7 @@ export default function EarningsPage() {
                   <input
                     value={settlePhone}
                     onChange={e => setSettlePhone(e.target.value.replace(/\D/g,'').slice(0,9))}
-                    placeholder="788 123 456"
+                    placeholder={dt('788 123 456', lang)}
                     inputMode="numeric"
                     className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
                   />
