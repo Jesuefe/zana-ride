@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Shield, Phone, MapPin, LogOut, RefreshCw, AlertTriangle, X, CheckCircle, Bell } from 'lucide-react';
+import { Shield, Phone, MapPin, LogOut, RefreshCw, AlertTriangle, X, CheckCircle, Bell, Clock, Activity, ShieldAlert, Radio, ExternalLink } from 'lucide-react';
 import { api, getToken, clearToken, setToken } from '../../lib/api/client';
 
 const MAPS_KEY = 'AIzaSyD4o-fXIpmGozrClaP1niC407cgRCrzSTI';
@@ -150,6 +150,8 @@ export default function SafetyDashboard() {
   const [lastCount, setLastCount] = useState(0);
   const [acknowledged, setAcknowledging] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
+  const [now, setNow] = useState(Date.now());
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   useEffect(() => {
     if (getToken()) setAuthed(true);
@@ -159,6 +161,7 @@ export default function SafetyDashboard() {
     try {
       const data = await api.get<SosAlert[]>('/sos/active');
       setAlerts(data);
+      setLastRefresh(new Date());
       // New alert arrived — sound alarm
       if (data.length > lastCount && lastCount >= 0) {
         setAlarmActive(true);
@@ -174,7 +177,8 @@ export default function SafetyDashboard() {
     if (!authed) return;
     poll();
     const interval = setInterval(poll, 3000); // poll every 3s
-    return () => clearInterval(interval);
+    const clock = setInterval(() => setNow(Date.now()), 1000);
+    return () => { clearInterval(interval); clearInterval(clock); };
   }, [authed, poll]);
 
   const handleLogin = async () => {
@@ -200,6 +204,14 @@ export default function SafetyDashboard() {
       // believing it was handled when it was not.
       setActionError('Could not acknowledge the alert. It is still active — try again.');
     } finally { setAcknowledging(null); }
+  };
+
+  const elapsed = (createdAt: string) => {
+    const seconds = Math.max(0, Math.floor((now - new Date(createdAt).getTime()) / 1000));
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const sec = seconds % 60;
+    return h ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}` : `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
   };
 
   const resolve = async (id: string) => {
@@ -287,6 +299,18 @@ export default function SafetyDashboard() {
         </div>
       </div>
 
+      {/* Command header */}
+      {alerts.length > 0 && (
+        <div className="px-4 pt-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-red-950/60 border border-red-800 rounded-xl p-3"><p className="text-[10px] text-red-300 uppercase font-bold">Active</p><p className="text-2xl font-bold mt-1">{alerts.filter(a => a.status === 'ACTIVE').length}</p></div>
+            <div className="bg-amber-950/50 border border-amber-800 rounded-xl p-3"><p className="text-[10px] text-amber-300 uppercase font-bold">Acknowledged</p><p className="text-2xl font-bold mt-1">{alerts.filter(a => a.status === 'ACKNOWLEDGED').length}</p></div>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-3"><p className="text-[10px] text-gray-400 uppercase font-bold">Drivers</p><p className="text-2xl font-bold mt-1">{alerts.filter(a => a.role === 'DRIVER').length}</p></div>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-3"><p className="text-[10px] text-gray-400 uppercase font-bold">Customers</p><p className="text-2xl font-bold mt-1">{alerts.filter(a => a.role !== 'DRIVER').length}</p></div>
+          </div>
+        </div>
+      )}
+
       {/* Standby state */}
       {alerts.length === 0 && (
         <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
@@ -295,7 +319,8 @@ export default function SafetyDashboard() {
           </div>
           <p className="text-lg font-bold text-green-400">All Clear</p>
           <p className="text-sm text-gray-600 mt-1">No active SOS alerts</p>
-          <p className="text-xs text-gray-700 mt-4">This page will sound an alarm when a customer or driver triggers SOS</p>
+          <div className="mt-6 flex items-center gap-2 text-xs text-gray-600"><Radio size={13} className="text-green-500" /> Safety monitoring is active</div>
+          {lastRefresh && <p className="text-[10px] text-gray-700 mt-2">Last checked {lastRefresh.toLocaleTimeString()}</p>}
         </div>
       )}
 
@@ -308,20 +333,21 @@ export default function SafetyDashboard() {
           </div>
           {alerts.map(alert => (
             <button key={alert.id} onClick={() => setFocused(alert)}
-              className="w-full text-left rounded-2xl p-4 border-2 border-red-600"
+              className="w-full text-left rounded-2xl p-4 border-2 border-red-600 relative overflow-hidden"
               style={{ animation: 'alertPulse 1.5s infinite' }}>
-              <div className="flex items-center justify-between mb-2">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-red-500" />
+              <div className="flex items-center justify-between mb-2 mt-1">
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={16} className="text-red-500" />
                   <span className="font-bold text-red-400 text-sm">SOS ALERT</span>
                 </div>
-                <span className="text-[10px] text-gray-500">{new Date(alert.createdAt).toLocaleTimeString()}</span>
+                <span className="text-[10px] text-gray-400 font-mono flex items-center gap-1"><Clock size={10} /> {elapsed(alert.createdAt)}</span>
               </div>
               <p className="font-semibold text-white">{alert.customer.firstName} {alert.customer.lastName}</p>
               <p className="text-sm text-gray-400">{alert.customer.phone}</p>
               <span className="inline-flex mt-2 px-2 py-1 rounded-full bg-red-900/50 text-red-300 text-[10px] font-bold">{alert.role === 'DRIVER' ? 'DRIVER SOS' : 'CUSTOMER SOS'}</span>
               {alert.trip && <p className="text-xs text-gray-600 mt-1 truncate">{alert.trip.pickupAddress}</p>}
-              <p className="text-xs text-red-400 mt-2 font-semibold">Tap to respond →</p>
+              <div className="flex items-center justify-between mt-3"><span className="text-[10px] text-gray-500">{new Date(alert.createdAt).toLocaleTimeString()}</span><span className="text-xs text-red-400 font-semibold">Open incident →</span></div>
             </button>
           ))}
         </div>
@@ -341,7 +367,7 @@ export default function SafetyDashboard() {
           <div className="sticky top-0 bg-red-900 px-4 py-3 flex items-center justify-between" style={{ animation: 'alertPulse 1.5s infinite' }}>
             <div className="flex items-center gap-2">
               <AlertTriangle size={18} className="text-red-300" />
-              <p className="font-bold text-white">SOS — {focused.customer.firstName} {focused.customer.lastName}</p>
+              <div><p className="font-bold text-white">SOS — {focused.customer.firstName} {focused.customer.lastName}</p><p className="text-[10px] text-red-200 flex items-center gap-1"><Clock size={10}/> {elapsed(focused.createdAt)} elapsed · {focused.role === 'DRIVER' ? 'Driver distress' : 'Customer distress'}</p></div>
             </div>
             <button onClick={() => setFocused(null)} className="w-8 h-8 rounded-full bg-red-800 flex items-center justify-center">
               <X size={16} className="text-white" />
@@ -349,14 +375,25 @@ export default function SafetyDashboard() {
           </div>
 
           <div className="p-4 space-y-4 pb-24">
+            {/* Incident status */}
+            <div className="bg-gray-900 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-4"><p className="text-[10px] text-gray-500 font-semibold uppercase">Response lifecycle</p><span className="text-[10px] font-bold text-red-400 flex items-center gap-1"><Activity size={11}/> LIVE</span></div>
+              <div className="grid grid-cols-3 gap-2">
+                {['ACTIVE','ACKNOWLEDGED','RESOLVED'].map((step, i) => { const done = step === 'ACTIVE' ? true : step === 'ACKNOWLEDGED' ? (focused.status === 'ACKNOWLEDGED' || focused.status === 'RESOLVED') : focused.status === 'RESOLVED'; return <div key={step} className="text-center"><div className={`mx-auto w-8 h-8 rounded-full flex items-center justify-center ${done ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-600'}`}>{i + 1}</div><p className={`text-[9px] mt-2 font-bold ${done ? 'text-white' : 'text-gray-600'}`}>{step}</p></div>; })}
+              </div>
+            </div>
+
             {/* Live map */}
+            <div className="bg-gray-900 rounded-xl p-3 flex items-center justify-between"><div className="flex items-center gap-2"><ShieldAlert size={16} className="text-red-500"/><div><p className="text-xs font-bold">Emergency incident</p><p className="text-[10px] text-gray-500">Response timer started when SOS was triggered</p></div></div><span className="font-mono text-sm font-bold text-red-400">{elapsed(focused.createdAt)}</span></div>
             <SosMap alert={focused} />
 
             <div className="bg-gray-900 rounded-xl p-4">
-              <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">Incident</p>
+              <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">Incident command data</p>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><p className="text-gray-500 text-xs">Alert ID</p><p className="font-mono text-xs mt-1">{focused.id.slice(0, 12)}</p></div>
                 <div><p className="text-gray-500 text-xs">Triggered</p><p className="mt-1">{new Date(focused.createdAt).toLocaleString('en-GB')}</p></div>
+                <div><p className="text-gray-500 text-xs">Status</p><p className="mt-1 font-bold text-red-400">{focused.status}</p></div>
+                <div><p className="text-gray-500 text-xs">Reporter</p><p className="mt-1">{focused.role === 'DRIVER' ? 'Driver' : 'Customer'}</p></div>
               </div>
             </div>
 
@@ -373,7 +410,7 @@ export default function SafetyDashboard() {
             {/* Driver contact */}
             {focused.trip?.driver && (
               <div className="bg-gray-900 rounded-xl p-4">
-                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">Driver on the trip</p>
+                <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">Other trip party</p>
                 <p className="font-semibold text-white">{focused.trip.driver.user.firstName} {focused.trip.driver.user.lastName}</p>
                 <p className="text-xs text-gray-500">{focused.trip.driver.vehicle} · {focused.trip.driver.plate}</p>
                 <a href={`tel:${focused.trip.driver.user.phone}`}
@@ -411,8 +448,9 @@ export default function SafetyDashboard() {
                 </button>
               )}
               <button
-                onClick={() => resolve(focused.id)}
-                className="w-full flex items-center justify-center gap-2 bg-green-700 text-white font-semibold py-3 rounded-xl text-sm"
+                onClick={() => { if (focused.status !== 'ACKNOWLEDGED') return; resolve(focused.id); }}
+                disabled={focused.status !== 'ACKNOWLEDGED'}
+                className="w-full flex items-center justify-center gap-2 bg-green-700 text-white font-semibold py-3 rounded-xl text-sm disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <CheckCircle size={16} /> Mark Resolved
               </button>
