@@ -86,10 +86,32 @@ export class TripsService {
   }
 
   async assignDriver(tripId: string, driverId: string) {
-    await this.driversService.setOnlineStatus(driverId, DriverOnlineStatus.BUSY);
-    return this.prisma.trip.update({
-      where: { id: tripId },
-      data: { driverId, status: TripStatus.DRIVER_ASSIGNED, acceptedAt: new Date() },
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    if (!driver) throw new NotFoundException('Driver profile not found');
+    if (driver.approvalStatus !== 'APPROVED') throw new BadRequestException('Driver is not approved');
+    if (driver.onlineStatus !== DriverOnlineStatus.ONLINE) throw new BadRequestException('Driver is not online');
+
+    const active = await this.findActiveForDriver(driverId);
+    if (active) throw new BadRequestException('Driver already has an active ride');
+
+    return this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.trip.updateMany({
+        where: {
+          id: tripId,
+          status: TripStatus.SEARCHING_DRIVER,
+          driverId: null,
+          serviceType: driver.serviceType,
+        },
+        data: { driverId, status: TripStatus.DRIVER_ASSIGNED, acceptedAt: new Date() },
+      });
+      if (claimed.count !== 1) throw new BadRequestException('Ride is no longer available');
+
+      await tx.driver.update({
+        where: { id: driverId },
+        data: { onlineStatus: DriverOnlineStatus.BUSY },
+      });
+
+      return tx.trip.findUniqueOrThrow({ where: { id: tripId } });
     });
   }
 
@@ -102,6 +124,22 @@ export class TripsService {
 
     const trip = await this.prisma.trip.findUnique({ where: { id: tripId } });
     if (!trip) throw new NotFoundException('Trip not found');
+
+    const allowed: Record<TripStatus, TripStatus[]> = {
+      REQUESTED: [],
+      SEARCHING_DRIVER: [],
+      DRIVER_ASSIGNED: [TripStatus.DRIVER_EN_ROUTE],
+      DRIVER_EN_ROUTE: [TripStatus.DRIVER_ARRIVED],
+      DRIVER_ARRIVED: [TripStatus.RIDE_IN_PROGRESS],
+      RIDE_IN_PROGRESS: [TripStatus.RIDE_COMPLETED],
+      RIDE_COMPLETED: [],
+      CUSTOMER_CANCELLED: [],
+      DRIVER_CANCELLED: [],
+      NO_DRIVER_FOUND: [],
+    };
+    if (!allowed[trip.status]?.includes(status) && trip.status !== status) {
+      throw new BadRequestException(`Invalid ride transition: ${trip.status} -> ${status}`);
+    }
 
     const data: Record<string, unknown> = { status };
     const field = timestampField[status];
