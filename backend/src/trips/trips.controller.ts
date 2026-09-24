@@ -89,6 +89,16 @@ export class DriverTripsController {
     return this.tripsService.assignDriver(tripId, driver.id);
   }
 
+  @Post(':id/en-route')
+  async enRoute(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const driver = await this.driversService.findByUserId(user.sub);
+    const trip = await this.tripsService.findById(id);
+    if (trip.driverId !== driver.id) {
+      throw new ForbiddenException('This ride is not assigned to you');
+    }
+    return this.tripsService.updateStatus(id, TripStatus.DRIVER_EN_ROUTE);
+  }
+
   @Post(':id/arrive')
   async arrive(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     const driver = await this.driversService.findByUserId(user.sub);
