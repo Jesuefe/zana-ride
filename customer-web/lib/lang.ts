@@ -231,6 +231,34 @@ Object.assign(UI, {
   'Change language': { en: 'Change language', fr: 'Changer de langue', rw: 'Hindura ururimi' },
 });
 
+Object.assign(UI, {
+  'Good morning,': { en: 'Good morning,', fr: 'Bonjour,', rw: 'Mwaramutse,' },
+  'Good afternoon,': { en: 'Good afternoon,', fr: 'Bon après-midi,', rw: 'Mwiriwe,' },
+  'Good evening,': { en: 'Good evening,', fr: 'Bonsoir,', rw: 'Mwiriwe neza,' },
+  'Welcome': { en: 'Welcome', fr: 'Bienvenue', rw: 'Murakaza neza' },
+  'Kigali, Rwanda': { en: 'Kigali, Rwanda', fr: 'Kigali, Rwanda', rw: 'Kigali, Rwanda' },
+  "Couldn't load your info. Check your connection.": { en: "Couldn't load your info. Check your connection.", fr: 'Impossible de charger vos informations. Vérifiez votre connexion.', rw: 'Ntibyashobotse kubona amakuru yawe. Reba umurongo wa internet.' },
+  'Retry': { en: 'Retry', fr: 'Réessayer', rw: 'Ongera ugerageze' },
+  'Where to?': { en: 'Where to?', fr: 'Où allez-vous ?', rw: 'Ujya he?' },
+  'Search destination': { en: 'Search destination', fr: 'Rechercher une destination', rw: 'Shaka aho ugiye' },
+  'No trips yet': { en: 'No trips yet', fr: 'Aucun trajet pour le moment', rw: 'Nta rugendo uragira' },
+  'Set location': { en: 'Set location', fr: 'Définir le lieu', rw: 'Shyiraho ahantu' },
+  'Work': { en: 'Work', fr: 'Travail', rw: 'Akazi' },
+  'Recent': { en: 'Recent', fr: 'Récent', rw: 'Aheruka' },
+  'Services': { en: 'Services', fr: 'Services', rw: 'Serivisi' },
+  'Send packages with': { en: 'Send packages with', fr: 'Envoyez vos colis avec', rw: 'Ohereza ibicuruzwa ukoresheje' },
+  'Zana Delivery': { en: 'Zana Delivery', fr: 'Zana Delivery', rw: 'Zana Delivery' },
+  'Fast · Safe · Affordable': { en: 'Fast · Safe · Affordable', fr: 'Rapide · Sûr · Abordable', rw: 'Byihuse · Biteye umutekano · Bihendutse' },
+  'Book now': { en: 'Book now', fr: 'Réserver maintenant', rw: 'Tanga ubusabe ubu' },
+  'Pay with your Zana Wallet': { en: 'Pay with your Zana Wallet', fr: 'Payez avec votre portefeuille Zana', rw: 'Ishyura ukoresheje Zana Wallet yawe' },
+  'Lower fees than Mobile Money, and no waiting for a payment prompt.': { en: 'Lower fees than Mobile Money, and no waiting for a payment prompt.', fr: 'Frais moins élevés que Mobile Money, sans attendre une demande de paiement.', rw: 'Kwishyura bihendutse kurusha Mobile Money kandi ntutegereze ubusabe bwo kwishyura.' },
+  'Schedule': { en: 'Schedule', fr: 'Planifier', rw: 'Teganya' },
+  'Location': { en: 'Location', fr: 'Localisation', rw: 'Aho uri' },
+  'Going to': { en: 'Going to', fr: 'Direction', rw: 'Ugiye kuri' },
+  'Moto': { en: 'Moto', fr: 'Moto', rw: 'Moto' },
+  'Fast & cheap': { en: 'Fast & cheap', fr: 'Rapide et économique', rw: 'Byihuse kandi bihendutse' },
+});
+
 export function t(key: string, lang: Lang): string {
   return UI[key]?.[lang] ?? key;
 }
