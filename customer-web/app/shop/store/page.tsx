@@ -6,8 +6,10 @@ import { ArrowLeft, ShoppingCart, Plus, Minus, MapPin, Loader2, Store, Package, 
 import { fetchMarketplaceWithLocation, placeOrder, MarketplaceMerchant, MarketplaceProduct, CartItem } from '../../../lib/api/marketplace';
 import { getStoredPickup } from '../../../lib/location';
 import OrderRecipient, { OrderRecipient as OrderRecipientValue } from '../../../components/OrderRecipient';
+import { useLang } from '../../../lib/LangContext';
 
 function StoreContent() {
+  const { t } = useLang();
   const router = useRouter();
   const searchParams = useSearchParams();
   const merchantId = searchParams.get('id');
@@ -363,7 +365,6 @@ function StoreContent() {
 }
 
 export default function StorePage() {
-  const { t } = useLang();
   return (
     <Suspense fallback={null}>
       <StoreContent />
