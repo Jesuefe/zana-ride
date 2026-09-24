@@ -278,3 +278,41 @@ Object.assign(UI, {
 export function t(key: string, lang: Lang): string {
   return UI[key]?.[lang] ?? key;
 }
+
+
+Object.assign(UI, {
+  'Welcome': { en: 'Welcome', fr: 'Bienvenue', rw: 'Murakaza neza' },
+  'Good morning,': { en: 'Good morning,', fr: 'Bonjour,', rw: 'Mwaramutse,' },
+  'Good afternoon,': { en: 'Good afternoon,', fr: 'Bon après-midi,', rw: 'Mwiriwe,' },
+  'Good evening,': { en: 'Good evening,', fr: 'Bonsoir,', rw: 'Mwiriwe neza,' },
+  'Kigali, Rwanda': { en: 'Kigali, Rwanda', fr: 'Kigali, Rwanda', rw: 'Kigali, u Rwanda' },
+  "Couldn't load your info. Check your connection.": { en: "Couldn't load your info. Check your connection.", fr: "Impossible de charger vos informations. Vérifiez votre connexion.", rw: "Ntitwashoboye kubona amakuru yawe. Reba umurongo wa interineti." },
+  'Retry': { en: 'Retry', fr: 'Réessayer', rw: 'Ongera ugerageze' },
+  'Where to?': { en: 'Where to?', fr: 'Où allez-vous ?', rw: 'Mujya he?' },
+  'Search destination': { en: 'Search destination', fr: 'Rechercher une destination', rw: 'Shaka aho ugiye' },
+  'No trips yet': { en: 'No trips yet', fr: 'Aucun trajet pour le moment', rw: 'Nta rugendo uragira' },
+  'Set location': { en: 'Set location', fr: 'Définir le lieu', rw: 'Shyiraho aho uherereye' },
+  'Services': { en: 'Services', fr: 'Services', rw: 'Serivisi' },
+  'Send packages with': { en: 'Send packages with', fr: 'Envoyez des colis avec', rw: 'Ohereza amapaki ukoresheje' },
+  'Zana Delivery': { en: 'Zana Delivery', fr: 'Zana Delivery', rw: 'Zana Delivery' },
+  'Fast · Safe · Affordable': { en: 'Fast · Safe · Affordable', fr: 'Rapide · Sûr · Abordable', rw: 'Byihuta · Bitekanye · Ku giciro cyiza' },
+  'Book now': { en: 'Book now', fr: 'Réserver', rw: 'Fata ubu' },
+  'delivery': { en: 'delivery', fr: 'livraison', rw: 'kohereza' },
+  'Pay with your Zana Wallet': { en: 'Pay with your Zana Wallet', fr: 'Payez avec votre portefeuille Zana', rw: 'Ishyura ukoresheje Zana Wallet' },
+  'Lower fees than Mobile Money, and no waiting for a payment prompt.': { en: 'Lower fees than Mobile Money, and no waiting for a payment prompt.', fr: "Frais moins élevés que Mobile Money, sans attendre une demande de paiement.", rw: 'Ni amafaranga make ugereranyije na Mobile Money, kandi nta gutegereza ubutumwa bw’ubwishyu.' },
+  'Schedule': { en: 'Schedule', fr: 'Planifier', rw: 'Teganya' },
+  'Location': { en: 'Location', fr: 'Localisation', rw: 'Aho uherereye' },
+  'Going to': { en: 'Going to', fr: 'Vers', rw: 'Ugiye kuri' },
+  'Fast & cheap': { en: 'Fast & cheap', fr: 'Rapide et économique', rw: 'Byihuta kandi bihendutse' },
+  'Car': { en: 'Car', fr: 'Voiture', rw: 'Imodoka' },
+  'Comfortable': { en: 'Comfortable', fr: 'Confortable', rw: 'Byoroheye' },
+  'Change this saved place': { en: 'Change this saved place', fr: 'Modifier ce lieu enregistré', rw: 'Hindura aha hantu wabikiye' },
+  'Account Settings': { en: 'Account Settings', fr: 'Paramètres du compte', rw: 'Igenamiterere rya konti' },
+  'Personal Info': { en: 'Personal Info', fr: 'Informations personnelles', rw: 'Amakuru bwite' },
+  'First Name': { en: 'First Name', fr: 'Prénom', rw: 'Izina bwite' },
+  'Last Name': { en: 'Last Name', fr: 'Nom', rw: 'Izina ry’umuryango' },
+  'Email': { en: 'Email', fr: 'E-mail', rw: 'Imeyili' },
+  'Save Changes': { en: 'Save Changes', fr: 'Enregistrer les modifications', rw: 'Bika impinduka' },
+  'Saved': { en: 'Saved', fr: 'Enregistré', rw: 'Byabitswe' },
+  'Could not save changes.': { en: 'Could not save changes.', fr: 'Impossible d’enregistrer les modifications.', rw: 'Ntibyashobotse kubika impinduka.' },
+});
