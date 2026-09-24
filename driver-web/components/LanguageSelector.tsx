@@ -12,7 +12,7 @@ const LANGS: Lang[] = ['en', 'fr', 'rw'];
  * 'light' fits sitting directly on a white surface — a drawer, a card.
  */
 export default function LanguageSelector({ variant = 'dark' }: { variant?: 'dark' | 'light' | 'floating' }) {
-  const { lang, setLang } = useLang();
+  const { lang, setLang, dt } = useLang();
   const [open, setOpen] = useState(false);
 
   const handleSelect = (newLang: Lang) => {
