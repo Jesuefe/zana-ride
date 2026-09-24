@@ -162,25 +162,25 @@ export default function HomePage() {
                 },
               ];
 
-              return tiles.map(t => (
+              return tiles.map(tile => (
                 <button
-                  key={t.key}
+                  key={tile.key}
                   onClick={() => {
-                    if (t.place) setRidePick(t.place);
+                    if (tile.place) setRidePick(tile.place);
                     else router.push('/profile/places');
                   }}
                   className="flex flex-col items-start gap-1.5 bg-gray-50 rounded-2xl px-3 py-3 text-left active:scale-95 transition-transform"
                 >
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-sm ${
-                    t.place ? 'bg-zana-primary-light text-zana-primary' : 'bg-white text-gray-400'
+                    tile.place ? 'bg-zana-primary-light text-zana-primary' : 'bg-white text-gray-400'
                   }`}>
-                    {t.icon}
+                    {tile.icon}
                   </div>
-                  <p className="text-xs font-bold text-gray-900">{t(t.key)}</p>
+                  <p className="text-xs font-bold text-gray-900">{t(tile.key)}</p>
                   <p className="text-[10px] text-gray-400 leading-tight line-clamp-1 w-full">
-                    {t.place
-                      ? t.place.address.split(',')[0]
-                      : t.key === 'Recent' ? 'No trips yet'  : t('Set location')}
+                    {tile.place
+                      ? tile.place.address.split(',')[0]
+                      : tile.key === 'Recent' ? t('No trips yet') : t('Set location')}
                   </p>
                 </button>
               ));
