@@ -3,7 +3,32 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowLeft, Camera, MapPin, Navigation, Phone, Package, X, Loader2, Check } from 'lucide-react';
+import {
+  ArrowLeft,
+  Camera,
+  MapPin,
+  Navigation,
+  Phone,
+  Package,
+  X,
+  Loader2,
+  Check,
+  Utensils,
+  Shirt,
+  FileText,
+  Pill,
+  ShoppingCart,
+  Gift,
+  Smartphone,
+  Footprints,
+  BookOpen,
+  Sparkles,
+  House,
+  Plus,
+  CreditCard,
+  Banknote,
+  ShieldCheck,
+} from 'lucide-react';
 import { getStoredPickup, setStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
@@ -32,19 +57,19 @@ export default function DeliverPage() {
   const [weight, setWeight] = useState<PackageWeight>('UNDER_1KG');
 
   const PACKAGE_TYPES = [
-    ['Food', '🍔'],
-    ['Clothes', '👕'],
-    ['Documents', '📄'],
-    ['Package', '📦'],
-    ['Medicine', '💊'],
-    ['Groceries', '🛒'],
-    ['Gift', '🎁'],
-    ['Electronics', '📱'],
-    ['Shoes', '👟'],
-    ['Books', '📚'],
-    ['Cosmetics', '🧴'],
-    ['Household', '🏠'],
-    ['Other', '＋'],
+    ['Food', Utensils],
+    ['Clothes', Shirt],
+    ['Documents', FileText],
+    ['Package', Package],
+    ['Medicine', Pill],
+    ['Groceries', ShoppingCart],
+    ['Gift', Gift],
+    ['Electronics', Smartphone],
+    ['Shoes', Footprints],
+    ['Books', BookOpen],
+    ['Cosmetics', Sparkles],
+    ['Household', House],
+    ['Other', Plus],
   ] as const;
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
@@ -64,16 +89,8 @@ export default function DeliverPage() {
 
   const [quote, setQuote] = useState<{ fee: number; distanceKm: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // Only relevant for MOBILE_MONEY — waiting on the customer to actually
-  // approve the charge before the delivery is allowed to be dispatched.
   const [awaitingMomo, setAwaitingMomo] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY' | 'CASH'>('WALLET');
-  // Previously there was no way at all for the customer to specify which
-  // MoMo number to charge — the backend silently used whatever phone was
-  // on the account, with no input, confirmation, or way to use a
-  // different number. Pre-filled from the account as a sensible default,
-  // but editable, matching how a driver can already correct the number
-  // before charging a ride.
   const [momoPhone, setMomoPhone] = useState('');
   useEffect(() => {
     fetchMe().then((me) => { if (me?.phone) setMomoPhone(me.phone.replace(/^\+250/, '')); }).catch(() => {});
@@ -106,7 +123,6 @@ export default function DeliverPage() {
     };
   }, [destQuery]);
 
-  // Re-price whenever the route or weight changes.
   useEffect(() => {
     if (!dropoff) {
       setQuote(null);
@@ -133,10 +149,6 @@ export default function DeliverPage() {
     }
   };
 
-  // The camera button now goes through Capacitor's Camera plugin, which
-  // survives Android reclaiming the WebView process while the camera app is
-  // in the foreground — a plain file input does not, which is why the app
-  // used to restart when someone tapped OK after taking a photo.
   const handleCapture = async () => {
     setCapturing(true);
     setError('');
@@ -214,11 +226,6 @@ export default function DeliverPage() {
       });
 
       if (paymentMethod === 'MOBILE_MONEY') {
-        // The delivery now exists but genuinely can't be dispatched yet —
-        // acceptDelivery() on the backend refuses it until this actually
-        // confirms. Poll the same way the wallet top-up flow already
-        // does, rather than navigating away and leaving the customer to
-        // wonder why their delivery seems to be stuck.
         setAwaitingMomo(true);
         const confirmed = await new Promise<boolean>((resolve) => {
           const interval = setInterval(async () => {
@@ -279,7 +286,7 @@ export default function DeliverPage() {
         <div>
           <label className="text-xs font-semibold text-gray-900 block mb-1.5">What are you sending?</label>
           <div className="grid grid-cols-4 gap-2">
-            {PACKAGE_TYPES.map(([label, icon]) => (
+            {PACKAGE_TYPES.map(([label, Icon]) => (
               <button
                 key={label}
                 type="button"
@@ -291,7 +298,7 @@ export default function DeliverPage() {
                 }`}
                 style={{ borderWidth: 1.5 }}
               >
-                <span className="text-xl leading-none">{icon}</span>
+                <Icon size={21} strokeWidth={1.8} aria-hidden="true" />
                 <span className="text-[10px] font-bold text-center leading-tight">{label}</span>
               </button>
             ))}
@@ -468,16 +475,15 @@ export default function DeliverPage() {
 
         {error && <p className="text-xs text-zana-error">{error}</p>}
 
-        {/* Payment — a courier is never dispatched for an unpaid job */}
         {quote && (
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">How will you pay?</p>
             <div className="grid grid-cols-3 gap-2">
               {([
-                ['WALLET', 'Wallet', '💳'],
-                ['MOBILE_MONEY', 'MoMo', '📱'],
-                ['CASH', 'Cash', '💵'],
-              ] as const).map(([id, label, icon]) => {
+                ['WALLET', 'Wallet', CreditCard],
+                ['MOBILE_MONEY', 'MoMo', Smartphone],
+                ['CASH', 'Cash', Banknote],
+              ] as const).map(([id, label, Icon]) => {
                 const short =
                   id === 'WALLET' && walletBalance !== null && walletBalance < quote.fee;
                 return (
@@ -492,7 +498,7 @@ export default function DeliverPage() {
                         : 'border-gray-100 bg-white'
                     }`}
                   >
-                    <span className="text-lg">{icon}</span>
+                    <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
                     <span className={`text-[11px] font-bold ${
                       paymentMethod === id
                         ? short ? 'text-red-600' : 'text-zana-primary'
@@ -541,7 +547,7 @@ export default function DeliverPage() {
             )}
 
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-3">
-              <span className="text-amber-500 text-sm shrink-0">🛡️</span>
+              <ShieldCheck size={17} className="text-amber-500 shrink-0 mt-0.5" strokeWidth={1.8} aria-hidden="true" />
               <p className="text-[10px] text-amber-800 leading-relaxed">
                 The rider inspects every package before pickup to meet Zana security compliance.
               </p>
