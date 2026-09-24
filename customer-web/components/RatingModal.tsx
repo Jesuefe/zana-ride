@@ -7,6 +7,8 @@ import { useLang } from '../lib/LangContext';
 
 export default function RatingModal({
   const { t } = useLang();
+  const { t } = useLang();
+  const { t } = useLang();
   tripId,
   driverName,
   onClose,
@@ -49,12 +51,12 @@ export default function RatingModal({
 
         {done ? (
           <div className="text-center py-4">
-            <p className="text-2xl mb-2 font-bold text-zana-primary">Thank you!</p>
+            <p className="text-2xl mb-2 font-bold text-zana-primary">{t('Thank you!')}</p>
             <p className="font-semibold text-gray-900">Thanks for rating {driverName}!</p>
           </div>
         ) : (
           <>
-            <p className="text-sm text-gray-500 mb-4 text-center">How was your ride with <strong>{driverName}</strong>?</p>
+            <p className="text-sm text-gray-500 mb-4 text-center">{t('How was your ride with')} <strong>{driverName}</strong>?{t('?')}</p>
 
             {/* Stars */}
             <div className="flex justify-center gap-3 mb-5">
@@ -88,7 +90,7 @@ export default function RatingModal({
                 <textarea
                   value={comment}
                   onChange={e => setComment(e.target.value)}
-                  placeholder="Add a comment (optional)"
+                  placeholder={t('Add a comment (optional)')}
                   rows={2}
                   className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none resize-none mb-4"
                 />
