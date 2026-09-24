@@ -46,9 +46,10 @@
          which a browser cannot do. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- Background location + foreground service permissions removed for
+         V1 — see lib/location.ts. A deliberate V2 addition, not an
+         oversight; re-adding needs its own Google Play background-location
+         review pass. -->
 
     <!-- Keeps tracking alive on devices with aggressive battery management -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />

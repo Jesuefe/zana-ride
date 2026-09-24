@@ -137,7 +137,7 @@ function SlideAction({
           className="absolute left-[6px] top-[6px] bottom-[6px] rounded-full pointer-events-none"
           style={{
             width: offset + THUMB,
-            background: \`\${color}16\`,
+            background: `${color}16`,
             transition: dragging ? 'none' : 'width 180ms ease-out',
           }}
         />
@@ -146,7 +146,7 @@ function SlideAction({
       <div
         className="absolute top-[4px] left-[4px] w-[52px] h-[52px] rounded-full z-10 flex items-center justify-center shadow-lg border-2 border-white"
         style={{
-          transform: \`translateX(\${offset}px)\`,
+          transform: `translateX(${offset}px)`,
           background: disabled ? '#9CA3AF' : color,
           transition: dragging ? 'none' : 'transform 180ms cubic-bezier(.2,.8,.2,1)',
         }}
@@ -173,15 +173,12 @@ export default function DriverHome() {
   const [profile, setProfile] = useState<DriverProfile | null>(null);
   const [battery, setBattery] = useState<{ level: number; charging: boolean } | null>(null);
 
-  // Real phone battery
-  // Play requires the disclosure to appear before the permission prompt.
-  useEffect(() => {
-    try {
-      if (!localStorage.getItem('zana_location_disclosed')) {
-        router.replace('/location-notice');
-      }
-    } catch {}
-  }, [router]);
+  // The mandatory location-notice redirect that used to live here existed
+  // solely to satisfy Google Play's prominent-disclosure requirement for
+  // background location access. V1 no longer requests that permission
+  // (see lib/location.ts), so the requirement — and this redirect — no
+  // longer apply. The /location-notice page itself is left in place
+  // rather than deleted, since it's a straightforward re-enable for V2.
 
   // A driver who force-closed the app, had it crash, or restarted their
   // phone mid-trip would otherwise land here on the normal home screen
@@ -938,7 +935,7 @@ export default function DriverHome() {
                     </button>
                   </div>
 
-                  <SlideToAccept label="Slide to accept ride" onAccept={() => handleAcceptOffer(offer)} color="#00A082" />
+                  <SlideAction label="Slide to accept ride" busyLabel="Accepting…" successLabel="Accepted!" onComplete={() => handleAcceptOffer(offer)} color="#00A082" />
                 </div>
               </div>
             );
