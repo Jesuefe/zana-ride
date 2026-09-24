@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLang } from '../lib/LangContext';
 import { X, ShieldAlert, MapPinOff, TriangleAlert, CircleHelp } from 'lucide-react';
 import { reportRide } from '../lib/api/trips';
 
@@ -11,7 +12,9 @@ const reasons = [
   { id: 'other', label: 'Something else', icon: CircleHelp },
 ];
 
-export default function ReportModal({ tripId, onClose }: { tripId: string; onClose: () => void }) {
+export default function ReportModal({
+  const { t } = useLang();
+  const { t } = useLang(); tripId, onClose }: { tripId: string; onClose: () => void }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [details, setDetails] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -44,7 +47,7 @@ export default function ReportModal({ tripId, onClose }: { tripId: string; onClo
             <div className="w-14 h-14 rounded-full bg-zana-primary-light flex items-center justify-center mx-auto mb-4">
               <ShieldAlert size={24} className="text-zana-primary" />
             </div>
-            <p className="font-semibold text-gray-900">Report sent</p>
+            <p className="font-semibold text-gray-900">{t('Report sent')}</p>
             <p className="text-sm text-zana-muted mt-1">
               {selected === 'safety'
                 ? 'Zana Safety has been notified along with your trip details.'
@@ -54,12 +57,12 @@ export default function ReportModal({ tripId, onClose }: { tripId: string; onClo
         ) : (
           <>
             <div className="flex items-center justify-between mb-1">
-              <h2 className="font-semibold text-lg text-gray-900">Report an issue</h2>
+              <h2 className="font-semibold text-lg text-gray-900">{t('Report an issue')}</h2>
               <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                 <X size={16} />
               </button>
             </div>
-            <p className="text-sm text-zana-muted mb-4">Is everything okay? Select what's happening.</p>
+            <p className="text-sm text-zana-muted mb-4">{t("Is everything okay? Select what's happening.")}</p>
 
             <div className="space-y-2">
               {reasons.map((r) => (
@@ -81,7 +84,7 @@ export default function ReportModal({ tripId, onClose }: { tripId: string; onClo
               <textarea
                 value={details}
                 onChange={e => setDetails(e.target.value)}
-                placeholder="Tell us what happened"
+                placeholder={t('Tell us what happened')}
                 rows={3}
                 className="w-full mt-3 border-1.5 border-zana-border rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-zana-primary"
                 style={{ borderWidth: 1.5 }}
