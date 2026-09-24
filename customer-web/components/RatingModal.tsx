@@ -50,7 +50,7 @@ export default function RatingModal({
         {done ? (
           <div className="text-center py-4">
             <p className="text-2xl mb-2 font-bold text-zana-primary">{t('Thank you!')}</p>
-            <p className="font-semibold text-gray-900">Thanks for rating {driverName}!</p>
+            <p className="font-semibold text-gray-900">{t('Thanks for rating')} {driverName}!</p>
           </div>
         ) : (
           <>
@@ -101,7 +101,7 @@ export default function RatingModal({
               className="w-full bg-zana-primary text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40"
             >
               {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
-              {submitting ? 'Submitting…' : 'Submit Rating'}
+              {submitting ? t('Submitting…') : t('Submit Rating')}
             </button>
 
             <button onClick={onClose} className="w-full text-center text-sm text-gray-400 mt-3">
