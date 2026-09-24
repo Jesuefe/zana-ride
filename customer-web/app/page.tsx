@@ -76,13 +76,13 @@ export default function HomePage() {
       <div className="px-5 pt-12 pb-4 bg-white">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-gray-500 text-sm">{greeting()}</p>
+            <p className="text-gray-500 text-sm">{t(greeting())}</p>
             <h1 className="text-2xl font-black text-gray-900 mt-0.5">
-              {user?.firstName ?? 'Welcome'} 👋
+              {user?.firstName ?? t('Welcome')} 👋
             </h1>
             <div className="flex items-center gap-1 mt-1">
               <MapPin size={12} className="text-zana-primary" />
-              <p className="text-xs text-gray-500">Kigali, Rwanda</p>
+              <p className="text-xs text-gray-500">{t('Kigali, Rwanda')}</p>
             </div>
           </div>
 
@@ -108,15 +108,15 @@ export default function HomePage() {
 
       {loadError && (
         <div className="mx-4 mb-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
-          <p className="text-xs text-amber-800">Couldn't load your info. Check your connection.</p>
-          <button onClick={loadHomeData} className="text-xs font-bold text-amber-800 shrink-0">Retry</button>
+          <p className="text-xs text-amber-800">{t("Couldn't load your info. Check your connection.")}</p>
+          <button onClick={loadHomeData} className="text-xs font-bold text-amber-800 shrink-0">{t('Retry')}</button>
         </div>
       )}
 
       {/* ── Where to card ───────────────────────────────── */}
       <div className="px-4 mt-2">
         <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-5">
-          <h2 className="text-xl font-black text-gray-900 mb-4">Where to?</h2>
+          <h2 className="text-xl font-black text-gray-900 mb-4">{t('Where to?')}</h2>
 
           {/* Search bar */}
           <button
@@ -124,7 +124,7 @@ export default function HomePage() {
             className="w-full flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-3.5 mb-3"
           >
             <Search size={18} className="text-gray-400 shrink-0" />
-            <span className="text-gray-400 text-sm flex-1 text-left">Search destination</span>
+            <span className="text-gray-400 text-sm flex-1 text-left">{t('Search destination')}</span>
             <div className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0">
               <Clock size={15} className="text-gray-400" />
             </div>
@@ -180,7 +180,7 @@ export default function HomePage() {
                   <p className="text-[10px] text-gray-400 leading-tight line-clamp-1 w-full">
                     {t.place
                       ? t.place.address.split(',')[0]
-                      : t.key === 'Recent' ? 'No trips yet' : 'Set location'}
+                      : t.key === 'Recent' ? 'No trips yet'  : t('Set location')}
                   </p>
                 </button>
               ));
@@ -192,7 +192,7 @@ export default function HomePage() {
       {/* ── Services ─────────────────────────────────────── */}
       <div className="px-4 mt-6">
         <div className="mb-4">
-          <h2 className="text-base font-black text-gray-900">Services</h2>
+          <h2 className="text-base font-black text-gray-900">{t('Services')}</h2>
         </div>
 
         <div className="grid grid-cols-4 gap-y-5 gap-x-2">
@@ -234,8 +234,8 @@ export default function HomePage() {
           style={{ background: 'linear-gradient(135deg, #00A082 0%, #007A63 100%)' }}
         >
           <div className="flex-1">
-            <p className="text-white font-black text-lg leading-tight">Send packages with<br/>Zana Delivery</p>
-            <p className="text-white/70 text-xs mt-1">Fast · Safe · Affordable</p>
+            <p className="text-white font-black text-lg leading-tight">{t('Send packages with')}<br/>{t('Zana Delivery')}</p>
+            <p className="text-white/70 text-xs mt-1">{t('Fast · Safe · Affordable')}</p>
             <button onClick={() => router.push('/deliver')}
               className="mt-3 flex items-center gap-1.5 bg-white/20 text-white text-xs font-bold px-4 py-2 rounded-full">
               Book now <ChevronRight size={12} />
@@ -258,9 +258,9 @@ export default function HomePage() {
               <span className="text-lg">💡</span>
             </div>
             <div className="flex-1">
-              <p className="text-xs font-black text-gray-900">Pay with your Zana Wallet</p>
+              <p className="text-xs font-black text-gray-900">{t('Pay with your Zana Wallet')}</p>
               <p className="text-[11px] text-gray-500 leading-snug">
-                Lower fees than Mobile Money, and no waiting for a payment prompt.
+                {t('Lower fees than Mobile Money, and no waiting for a payment prompt.')}
               </p>
             </div>
             <ChevronRight size={16} className="text-gray-300 shrink-0" />
@@ -273,12 +273,12 @@ export default function HomePage() {
         <button onClick={() => router.push('/schedule')}
           className="w-13 h-13 rounded-2xl bg-zana-primary shadow-lg flex flex-col items-center justify-center gap-0.5 px-3 py-2.5">
           <Calendar size={16} className="text-white" />
-          <span className="text-[8px] text-white font-bold">Schedule</span>
+          <span className="text-[8px] text-white font-bold">{t('Schedule')}</span>
         </button>
         <button onClick={() => router.push('/share-location')}
           className="w-13 h-13 rounded-2xl bg-white border border-gray-200 shadow-md flex flex-col items-center justify-center gap-0.5 px-3 py-2.5">
           <MapPin size={16} className="text-zana-primary" />
-          <span className="text-[8px] text-zana-primary font-bold">Location</span>
+          <span className="text-[8px] text-zana-primary font-bold">{t('Location')}</span>
         </button>
       </div>
 
@@ -288,7 +288,7 @@ export default function HomePage() {
           <div className="w-full bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
 
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Going to {ridePick.label}</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">{t('Going to')} {ridePick.label}</p>
             <p className="text-lg font-black text-gray-900 mt-0.5 mb-5 line-clamp-2">{ridePick.address}</p>
 
             <div className="grid grid-cols-2 gap-3">
@@ -306,8 +306,8 @@ export default function HomePage() {
                 style={{ background: '#FDF6E3' }}
               >
                 <Image src="/icons/motorbike.png" alt="Moto" width={44} height={44} className="object-contain" />
-                <p className="text-sm font-black text-gray-900">Moto</p>
-                <p className="text-[10px] text-gray-500 -mt-1">Fast &amp; cheap</p>
+                <p className="text-sm font-black text-gray-900">{t('Moto')}</p>
+                <p className="text-[10px] text-gray-500 -mt-1">{t('Fast &amp; cheap')}</p>
               </button>
 
               <button
