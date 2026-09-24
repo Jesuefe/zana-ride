@@ -622,7 +622,7 @@ export default function DriverHome() {
             <path d="M20 6L9 17l-5-5" />
           </svg>
         </div>
-        <p className="text-xl font-black text-gray-900 mb-1">Ride completed successfully</p>
+        <p className="text-xl font-black text-gray-900 mb-1">{t('Ride completed successfully')}</p>
         <p className="text-sm text-zana-muted mb-6">
           {justCompleted.paymentMethod === 'CASH' ? 'Cash payment' : justCompleted.paymentMethod}
         </p>
@@ -727,7 +727,7 @@ export default function DriverHome() {
               </svg>
               <div>
                 <p className={`text-sm font-bold ${battery && battery.level < 20 ? 'text-red-500' : 'text-gray-900'}`}>{battery ? `${battery.level}%` : '--'}{battery?.charging ? ' ⚡' : ''}</p>
-                <p className="text-[9px] text-gray-400">Battery</p>
+                <p className="text-[9px] text-gray-400">{t('Battery')}</p>
               </div>
             </div>
             <div className="w-px h-8 bg-gray-100" />
@@ -738,8 +738,8 @@ export default function DriverHome() {
                 <circle cx="17" cy="14" r="2" fill="#00A082"/>
               </svg>
               <div>
-                <p className="text-sm font-bold text-gray-900">Good</p>
-                <p className="text-[9px] text-gray-400">Vehicle</p>
+                <p className="text-sm font-bold text-gray-900">{t('Good')}</p>
+                <p className="text-[9px] text-gray-400">{t('Vehicle')}</p>
               </div>
             </div>
           </div>
@@ -808,7 +808,7 @@ export default function DriverHome() {
           {/* Today's overview */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="font-bold text-gray-900">Today's Overview</p>
+              <p className="font-bold text-gray-900">{t('Today's Overview')}</p>
               <button onClick={() => router.push('/earnings')} className="text-xs text-zana-primary font-semibold flex items-center gap-0.5">
                 See all <ChevronRight size={12} />
               </button>
@@ -817,11 +817,11 @@ export default function DriverHome() {
               {[
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="#00A082" strokeWidth="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="#E6A82E" strokeWidth="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="#00A082" strokeWidth="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="#E6A82E" strokeWidth="2"/></svg>,
-                  bg: '#E3F5F1', value: earnings?.totalTrips ?? 0, label: 'Completed', route: '/rides'
+                  bg: '#E3F5F1', value: earnings?.totalTrips ?? 0, label: t('Completed'), route: '/rides'
                 },
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#E6A82E" strokeWidth="2"/><path d="M12 7v5l3 3" stroke="#E6A82E" strokeWidth="2" strokeLinecap="round"/></svg>,
-                  bg: '#FBF1DD', value: onlineTimeStr, label: 'Online time', route: null
+                  bg: '#FBF1DD', value: onlineTimeStr, label: t('Online time'), route: null
                 },
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="3" stroke="#4F9EF8" strokeWidth="2"/><path d="M2 9h20" stroke="#4F9EF8" strokeWidth="2"/></svg>,
@@ -829,7 +829,7 @@ export default function DriverHome() {
                 },
                 {
                   icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><polygon points="12,2 15,8.5 22,9.5 17,14.2 18.2,21 12,17.7 5.8,21 7,14.2 2,9.5 9,8.5" stroke="#9B59B6" strokeWidth="2" fill="none"/></svg>,
-                  bg: '#F3E8FF', value: (profile?.rating ?? 0).toFixed(1), label: 'Rating', route: '/ratings'
+                  bg: '#F3E8FF', value: (profile?.rating ?? 0).toFixed(1), label: t('Rating'), route: '/ratings'
                 },
               ].map(({ icon, bg, value, label, small, route }, i) => (
                 <button
@@ -856,12 +856,12 @@ export default function DriverHome() {
           <div className="w-full bg-white rounded-t-3xl p-6">
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
             <h2 className="text-lg font-black text-gray-900 mb-1">{dt("What do you want to receive?")}</h2>
-            <p className="text-sm text-gray-400 mb-5">Choose your mode for this session.</p>
+            <p className="text-sm text-gray-400 mb-5">{t('Choose your mode for this session.')}</p>
             <div className="space-y-3">
               {([
-                { mode: 'RIDES', label: 'Rides only', sub: 'Passenger pickup requests' },
-                { mode: 'DELIVERIES', label: 'Deliveries only', sub: 'Package delivery requests' },
-                { mode: 'BOTH', label: 'Both', sub: 'Rides and deliveries' },
+                { mode: 'RIDES', label: t('Rides only'), sub: 'Passenger pickup requests' },
+                { mode: 'DELIVERIES', label: t('Deliveries only'), sub: 'Package delivery requests' },
+                { mode: 'BOTH', label: t('Both'), sub: 'Rides and deliveries' },
               ] as const).map(({ mode, label, sub }) => (
                 <button key={mode} onClick={() => handleModeSelect(mode)}
                   className="w-full flex items-center gap-4 bg-gray-50 hover:bg-zana-primary-light rounded-2xl px-4 py-4 text-left transition-colors">
@@ -875,7 +875,7 @@ export default function DriverHome() {
                 </button>
               ))}
             </div>
-            <button onClick={() => setShowMode(false)} className="w-full mt-4 text-sm text-gray-400 py-2">Cancel</button>
+            <button onClick={() => setShowMode(false)} className="w-full mt-4 text-sm text-gray-400 py-2">{t('Cancel')}</button>
           </div>
         </div>
       )}
@@ -946,7 +946,7 @@ export default function DriverHome() {
       {incomingDelivery && offers.length === 0 && (
         <div className="fixed inset-x-4 bottom-28 z-40">
           <div className="bg-white rounded-3xl shadow-2xl p-4">
-            <p className="text-xs font-bold text-amber-600 uppercase tracking-wide mb-3">Delivery Request</p>
+            <p className="text-xs font-bold text-amber-600 uppercase tracking-wide mb-3">{t('Delivery Request')}</p>
             <p className="font-bold text-gray-900">{incomingDelivery.itemDescription}</p>
             <p className="text-xs text-gray-400 mt-0.5 mb-3">{incomingDelivery.pickupAddress}</p>
             <div className="flex items-center justify-between mb-4">
@@ -968,17 +968,17 @@ export default function DriverHome() {
         <div className="fixed inset-0 z-50 flex">
           <div className="w-72 bg-white h-full shadow-2xl p-6">
             <div className="flex items-center justify-between mb-8">
-              <p className="font-black text-lg text-gray-900">Menu</p>
+              <p className="font-black text-lg text-gray-900">{t('Menu')}</p>
               <button onClick={() => setShowMenu(false)}>
                 <X size={20} className="text-gray-500" />
               </button>
             </div>
             <div className="space-y-1">
               {[
-                { label: 'Home', route: '/' },
-                { label: 'Deliveries', route: '/deliveries' },
-                { label: 'Earnings', route: '/earnings' },
-                { label: 'Profile', route: '/profile' },
+                { label: t('Home'), route: '/' },
+                { label: t('Deliveries'), route: '/deliveries' },
+                { label: t('Earnings'), route: '/earnings' },
+                { label: t('Profile'), route: '/profile' },
               ].map(({ label, route }) => (
                 <button key={label} onClick={() => { router.push(route); setShowMenu(false); }}
                   className="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 font-semibold text-gray-700">
