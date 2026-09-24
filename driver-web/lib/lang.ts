@@ -97,6 +97,9 @@ export const DRIVER_UI: Record<string, Record<Lang, string>> = {
   'New ride request': { en: 'New ride request', fr: 'Nouvelle demande de trajet', rw: 'Ubusabe bushya bw’urugendo' },
   'away': { en: 'away', fr: 'de distance', rw: 'hari' },
   'Fare': { en: 'Fare', fr: 'Tarif', rw: 'Igiciro' },
+  'Details': { en: 'Details', fr: 'Détails', rw: 'Ibisobanuro' },
+  "You're online and ready to receive requests": { en: "You're online and ready to receive requests", fr: 'Vous êtes en ligne et prêt à recevoir des demandes', rw: 'Uri kumurongo kandi witeguye kwakira ubusabe' },
+  'Go online to start receiving ride requests': { en: 'Go online to start receiving ride requests', fr: 'Connectez-vous pour commencer à recevoir des demandes de trajets', rw: 'Jya kumurongo utangire kwakira ubusabe bw’ingendo' },
   'What do you want to receive?': { en: 'What do you want to receive?', fr: 'Que voulez-vous recevoir?', rw: 'Urashaka guhabwa iki?' },
   'Rides only': { en: 'Rides only', fr: 'Trajets seulement', rw: 'Ingendo gusa' },
   'Deliveries only': { en: 'Deliveries only', fr: 'Livraisons seulement', rw: 'Kohereza gusa' },
@@ -485,6 +488,7 @@ Object.assign(DRIVER_UI, {
   'Battery': { en: 'Battery', fr: 'Batterie', rw: 'Bateri' },
   'Good': { en: 'Good', fr: 'Bon', rw: 'Ni byiza' },
   'Choose your mode for this session.': { en: 'Choose your mode for this session.', fr: 'Choisissez votre mode pour cette session.', rw: 'Hitamo uburyo uzakoresha muri iyi serivisi.' },
+  'Cash': { en: 'Cash', fr: 'Espèces', rw: 'Amafaranga y’ikiganza' },
   'Delivery Request': { en: 'Delivery Request', fr: 'Demande de livraison', rw: 'Ubusabe bwo kugeza ibintu' },
   'Menu': { en: 'Menu', fr: 'Menu', rw: 'Menyu' },
 });
