@@ -432,7 +432,7 @@ function SearchContent() {
                       <span className="text-2xl">{icon}</span>
                       <div className="flex-1 text-left">
                         <p className={`font-semibold text-sm ${paymentMethod === id ? insufficient ? 'text-red-600' : 'text-zana-primary' : 'text-gray-800'}`}>
-                          {label}
+                          {t(label)}
                         </p>
                         {isWallet && walletBalance !== null && (
                           <p className={`text-xs ${insufficient ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
