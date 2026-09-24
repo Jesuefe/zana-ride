@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import { Roles, RolesGuard } from '../auth/roles.guard';
 
-@Controller('safety')
+@Controller('sos')
 @UseGuards(JwtAuthGuard)
 export class SafetyController {
   constructor(private prisma: PrismaService) {}
