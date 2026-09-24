@@ -748,3 +748,33 @@ Object.assign(UI, {
   'Driver behavior': { en: 'Driver behavior', fr: 'Comportement du chauffeur', rw: 'Imyitwarire y’umushoferi' },
   'Something else': { en: 'Something else', fr: 'Autre chose', rw: 'Ikindi' },
 });
+
+
+// Translation coverage additions: keep every customer-facing message available in EN/FR/RW.
+Object.assign(UI, {
+  'Add the recipient name, phone number and delivery address.': {
+    en: 'Add the recipient name, phone number and delivery address.',
+    fr: 'Ajoutez le nom du destinataire, son numéro de téléphone et l’adresse de livraison.',
+    rw: 'Ongeramo izina ry’uwo wohereza, nimero ya telefoni n’aho azagezwaho.'
+  },
+  'Not enough in your wallet. Balance {{balance}} RWF, order costs {{cost}} RWF. Top up or pay with Mobile Money.': {
+    en: 'Not enough in your wallet. Balance {{balance}} RWF, order costs {{cost}} RWF. Top up or pay with Mobile Money.',
+    fr: 'Votre solde est insuffisant. Solde : {{balance}} RWF, commande : {{cost}} RWF. Rechargez ou payez avec Mobile Money.',
+    rw: 'Amafaranga ari muri konti yawe ntahagije. Asigaye ni {{balance}} RWF, ibyo waguze ni {{cost}} RWF. Ongeraho amafaranga cyangwa wishyure na Mobile Money.'
+  },
+  'Could not place order.': {
+    en: 'Could not place order.',
+    fr: 'Impossible de passer la commande.',
+    rw: 'Ntibyashobotse gutanga itegeko.'
+  },
+  'Wallet top-up is only available from your registered ZANA phone number.': {
+    en: 'Wallet top-up is only available from your registered ZANA phone number.',
+    fr: 'La recharge du portefeuille est disponible uniquement depuis votre numéro de téléphone ZANA enregistré.',
+    rw: 'Kongeramo amafaranga muri Wallet bikorwa gusa ukoresheje nimero ya telefoni yanditswe kuri ZANA.'
+  },
+  'Top-ups can only use your registered ZANA phone number.': {
+    en: 'Top-ups can only use your registered ZANA phone number.',
+    fr: 'Les recharges ne peuvent utiliser que votre numéro de téléphone ZANA enregistré.',
+    rw: 'Kongeramo amafaranga bishobora gukoresha gusa nimero ya telefoni yawe yanditswe kuri ZANA.'
+  },
+});
