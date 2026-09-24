@@ -807,7 +807,7 @@ export default function DriverHome() {
           {/* Today's overview */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="font-bold text-gray-900">{t('Today's Overview')}</p>
+              <p className="font-bold text-gray-900">{t("Today's Overview")}</p>
               <button onClick={() => router.push('/earnings')} className="text-xs text-zana-primary font-semibold flex items-center gap-0.5">
                 See all <ChevronRight size={12} />
               </button>

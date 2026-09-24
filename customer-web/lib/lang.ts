@@ -692,4 +692,59 @@ Object.assign(UI, {
   '100 points = 500 RWF wallet credit (min 100 points)': { en: '100 points = 500 RWF wallet credit (min 100 points)', fr: '100 points = 500 RWF crédités au portefeuille (minimum 100 points)', rw: 'Amanota 100 = 500 RWF ashyirwa muri wallet (nibura amanota 100)' },
   'Points to redeem': { en: 'Points to redeem', fr: 'Points à échanger', rw: 'Amanota ushaka gukoresha' },
 });
-\nObject.assign(UI, {\n  'Calling': { en: 'Calling', fr: 'Appel en cours', rw: 'Turahamagara' },\n  'Connecting...': { en: 'Connecting...', fr: 'Connexion...', rw: 'Birimo guhuza...' },\n  'Reconnecting...': { en: 'Reconnecting...', fr: 'Reconnexion...', rw: 'Birimo kongera guhuza...' },\n  'Call ended': { en: 'Call ended', fr: 'Appel terminé', rw: 'Guhamagara byarangiye' },\n  'Unable to connect': { en: 'Unable to connect', fr: 'Impossible de se connecter', rw: 'Ntibyashobotse guhuza' },\n  'Zana Free Call · Connected': { en: 'Zana Free Call · Connected', fr: 'Zana · Appel gratuit · Connecté', rw: 'Zana · Guhamagara ku buntu · Byahujwe' },\n  'Unmute': { en: 'Unmute', fr: 'Activer le son', rw: 'Fungura mikoro' },\n  'Mute': { en: 'Mute', fr: 'Couper le son', rw: 'Zimya mikoro' },\n  'End call': { en: 'End call', fr: 'Terminer l’appel', rw: 'Soza guhamagara' },\n  'Speaker': { en: 'Speaker', fr: 'Haut-parleur', rw: 'Indangururamajwi' },\n  'WhatsApp Support': { en: 'WhatsApp Support', fr: 'Assistance WhatsApp', rw: 'Ubufasha kuri WhatsApp' },\n  'Call Emergency (112)': { en: 'Call Emergency (112)', fr: 'Appeler les urgences (112)', rw: 'Hamagara ubutabazi (112)' },\n  'Deliver to': { en: 'Deliver to', fr: 'Livrer à', rw: 'Bigezwe kuri' },\n  'Myself': { en: 'Myself', fr: 'Moi-même', rw: 'Jye ubwanjye' },\n  'Someone else': { en: 'Someone else', fr: 'Quelqu’un d’autre', rw: 'Undi muntu' },\n  'Recipient full name': { en: 'Recipient full name', fr: 'Nom complet du destinataire', rw: 'Amazina yose y’uwakira' },\n  'Recipient phone number': { en: 'Recipient phone number', fr: 'Numéro de téléphone du destinataire', rw: 'Numero ya telefoni y’uwakira' },\n  'Delivery address': { en: 'Delivery address', fr: 'Adresse de livraison', rw: 'Aderesi yo kugeza' },\n  "Drag the pin to the recipient's exact location. The order sends these coordinates with the address.": { en: "Drag the pin to the recipient's exact location. The order sends these coordinates with the address.", fr: "Faites glisser le repère jusqu’à l’emplacement exact du destinataire. La commande envoie ces coordonnées avec l’adresse.", rw: 'Kurura ikimenyetso ujye aho uwakira ari. Ibyo byerekezo byoherezwa hamwe na aderesi.' },\n  'Use current location': { en: 'Use current location', fr: 'Utiliser ma position actuelle', rw: 'Koresha aho ndi ubu' },\n  'Delivery note (optional)': { en: 'Delivery note (optional)', fr: 'Note de livraison (facultatif)', rw: 'Icyitonderwa cyo kugeza (si ngombwa)' },\n  'The account holder pays. The recipient only receives the order.': { en: 'The account holder pays. The recipient only receives the order.', fr: 'Le titulaire du compte paie. Le destinataire reçoit seulement la commande.', rw: 'Ufite konti ni we wishyura. Uwakira ni we gusa ubona ibyo yatumije.' },\n  'Your saved delivery location': { en: 'Your saved delivery location', fr: 'Votre lieu de livraison enregistré', rw: 'Aho wabikije ko ari ho bigezwa' },\n  'Chat with driver': { en: 'Chat with driver', fr: 'Discuter avec le chauffeur', rw: 'Ganira n’umushoferi' },\n  'Chat with courier': { en: 'Chat with courier', fr: 'Discuter avec le coursier', rw: 'Ganira n’utanga ibintu' },\n  'Thanks for rating': { en: 'Thanks for rating', fr: 'Merci pour votre évaluation', rw: 'Urakoze gutanga amanota' },\n  'Submitting…': { en: 'Submitting…', fr: 'Envoi…', rw: 'Birimo koherezwa…' },\n  'Submit Rating': { en: 'Submit Rating', fr: 'Envoyer la note', rw: 'Ohereza amanota' },\n  'Send report to Zana Safety': { en: 'Send report to Zana Safety', fr: 'Envoyer le signalement à la sécurité Zana', rw: 'Ohereza raporo kuri Zana Safety' },\n  'Saving…': { en: 'Saving…', fr: 'Enregistrement…', rw: 'Birimo kubikwa…' },\n  'Submit rating': { en: 'Submit rating', fr: 'Envoyer la note', rw: 'Ohereza amanota' },\n  'Poor': { en: 'Poor', fr: 'Mauvais', rw: 'Nabi' },\n  'Not great': { en: 'Not great', fr: 'Pas très bien', rw: 'Ntabwo ari byiza cyane' },\n  'Fine': { en: 'Fine', fr: 'Correct', rw: 'Ni byiza' },\n  'Good': { en: 'Good', fr: 'Bien', rw: 'Byiza' },\n  'Excellent': { en: 'Excellent', fr: 'Excellent', rw: 'Ni byiza cyane' },\n});\n\nObject.assign(UI, {\n  "Use this device's current location": { en: "Use this device's current location", fr: "Utiliser la position actuelle de cet appareil", rw: "Koresha aho iki gikoresho kiri ubu" },\n});\n\nObject.assign(UI, {\n  'Sending…': { en: 'Sending…', fr: 'Envoi…', rw: 'Birimo kohereza…' },\n  'Great driver!': { en: 'Great driver!', fr: 'Excellent chauffeur !', rw: 'Umushoferi mwiza cyane!' },\n  'Very punctual': { en: 'Very punctual', fr: 'Très ponctuel', rw: 'Agera ku gihe cyane' },\n  'Safe driving': { en: 'Safe driving', fr: 'Conduite sûre', rw: 'Atwara neza kandi afite umutekano' },\n  'Friendly': { en: 'Friendly', fr: 'Aimable', rw: 'Agira urugwiro' },\n  'Clean vehicle': { en: 'Clean vehicle', fr: 'Véhicule propre', rw: 'Ikibuga gifite isuku' },\n  'I feel unsafe': { en: 'I feel unsafe', fr: 'Je ne me sens pas en sécurité', rw: 'Numva nta mutekano mfite' },\n  'Driver went off route': { en: 'Driver went off route', fr: 'Le chauffeur a quitté l’itinéraire', rw: 'Umushoferi yavuye ku nzira' },\n  'Driver behavior': { en: 'Driver behavior', fr: 'Comportement du chauffeur', rw: 'Imyitwarire y’umushoferi' },\n  'Something else': { en: 'Something else', fr: 'Autre chose', rw: 'Ikindi' },\n});\n
+
+Object.assign(UI, {
+  'Calling': { en: 'Calling', fr: 'Appel en cours', rw: 'Turahamagara' },
+  'Connecting...': { en: 'Connecting...', fr: 'Connexion...', rw: 'Birimo guhuza...' },
+  'Reconnecting...': { en: 'Reconnecting...', fr: 'Reconnexion...', rw: 'Birimo kongera guhuza...' },
+  'Call ended': { en: 'Call ended', fr: 'Appel terminé', rw: 'Guhamagara byarangiye' },
+  'Unable to connect': { en: 'Unable to connect', fr: 'Impossible de se connecter', rw: 'Ntibyashobotse guhuza' },
+  'Zana Free Call · Connected': { en: 'Zana Free Call · Connected', fr: 'Zana · Appel gratuit · Connecté', rw: 'Zana · Guhamagara ku buntu · Byahujwe' },
+  'Unmute': { en: 'Unmute', fr: 'Activer le son', rw: 'Fungura mikoro' },
+  'Mute': { en: 'Mute', fr: 'Couper le son', rw: 'Zimya mikoro' },
+  'End call': { en: 'End call', fr: 'Terminer l’appel', rw: 'Soza guhamagara' },
+  'Speaker': { en: 'Speaker', fr: 'Haut-parleur', rw: 'Indangururamajwi' },
+  'WhatsApp Support': { en: 'WhatsApp Support', fr: 'Assistance WhatsApp', rw: 'Ubufasha kuri WhatsApp' },
+  'Call Emergency (112)': { en: 'Call Emergency (112)', fr: 'Appeler les urgences (112)', rw: 'Hamagara ubutabazi (112)' },
+  'Deliver to': { en: 'Deliver to', fr: 'Livrer à', rw: 'Bigezwe kuri' },
+  'Myself': { en: 'Myself', fr: 'Moi-même', rw: 'Jye ubwanjye' },
+  'Someone else': { en: 'Someone else', fr: 'Quelqu’un d’autre', rw: 'Undi muntu' },
+  'Recipient full name': { en: 'Recipient full name', fr: 'Nom complet du destinataire', rw: 'Amazina yose y’uwakira' },
+  'Recipient phone number': { en: 'Recipient phone number', fr: 'Numéro de téléphone du destinataire', rw: 'Numero ya telefoni y’uwakira' },
+  'Delivery address': { en: 'Delivery address', fr: 'Adresse de livraison', rw: 'Aderesi yo kugeza' },
+  "Drag the pin to the recipient's exact location. The order sends these coordinates with the address.": { en: "Drag the pin to the recipient's exact location. The order sends these coordinates with the address.", fr: "Faites glisser le repère jusqu’à l’emplacement exact du destinataire. La commande envoie ces coordonnées avec l’adresse.", rw: 'Kurura ikimenyetso ujye aho uwakira ari. Ibyo byerekezo byoherezwa hamwe na aderesi.' },
+  'Use current location': { en: 'Use current location', fr: 'Utiliser ma position actuelle', rw: 'Koresha aho ndi ubu' },
+  'Delivery note (optional)': { en: 'Delivery note (optional)', fr: 'Note de livraison (facultatif)', rw: 'Icyitonderwa cyo kugeza (si ngombwa)' },
+  'The account holder pays. The recipient only receives the order.': { en: 'The account holder pays. The recipient only receives the order.', fr: 'Le titulaire du compte paie. Le destinataire reçoit seulement la commande.', rw: 'Ufite konti ni we wishyura. Uwakira ni we gusa ubona ibyo yatumije.' },
+  'Your saved delivery location': { en: 'Your saved delivery location', fr: 'Votre lieu de livraison enregistré', rw: 'Aho wabikije ko ari ho bigezwa' },
+  'Chat with driver': { en: 'Chat with driver', fr: 'Discuter avec le chauffeur', rw: 'Ganira n’umushoferi' },
+  'Chat with courier': { en: 'Chat with courier', fr: 'Discuter avec le coursier', rw: 'Ganira n’utanga ibintu' },
+  'Thanks for rating': { en: 'Thanks for rating', fr: 'Merci pour votre évaluation', rw: 'Urakoze gutanga amanota' },
+  'Submitting…': { en: 'Submitting…', fr: 'Envoi…', rw: 'Birimo koherezwa…' },
+  'Submit Rating': { en: 'Submit Rating', fr: 'Envoyer la note', rw: 'Ohereza amanota' },
+  'Send report to Zana Safety': { en: 'Send report to Zana Safety', fr: 'Envoyer le signalement à la sécurité Zana', rw: 'Ohereza raporo kuri Zana Safety' },
+  'Saving…': { en: 'Saving…', fr: 'Enregistrement…', rw: 'Birimo kubikwa…' },
+  'Submit rating': { en: 'Submit rating', fr: 'Envoyer la note', rw: 'Ohereza amanota' },
+  'Poor': { en: 'Poor', fr: 'Mauvais', rw: 'Nabi' },
+  'Not great': { en: 'Not great', fr: 'Pas très bien', rw: 'Ntabwo ari byiza cyane' },
+  'Fine': { en: 'Fine', fr: 'Correct', rw: 'Ni byiza' },
+  'Good': { en: 'Good', fr: 'Bien', rw: 'Byiza' },
+  'Excellent': { en: 'Excellent', fr: 'Excellent', rw: 'Ni byiza cyane' },
+});
+
+Object.assign(UI, {
+  "Use this device's current location": { en: "Use this device's current location", fr: "Utiliser la position actuelle de cet appareil", rw: "Koresha aho iki gikoresho kiri ubu" },
+});
+
+Object.assign(UI, {
+  'Sending…': { en: 'Sending…', fr: 'Envoi…', rw: 'Birimo kohereza…' },
+  'Great driver!': { en: 'Great driver!', fr: 'Excellent chauffeur !', rw: 'Umushoferi mwiza cyane!' },
+  'Very punctual': { en: 'Very punctual', fr: 'Très ponctuel', rw: 'Agera ku gihe cyane' },
+  'Safe driving': { en: 'Safe driving', fr: 'Conduite sûre', rw: 'Atwara neza kandi afite umutekano' },
+  'Friendly': { en: 'Friendly', fr: 'Aimable', rw: 'Agira urugwiro' },
+  'Clean vehicle': { en: 'Clean vehicle', fr: 'Véhicule propre', rw: 'Ikibuga gifite isuku' },
+  'I feel unsafe': { en: 'I feel unsafe', fr: 'Je ne me sens pas en sécurité', rw: 'Numva nta mutekano mfite' },
+  'Driver went off route': { en: 'Driver went off route', fr: 'Le chauffeur a quitté l’itinéraire', rw: 'Umushoferi yavuye ku nzira' },
+  'Driver behavior': { en: 'Driver behavior', fr: 'Comportement du chauffeur', rw: 'Imyitwarire y’umushoferi' },
+  'Something else': { en: 'Something else', fr: 'Autre chose', rw: 'Ikindi' },
+});

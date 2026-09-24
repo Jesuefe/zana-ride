@@ -48,6 +48,7 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
   onClose,
   onSpeakerStateChange,
 }: Props, ref) {
+  const { dt } = useLang();
   const roomRef = useRef<Room | null>(null);
   const audioElementsRef = useRef<HTMLAudioElement[]>([]);
   const heartbeatRef = useRef<any>(null);
@@ -305,7 +306,7 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
 
   const stateLabels: Record<CallState, string> = {
     connecting: dt('Connecting...'),
-    ringing: `${dt('Calling', lang)} ${participantLabel}...`,
+    ringing: `${dt('Calling')} ${participantLabel}...`,
     connected: fmt(duration),
     reconnecting: dt('Reconnecting...'),
     ended: dt('Call ended'),

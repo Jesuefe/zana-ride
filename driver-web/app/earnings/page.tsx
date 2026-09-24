@@ -291,7 +291,7 @@ export default function EarningsPage() {
                   <input
                     value={settlePhone}
                     onChange={e => setSettlePhone(e.target.value.replace(/\D/g,'').slice(0,9))}
-                    placeholder={dt('788 123 456', lang)}
+                    placeholder={dt('788 123 456')}
                     inputMode="numeric"
                     className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
                   />

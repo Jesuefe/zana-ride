@@ -43,7 +43,7 @@ export default function ChatPanel({
     load();
     const interval = setInterval(load, 2000);
     return () => clearInterval(interval);
-  }, [context, contextId, storedLang]);
+  }, [context, contextId, lang]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -76,7 +76,7 @@ export default function ChatPanel({
           <p className="text-sm font-semibold text-gray-900">
             {context === 'trip' ? dt('Chat with passenger') : dt('Chat with merchant')}
           </p>
-          <p className="text-[10px] text-zana-muted">{dt('Messages auto-translate · History clears after ride', lang)}</p>
+          <p className="text-[10px] text-zana-muted">{dt('Messages auto-translate · History clears after ride')}</p>
         </div>
         <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
           <X size={15} />
@@ -88,7 +88,7 @@ export default function ChatPanel({
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <MessageCircle size={32} className="text-gray-200 mb-2" />
-            <p className="text-sm text-zana-muted">{dt('No messages yet. Say hello!', lang)}</p>
+            <p className="text-sm text-zana-muted">{dt('No messages yet. Say hello!')}</p>
           </div>
         )}
         {messages.map(m => {

@@ -319,6 +319,7 @@ export const DRIVER_UI: Record<string, Record<Lang, string>> = {
   'I understand — continue': { en: 'I understand — continue', fr: 'Ndabyumvise — komeza', rw: 'Ndabyumvise — komeza' },
   'Not now': { en: 'Not now', fr: 'Si ubu', rw: 'Si ubu' },
   'You\'ve been logged in on another device, so this one has been taken offline.': { en: 'You\'ve been logged in on another device, so this one has been taken offline.', fr: 'Winjiye kuri indi terefone, kubera iyo mpamvu iyi ntikiri ku murimo.', rw: 'Winjiye kuri indi terefone, kubera iyo mpamvu iyi ntikiri ku murimo.' },
+  'Today\'s Overview': { en: 'Today\'s Overview', fr: 'Aperçu du jour', rw: 'Incamake y\'uyu munsi' },
 };
 
 export function dt(key: string, lang: Lang): string {
