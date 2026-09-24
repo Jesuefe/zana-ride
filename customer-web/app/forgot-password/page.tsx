@@ -5,6 +5,7 @@ import PasswordField from '../../components/PasswordField';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { requestPasswordReset, resetPassword } from '../../lib/api/auth';
+import { useLang } from '../../lib/LangContext';
 import { ApiError } from '../../lib/api/client';
 
 /**
@@ -13,6 +14,7 @@ import { ApiError } from '../../lib/api/client';
  * lose the code when they switch to their SMS app.
  */
 export default function ForgotPassword() {
+  const { t } = useLang();
   const router = useRouter();
   const [step, setStep] = useState<'identify' | 'reset'>('identify');
 
