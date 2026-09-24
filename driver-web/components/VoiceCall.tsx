@@ -304,12 +304,12 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   const stateLabels: Record<CallState, string> = {
-    connecting: 'Connecting...',
-    ringing: `Calling ${participantLabel}...`,
+    connecting: dt('Connecting...'),
+    ringing: `${dt('Calling', lang)} ${participantLabel}...`,
     connected: fmt(duration),
-    reconnecting: 'Reconnecting...',
-    ended: 'Call ended',
-    failed: error || 'Unable to connect',
+    reconnecting: dt('Reconnecting...'),
+    ended: dt('Call ended'),
+    failed: error || dt('Unable to connect'),
   };
 
   return (
