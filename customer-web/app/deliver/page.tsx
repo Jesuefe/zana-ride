@@ -59,19 +59,19 @@ export default function DeliverPage() {
   const [weight, setWeight] = useState<PackageWeight>('UNDER_1KG');
 
   const PACKAGE_TYPES = [
-    ['Food', Utensils],
-    ['Clothes', Shirt],
-    ['Documents', FileText],
-    ['Package', Package],
-    ['Medicine', Pill],
-    ['Groceries', ShoppingCart],
-    ['Gift', Gift],
-    ['Electronics', Smartphone],
-    ['Shoes', Footprints],
-    ['Books', BookOpen],
-    ['Cosmetics', Sparkles],
-    ['Household', House],
-    ['Other', Plus],
+    [t('Food'), Utensils],
+    [t('Clothes'), Shirt],
+    [t('Documents'), FileText],
+    [t('Package'), Package],
+    [t('Medicine'), Pill],
+    [t('Groceries'), ShoppingCart],
+    [t('Gift'), Gift],
+    [t('Electronics'), Smartphone],
+    [t('Shoes'), Footprints],
+    [t('Books'), BookOpen],
+    [t('Cosmetics'), Sparkles],
+    [t('Household'), House],
+    [t('Other'), Plus],
   ] as const;
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
@@ -108,7 +108,7 @@ export default function DeliverPage() {
   }, []);
 
   useEffect(() => {
-    reverseGeocode(pickup.lat, pickup.lng).then((a) => setPickupAddress(a ?? 'Current location'));
+    reverseGeocode(pickup.lat, pickup.lng).then((a) => setPickupAddress(a ?? t('Current location')));
   }, [pickup.lat, pickup.lng]);
 
   useEffect(() => {
@@ -147,7 +147,7 @@ export default function DeliverPage() {
     try {
       setImageBase64(await compressImage(file));
     } catch {
-      setError('Could not process that image.');
+      setError(t('Could not process that image.'));
     }
   };
 
@@ -165,7 +165,7 @@ export default function DeliverPage() {
 
       setImageBase64(stamped);
     } catch {
-      setError('Could not take that photo. Try again.');
+      setError(t('Could not take that photo. Try again.'));
     } finally {
       setCapturing(false);
     }
@@ -179,12 +179,12 @@ export default function DeliverPage() {
       setDropoff({
         lat: resolved.lat,
         lng: resolved.lng,
-        address: resolved.address ?? `Shared location (${resolved.code})`,
+        address: resolved.address ?? `${t('Shared location')} (${resolved.code})`,
       });
       setDestQuery('');
       setSuggestions([]);
     } catch (err) {
-      setCodeError(err instanceof ApiError ? err.message : 'Could not check that code.');
+      setCodeError(err instanceof ApiError ? err.message : t('Could not check that code.'));
     } finally {
       setResolvingCode(false);
     }
@@ -253,12 +253,12 @@ export default function DeliverPage() {
       if (msg.includes('INSUFFICIENT_WALLET_BALANCE')) {
         const p = msg.split(':');
         setError(
-          `Not enough in your wallet. Balance ${Number(p[1] ?? 0).toLocaleString()} RWF, delivery costs ${Number(p[2] ?? 0).toLocaleString()} RWF.`
+          t('Not enough in your wallet. Balance {{balance}} RWF, delivery costs {{cost}} RWF.').replace('{{balance}}', Number(p[1] ?? 0).toLocaleString()).replace('{{cost}}', Number(p[2] ?? 0).toLocaleString())
         );
       } else if (msg.includes('MOMO_CHARGE_FAILED')) {
-        setError('Could not reach Mobile Money. Check the number and try again.');
+        setError(t('Could not reach Mobile Money. Check the number and try again.'));
       } else {
-        setError(msg || 'Could not create the delivery.');
+        setError(msg || t('Could not create the delivery.'));
       }
       setSubmitting(false);
     }
@@ -282,11 +282,11 @@ export default function DeliverPage() {
           <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
             <ArrowLeft size={16} />
           </button>
-          <h1 className="text-lg font-bold text-gray-900">Send a package</h1>
+          <h1 className="text-lg font-bold text-gray-900">{t('Send a package')}</h1>
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">What are you sending?</label>
+          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('What are you sending?')}</label>
           <div className="grid grid-cols-4 gap-2">
             {PACKAGE_TYPES.map(([label, Icon]) => (
               <button
@@ -313,7 +313,7 @@ export default function DeliverPage() {
             <textarea
               value={itemDetails}
               onChange={(e) => setItemDetails(e.target.value)}
-              placeholder="e.g. 2 plates of food and 1 bottle of juice"
+              placeholder={t('e.g. 2 plates of food and 1 bottle of juice')}
               rows={2}
               className="w-full border border-zana-border rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             />
@@ -321,7 +321,7 @@ export default function DeliverPage() {
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">Approximate weight</label>
+          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('Approximate weight')}</label>
           <div className="grid grid-cols-3 gap-2">
             {WEIGHT_OPTIONS.map((w) => (
               <button
@@ -446,7 +446,7 @@ export default function DeliverPage() {
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">Receiver</label>
+          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('Receiver')}</label>
           <input
             value={receiverName}
             onChange={(e) => setReceiverName(e.target.value)}
@@ -564,11 +564,11 @@ export default function DeliverPage() {
         >
           {awaitingMomo ? (
             <>
-              <Loader2 size={16} className="animate-spin" /> Approve the MoMo prompt on your phone…
+              <Loader2 size={16} className="animate-spin" /> {t('Approve the MoMo prompt on your phone…')}
             </>
           ) : submitting ? (
             <>
-              <Loader2 size={16} className="animate-spin" /> Requesting…
+              <Loader2 size={16} className="animate-spin" /> {t('Requesting…')}
             </>
           ) : (
             <>
@@ -579,7 +579,7 @@ export default function DeliverPage() {
 
         <FastLoadingPopup
           visible={submitting && !awaitingMomo}
-          messages={['Finding the best route…', 'Calculating your fare…', 'Confirming with Zana…']}
+          messages={[t('Finding the best route…'), t('Calculating your fare…'), t('Confirming with Zana…')]}
         />
       </div>
     </div>
