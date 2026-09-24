@@ -387,3 +387,14 @@ Object.assign(DRIVER_UI, {
   'vehicle problem, customer not reachable…': { en: 'e.g. vehicle problem, customer not reachable…', fr: 'ex. problème du véhicule, client injoignable…', rw: 'urugero: ikibazo cy’ikinyabiziga, umukiriya ntaboneka…' },
   'passenger': { en: 'passenger', fr: 'passager', rw: 'umugenzi' },
 });
+
+Object.assign(DRIVER_UI, {
+  'Messages auto-translate · History clears after ride': { en: 'Messages auto-translate · History clears after ride', fr: 'Les messages sont traduits automatiquement · L’historique est effacé après le trajet', rw: 'Ubutumwa buhindurwa ururimi mu buryo bwikora · Amateka asibwa urugendo rurangiye' },
+  'No messages yet. Say hello!': { en: 'No messages yet. Say hello!', fr: 'Aucun message pour le moment. Dites bonjour !', rw: 'Nta butumwa burabaho. Vuga uti muraho!' },
+  'Rate your ride': { en: 'Rate your ride', fr: 'Évaluez votre trajet', rw: 'Tanga amanota ku rugendo rwawe' },
+  'How was your ride with': { en: 'How was your ride with', fr: 'Comment était votre trajet avec', rw: 'Urugendo rwanyu na' },
+  '?': { en: '?', fr: '?', rw: '?' },
+  'Add a comment (optional)': { en: 'Add a comment (optional)', fr: 'Ajouter un commentaire (facultatif)', rw: 'Ongeraho igitekerezo (ntibitegetswe)' },
+  'Min 1,000 RWF': { en: 'Min 1,000 RWF', fr: 'Min. 1 000 RWF', rw: 'Nibura 1,000 RWF' },
+  '788 123 456': { en: '788 123 456', fr: '788 123 456', rw: '788 123 456' },
+});
