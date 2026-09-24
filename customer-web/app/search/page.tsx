@@ -17,8 +17,10 @@ const MOTO_PAYMENT_OPTIONS = [
 import { resolveLocationCode } from '../../lib/api/deliveries';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
+import { useLang } from '../../lib/LangContext';
 
 function SearchContent() {
+  const { t } = useLang();
   const router = useRouter();
   const params = useSearchParams();
   const preselectedService = params.get('service');
@@ -243,7 +245,7 @@ function SearchContent() {
         />
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/95 px-3 py-1 rounded-full text-[11px] text-zana-muted shadow">
           <Move size={11} />
-          Drag the green pin to adjust pickup
+          {t('Drag the green pin to adjust pickup')}
         </div>
       </div>
 
@@ -268,7 +270,7 @@ function SearchContent() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={editingPickup ? 'Search pickup location' : 'Where are you going?'}
+              placeholder={editingPickup ? t('Search pickup location') : t('Where are you going?')}
               className="w-full bg-transparent pt-1.5 text-sm focus:outline-none"
               autoFocus={!editingPickup}
             />
@@ -288,7 +290,7 @@ function SearchContent() {
           <div className="flex items-center justify-between bg-zana-primary-light rounded-xl px-4 py-3 mb-4">
             <div className="flex items-center gap-2">
               <Users size={16} className="text-zana-primary" />
-              <span className="text-sm text-gray-900">How many motos?</span>
+              <span className="text-sm text-gray-900">{t('How many motos?')}</span>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -313,24 +315,24 @@ function SearchContent() {
         {booking && (
           <div className="flex items-center gap-2 text-sm text-zana-muted mb-4">
             <Loader2 size={16} className="animate-spin" />
-            {motoCount > 1 ? `Booking ${motoCount} motos…` : 'Booking your moto…'}
+            {motoCount > 1 ? `${t('Booking')} ${motoCount} ${t('motos')}…` : t('Booking your moto…')}
           </div>
         )}
         {error && <p className="text-xs text-zana-error mb-4">{error}</p>}
 
         {nearby.length > 0 && !query && (
           <p className="text-xs text-zana-muted mb-3">
-            {nearby.length} {isMoto ? 'moto' : 'car'}
-            {nearby.length === 1 ? '' : 's'} available nearby
+            {nearby.length} {isMoto ? t('moto') : t('car')}
+            {nearby.length === 1 ? '' : t('s')} {t('available nearby')}
           </p>
         )}
 
-        {searching && <p className="text-xs text-zana-muted px-1 py-2">Searching…</p>}
+        {searching && <p className="text-xs text-zana-muted px-1 py-2"{t('Searching…')}</p>}
 
         {!query && suggestions.length === 0 && (
           <div className="bg-gray-50 rounded-xl p-3 mt-2">
             <p className="text-[11px] text-zana-muted mb-2">
-              Receiver shared a Zana location code? Enter it as your destination.
+              {t('Receiver shared a Zana location code? Enter it as your destination.')}
             </p>
             <div className="flex gap-2">
               <input
@@ -369,7 +371,7 @@ function SearchContent() {
             </button>
           ))}
           {query && !searching && suggestions.length === 0 && (
-            <p className="text-sm text-zana-muted px-2 py-4">No matching places.</p>
+            <p className="text-sm text-zana-muted px-2 py-4"{t('No matching places.')}</p>
           )}
         </div>
       </div>
@@ -386,9 +388,9 @@ function SearchContent() {
               {/* Header with fare */}
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="font-black text-lg text-gray-900">How will you pay?</h2>
+                  <h2 className="font-black text-lg text-gray-900"{t('How will you pay?')}</h2>
                   <p className="text-xs text-gray-400">
-                    {motoCount > 1 ? `${motoCount} seats` : '1 seat'} · Moto ride
+                    {motoCount > 1 ? `${motoCount} ${t('seats')}` : `1 ${t('seat')}`} · {t('Moto ride')}
                   </p>
                 </div>
                 <div className="text-right bg-zana-primary-light rounded-2xl px-4 py-2">
@@ -397,10 +399,10 @@ function SearchContent() {
                   ) : totalFare ? (
                     <>
                       <p className="text-xl font-black text-zana-primary">{totalFare.toLocaleString()}</p>
-                      <p className="text-[10px] text-gray-500">RWF total</p>
+                      <p className="text-[10px] text-gray-500"{t('RWF total')}</p>
                     </>
                   ) : (
-                    <p className="text-xs text-gray-400">Calculating...</p>
+                    <p className="text-xs text-gray-400"{t('Calculating...')}</p>
                   )}
                 </div>
               </div>
@@ -410,7 +412,7 @@ function SearchContent() {
                 <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
                   <span className="text-red-500 shrink-0">⚠️</span>
                   <p className="text-xs text-red-700">
-                    <strong>Insufficient balance.</strong> Your wallet has {walletBalance?.toLocaleString()} RWF but this ride costs {totalFare?.toLocaleString()} RWF. Choose another payment method or top up.
+                    <strong>{t('Insufficient balance.')}</strong> {t('Your wallet has')} {walletBalance?.toLocaleString()} RWF but this ride costs {totalFare?.toLocaleString()} RWF. {t('Choose another payment method or top up.')}
                   </p>
                 </div>
               )}
@@ -434,8 +436,8 @@ function SearchContent() {
                         </p>
                         {isWallet && walletBalance !== null && (
                           <p className={`text-xs ${insufficient ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
-                            Balance: {walletBalance.toLocaleString()} RWF
-                            {insufficient && totalFare ? ` · need ${(totalFare - walletBalance).toLocaleString()} more` : ''}
+                            {t('Balance:')} {walletBalance.toLocaleString()} RWF
+                            {insufficient && totalFare ? ` · ${t('need')} ${(totalFare - walletBalance).toLocaleString()} ${t('more')}` : ''}
                           </p>
                         )}
                       </div>
@@ -453,7 +455,7 @@ function SearchContent() {
                 className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 disabled:opacity-50">
                 {booking
                   ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : `Confirm & Book${totalFare ? ` · ${totalFare.toLocaleString()} RWF` : ''}`}
+                  : `${t('Confirm & Book')}${totalFare ? ` · ${totalFare.toLocaleString()} RWF` : ''}`}
               </button>
               <button onClick={() => { setShowPaymentPicker(false); setEstimatedFare(null); }}
                 className="w-full text-center text-sm text-gray-400 mt-3 py-1">
