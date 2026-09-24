@@ -30,6 +30,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { getStoredPickup, setStoredPickup } from '../../lib/location';
+import { useLang } from '../../lib/LangContext';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
 import { compressImage } from '../../lib/image';
@@ -50,6 +51,7 @@ import BrandedMap from '../../components/BrandedMap';
 type Dropoff = { lat: number; lng: number; address: string } | null;
 
 export default function DeliverPage() {
+  const { t } = useLang();
   const router = useRouter();
 
   const [selectedPackageType, setSelectedPackageType] = useState('');
