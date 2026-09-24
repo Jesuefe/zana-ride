@@ -125,7 +125,7 @@ function ReceiptContent() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">{t('Service type')}</span>
-              <span className="text-gray-900 capitalize">{trip.serviceType?.toLowerCase()}</span>
+              <span className="text-gray-900 capitalize">{t(trip.serviceType === 'BIKE' ? 'Moto' : trip.serviceType === 'COMFORT' ? 'Premium Car' : 'Basic Car')}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">{t('Trip ID')}</span>
