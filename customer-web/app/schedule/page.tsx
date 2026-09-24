@@ -115,7 +115,7 @@ export default function ScheduleRidePage() {
 
   const handleBook = async () => {
     if (!pickup || !destination || !scheduledFor) {
-      setError('Please fill pickup, destination and time.');
+      setError(t('Please fill pickup, destination and time.'));
       return;
     }
     setBooking(true);
@@ -135,7 +135,7 @@ export default function ScheduleRidePage() {
       });
       setSuccess(true);
     } catch (e: any) {
-      setError(e.message ?? 'Could not schedule ride.');
+      setError(e.message ?? t('Could not schedule ride.'));
     } finally {
       setBooking(false);
     }
@@ -146,12 +146,12 @@ export default function ScheduleRidePage() {
       <div className="w-20 h-20 rounded-full bg-zana-primary-light flex items-center justify-center mb-4">
         <Check size={36} className="text-zana-primary" />
       </div>
-      <h2 className="text-xl font-black text-gray-900 mb-2">Ride Scheduled</h2>
-      <p className="text-sm text-gray-500 mb-1">Confirmed for</p>
+      <h2 className="text-xl font-black text-gray-900 mb-2">{t('Ride Scheduled')}</h2>
+      <p className="text-sm text-gray-500 mb-1">{t('Confirmed for')}</p>
       <p className="font-bold text-zana-primary">{new Date(scheduledFor).toLocaleString()}</p>
       {specialRequest && <p className="text-xs text-gray-400 mt-1">{specialRequest}</p>}
       <p className="text-xs text-gray-400 mt-4 max-w-xs">
-        You will be notified 45 minutes before pickup. Your driver will be assigned automatically.
+        {t('You will be notified 45 minutes before pickup. Your driver will be assigned automatically.')}
       </p>
       <button onClick={() => router.push('/')}
         className="mt-8 bg-zana-primary text-white font-bold px-10 py-3.5 rounded-2xl">{t("Back to Home")}</button>
@@ -166,16 +166,16 @@ export default function ScheduleRidePage() {
           <ArrowLeft size={16} />
         </button>
         <div>
-          <h1 className="text-lg font-black text-gray-900">Schedule a Ride</h1>
-          <p className="text-xs text-gray-400">Book up to 24 hours in advance</p>
+          <h1 className="text-lg font-black text-gray-900">{t('Schedule a Ride')}</h1>
+          <p className="text-xs text-gray-400">{t('Book up to 24 hours in advance')}</p>
         </div>
       </div>
 
       <div className="px-4 pt-5 space-y-4">
         {/* Pickup */}
         <PlaceInput
-          label="Pickup location"
-          placeholder="Where should we pick you up?"
+          label={t('Pickup location')}
+          placeholder={t('Where should we pick you up?')}
           value={pickup}
           onSelect={setPickup}
           color="#00A082"
@@ -183,8 +183,8 @@ export default function ScheduleRidePage() {
 
         {/* Destination */}
         <PlaceInput
-          label="Destination"
-          placeholder="Where are you going?"
+          label={t('Destination')}
+          placeholder={t('Where are you going?')}
           value={destination}
           onSelect={setDestination}
           color="#E6A82E"
@@ -192,7 +192,7 @@ export default function ScheduleRidePage() {
 
         {/* Date & Time */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 block mb-1.5">Pickup time</label>
+          <label className="text-xs font-semibold text-gray-500 block mb-1.5">{t('Pickup time')}</label>
           <div className="flex items-center gap-2 border-2 border-gray-200 rounded-xl px-3 py-3 focus-within:border-zana-primary transition-colors">
             <Clock size={15} className="text-gray-400 shrink-0" />
             <input
@@ -208,15 +208,15 @@ export default function ScheduleRidePage() {
 
         {/* Service type */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 block mb-1.5">Ride type</label>
+          <label className="text-xs font-semibold text-gray-500 block mb-1.5">{t('Ride type')}</label>
           <div className="grid grid-cols-3 gap-2">
             {SERVICE_TYPES.map(s => (
               <button key={s.id} onClick={() => setServiceType(s.id)}
                 className={`flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition-colors ${
                   serviceType === s.id ? 'border-zana-primary bg-zana-primary-light' : 'border-gray-100 bg-white'
                 }`}>
-                <p className={`text-sm font-bold ${serviceType === s.id ? 'text-zana-primary' : 'text-gray-800'}`}>{s.label}</p>
-                <p className="text-[10px] text-gray-400 text-center leading-tight">{s.sub}</p>
+                <p className={`text-sm font-bold ${serviceType === s.id ? 'text-zana-primary' : 'text-gray-800'}`}>{t(s.label)}</p>
+                <p className="text-[10px] text-gray-400 text-center leading-tight">{t(s.sub)}</p>
               </button>
             ))}
           </div>
@@ -224,10 +224,10 @@ export default function ScheduleRidePage() {
 
         {/* Special request */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 block mb-1.5">Special request (optional)</label>
+          <label className="text-xs font-semibold text-gray-500 block mb-1.5">{t('Special request (optional)')}</label>
           <div className="flex flex-wrap gap-2">
             {SPECIAL_REQUESTS.map(req => (
-              <button key={req} onClick={() => setSpecialRequest(r => r === req ? '' : req)}
+              <button key={t(req)} onClick={() => setSpecialRequest(r => r === req ? '' : req)}
                 className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                   specialRequest === req
                     ? 'bg-zana-primary text-white border-zana-primary'
@@ -241,7 +241,7 @@ export default function ScheduleRidePage() {
 
         {/* Payment method */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 block mb-1.5">Payment method</label>
+          <label className="text-xs font-semibold text-gray-500 block mb-1.5">{t('Payment method')}</label>
           <div className="space-y-2">
             {PAYMENT_OPTIONS.map(({ id, label, sub }) => (
               <button key={id} onClick={() => setPaymentMethod(id)}
@@ -254,8 +254,8 @@ export default function ScheduleRidePage() {
                   {paymentMethod === id && <div className="w-2.5 h-2.5 rounded-full bg-zana-primary" />}
                 </div>
                 <div className="text-left">
-                  <p className={`text-sm font-semibold ${paymentMethod === id ? 'text-zana-primary' : 'text-gray-800'}`}>{label}</p>
-                  <p className="text-xs text-gray-400">{sub}</p>
+                  <p className={`text-sm font-semibold ${paymentMethod === id ? 'text-zana-primary' : 'text-gray-800'}`}>{t(label)}</p>
+                  <p className="text-xs text-gray-400">{t(sub)}</p>
                 </div>
               </button>
             ))}
@@ -268,7 +268,7 @@ export default function ScheduleRidePage() {
           className="w-full bg-zana-primary text-white font-black text-base py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">
           {booking
             ? <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Scheduling...</>
-            : <><Calendar size={18} /> Schedule Ride</>}
+            : <><Calendar size={18} /> {t('Schedule Ride')}</>}
         </button>
       </div>
     </div>
