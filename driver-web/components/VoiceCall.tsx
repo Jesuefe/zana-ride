@@ -1,7 +1,6 @@
 'use client';
 
-import {
-  const { dt } = useLang(); useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { PhoneOff, Mic, MicOff, Loader2 } from 'lucide-react';
 import { api } from '../lib/api/client';
 import { useLang } from '../lib/LangContext';
