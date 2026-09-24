@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { Lang, getStoredLang, setStoredLang, UI } from './lang';
-import { updateLanguage } from './api/chat';
 
 type LangContextType = {
   lang: Lang;
@@ -24,7 +23,6 @@ export function LangProvider({ children }: { children: ReactNode }) {
   const setLang = (newLang: Lang) => {
     setLangState(newLang);
     setStoredLang(newLang);
-    updateLanguage(newLang).catch(() => {});
   };
 
   const t = (key: string) => UI[key]?.[lang] ?? key;
