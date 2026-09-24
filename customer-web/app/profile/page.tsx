@@ -21,7 +21,7 @@ const menuItems = [
 const LANGS: Lang[] = ['en', 'fr', 'rw'];
 
 export default function ProfilePage() {
-  const { lang, setLang } = useLang();
+  const { lang, setLang, t } = useLang();
   const [showLangPicker, setShowLangPicker] = useState(false);
   const router = useRouter();
   const [user, setUser] = useState<ApiUser | null>(null);
@@ -51,7 +51,7 @@ export default function ProfilePage() {
         {menuItems.map((item, i) => (
           <Link key={i} href={item.href} className="w-full flex items-center gap-3 px-4 py-3.5 text-left bg-white rounded-xl shadow-sm">
             <item.icon size={18} className="text-gray-700" />
-            <span className="flex-1 text-sm text-gray-900">{item.label}</span>
+            <span className="flex-1 text-sm text-gray-900">{t(item.label)}</span>
             <ChevronRight size={15} className="text-zana-muted" />
           </Link>
         ))}
@@ -60,7 +60,7 @@ export default function ProfilePage() {
           className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
         >
           <Globe size={18} className="text-gray-700" />
-          <span className="flex-1 text-sm text-gray-900">Language</span>
+          <span className="flex-1 text-sm text-gray-900">{t('Language')}</span>
           <span className="text-xs text-zana-muted">{LANG_LABELS[lang]}</span>
           <ChevronRight size={15} className="text-zana-muted" />
         </button>
@@ -95,7 +95,7 @@ export default function ProfilePage() {
         className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3.5 mt-4 text-zana-error"
       >
         <LogOut size={18} />
-        <span className="text-sm font-medium">Log out</span>
+        <span className="text-sm font-medium">{t('Log out')}</span>
       </button>
     </div>
   );
