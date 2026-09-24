@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { MapPin, UserRound, UsersRound, Navigation, Loader2 } from 'lucide-react';
 import BrandedMap from './BrandedMap';
 import { reverseGeocode } from '../lib/geocode';
+import { useLang } from '../lib/LangContext';
 
 export type OrderRecipient = {
   forSomeoneElse: boolean;
@@ -24,6 +25,7 @@ type Props = {
 };
 
 export default function OrderRecipient({ value, onChange, defaultAddress, defaultLat, defaultLng }: Props) {
+  const { t } = useLang();
   const set = (patch: Partial<OrderRecipient>) => onChange({ ...value, ...patch });
   const [locating, setLocating] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
@@ -95,7 +97,7 @@ export default function OrderRecipient({ value, onChange, defaultAddress, defaul
               <p className="text-[10px] text-gray-400 mt-1.5">Drag the pin to the recipient's exact location. The order sends these coordinates with the address.</p>
               <button type="button" onClick={useCurrentLocation} disabled={locating} className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-zana-primary disabled:opacity-50">
                 {locating ? <Loader2 size={12} className="animate-spin" /> : <Navigation size={12} />}
-                Use this device's current location
+                {t("Use this device's current location")}
               </button>
             </div>
           </div>
