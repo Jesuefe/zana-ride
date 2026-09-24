@@ -164,7 +164,6 @@ function SlideAction({
 }
 
 export default function DriverHome() {
-  const { dt } = useLang();
   const router = useRouter();
   const { t, dt } = useLang();
   const mapRef = useRef<HTMLDivElement>(null);
