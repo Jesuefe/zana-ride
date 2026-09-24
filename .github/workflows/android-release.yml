@@ -55,13 +55,23 @@ jobs:
         working-directory: native/${{ matrix.app.dir }}
         run: npx cap sync android
 
-      - name: Set version
-        working-directory: native/${{ matrix.app.dir }}/android/app
+      - name: Validate release version
         run: |
-          sed -i "s/versionCode .*/versionCode ${{ inputs.versionCode }}/" build.gradle
-          sed -i "s/versionName .*/versionName \"${{ inputs.versionName }}\"/" build.gradle
-          grep -E "versionCode|versionName" build.gradle
+          test -n "${{ inputs.versionCode }}"
+          test -n "${{ inputs.versionName }}"
+          case "${{ inputs.versionCode }}" in
+            ''|*[!0-9]*) echo "versionCode must be a positive integer"; exit 1 ;;
+          esac
+          echo "Building versionName=${{ inputs.versionName }} versionCode=${{ inputs.versionCode }}"
 
+      - name: Set version
+        working-directory: native/${{ matrix.app.dir }}/android
+        run: |
+          ./gradlew help --no-daemon \
+            -PZANA_VERSION_CODE='${{ inputs.versionCode }}' \
+            -PZANA_VERSION_NAME='${{ inputs.versionName }}' \
+            >/tmp/gradle-version-check.log
+          grep -E "versionCode|versionName" app/build.gradle || true
       - name: Restore keystore
         working-directory: native/${{ matrix.app.dir }}/android
         env:
@@ -73,6 +83,8 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon \
+            -PZANA_VERSION_CODE='${{ inputs.versionCode }}' \
+            -PZANA_VERSION_NAME='${{ inputs.versionName }}' \
             -PZANA_KEYSTORE_FILE=zana.jks \
             -PZANA_KEYSTORE_PASSWORD='${{ secrets.ANDROID_KEYSTORE_PASSWORD }}' \
             -PZANA_KEY_ALIAS='${{ secrets.ANDROID_KEY_ALIAS }}' \
