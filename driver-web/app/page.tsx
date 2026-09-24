@@ -767,7 +767,7 @@ export default function DriverHome() {
               onClick={() => router.push('/profile')}
               className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-gray-700"
             >
-              Details <ChevronRight size={12} />
+              {dt('Details')} <ChevronRight size={12} />
             </button>
           </div>
 
@@ -778,18 +778,18 @@ export default function DriverHome() {
               label. */}
           {online ? (
             <SlideAction
-              label="Slide to go offline"
-              busyLabel="Going offline..."
-              successLabel="Offline"
+              label={dt('Slide to go offline')}
+              busyLabel={dt('Going offline...')}
+              successLabel={dt('Offline')}
               onComplete={handleToggle}
               color="#E6A82E"
               disabled={loading}
             />
           ) : (
             <SlideAction
-              label="Slide to go online"
-              busyLabel="Choose your mode..."
-              successLabel="Online"
+              label={dt('Slide to go online')}
+              busyLabel={dt('Choose your mode...')}
+              successLabel={dt('Online')}
               onComplete={async () => { setShowMenu(false); setShowMode(true); }}
               color="#00A082"
               disabled={loading}
@@ -800,7 +800,7 @@ export default function DriverHome() {
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${online ? 'bg-green-500' : 'bg-gray-300'}`} />
             <p className="text-xs text-gray-500">
-              {online ? "You're online and ready to receive requests" : "Go online to start receiving ride requests"}
+              {online ? dt("You're online and ready to receive requests") : dt('Go online to start receiving ride requests')}
             </p>
           </div>
 
@@ -925,7 +925,7 @@ export default function DriverHome() {
                     <div>
                       <p className="text-2xl font-black text-zana-primary">{(trip.estimatedFare ?? 0).toLocaleString()} RWF</p>
                       <p className="text-xs text-gray-400">
-                        {trip.serviceType} · {(trip as any).paymentMethod ?? 'Cash'} · {offer.distanceKm} km away
+                        {trip.serviceType} · {dt((trip as any).paymentMethod ?? 'Cash')} · {offer.distanceKm} {dt('km away')}
                       </p>
                     </div>
                     <button onClick={() => handleDeclineOffer(offer)} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
@@ -933,7 +933,7 @@ export default function DriverHome() {
                     </button>
                   </div>
 
-                  <SlideAction label="Slide to accept ride" busyLabel="Accepting…" successLabel="Accepted!" onComplete={() => handleAcceptOffer(offer)} color="#00A082" />
+                  <SlideAction label={dt("Slide to accept ride")} busyLabel={dt("Accepting…")} successLabel={dt("Accepted!")} onComplete={() => handleAcceptOffer(offer)} color="#00A082" />
                 </div>
               </div>
             );
@@ -950,7 +950,7 @@ export default function DriverHome() {
             <p className="text-xs text-gray-400 mt-0.5 mb-3">{incomingDelivery.pickupAddress}</p>
             <div className="flex items-center justify-between mb-4">
               <p className="text-2xl font-black text-zana-primary">{(incomingDelivery.fee ?? 0).toLocaleString()} RWF</p>
-              <p className="text-xs text-gray-400">{incomingDelivery.distanceKm} km away</p>
+              <p className="text-xs text-gray-400">{incomingDelivery.distanceKm} {dt('km away')}</p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => setIncomingDelivery(null)}
