@@ -4,8 +4,10 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { verifyPhone, resendVerification } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 function VerifyForm() {
+  const { t } = useLang();
   const router = useRouter();
   const params = useSearchParams();
   const phone = params.get('phone') ?? '';
@@ -34,7 +36,7 @@ function VerifyForm() {
       await verifyPhone(code);
       router.push('/');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Invalid code.');
+      setError(err instanceof ApiError ? err.message : t('Invalid code.'));
     } finally {
       setLoading(false);
     }
@@ -45,18 +47,18 @@ function VerifyForm() {
     setResendNotice('');
     try {
       await resendVerification(viaEmail);
-      setResendNotice(viaEmail ? `Code sent to ${email || 'your email'}.` : `Code sent to ${phone}.`);
+      setResendNotice(viaEmail ? `${t('Code sent to')} ${email || t('your email')}.` : `${t('Code sent to')} ${phone}.`);
       setCooldown(30);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not send a new code.');
+      setError(err instanceof ApiError ? err.message : t('Could not send a new code.'));
     }
   };
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-900">Enter the code</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{t('Enter the code')}</h1>
       <p className="text-sm text-zana-muted mt-1">
-        {usingEmail ? `Sent by email to ${email || 'your email'}` : `Sent via SMS to ${phone}`}
+        {usingEmail ? `${t('Sent by email to')} ${email || t('your email')}` : `${t('Sent via SMS to')} ${phone}`}
       </p>
 
       <input
@@ -76,7 +78,7 @@ function VerifyForm() {
         onClick={handleVerify}
         className="w-full mt-6 bg-zana-primary text-white font-semibold py-3 rounded-lg disabled:opacity-40 hover:bg-zana-primary-dark transition-colors"
       >
-        {loading ? 'Verifying…' : 'Verify'}
+        {loading ? t('Verifying…') : t('Verify')}
       </button>
 
       <div className="flex items-center justify-between mt-4">
@@ -85,11 +87,11 @@ function VerifyForm() {
           disabled={cooldown > 0}
           className="text-xs text-gray-400 disabled:opacity-50"
         >
-          {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+          {cooldown > 0 ? `${t('Resend in')} ${cooldown}s` : t('Resend code')}
         </button>
         {email && !usingEmail && (
           <button onClick={() => handleResend(true)} className="text-xs font-semibold text-zana-primary">
-            Didn&rsquo;t get it? Send to email instead
+            {t("Didn’t get it? Send to email instead")}
           </button>
         )}
       </div>
