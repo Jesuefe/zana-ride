@@ -25,6 +25,14 @@ export class DriversService {
   }
 
   async setOnlineStatus(driverId: string, status: DriverOnlineStatus) {
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    if (!driver) throw new NotFoundException('Driver profile not found');
+    if (status === DriverOnlineStatus.ONLINE && driver.approvalStatus !== DriverApprovalStatus.APPROVED) {
+      throw new ConflictException('Driver is not approved to go online');
+    }
+    if (status === DriverOnlineStatus.ONLINE && driver.onlineStatus === DriverOnlineStatus.BUSY) {
+      throw new ConflictException('Driver is currently on an active ride');
+    }
     return this.prisma.driver.update({ where: { id: driverId }, data: { onlineStatus: status } });
   }
 
