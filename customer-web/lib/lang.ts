@@ -408,3 +408,4 @@ Object.assign(UI, {
 });
 
 // Deployment heartbeat: keep the production Pages build tracking the latest main commit.
+// Production sync marker: latest main source should be picked up by the next Pages build.
