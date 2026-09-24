@@ -112,6 +112,10 @@ Object.assign(DRIVER_UI, {
   'Could not reach the payment provider.': { en: 'Could not reach the payment provider.', fr: 'Impossible de joindre le prestataire de paiement.', rw: 'Ntibyashobotse guhuza na serivisi y’ubwishyu.' },
 });
 
+Object.assign(DRIVER_UI, {
+  'Change language': { en: 'Change language', fr: 'Changer de langue', rw: 'Hindura ururimi' },
+});
+
 export function t(key: string, lang: Lang): string {
   return UI[key]?.[lang] ?? key;
 }
