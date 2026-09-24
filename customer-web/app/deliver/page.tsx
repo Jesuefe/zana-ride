@@ -422,7 +422,7 @@ export default function DeliverPage() {
 
               <div className="mt-3 bg-gray-50 rounded-xl p-3">
                 <p className="text-[11px] text-zana-muted mb-2">
-                  Receiver can&apos;t explain their address? {t('Ask them to send you their Zana location code.')}
+                  {t("Receiver can't explain their address? Ask them to send you their Zana location code.")}
                 </p>
                 <div className="flex gap-2">
                   <input
