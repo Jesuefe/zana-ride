@@ -76,7 +76,7 @@ export default function ChatPanel({
           <p className="text-sm font-semibold text-gray-900">
             {context === 'trip' ? 'Chat with driver' : 'Chat with courier'}
           </p>
-          <p className="text-[10px] text-zana-muted">Messages auto-translate · History clears after ride</p>
+          <p className="text-[10px] text-zana-muted">{dt('Messages auto-translate · History clears after ride', lang)}</p>
         </div>
         <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
           <X size={15} />
@@ -88,7 +88,7 @@ export default function ChatPanel({
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <MessageCircle size={32} className="text-gray-200 mb-2" />
-            <p className="text-sm text-zana-muted">No messages yet. Say hello!</p>
+            <p className="text-sm text-zana-muted">{dt('No messages yet. Say hello!', lang)}</p>
           </div>
         )}
         {messages.map(m => {
