@@ -22,8 +22,8 @@ android {
         applicationId "rw.zanaride.driver"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode (project.findProperty("ZANA_VERSION_CODE") ?: "1").toInteger()
+        versionName (project.findProperty("ZANA_VERSION_NAME") ?: "1.0").toString()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // Mapbox's SDK takes its public runtime token as a string resource,
