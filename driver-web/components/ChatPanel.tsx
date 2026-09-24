@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Send, MessageCircle, Loader2 } from 'lucide-react';
 import { sendMessage, getMessages, ChatMessage } from '../lib/api/chat';
-import { getStoredLang, Lang } from '../lib/lang';
 import { getToken } from '../lib/api/client';
 import { useLang } from '../lib/LangContext';
 
@@ -29,8 +28,7 @@ export default function ChatPanel({
   contextId: string;
   onClose: () => void;
 }) {
-  const { t, dt, lang } = useLang();
-  const storedLang = getStoredLang() as Lang;
+  const { dt, lang } = useLang();
   const myId = getUserIdFromToken();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -39,7 +37,7 @@ export default function ChatPanel({
 
   useEffect(() => {
     const load = () =>
-      getMessages(context, contextId, storedLang)
+      getMessages(context, contextId, lang)
         .then(setMessages)
         .catch(() => {});
     load();
@@ -57,8 +55,8 @@ export default function ChatPanel({
     setSending(true);
     setInput('');
     try {
-      await sendMessage(context, contextId, text, storedLang);
-      const updated = await getMessages(context, contextId, text ? storedLang : storedLang);
+      await sendMessage(context, contextId, text, lang);
+      const updated = await getMessages(context, contextId, lang);
       setMessages(updated);
     } catch {
       setInput(text);
