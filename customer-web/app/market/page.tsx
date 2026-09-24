@@ -38,8 +38,8 @@ export default function MarketsPage() {
           <ArrowLeft size={18} className="text-gray-700" />
         </button>
         <div>
-          <h1 className="text-xl font-black text-gray-900">Buy from the market</h1>
-          <p className="text-xs text-gray-500">An agent shops for you and a rider brings it</p>
+          <h1 className="text-xl font-black text-gray-900">{t('Buy from the market')}</h1>
+          <p className="text-xs text-gray-500">{t('An agent shops for you and a rider brings it')}</p>
         </div>
       </div>
 
@@ -53,7 +53,7 @@ export default function MarketsPage() {
         {!loading && markets.length === 0 && (
           <div className="text-center py-14">
             <Store size={36} className="text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No markets available yet</p>
+            <p className="text-sm text-gray-500">{t('No markets available yet')}</p>
           </div>
         )}
 
@@ -90,12 +90,12 @@ export default function MarketsPage() {
                 <span className="text-gray-500">{m.distanceText}</span>
                 <span className="text-gray-300">·</span>
                 <span className="font-bold text-zana-primary">
-                  {m.deliveryFee.toLocaleString()} RWF delivery
+                  {m.deliveryFee.toLocaleString()} RWF {t('delivery')}
                 </span>
               </div>
 
               <p className="text-[11px] text-gray-400 mt-1.5">
-                {m.productCount} item{m.productCount === 1 ? '' : 's'} listed today
+                {m.productCount} {t(m.productCount === 1 ? 'item' : 'items')} {t('listed today')}
               </p>
             </div>
           </button>
