@@ -85,7 +85,7 @@ export default function PointsPage() {
           <button onClick={handleRedeem} disabled={redeeming || !redeemAmount}
             className="bg-zana-primary text-white font-semibold px-4 rounded-xl text-sm disabled:opacity-40 flex items-center gap-1">
             {redeeming ? <Loader2 size={13} className="animate-spin" /> : null}
-            Redeem
+            {t('Redeem')}
           </button>
         </div>
         {msg && <p className="text-xs mt-2 text-gray-600">{msg}</p>}
