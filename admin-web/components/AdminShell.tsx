@@ -14,6 +14,7 @@ import { useTheme } from '../lib/ThemeContext';
 
 const SENIOR_NAV = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Safety', href: '/safety', icon: ShieldCheck },
   { label: 'Financial', href: '/dashboard/financial', icon: DollarSign },
   { label: 'Staff & Payroll', href: '/dashboard/staff', icon: Users },
   { label: 'Users', href: '/dashboard/users', icon: Users },
