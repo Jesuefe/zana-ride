@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth/roles.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.strategy';
@@ -23,6 +23,16 @@ export class MerchantController {
   ) {
     const merchant = await this.merchantService.findByUserId(user.sub);
     return this.merchantService.createDelivery(merchant.id, body);
+  }
+
+  @Post('deliveries/:id/cancel')
+  async cancel(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    const merchant = await this.merchantService.findByUserId(user.sub);
+    return this.merchantService.cancelDelivery(id, merchant.id, body.reason);
   }
 
   @Get('deliveries')
