@@ -21,7 +21,6 @@ const menuItems = [
 const LANGS: Lang[] = ['en', 'fr', 'rw'];
 
 export default function ProfilePage() {
-  const { t } = useLang();
   const { lang, setLang, t } = useLang();
   const [showLangPicker, setShowLangPicker] = useState(false);
   const router = useRouter();
