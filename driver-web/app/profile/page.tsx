@@ -111,7 +111,7 @@ export default function DriverProfilePage() {
             <div key={label} className="bg-white rounded-xl p-4 shadow-sm">
               <Icon size={16} className={`${color} mb-2`} />
               <p className="text-lg font-bold text-gray-900">{value}</p>
-              <p className="text-xs text-gray-500">{label}</p>
+              <p className="text-xs text-gray-500">{dt(label)}</p>
             </div>
           ))}
         </div>
