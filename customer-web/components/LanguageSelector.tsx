@@ -8,7 +8,7 @@ import { useLang } from '../lib/LangContext';
 const LANGS: Lang[] = ['en', 'fr', 'rw'];
 
 export default function LanguageSelector({ variant = 'dark' }: { variant?: 'dark' | 'light' | 'floating' }) {
-  const { lang, setLang } = useLang();
+  const { lang, setLang, t } = useLang();
   const [open, setOpen] = useState(false);
 
   const handleSelect = (newLang: Lang) => {
@@ -21,7 +21,7 @@ export default function LanguageSelector({ variant = 'dark' }: { variant?: 'dark
       <div className="fixed top-4 right-4 z-[100]">
         <button
           onClick={() => setOpen(o => !o)}
-          aria-label="Change language"
+          aria-label={t('Change language')}
           className="relative flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-zana-primary shadow-lg transition-transform active:scale-95"
         >
           <Globe size={18} />
