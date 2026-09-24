@@ -659,3 +659,11 @@ Object.assign(UI, {
   'Gym': { en: 'Gym', fr: 'Salle de sport', rw: 'Siporo' },
   'School': { en: 'School', fr: 'École', rw: 'Ishuri' },
 });
+
+
+Object.assign(UI, {
+  'Order details': { en: 'Order details', fr: 'Détails de la commande', rw: 'Ibisobanuro by’itegeko' },
+  'Note:': { en: 'Note:', fr: 'Note :', rw: 'Icyitonderwa:' },
+  'Cancelling…': { en: 'Cancelling…', fr: 'Annulation…', rw: 'Turahagarika…' },
+  'Cancel order': { en: 'Cancel order', fr: 'Annuler la commande', rw: 'Hagarika itegeko' },
+});
