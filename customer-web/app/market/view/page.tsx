@@ -76,7 +76,7 @@ function MarketContent() {
         const p = msg.split(':');
         setError(`Not enough in your wallet. Balance ${Number(p[1] ?? 0).toLocaleString()} RWF, order costs ${Number(p[2] ?? 0).toLocaleString()} RWF.`);
       } else {
-        setError(msg || 'Could not place the order.');
+        setError(msg || t('Could not place the order.'));
       }
     } finally {
       setOrdering(false);
@@ -113,7 +113,7 @@ function MarketContent() {
         <div className="flex items-start gap-2 bg-zana-primary-light rounded-xl px-3 py-2.5 mt-3">
           <span className="text-sm shrink-0">🧺</span>
           <p className="text-[11px] text-gray-700 leading-snug">
-            A Zana agent buys these items for you at the market, then a rider delivers them.
+            {t('A Zana agent buys these items for you at the market, then a rider delivers them.')}
           </p>
         </div>
       </div>
@@ -122,7 +122,7 @@ function MarketContent() {
         {(market?.products ?? []).length === 0 && (
           <div className="text-center py-14">
             <ShoppingBag size={32} className="text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">Nothing listed here today</p>
+            <p className="text-sm text-gray-500">{t('Nothing listed here today')}</p>
           </div>
         )}
 
@@ -164,7 +164,7 @@ function MarketContent() {
           <button onClick={() => setCheckout(true)}
             className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg">
             <ShoppingBag size={16} />
-            Review {cart.length} item{cart.length === 1 ? '' : 's'} · {subtotal.toLocaleString()} RWF
+            {t('Review')} {cart.length} {t(cart.length === 1 ? 'item' : 'items')} · {subtotal.toLocaleString()} RWF
           </button>
         </div>
       )}
@@ -173,7 +173,7 @@ function MarketContent() {
         <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={() => setCheckout(false)}>
           <div className="w-full bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-            <p className="font-black text-lg text-gray-900 mb-4">Confirm your order</p>
+            <p className="font-black text-lg text-gray-900 mb-4">{t('Confirm your order')}</p>
 
             <div className="space-y-1.5 mb-4">
               {cart.map(c => (
@@ -183,15 +183,15 @@ function MarketContent() {
                 </div>
               ))}
               <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                <span className="text-gray-600">Delivery (estimate)</span>
+                <span className="text-gray-600">{t('Delivery (estimate)')}</span>
                 <span className="font-semibold">{estFee.toLocaleString()} RWF</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-100">
-                <span className="font-black text-gray-900">Total</span>
+                <span className="font-black text-gray-900">{t('Total')}</span>
                 <span className="font-black text-zana-primary text-lg">{grandTotal.toLocaleString()} RWF</span>
               </div>
               <p className="text-[10px] text-gray-400">
-                Final delivery fee is calculated from the market to your location.
+                {t('Final delivery fee is calculated from the market to your location.')}
               </p>
             </div>
 
@@ -211,7 +211,7 @@ function MarketContent() {
 
             {paymentMethod === 'WALLET' && walletBalance !== null && (
               <p className={`text-[11px] font-semibold mb-2 ${walletShort ? 'text-red-500' : 'text-gray-500'}`}>
-                Wallet balance: {walletBalance.toLocaleString()} RWF
+                {t('Wallet balance:')} {walletBalance.toLocaleString()} RWF
                 {walletShort ? ` · ${(grandTotal - walletBalance).toLocaleString()} RWF short` : ''}
               </p>
             )}
@@ -220,7 +220,7 @@ function MarketContent() {
 
             <button onClick={submit} disabled={ordering || walletShort}
               className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40">
-              {ordering ? 'Placing order…' : `Pay & Order · ${grandTotal.toLocaleString()} RWF`}
+              {ordering ? t('Placing order…') : `${t('Pay & Order')} · ${grandTotal.toLocaleString()} RWF`}
             </button>
           </div>
         </div>
