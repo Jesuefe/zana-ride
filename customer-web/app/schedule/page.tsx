@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Calendar, Clock, MapPin, Loader2, Check } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 import { fetchWallet } from '../../lib/api/trips';
 import { loadGoogleMaps } from '../../lib/mapsLoader';
 import { getStoredPickup } from '../../lib/location';
@@ -84,6 +85,7 @@ function PlaceInput({
 }
 
 export default function ScheduleRidePage() {
+  const { t } = useLang();
   const router = useRouter();
   const [pickup, setPickup] = useState<PlaceResult | null>(null);
   const [destination, setDestination] = useState<PlaceResult | null>(null);
@@ -152,9 +154,7 @@ export default function ScheduleRidePage() {
         You will be notified 45 minutes before pickup. Your driver will be assigned automatically.
       </p>
       <button onClick={() => router.push('/')}
-        className="mt-8 bg-zana-primary text-white font-bold px-10 py-3.5 rounded-2xl">
-        Back to Home
-      </button>
+        className="mt-8 bg-zana-primary text-white font-bold px-10 py-3.5 rounded-2xl">{t("Back to Home")}</button>
     </div>
   );
 
