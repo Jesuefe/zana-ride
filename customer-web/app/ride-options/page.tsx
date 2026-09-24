@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
+import { useLang } from '../lib/LangContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronRight, Clock, MapPin, Check } from 'lucide-react';
 import { estimateRide, createRide, ServiceType, fetchWallet } from '../../lib/api/trips';
@@ -178,7 +179,7 @@ function RideOptionsContent() {
 
           {/* Ride options */}
           <div className="px-4 pt-4 pb-6">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Choose a ride</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">{t('Choose a ride')}</p>
             <div className="space-y-3">
               {OPTIONS.map(opt => (
                 <button
@@ -222,9 +223,9 @@ function RideOptionsContent() {
               ))}
             </div>
 
-            {/* Payment method — shown on step 1 so customer sees it before confirming */}
+            {/* {t('Payment method')} — shown on step 1 so customer sees it before confirming */}
             <div className="mt-5">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Payment method</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">{t('Payment method')}</p>
               <div className="grid grid-cols-3 gap-2">
                 {PAYMENT_OPTIONS.map(({ id, label, icon }) => (
                   <button
@@ -314,9 +315,9 @@ function RideOptionsContent() {
             </div>
           </div>
 
-          {/* Payment method */}
+          {/* {t('Payment method')} */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">💳 How will you pay?</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">{t('💳 How will you pay?')}</p>
             <div className="space-y-2">
               {PAYMENT_OPTIONS.map(({ id, label, sub, icon }) => {
                 const isWallet = id === 'WALLET';
@@ -375,7 +376,7 @@ function RideOptionsContent() {
               <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2">
                 <span className="text-amber-500 text-base shrink-0">⚠️</span>
                 <div>
-                  <p className="text-xs font-bold text-amber-800">Insufficient wallet balance</p>
+                  <p className="text-xs font-bold text-amber-800">{t('Insufficient wallet balance')}</p>
                   <p className="text-xs text-amber-600 mt-0.5">
                     Your wallet has {walletBalance?.toLocaleString()} RWF but this ride costs {selectedFare.toLocaleString()} RWF.
                     Please choose Mobile Money or Cash, or top up your wallet first.
@@ -421,6 +422,7 @@ function RideOptionsContent() {
 }
 
 export default function RideOptionsPage() {
+  const { t } = useLang();
   return (
     <Suspense fallback={null}>
       <RideOptionsContent />
