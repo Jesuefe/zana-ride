@@ -15,6 +15,7 @@ type SosAlert = {
   createdAt: string;
   acknowledgedAt?: string | null;
   customer: { firstName: string | null; lastName: string | null; phone: string };
+  role?: 'CUSTOMER' | 'DRIVER' | 'ADMIN' | 'MERCHANT';
   trip?: {
     pickupAddress: string;
     destinationAddress: string;
@@ -294,7 +295,7 @@ export default function SafetyDashboard() {
           </div>
           <p className="text-lg font-bold text-green-400">All Clear</p>
           <p className="text-sm text-gray-600 mt-1">No active SOS alerts</p>
-          <p className="text-xs text-gray-700 mt-4">This page will sound an alarm when a passenger triggers SOS</p>
+          <p className="text-xs text-gray-700 mt-4">This page will sound an alarm when a customer or driver triggers SOS</p>
         </div>
       )}
 
@@ -318,6 +319,7 @@ export default function SafetyDashboard() {
               </div>
               <p className="font-semibold text-white">{alert.customer.firstName} {alert.customer.lastName}</p>
               <p className="text-sm text-gray-400">{alert.customer.phone}</p>
+              <span className="inline-flex mt-2 px-2 py-1 rounded-full bg-red-900/50 text-red-300 text-[10px] font-bold">{alert.role === 'DRIVER' ? 'DRIVER SOS' : 'CUSTOMER SOS'}</span>
               {alert.trip && <p className="text-xs text-gray-600 mt-1 truncate">{alert.trip.pickupAddress}</p>}
               <p className="text-xs text-red-400 mt-2 font-semibold">Tap to respond →</p>
             </button>
@@ -350,9 +352,17 @@ export default function SafetyDashboard() {
             {/* Live map */}
             <SosMap alert={focused} />
 
+            <div className="bg-gray-900 rounded-xl p-4">
+              <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">Incident</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><p className="text-gray-500 text-xs">Alert ID</p><p className="font-mono text-xs mt-1">{focused.id.slice(0, 12)}</p></div>
+                <div><p className="text-gray-500 text-xs">Triggered</p><p className="mt-1">{new Date(focused.createdAt).toLocaleString('en-GB')}</p></div>
+              </div>
+            </div>
+
             {/* Customer contact */}
             <div className="bg-gray-900 rounded-xl p-4">
-              <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">Passenger in distress</p>
+              <p className="text-[10px] text-gray-500 font-semibold uppercase mb-2">{focused.role === 'DRIVER' ? 'Driver in distress' : 'Passenger in distress'}</p>
               <p className="font-bold text-white text-lg">{focused.customer.firstName} {focused.customer.lastName}</p>
               <a href={`tel:${focused.customer.phone}`}
                 className="flex items-center gap-2 bg-green-700 text-white font-semibold py-3 px-4 rounded-xl text-sm mt-3">
