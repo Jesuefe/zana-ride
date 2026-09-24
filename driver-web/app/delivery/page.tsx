@@ -334,7 +334,7 @@ function ActiveDeliveryContent() {
             <button
               onClick={() => setShowRecoveredBanner(false)}
               className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center shrink-0"
-              aria-label="Dismiss"
+              aria-label={dt('Dismiss')}
             >
               <X size={14} className="text-gray-500" />
             </button>
