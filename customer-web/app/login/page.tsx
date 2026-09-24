@@ -7,8 +7,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { login } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 export default function LoginPage() {
+  const { t } = useLang();
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -37,21 +39,21 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-        <p className="text-sm text-zana-muted mt-1">Log in with your email or phone number.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('Welcome back')}</h1>
+        <p className="text-sm text-zana-muted mt-1">{t('Log in with your email or phone number.')}</p>
 
         <div className="mt-6 space-y-3">
           <input
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="Email or phone number"
+            placeholder={t('Email or phone number')}
             className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             autoFocus
           />
           <PasswordField
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
+            placeholder={t('Password')}
             autoComplete="current-password"
             className="border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             onKeyDown={(e) => e.key === 'Enter' && valid && handleLogin()}
