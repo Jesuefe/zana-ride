@@ -227,6 +227,10 @@ Object.assign(UI, {
   'Log out': { en: 'Log out', fr: 'Se déconnecter', rw: 'Sohoka' },
 });
 
+Object.assign(UI, {
+  'Change language': { en: 'Change language', fr: 'Changer de langue', rw: 'Hindura ururimi' },
+});
+
 export function t(key: string, lang: Lang): string {
   return UI[key]?.[lang] ?? key;
 }
