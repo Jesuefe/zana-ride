@@ -60,7 +60,7 @@ export default function EarningsPage() {
 
   const handleWithdraw = async () => {
     const amount = Number(withdrawAmount);
-    if (!amount || amount < 10000) { setError('Minimum withdrawal is 10,000 RWF'); return; }
+    if (!amount || amount < 10000) { setError(dt('Minimum withdrawal is 10,000 RWF')); return; }
     if (amount > (data?.walletBalance ?? 0)) { setError(dt('Insufficient balance')); return; }
     if (!withdrawPhone || withdrawPhone.replace(/\D/g,'').length < 9) { setError(dt('Enter a valid phone number')); return; }
 
@@ -76,7 +76,7 @@ export default function EarningsPage() {
       const wallet = await api.get<any>('/wallet/me');
       setData(prev => prev ? { ...prev, walletBalance: wallet.balance } : prev);
     } catch (e: any) {
-      setError(e.message ?? 'Withdrawal failed. Try again.');
+      setError(e.message ?? dt('Withdrawal failed. Try again.'));
     } finally {
       setWithdrawing(false);
     }
@@ -114,7 +114,7 @@ export default function EarningsPage() {
         }
       }, 3000);
     } catch (e: any) {
-      setSettleError(e.message ?? 'Could not reach the payment provider.');
+      setSettleError(e.message ?? dt('Could not reach the payment provider.'));
     }
   };
 
@@ -236,7 +236,7 @@ export default function EarningsPage() {
                   <input
                     value={withdrawAmount}
                     onChange={e => setWithdrawAmount(e.target.value.replace(/\D/g,''))}
-                    placeholder={dt('Min 1,000 RWF', lang)}
+                    placeholder={dt('Min 1,000 RWF')}
                     inputMode="numeric"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
                   />
@@ -248,7 +248,7 @@ export default function EarningsPage() {
                     <input
                       value={withdrawPhone}
                       onChange={e => setWithdrawPhone(e.target.value.replace(/\D/g,'').slice(0,9))}
-                      placeholder={dt('788 123 456', lang)}
+                      placeholder={dt('788 123 456')}
                       inputMode="numeric"
                       className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
                     />
