@@ -105,7 +105,7 @@ export default function RatingModal({
             </button>
 
             <button onClick={onClose} className="w-full text-center text-sm text-gray-400 mt-3">
-              Skip
+              {dt('Skip', lang)}
             </button>
           </>
         )}
