@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Star, X, Loader2 } from 'lucide-react';
 import { api } from '../lib/api/client';
+import { useLang } from '../lib/LangContext';
 
 export default function RatingModal({
   tripId,
