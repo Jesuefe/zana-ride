@@ -9,8 +9,10 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { register } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 export default function SignupPage() {
+  const { t } = useLang();
   const router = useRouter();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -55,22 +57,22 @@ export default function SignupPage() {
         <ArrowLeft size={16} />
       </button>
 
-      <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-      <p className="text-sm text-zana-muted mt-1">Just the basics to get you moving.</p>
+      <h1 className="text-2xl font-bold text-gray-900">{t('Create your account')}</h1>
+      <p className="text-sm text-zana-muted mt-1">{t('Just the basics to get you moving.')}</p>
 
       <div className="mt-6 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <input
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            placeholder="First name"
+            placeholder={t('First name')}
             className="border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             autoFocus
           />
           <input
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            placeholder="Last name"
+            placeholder={t('Last name')}
             className="border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
           />
         </div>
@@ -78,7 +80,7 @@ export default function SignupPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           type="email"
-          placeholder="Email address"
+          placeholder={t('Email address')}
           className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
         />
         <div className="flex gap-2 h-[46px]">
@@ -94,7 +96,7 @@ export default function SignupPage() {
         <PasswordField
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password (min. 6 characters)"
+          placeholder={t('Password (min. 6 characters)')}
           autoComplete="new-password"
           className="border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
           onKeyDown={(e) => e.key === 'Enter' && valid && handleSignup()}
