@@ -667,3 +667,5 @@ Object.assign(UI, {
   'Cancelling…': { en: 'Cancelling…', fr: 'Annulation…', rw: 'Turahagarika…' },
   'Cancel order': { en: 'Cancel order', fr: 'Annuler la commande', rw: 'Hagarika itegeko' },
 });
+
+// Inner-page localization sweep sync: verify customer sub-pages in production.
