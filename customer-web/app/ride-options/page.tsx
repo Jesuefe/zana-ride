@@ -126,7 +126,7 @@ function RideOptionsContent() {
       });
       router.push(`/tracking?tripId=${trip.id}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
+      setError(err instanceof ApiError ? err.message : t('Could not reach the server.'));
       setBooking(false);
     }
   };
@@ -195,8 +195,8 @@ function RideOptionsContent() {
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900">{opt.label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{opt.sub}</p>
+                    <p className="font-bold text-gray-900">{t(opt.label)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{t(opt.sub)}</p>
                     {routeInfo && (
                       <div className="flex items-center gap-1 mt-1">
                         <Clock size={10} className="text-gray-400" />
@@ -242,7 +242,7 @@ function RideOptionsContent() {
                       {icon}
                     </div>
                     <p className={`text-[11px] font-bold ${paymentMethod === id ? 'text-zana-primary' : 'text-gray-600'}`}>
-                      {label}
+                      {t(label)}
                     </p>
                   </button>
                 ))}
@@ -338,16 +338,16 @@ function RideOptionsContent() {
                     </div>
                     <div className="flex-1 text-left">
                       <p className={`text-sm font-semibold ${paymentMethod === id ? insufficient ? 'text-red-600' : 'text-zana-primary' : 'text-gray-800'}`}>
-                        {label}
+                        {t(label)}
                       </p>
                       {isWallet && walletBalance !== null ? (
                         <p className={`text-xs ${insufficient ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
                           {insufficient
-                            ? `Balance: ${walletBalance.toLocaleString()} RWF — need ${(selectedFare - walletBalance).toLocaleString()} more`
-                            : `Balance: ${walletBalance.toLocaleString()} RWF`}
+                            ? `${t('Balance:')} ${walletBalance.toLocaleString()} RWF — ${t('need')} ${(selectedFare - walletBalance).toLocaleString()} ${t('more')}`
+                            : `${t('Balance:')} ${walletBalance.toLocaleString()} RWF`}
                         </p>
                       ) : (
-                        <p className="text-xs text-gray-400">{sub}</p>
+                        <p className="text-xs text-gray-400">{t(sub)}</p>
                       )}
                     </div>
                     {paymentMethod === id && !insufficient && (
@@ -367,7 +367,7 @@ function RideOptionsContent() {
               <div className="mt-3 flex items-center gap-2 bg-zana-primary-light rounded-xl px-3 py-2.5">
                 <span className="text-sm shrink-0">💡</span>
                 <p className="text-[11px] text-gray-700 leading-snug">
-                  Paying from your Zana Wallet costs less in fees and skips the payment prompt.
+                  {t('Paying from your Zana Wallet costs less in fees and skips the payment prompt.')}
                 </p>
               </div>
             )}
@@ -391,7 +391,7 @@ function RideOptionsContent() {
           <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-start gap-2">
             <MapPin size={14} className="text-gray-400 mt-0.5 shrink-0" />
             <p className="text-xs text-gray-500 leading-relaxed">
-              Fare is calculated by distance and vehicle type.
+              {t('Fare is calculated by distance and vehicle type.')}
             </p>
           </div>
 
@@ -406,15 +406,15 @@ function RideOptionsContent() {
             {booking ? (
               <>
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Finding your driver...
+                {t('Finding your driver...')}
               </>
             ) : (
-              `Confirm · ${selected ? fares[selected].toLocaleString() : '—'} RWF`
+              `${t('Confirm')} · ${selected ? fares[selected].toLocaleString() : '—'} RWF`
             )}
           </button>
 
           <button onClick={() => setStep('select')} className="w-full text-center text-sm text-gray-400 py-1">
-            Change ride type
+            {t('Change ride type')}
           </button>
         </div>
       </div>
