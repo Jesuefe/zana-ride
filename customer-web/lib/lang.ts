@@ -242,6 +242,22 @@ export const UI: Record<string, Record<Lang, string>> = {
   'This code has expired': { en: 'This code has expired', fr: 'Ce code a expiré', rw: 'Iyi kode yarangiye },
   'Check back soon.': { en: 'Check back soon.', fr: 'Revenez bientôt.', rw: 'Garuka vuba. },
   'Could not load shops.': { en: 'Could not load shops.', fr: 'Impossible de charger les magasins.', rw: 'Ntibyashobotse gufungura amaduka. },
+  'Forgot your password?': { en: 'Forgot your password?', fr: 'Mot de passe oublié ?', rw: 'Wibagiwe ijambo ry’ibanga? },
+  'Enter your code': { en: 'Enter your code', fr: 'Entrez votre code', rw: 'Andika kode yawe },
+  'At least 6 characters': { en: 'At least 6 characters', fr: 'Au moins 6 caractères', rw: 'Nibura inyuguti 6 },
+  'Sign in with a code': { en: 'Sign in with a code', fr: 'Se connecter avec un code', rw: 'Injira ukoresheje kode },
+  'Welcome back': { en: 'Welcome back', fr: 'Bon retour', rw: 'Murakaza neza },
+  'Log in with your email or phone number.': { en: 'Log in with your email or phone number.', fr: 'Connectez-vous avec votre e-mail ou votre numéro de téléphone.', rw: 'Injira ukoresheje imeyili cyangwa nimero ya telefone. },
+  'Email or phone number': { en: 'Email or phone number', fr: 'E-mail ou numéro de téléphone', rw: 'Imeyili cyangwa nimero ya telefone },
+  'Password': { en: 'Password', fr: 'Mot de passe', rw: 'Ijambo ry’ibanga },
+  'Create your profile': { en: 'Create your profile', fr: 'Créez votre profil', rw: 'Kora umwirondoro wawe },
+  'Just the basics for now.': { en: 'Just the basics for now.', fr: 'Pour commencer, juste l’essentiel.', rw: 'Kugeza ubu, amakuru y’ibanze gusa. },
+  'First name': { en: 'First name', fr: 'Prénom', rw: 'Izina },
+  'Last name': { en: 'Last name', fr: 'Nom', rw: 'Izina ry’umuryango },
+  'Create your account': { en: 'Create your account', fr: 'Créez votre compte', rw: 'Kora konti yawe },
+  'Just the basics to get you moving.': { en: 'Just the basics to get you moving.', fr: 'Juste l’essentiel pour commencer.', rw: 'Amakuru y’ibanze kugira ngo utangire. },
+  'Email address': { en: 'Email address', fr: 'Adresse e-mail', rw: 'Aderesi ya imeyili },
+  'Password (min. 6 characters)': { en: 'Password (min. 6 characters)', fr: 'Mot de passe (6 caractères min.)', rw: 'Ijambo ry’ibanga (inyuguti 6 nibura) },
 
 };
 
