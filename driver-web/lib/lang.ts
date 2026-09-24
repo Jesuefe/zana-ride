@@ -381,3 +381,9 @@ export function tt(key: string, lang: Lang): string {
   return TRIP_UI[key]?.[lang] ?? key;
 }
 
+
+
+Object.assign(DRIVER_UI, {
+  'vehicle problem, customer not reachable…': { en: 'e.g. vehicle problem, customer not reachable…', fr: 'ex. problème du véhicule, client injoignable…', rw: 'urugero: ikibazo cy’ikinyabiziga, umukiriya ntaboneka…' },
+  'passenger': { en: 'passenger', fr: 'passager', rw: 'umugenzi' },
+});
