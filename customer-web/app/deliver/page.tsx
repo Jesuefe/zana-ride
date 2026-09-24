@@ -241,7 +241,7 @@ export default function DeliverPage() {
         });
         setAwaitingMomo(false);
         if (!confirmed) {
-          setError('Payment was not confirmed. The delivery was cancelled — you can try again.');
+          setError(t('Payment was not confirmed. The delivery was cancelled — you can try again.'));
           setSubmitting(false);
           return;
         }
@@ -308,7 +308,7 @@ export default function DeliverPage() {
 
           <div className="mt-3">
             <label className="text-[11px] font-semibold text-gray-600 block mb-1.5">
-              Additional details <span className="font-normal text-gray-400">(optional)</span>
+              {t('Additional details')} <span className="font-normal text-gray-400">({t('optional')})</span>
             </label>
             <textarea
               value={itemDetails}
@@ -341,7 +341,7 @@ export default function DeliverPage() {
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">Photo of the item</label>
+          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('Photo of the item')}</label>
           {imageBase64 ? (
             <div className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -363,11 +363,11 @@ export default function DeliverPage() {
               >
                 <Camera size={22} className="text-zana-muted" />
                 <span className="text-xs text-zana-muted">
-                  {capturing ? 'Opening camera…' : 'Take a photo'}
+                  {capturing ? t('Opening camera…') : t('Take a photo')}
                 </span>
               </button>
               <label className="block text-center text-[11px] text-zana-primary font-semibold mt-2 cursor-pointer">
-                or choose from your gallery
+                {t('or choose from your gallery')}
                 <input type="file" accept="image/*" onChange={handleImage} className="hidden" />
               </label>
             </>
@@ -375,16 +375,16 @@ export default function DeliverPage() {
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">Pickup location</label>
+          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('Pickup location')}</label>
           <div className="flex items-start gap-2 bg-gray-50 rounded-lg px-3 py-2.5">
             <MapPin size={15} className="text-zana-primary mt-0.5 shrink-0" />
             <p className="text-sm text-gray-900">{pickupAddress}</p>
           </div>
-          <p className="text-[11px] text-zana-muted mt-1">Drag the green pin on the map to adjust.</p>
+          <p className="text-[11px] text-zana-muted mt-1">{t('Drag the green pin on the map to adjust.')}</p>
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">Delivery location</label>
+          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('Delivery location')}</label>
 
           {dropoff ? (
             <div className="flex items-start gap-2 bg-zana-primary-light rounded-lg px-3 py-2.5">
@@ -399,7 +399,7 @@ export default function DeliverPage() {
               <input
                 value={destQuery}
                 onChange={(e) => setDestQuery(e.target.value)}
-                placeholder="Search for the delivery address"
+                placeholder={t('Search for the delivery address')}
                 className="w-full border border-zana-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
               />
               {suggestions.length > 0 && (
@@ -422,7 +422,7 @@ export default function DeliverPage() {
 
               <div className="mt-3 bg-gray-50 rounded-xl p-3">
                 <p className="text-[11px] text-zana-muted mb-2">
-                  Receiver can&apos;t explain their address? Ask them to send you their Zana location code.
+                  Receiver can&apos;t explain their address? {t('Ask them to send you their Zana location code.')}
                 </p>
                 <div className="flex gap-2">
                   <input
@@ -436,7 +436,7 @@ export default function DeliverPage() {
                     disabled={!codeInput.trim() || resolvingCode}
                     className="bg-zana-primary text-white text-xs font-semibold px-4 rounded-lg disabled:opacity-40"
                   >
-                    {resolvingCode ? <Loader2 size={14} className="animate-spin" /> : 'Use code'}
+                    {resolvingCode ? <Loader2 size={14} className="animate-spin" /> : t('Use code')}
                   </button>
                 </div>
                 {codeError && <p className="text-[11px] text-zana-error mt-1.5">{codeError}</p>}
@@ -450,7 +450,7 @@ export default function DeliverPage() {
           <input
             value={receiverName}
             onChange={(e) => setReceiverName(e.target.value)}
-            placeholder="Receiver's name (optional)"
+            placeholder={t("Receiver's name (optional)")}
             className="w-full border border-zana-border rounded-lg px-3 py-2.5 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
           />
           <div className="flex gap-2">
@@ -468,7 +468,7 @@ export default function DeliverPage() {
         {quote && (
           <div className="flex items-center justify-between bg-zana-primary-dark rounded-xl px-4 py-3 text-white">
             <div>
-              <p className="text-[11px] text-white/70">Delivery fee</p>
+              <p className="text-[11px] text-white/70">{t('Delivery fee')}</p>
               <p className="text-lg font-bold">{quote.fee.toLocaleString()} RWF</p>
             </div>
             <p className="text-xs text-white/70">{quote.distanceKm} km</p>
@@ -479,7 +479,7 @@ export default function DeliverPage() {
 
         {quote && (
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">How will you pay?</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{t('How will you pay?')}</p>
             <div className="grid grid-cols-3 gap-2">
               {([
                 ['WALLET', 'Wallet', CreditCard],
