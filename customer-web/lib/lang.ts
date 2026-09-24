@@ -610,3 +610,9 @@ Object.assign(UI, {
   'Save': { en: 'Save', fr: 'Enregistrer', rw: 'Bika' },
   'Registered phone number': { en: 'Registered phone number', fr: 'Numéro de téléphone enregistré', rw: 'Nimero ya telefoni yanditswe' },
 });
+
+
+Object.assign(UI, {
+  'Gifts & Flowers': { en: 'Gifts & Flowers', fr: 'Cadeaux et fleurs', rw: 'Impano n’indabyo' },
+  'No gift shops available yet.': { en: 'No gift shops available yet.', fr: 'Aucune boutique de cadeaux disponible pour le moment.', rw: 'Nta maduka y’impano arahari ubu.' },
+});
