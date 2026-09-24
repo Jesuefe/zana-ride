@@ -351,7 +351,7 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
 
         {state === 'connected' && (
           <div className="bg-green-500/20 border border-green-500/30 rounded-full px-4 py-1">
-            <p className="text-green-300 text-xs font-semibold">Zana Free Call · Connected</p>
+            <p className="text-green-300 text-xs font-semibold">{dt('Zana Free Call · Connected')}</p>
           </div>
         )}
 
@@ -374,7 +374,7 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
                 ? <MicOff size={22} className="text-gray-900" />
                 : <Mic size={22} className="text-white" />}
             </button>
-            <p className="text-white/50 text-xs">{muted ? 'Unmute' : 'Mute'}</p>
+            <p className="text-white/50 text-xs">{muted ? dt('Unmute') : dt('Mute')}</p>
           </div>
 
           {/* End call */}
@@ -383,7 +383,7 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
               className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-2xl transition-colors">
               <PhoneOff size={28} className="text-white" />
             </button>
-            <p className="text-white/50 text-xs">End call</p>
+            <p className="text-white/50 text-xs">{dt('End call')}</p>
           </div>
 
           {/* Speaker */}
@@ -396,7 +396,7 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
                 <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14M3 9v6h4l5 5V4L7 9H3z"/>
               </svg>
             </button>
-            <p className="text-white/50 text-xs">{!speakerSupported ? 'Unavailable' : speakerOn ? 'Speaker on' : 'Speaker'}</p>
+            <p className="text-white/50 text-xs">{!speakerSupported ? dt('Unavailable') : speakerOn ? dt('Speaker on') : dt('Speaker')}</p>
           </div>
         </div>
       )}
