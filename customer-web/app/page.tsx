@@ -191,24 +191,37 @@ export default function HomePage() {
 
       {/* ── Services ─────────────────────────────────────── */}
       <div className="px-4 mt-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <h2 className="text-base font-black text-gray-900">Services</h2>
-          <button onClick={() => router.push('/services')}
-            className="text-sm font-semibold text-zana-primary">See all</button>
         </div>
 
-        {/* Horizontal scroll — all 6 services, swipe to see more */}
-        <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
+        <div className="grid grid-cols-4 gap-y-5 gap-x-2">
           {SERVICES.map(s => (
-            <button key={s.id} onClick={() => router.push(s.route)}
-              className="flex flex-col items-center gap-2 active:scale-95 transition-transform shrink-0 snap-start"
-              style={{ width: 72 }}>
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden"
-                style={{ background: s.bg }}>
-                <Image src={s.image} alt={t(s.title)} width={44} height={44} className="object-contain" />
+            <button
+              key={s.id}
+              onClick={() => router.push(s.route)}
+              className="flex flex-col items-center gap-2 active:scale-95 transition-transform"
+            >
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden"
+                style={{ background: s.bg }}
+              >
+                <Image
+                  src={s.image}
+                  alt={t(s.title)}
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
               </div>
-              <p className="text-[11px] font-bold text-gray-900 text-center leading-tight w-full">{t(s.title)}</p>
-              <p className="text-[9px] text-gray-400 text-center leading-tight -mt-1 w-full">{t(s.sub)}</p>
+
+              <p className="text-[10px] font-bold text-gray-900 text-center leading-tight">
+                {t(s.title)}
+              </p>
+
+              <p className="text-[8px] text-gray-400 text-center leading-tight -mt-1">
+                {t(s.sub)}
+              </p>
             </button>
           ))}
         </div>
