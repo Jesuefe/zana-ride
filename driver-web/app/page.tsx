@@ -306,7 +306,6 @@ export default function DriverHome() {
   const [offers, setOffers] = useState<RideOffer[]>([]);
   const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(false);
-  const [showMode, setShowMode] = useState(false);
   const [driverMode, setDriverMode] = useState<'RIDES' | 'DELIVERIES' | 'BOTH'>('BOTH');
   const [incomingDelivery, setIncomingDelivery] = useState<PendingDelivery | null>(null);
   const [earnings, setEarnings] = useState<{ todayEarnings: number; totalTrips: number; walletBalance: number } | null>(null);
@@ -314,6 +313,9 @@ export default function DriverHome() {
   // count. Remove this line once a real notification source is wired in.
   const notifications = 0;
   const [showMenu, setShowMenu] = useState(false);
+  const [showMode, setShowMode] = useState(false);
+  const [onlineFlow, setOnlineFlow] = useState<'online' | 'offline'>('online');
+  const [onlineTransition, setOnlineTransition] = useState<'online' | 'offline' | null>(null);
   const seenIds = useRef(new Set<string>());
 
   // Init map
@@ -529,46 +531,62 @@ export default function DriverHome() {
   const handleToggle = async () => {
     if (!online) {
       setShowMenu(false);
+      setOnlineFlow('online');
       setShowMode(true);
       return;
     }
 
+    setShowMenu(false);
+    setOnlineFlow('offline');
+    setShowMode(true);
+  };
+
+  const handleModeSelect = (mode: typeof driverMode) => {
+    setDriverMode(mode);
+  };
+
+  const handleOnlineConfirm = async () => {
+    setShowMode(false);
+    setOnlineTransition('online');
+    setLoading(true);
+    try {
+      await updateDriverMode(driverMode);
+      const updated = await goOnline();
+      setOnline(true);
+      setProfile(updated as any);
+      await new Promise(resolve => setTimeout(resolve, 900));
+      setOnlineTransition(null);
+    } catch (e: any) {
+      setOnlineTransition(null);
+      setTopBannerError(
+        e?.message === 'DRIVER_NOT_APPROVED'
+          ? dt("Your account is still pending approval — you can go online once it's reviewed.")
+          : dt('Could not go online. Check your connection and try again.')
+      );
+      setTimeout(() => setTopBannerError(''), 4000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOfflineConfirm = async () => {
+    setShowMode(false);
+    setOnlineTransition('offline');
     setLoading(true);
     try {
       await goOffline();
       setOnline(false);
       setOffers([]);
       setIncomingDelivery(null);
+      await new Promise(resolve => setTimeout(resolve, 900));
+      setOnlineTransition(null);
     } catch {
-      setTopBannerError('Could not go offline. Check your connection and try again.');
+      setOnlineTransition(null);
+      setTopBannerError(dt('Could not go offline. Check your connection and try again.'));
       setTimeout(() => setTopBannerError(''), 4000);
-      throw new Error('GO_OFFLINE_FAILED');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleModeSelect = async (mode: typeof driverMode) => {
-    setDriverMode(mode);
-    setShowMode(false);
-    setLoading(true);
-    try {
-      await updateDriverMode(mode);
-      const updated = await goOnline();
-      setOnline(true);
-      setProfile(updated as any);
-    } catch (e: any) {
-      // Going online is the one action that decides whether this driver
-      // can earn at all. The sheet closing must not look identical whether
-      // it worked or not — silence here means someone sits waiting for
-      // jobs while actually still offline.
-      setTopBannerError(
-        e?.message === 'DRIVER_NOT_APPROVED'
-          ? 'Your account is still pending approval — you can go online once it\'s reviewed.'
-          : 'Could not go online. Check your connection and try again.'
-      );
-      setTimeout(() => setTopBannerError(''), 4000);
-    } finally { setLoading(false); }
   };
 
   const handleAcceptOffer = async (offer: RideOffer) => {
@@ -771,36 +789,34 @@ export default function DriverHome() {
             </button>
           </div>
 
-          {/* Go Online / Offline — both a slide gesture now, previously
-              online was a slide but offline was just a single tap
-              button — inconsistent and easier to trigger by accident.
-              Same gesture both directions, just a different color and
-              label. */}
+          {/* ZANA online/offline control */}
           {online ? (
-            <SlideAction
-              label={dt('Slide to go offline')}
-              busyLabel={dt('Going offline...')}
-              successLabel={dt('Offline')}
-              onComplete={handleToggle}
-              color="#E6A82E"
+            <button
+              onClick={() => { setOnlineFlow('offline'); setShowMode(true); }}
               disabled={loading}
-            />
+              className="w-full h-[72px] rounded-2xl bg-white border-2 border-amber-500 shadow-sm flex items-center justify-center gap-3 active:scale-[0.99] transition-transform disabled:opacity-60"
+            >
+              <div className="w-3 h-3 rounded-full bg-green-500" />
+              <span className="text-[15px] font-black tracking-wide text-gray-900">{dt('GO OFFLINE')}</span>
+            </button>
           ) : (
-            <SlideAction
-              label={dt('Slide to go online')}
-              busyLabel={dt('Choose your mode...')}
-              successLabel={dt('Online')}
-              onComplete={async () => { setShowMenu(false); setShowMode(true); }}
-              color="#00A082"
+            <button
+              onClick={() => { setOnlineFlow('online'); setShowMode(true); }}
               disabled={loading}
-            />
+              className="w-full h-[72px] rounded-2xl bg-zana-primary text-white shadow-lg flex flex-col items-center justify-center active:scale-[0.99] transition-transform disabled:opacity-60"
+            >
+              <span className="text-[16px] font-black tracking-wide">{dt('GO ONLINE')}</span>
+              <span className="text-[11px] font-semibold opacity-90 mt-0.5">{dt('Ready to receive requests')}</span>
+            </button>
           )}
 
           {/* Status message */}
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${online ? 'bg-green-500' : 'bg-gray-300'}`} />
             <p className="text-xs text-gray-500">
-              {online ? dt("You're online and ready to receive requests") : dt('Go online to start receiving ride requests')}
+              {online
+                ? `${dt("You're online and ready to receive requests")} · ${dt(driverMode === 'RIDES' ? 'Rides only' : driverMode === 'DELIVERIES' ? 'Deliveries only' : 'Rides & Deliveries')}`
+                : dt('Go online to start receiving ride requests')}
             </p>
           </div>
 
@@ -849,32 +865,107 @@ export default function DriverHome() {
         </div>
       </div>
 
-      {/* Mode selector sheet */}
+      {/* Online / offline confirmation sheet */}
       {showMode && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/50">
-          <div className="w-full bg-white rounded-t-3xl p-6">
+        <div className="fixed inset-0 z-[55] flex items-end bg-black/55">
+          <div className="w-full bg-white rounded-t-[30px] p-5 pb-7 shadow-2xl">
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-            <h2 className="text-lg font-black text-gray-900 mb-1">{dt("What do you want to receive?")}</h2>
-            <p className="text-sm text-gray-400 mb-5">{t('Choose your mode for this session.')}</p>
-            <div className="space-y-3">
-              {([
-                { mode: 'RIDES', label: t('Rides only'), sub: 'Passenger pickup requests' },
-                { mode: 'DELIVERIES', label: t('Deliveries only'), sub: 'Package delivery requests' },
-                { mode: 'BOTH', label: t('Both'), sub: 'Rides and deliveries' },
-              ] as const).map(({ mode, label, sub }) => (
-                <button key={mode} onClick={() => handleModeSelect(mode)}
-                  className="w-full flex items-center gap-4 bg-gray-50 hover:bg-zana-primary-light rounded-2xl px-4 py-4 text-left transition-colors">
-                  <div className="w-5 h-5 rounded-full border-2 border-zana-primary flex items-center justify-center shrink-0">
-                    {driverMode === mode && <div className="w-2.5 h-2.5 rounded-full bg-zana-primary" />}
-                  </div>
+
+            {onlineFlow === 'online' ? (
+              <>
+                <div className="mb-5">
+                  <p className="text-[11px] font-black tracking-widest text-zana-primary uppercase mb-1">{dt('GO ONLINE')}</p>
+                  <h2 className="text-xl font-black text-gray-900">{dt('What do you want to receive?')}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{dt('Choose what you want to receive while you are online.')}</p>
+                </div>
+
+                <div className="space-y-2.5">
+                  {([
+                    { mode: 'RIDES', label: t('Rides only'), sub: dt('Passenger pickup requests') },
+                    { mode: 'DELIVERIES', label: t('Deliveries only'), sub: dt('Package delivery requests') },
+                    { mode: 'BOTH', label: t('Both'), sub: dt('Rides & Deliveries') },
+                  ] as const).map(({ mode, label, sub }) => (
+                    <button
+                      key={mode}
+                      onClick={() => handleModeSelect(mode)}
+                      className={`w-full flex items-center gap-4 rounded-2xl px-4 py-4 text-left border-2 transition-all ${driverMode === mode ? 'border-zana-primary bg-zana-primary-light' : 'border-gray-100 bg-gray-50'}`}
+                    >
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${driverMode === mode ? 'border-zana-primary' : 'border-gray-300'}`}>
+                        {driverMode === mode && <div className="w-3 h-3 rounded-full bg-zana-primary" />}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-black text-gray-900 text-sm">{label}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{sub}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-5">
+                  <p className="text-[11px] text-gray-400 text-center mb-2">{dt('Slide to confirm')}</p>
+                  <SlideAction
+                    label={dt('Slide to go online')}
+                    busyLabel={dt('Taking you online...')}
+                    successLabel={dt('Online')}
+                    onComplete={handleOnlineConfirm}
+                    color="#00A082"
+                    disabled={loading}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-5">
+                  <p className="text-[11px] font-black tracking-widest text-amber-600 uppercase mb-1">{dt('GO OFFLINE')}</p>
+                  <h2 className="text-xl font-black text-gray-900">{dt('Go offline?')}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{dt('You will stop receiving new requests.')}</p>
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 px-4 py-3.5 mb-5 flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full bg-green-500 shrink-0" />
                   <div>
-                    <p className="font-bold text-gray-900 text-sm">{label}</p>
-                    <p className="text-xs text-gray-500">{sub}</p>
+                    <p className="text-sm font-bold text-gray-900">{dt("You're online")}</p>
+                    <p className="text-xs text-gray-500">{dt(driverMode === 'RIDES' ? 'Rides only' : driverMode === 'DELIVERIES' ? 'Deliveries only' : 'Rides & Deliveries')}</p>
                   </div>
-                </button>
-              ))}
+                </div>
+
+                <SlideAction
+                  label={dt('Slide to go offline')}
+                  busyLabel={dt('Going offline...')}
+                  successLabel={dt('Offline')}
+                  onComplete={handleOfflineConfirm}
+                  color="#E6A82E"
+                  disabled={loading}
+                />
+              </>
+            )}
+
+            <button
+              onClick={() => setShowMode(false)}
+              disabled={loading}
+              className="w-full mt-4 text-sm font-semibold text-gray-400 py-2 disabled:opacity-50"
+            >
+              {dt('Cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Transition overlay */}
+      {onlineTransition && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-white">
+          <div className="text-center px-8">
+            <div className={`mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6 ${onlineTransition === 'online' ? 'bg-zana-primary-light' : 'bg-gray-100'}`}>
+              <div className={`w-10 h-10 rounded-full border-4 animate-spin ${onlineTransition === 'online' ? 'border-zana-primary/20 border-t-zana-primary' : 'border-gray-300 border-t-gray-700'}`} />
             </div>
-            <button onClick={() => setShowMode(false)} className="w-full mt-4 text-sm text-gray-400 py-2">{t('Cancel')}</button>
+            <p className="text-2xl font-black text-gray-900">
+              {onlineTransition === 'online' ? dt('Taking you online...') : dt('Taking you offline...')}
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              {onlineTransition === 'online'
+                ? dt('Connecting you to new requests')
+                : dt('Stopping new requests')}
+            </p>
           </div>
         </div>
       )}
