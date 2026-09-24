@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { useLang } from '../lib/LangContext';
 import { Home, Package, TrendingUp, User } from 'lucide-react';
 
 const tabs = [
@@ -13,6 +14,7 @@ const tabs = [
 const HIDE_ON = ['/login', '/signup', '/trip'];
 
 export default function DriverBottomNav() {
+  const { dt } = useLang();
   const pathname = usePathname();
   const router = useRouter();
 
