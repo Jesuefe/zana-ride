@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/roles.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.strategy';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserRole } from '@prisma/client';
 
 @Controller('sos')
 @UseGuards(JwtAuthGuard)
@@ -46,7 +47,7 @@ export class SafetyController {
           data: {
             userId: user.sub,
             tripId: body.tripId ?? null,
-            role: user.role,
+            role: user.role as UserRole,
             lat: typeof body.lat === 'number' ? body.lat : null,
             lng: typeof body.lng === 'number' ? body.lng : null,
           },
