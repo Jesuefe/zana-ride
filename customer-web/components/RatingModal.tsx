@@ -6,9 +6,6 @@ import { api } from '../lib/api/client';
 import { useLang } from '../lib/LangContext';
 
 export default function RatingModal({
-  const { t } = useLang();
-  const { t } = useLang();
-  const { t } = useLang();
   tripId,
   driverName,
   onClose,
@@ -17,6 +14,7 @@ export default function RatingModal({
   driverName: string;
   onClose: () => void;
 }) {
+  const { t } = useLang();
   const [score, setScore] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState('');
