@@ -50,7 +50,7 @@ export default function RatingModal({
         {done ? (
           <div className="text-center py-4">
             <p className="text-4xl mb-2">🎉</p>
-            <p className="font-semibold text-gray-900">Thanks for rating {driverName}!</p>
+            <p className="font-semibold text-gray-900">{dt('Thanks for rating', lang)} {driverName}!</p>
           </div>
         ) : (
           <>
@@ -74,7 +74,7 @@ export default function RatingModal({
                 <div className="flex flex-wrap gap-2 mb-4">
                   {QUICK.map(tag => (
                     <button
-                      key={tag}
+                      key={dt(tag, lang)}
                       onClick={() => setComment(c => c.includes(tag) ? c.replace(tag, '').trim() : `${c} ${tag}`.trim())}
                       className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                         comment.includes(tag) ? 'bg-zana-primary text-white border-zana-primary' : 'border-gray-200 text-gray-600'
@@ -101,7 +101,7 @@ export default function RatingModal({
               className="w-full bg-zana-primary text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40"
             >
               {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
-              {submitting ? 'Submitting…' : 'Submit Rating'}
+              {submitting ? dt('Submitting…', lang) : dt('Submit Rating', lang)}
             </button>
 
             <button onClick={onClose} className="w-full text-center text-sm text-gray-400 mt-3">
