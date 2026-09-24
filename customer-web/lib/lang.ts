@@ -167,6 +167,56 @@ export const UI: Record<string, Record<Lang, string>> = {
   'All services': { en: 'All services', fr: 'Serivisi zose', rw: 'Serivisi zose' },
 };
 
+
+// Reviewed Rwanda-facing translations for the core customer dashboard.
+Object.assign(UI, {
+  'Wallet Balance': { en: 'Wallet Balance', fr: 'Solde du portefeuille', rw: 'Amafaranga asigaye mu gikapo' },
+  'Top Up': { en: 'Top Up', fr: 'Recharger', rw: 'Ongeramo amafaranga' },
+  'Orders': { en: 'Orders', fr: 'Commandes', rw: 'Amabwiriza' },
+  'Home': { en: 'Home', fr: 'Accueil', rw: 'Ahabanza' },
+  'Chat': { en: 'Chat', fr: 'Discussion', rw: 'Kuganira' },
+  'Finding your driver…': { en: 'Finding your driver…', fr: 'Recherche de votre chauffeur…', rw: 'Turimo gushaka umushoferi wawe…' },
+  'Driver assigned': { en: 'Driver assigned', fr: 'Chauffeur attribué', rw: 'Umushoferi yagenewe urugendo' },
+  'Driver is on the way': { en: 'Driver is on the way', fr: 'Le chauffeur est en route', rw: 'Umushoferi ari mu nzira' },
+  'Your driver has arrived': { en: 'Your driver has arrived', fr: 'Votre chauffeur est arrivé', rw: 'Umushoferi wawe yageze' },
+  'Trip completed': { en: 'Trip completed', fr: 'Trajet terminé', rw: 'Urugendo rwarangiye' },
+  'No drivers available nearby': { en: 'No drivers available nearby', fr: 'Aucun chauffeur disponible à proximité', rw: 'Nta mushoferi uri hafi uboneka' },
+  'Trip cancelled': { en: 'Trip cancelled', fr: 'Trajet annulé', rw: 'Urugendo rwahagaritswe' },
+  'Cancel Ride': { en: 'Cancel Ride', fr: 'Annuler le trajet', rw: 'Hagarika urugendo' },
+  'Could not cancel. Try again.': { en: 'Could not cancel. Try again.', fr: 'Impossible d’annuler. Réessayez.', rw: 'Ntibyashobotse guhagarika. Ongera ugerageze.' },
+  'Rate your ride': { en: 'Rate your ride', fr: 'Évaluez votre trajet', rw: 'Tanga amanota ku rugendo rwawe' },
+  'Report a problem': { en: 'Report a problem', fr: 'Signaler un problème', rw: 'Tanga raporo y’ikibazo' },
+  'Ride History': { en: 'Ride History', fr: 'Historique des trajets', rw: 'Amateka y’ingendo' },
+  'Total spent on rides': { en: 'Total spent on rides', fr: 'Total dépensé pour les trajets', rw: 'Amafaranga yose yakoreshejwe mu ngendo' },
+  'Total rides': { en: 'Total rides', fr: 'Nombre total de trajets', rw: 'Umubare w’ingendo zose' },
+  'No rides yet': { en: 'No rides yet', fr: 'Aucun trajet pour le moment', rw: 'Nta rugendo uragira' },
+  'Completed': { en: 'Completed', fr: 'Terminé', rw: 'Byarangiye' },
+  'Cancelled': { en: 'Cancelled', fr: 'Annulé', rw: 'Byahagaritswe' },
+  'Available balance': { en: 'Available balance', fr: 'Solde disponible', rw: 'Amafaranga ushobora gukoresha' },
+  'Recent transactions': { en: 'Recent transactions', fr: 'Transactions récentes', rw: 'Ibikorwa biheruka' },
+  'No transactions yet.': { en: 'No transactions yet.', fr: 'Aucune transaction pour le moment.', rw: 'Nta bikorwa birabaho.' },
+  'Payment': { en: 'Payment', fr: 'Paiement', rw: 'Kwishyura' },
+  'Pending': { en: 'Pending', fr: 'En attente', rw: 'Biracyategerejwe' },
+  'Cash': { en: 'Cash', fr: 'Espèces', rw: 'Amafaranga y’inguzanyo y’amaboko' },
+  'Mobile Money': { en: 'Mobile Money', fr: 'Mobile Money', rw: 'Mobile Money' },
+  'Pickup': { en: 'Pickup', fr: 'Prise en charge', rw: 'Aho utorerwa' },
+  'Destination': { en: 'Destination', fr: 'Destination', rw: 'Aho ugiye' },
+  'Fare breakdown': { en: 'Fare breakdown', fr: 'Détail du tarif', rw: 'Ibisobanuro by’ikiguzi' },
+  'Base fare': { en: 'Base fare', fr: 'Tarif de base', rw: 'Ikiguzi shingiro' },
+  'Total charged': { en: 'Total charged', fr: 'Total facturé', rw: 'Amafaranga yose wishyuye' },
+  'Trip details': { en: 'Trip details', fr: 'Détails du trajet', rw: 'Ibisobanuro by’urugendo' },
+  'Date': { en: 'Date', fr: 'Date', rw: 'Itariki' },
+  'Service type': { en: 'Service type', fr: 'Type de service', rw: 'Ubwoko bwa serivisi' },
+  'Trip ID': { en: 'Trip ID', fr: 'ID du trajet', rw: 'Nomero y’urugendo' },
+  'Back to Home': { en: 'Back to Home', fr: 'Retour à l’accueil', rw: 'Subira ahabanza' },
+  'Delivery': { en: 'Delivery', fr: 'Livraison', rw: 'Kohereza' },
+  'Order Food': { en: 'Order Food', fr: 'Commander à manger', rw: 'Gutegeka ibiryo' },
+  'Shop': { en: 'Shop', fr: 'Boutique', rw: 'Guhaha' },
+  'Send Gift': { en: 'Send Gift', fr: 'Envoyer un cadeau', rw: 'Ohereza impano' },
+  'Market': { en: 'Market', fr: 'Marché', rw: 'Isoko' },
+  'All services': { en: 'All services', fr: 'Tous les services', rw: 'Serivisi zose' },
+});
+
 export function t(key: string, lang: Lang): string {
   return UI[key]?.[lang] ?? key;
 }
