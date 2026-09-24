@@ -137,7 +137,7 @@ function SearchContent() {
       if (preselectedService) urlParams.set('service', preselectedService);
       router.push(`/ride-options?${urlParams.toString()}`);
     } catch {
-      setCodeError('That code was not found or has expired.');
+      setCodeError(t('That code was not found or has expired.'));
     } finally {
       setResolvingCode(false);
     }
@@ -327,7 +327,7 @@ function SearchContent() {
           </p>
         )}
 
-        {searching && <p className="text-xs text-zana-muted px-1 py-2"{t('Searching…')}</p>}
+        {searching && <p className="text-xs text-zana-muted px-1 py-2">{t('Searching…')}</p>}
 
         {!query && suggestions.length === 0 && (
           <div className="bg-gray-50 rounded-xl p-3 mt-2">
@@ -346,7 +346,7 @@ function SearchContent() {
                 disabled={!codeInput.trim() || resolvingCode}
                 className="bg-zana-primary text-white text-xs font-semibold px-4 rounded-lg disabled:opacity-40"
               >
-                {resolvingCode ? '…' : 'Use'}
+                {resolvingCode ? '…' : t('Use')}
               </button>
             </div>
             {codeError && <p className="text-[11px] text-zana-error mt-1.5">{codeError}</p>}
