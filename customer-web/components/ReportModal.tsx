@@ -12,9 +12,8 @@ const reasons = [
   { id: 'other', label: 'Something else', icon: CircleHelp },
 ];
 
-export default function ReportModal({
+export default function ReportModal({ tripId, onClose }: { tripId: string; onClose: () => void }) {
   const { t } = useLang();
-  const { t } = useLang(); tripId, onClose }: { tripId: string; onClose: () => void }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [details, setDetails] = useState('');
   const [submitting, setSubmitting] = useState(false);
