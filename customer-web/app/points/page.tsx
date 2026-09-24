@@ -50,7 +50,7 @@ export default function PointsPage() {
           <p className="text-white/70 text-sm">{t('Your points balance')}</p>
         </div>
         <p className="text-4xl font-bold">{data?.balance.toLocaleString() ?? '…'}</p>
-        <p className="text-white/60 text-xs mt-1">≈ {data?.rwfValue.toLocaleString() ?? 0} RWF value · {data?.totalEarned.toLocaleString() ?? 0} earned total</p>
+        <p className="text-white/60 text-xs mt-1">≈ {data?.rwfValue.toLocaleString() ?? 0} RWF {t('value')} · {data?.totalEarned.toLocaleString() ?? 0} {t('earned total')}</p>
       </div>
 
       {/* How to earn */}
@@ -66,8 +66,8 @@ export default function PointsPage() {
             <div key={title} className="flex items-center gap-3">
               <span className="text-lg">{icon}</span>
               <div>
-                <p className="text-sm font-medium text-gray-900">{title}</p>
-                <p className="text-xs text-gray-400">{sub}</p>
+                <p className="text-sm font-medium text-gray-900">{t(title)}</p>
+                <p className="text-xs text-gray-400">{t(sub)}</p>
               </div>
             </div>
           ))}
@@ -77,7 +77,7 @@ export default function PointsPage() {
       {/* Redeem */}
       <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
         <p className="font-semibold text-gray-900 mb-1 text-sm">{t('Redeem points')}</p>
-        <p className="text-xs text-gray-400 mb-3">100 points = 500 RWF wallet credit (min 100 points)</p>
+        <p className="text-xs text-gray-400 mb-3">{t('100 points = 500 RWF wallet credit (min 100 points)')}</p>
         <div className="flex gap-2">
           <input value={redeemAmount} onChange={e => setRedeemAmount(e.target.value.replace(/\D/g,''))}
             placeholder={t('Points to redeem')} inputMode="numeric"
