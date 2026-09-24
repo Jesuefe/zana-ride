@@ -477,3 +477,14 @@ Object.assign(DRIVER_UI, {
   'Could not accept that delivery.': { en: 'Could not accept that delivery.', fr: 'Impossible d’accepter cette livraison.', rw: 'Ntibyashobotse kwemera iki kintu cyo kugeza.' },
   'Another rider took that one.': { en: 'Another rider took that one.', fr: 'Un autre chauffeur l’a déjà pris.', rw: 'Undi mushoferi yamaze kukijyana.' },
 });
+
+
+// Translation coverage additions for driver home/session UI.
+Object.assign(DRIVER_UI, {
+  'Ride completed successfully': { en: 'Ride completed successfully', fr: 'Course terminée avec succès', rw: 'Urugendo rwarangiye neza' },
+  'Battery': { en: 'Battery', fr: 'Batterie', rw: 'Bateri' },
+  'Good': { en: 'Good', fr: 'Bon', rw: 'Ni byiza' },
+  'Choose your mode for this session.': { en: 'Choose your mode for this session.', fr: 'Choisissez votre mode pour cette session.', rw: 'Hitamo uburyo uzakoresha muri iyi serivisi.' },
+  'Delivery Request': { en: 'Delivery Request', fr: 'Demande de livraison', rw: 'Ubusabe bwo kugeza ibintu' },
+  'Menu': { en: 'Menu', fr: 'Menu', rw: 'Menyu' },
+});
