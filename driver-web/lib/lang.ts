@@ -425,4 +425,54 @@ Object.assign(UI, {
   'Someone else already took this ride.': { en: 'Someone else already took this ride.', fr: 'Un autre chauffeur a déjà accepté cette course.', rw: 'Undi mushoferi yamaze kwemera uru rugendo.' },
   'Could not accept — check your connection and try again.': { en: 'Could not accept — check your connection and try again.', fr: 'Impossible d’accepter — vérifiez votre connexion et réessayez.', rw: 'Ntibyashobotse kwemera — reba umurongo wa internet wongere ugerageze.' },
 });
-\nObject.assign(DRIVER_UI, {\n  'Calling': { en: 'Calling', fr: 'Appel en cours', rw: 'Turahamagara' },\n  'Connecting...': { en: 'Connecting...', fr: 'Connexion...', rw: 'Birimo guhuza...' },\n  'Reconnecting...': { en: 'Reconnecting...', fr: 'Reconnexion...', rw: 'Birimo kongera guhuza...' },\n  'Call ended': { en: 'Call ended', fr: 'Appel terminé', rw: 'Guhamagara byarangiye' },\n  'Unable to connect': { en: 'Unable to connect', fr: 'Impossible de se connecter', rw: 'Ntibyashobotse guhuza' },\n  'Zana Free Call · Connected': { en: 'Zana Free Call · Connected', fr: 'Zana · Appel gratuit · Connecté', rw: 'Zana · Guhamagara ku buntu · Byahujwe' },\n  'Unmute': { en: 'Unmute', fr: 'Activer le son', rw: 'Fungura mikoro' },\n  'Mute': { en: 'Mute', fr: 'Couper le son', rw: 'Zimya mikoro' },\n  'End call': { en: 'End call', fr: 'Terminer l’appel', rw: 'Soza guhamagara' },\n  'Unavailable': { en: 'Unavailable', fr: 'Indisponible', rw: 'Ntibishoboka' },\n  'Speaker on': { en: 'Speaker on', fr: 'Haut-parleur activé', rw: 'Indangururamajwi irafunguye' },\n  'Speaker': { en: 'Speaker', fr: 'Haut-parleur', rw: 'Indangururamajwi' },\n});\n\nObject.assign(DRIVER_UI, {\n  'Insufficient balance': { en: 'Insufficient balance', fr: 'Solde insuffisant', rw: 'Amafaranga adahagije' },\n  'Enter a valid phone number': { en: 'Enter a valid phone number', fr: 'Saisissez un numéro valide', rw: 'Andika numero ya telefoni yemewe' },\n  'Processing…': { en: 'Processing…', fr: 'Traitement…', rw: 'Birimo gutunganywa…' },\n  'Withdraw': { en: 'Withdraw', fr: 'Retirer', rw: 'Kuramo amafaranga' },\n  "Today's earnings": { en: "Today's earnings", fr: 'Revenus du jour', rw: 'Amafaranga winjije uyu munsi' },\n  'Cash collected today': { en: 'Cash collected today', fr: 'Espèces collectées aujourd’hui', rw: 'Amafaranga wakiriye mu ntoki uyu munsi' },\n  'This week': { en: 'This week', fr: 'Cette semaine', rw: 'Muri iki cyumweru' },\n  'Total earned': { en: 'Total earned', fr: 'Total gagné', rw: 'Amafaranga yose winjije' },\n  'Balance owed to Zana': { en: 'Balance owed to Zana', fr: 'Solde dû à Zana', rw: 'Amafaranga ugomba Zana' },\n  'Available to withdraw': { en: 'Available to withdraw', fr: 'Disponible à retirer', rw: 'Amafaranga ushobora gukuramo' },\n  'Cancelled by passenger': { en: 'Cancelled by passenger', fr: 'Annulé par le passager', rw: 'Byahagaritswe n’umugenzi' },\n  'You cancelled': { en: 'You cancelled', fr: 'Vous avez annulé', rw: 'Ni wowe wahagaritse' },\n  'The customer cancelled this ride': { en: 'The customer cancelled this ride', fr: 'Le client a annulé cette course', rw: 'Umukiriya yahagaritse uru rugendo' },\n  'This ride is no longer active': { en: 'This ride is no longer active', fr: 'Cette course n’est plus active', rw: 'Uru rugendo ntirukiri gukora' },\n  'Microphone permission denied': { en: 'Microphone permission denied', fr: 'Permission du microphone refusée', rw: 'Uruhushya rwa mikoro rwanze' },\n});\n
+
+Object.assign(DRIVER_UI, {
+  'Calling': { en: 'Calling', fr: 'Appel en cours', rw: 'Turahamagara' },
+  'Connecting...': { en: 'Connecting...', fr: 'Connexion...', rw: 'Birimo guhuza...' },
+  'Reconnecting...': { en: 'Reconnecting...', fr: 'Reconnexion...', rw: 'Birimo kongera guhuza...' },
+  'Call ended': { en: 'Call ended', fr: 'Appel terminé', rw: 'Guhamagara byarangiye' },
+  'Unable to connect': { en: 'Unable to connect', fr: 'Impossible de se connecter', rw: 'Ntibyashobotse guhuza' },
+  'Zana Free Call · Connected': { en: 'Zana Free Call · Connected', fr: 'Zana · Appel gratuit · Connecté', rw: 'Zana · Guhamagara ku buntu · Byahujwe' },
+  'Unmute': { en: 'Unmute', fr: 'Activer le son', rw: 'Fungura mikoro' },
+  'Mute': { en: 'Mute', fr: 'Couper le son', rw: 'Zimya mikoro' },
+  'End call': { en: 'End call', fr: 'Terminer l’appel', rw: 'Soza guhamagara' },
+  'Unavailable': { en: 'Unavailable', fr: 'Indisponible', rw: 'Ntibishoboka' },
+  'Speaker on': { en: 'Speaker on', fr: 'Haut-parleur activé', rw: 'Indangururamajwi irafunguye' },
+  'Speaker': { en: 'Speaker', fr: 'Haut-parleur', rw: 'Indangururamajwi' },
+});
+
+Object.assign(DRIVER_UI, {
+  'Insufficient balance': { en: 'Insufficient balance', fr: 'Solde insuffisant', rw: 'Amafaranga adahagije' },
+  'Enter a valid phone number': { en: 'Enter a valid phone number', fr: 'Saisissez un numéro valide', rw: 'Andika numero ya telefoni yemewe' },
+  'Processing…': { en: 'Processing…', fr: 'Traitement…', rw: 'Birimo gutunganywa…' },
+  'Withdraw': { en: 'Withdraw', fr: 'Retirer', rw: 'Kuramo amafaranga' },
+  "Today's earnings": { en: "Today's earnings", fr: 'Revenus du jour', rw: 'Amafaranga winjije uyu munsi' },
+  'Cash collected today': { en: 'Cash collected today', fr: 'Espèces collectées aujourd’hui', rw: 'Amafaranga wakiriye mu ntoki uyu munsi' },
+  'This week': { en: 'This week', fr: 'Cette semaine', rw: 'Muri iki cyumweru' },
+  'Total earned': { en: 'Total earned', fr: 'Total gagné', rw: 'Amafaranga yose winjije' },
+  'Balance owed to Zana': { en: 'Balance owed to Zana', fr: 'Solde dû à Zana', rw: 'Amafaranga ugomba Zana' },
+  'Available to withdraw': { en: 'Available to withdraw', fr: 'Disponible à retirer', rw: 'Amafaranga ushobora gukuramo' },
+  'Cancelled by passenger': { en: 'Cancelled by passenger', fr: 'Annulé par le passager', rw: 'Byahagaritswe n’umugenzi' },
+  'You cancelled': { en: 'You cancelled', fr: 'Vous avez annulé', rw: 'Ni wowe wahagaritse' },
+  'The customer cancelled this ride': { en: 'The customer cancelled this ride', fr: 'Le client a annulé cette course', rw: 'Umukiriya yahagaritse uru rugendo' },
+  'This ride is no longer active': { en: 'This ride is no longer active', fr: 'Cette course n’est plus active', rw: 'Uru rugendo ntirukiri gukora' },
+  'Microphone permission denied': { en: 'Microphone permission denied', fr: 'Permission du microphone refusée', rw: 'Uruhushya rwa mikoro rwanze' },
+});
+
+Object.assign(DRIVER_UI, {
+  'Great driver!': { en: 'Great driver!', fr: 'Excellent chauffeur !', rw: 'Umushoferi mwiza!' },
+  'Very punctual': { en: 'Very punctual', fr: 'Très ponctuel', rw: 'Akubahiriza igihe cyane' },
+  'Safe driving': { en: 'Safe driving', fr: 'Conduite sûre', rw: 'Atwara neza' },
+  'Friendly': { en: 'Friendly', fr: 'Aimable', rw: 'Afite urugwiro' },
+  'Clean vehicle': { en: 'Clean vehicle', fr: 'Véhicule propre', rw: 'Imodoka isukuye' },
+  'Submit Rating': { en: 'Submit Rating', fr: 'Envoyer la note', rw: 'Ohereza amanota' },
+  'Skip': { en: 'Skip', fr: 'Passer', rw: 'Simbuka' },
+  'Thanks for rating': { en: 'Thanks for rating', fr: 'Merci pour votre note', rw: 'Murakoze gutanga amanota' },
+  'Chat with passenger': { en: 'Chat with passenger', fr: 'Discuter avec le passager', rw: 'Ganira n’umugenzi' },
+  'Chat with merchant': { en: 'Chat with merchant', fr: 'Discuter avec le commerçant', rw: 'Ganira n’umucuruzi' },
+  'Minimum withdrawal is 10,000 RWF': { en: 'Minimum withdrawal is 10,000 RWF', fr: 'Le retrait minimum est de 10 000 RWF', rw: 'Amafaranga make yo gukuramo ni 10,000 RWF' },
+  'Withdrawal failed. Try again.': { en: 'Withdrawal failed. Try again.', fr: 'Le retrait a échoué. Réessayez.', rw: 'Gukuramo amafaranga byanze. Ongera ugerageze.' },
+  'Could not reach the payment provider.': { en: 'Could not reach the payment provider.', fr: 'Impossible de joindre le prestataire de paiement.', rw: 'Ntibyashobotse kugera ku utanga serivisi y’ubwishyu.' },
+  'Could not accept that delivery.': { en: 'Could not accept that delivery.', fr: 'Impossible d’accepter cette livraison.', rw: 'Ntibyashobotse kwemera iki kintu cyo kugeza.' },
+  'Another rider took that one.': { en: 'Another rider took that one.', fr: 'Un autre chauffeur l’a déjà pris.', rw: 'Undi mushoferi yamaze kukijyana.' },
+});
