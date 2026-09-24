@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Star, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 type PointsData = { balance: number; totalEarned: number; rwfValue: number; transactions: any[] };
 
 export default function PointsPage() {
+  const { t } = useLang();
   const router = useRouter();
   const [data, setData] = useState<PointsData | null>(null);
   const [redeeming, setRedeeming] = useState(false);
@@ -38,7 +40,7 @@ export default function PointsPage() {
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />
         </button>
-        <h1 className="text-lg font-bold text-gray-900">Zana Points</h1>
+        <h1 className="text-lg font-bold text-gray-900">{t("Zana Points")}</h1>
       </div>
 
       {/* Balance card */}
