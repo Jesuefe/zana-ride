@@ -79,6 +79,16 @@ export default function DriverProfilePage() {
       </div>
 
       <div className="p-4 space-y-4">
+        <button
+          onClick={() => router.push('/profile/safety')}
+          className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3.5 shadow-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center"><AlertTriangle size={17} className="text-red-500" /></div>
+            <div className="text-left"><p className="text-sm font-bold text-gray-900">{dt('Safety & Emergency Contact')}</p><p className="text-xs text-gray-500">{dt('Manage who receives your SOS alert')}</p></div>
+          </div>
+          <span className="text-xs font-bold text-zana-primary">{dt('Manage')}</span>
+        </button>
         {/* Commission debt warning */}
         {debt && debt.totalDebt > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
