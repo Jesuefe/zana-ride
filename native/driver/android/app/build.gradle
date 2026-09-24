@@ -22,8 +22,15 @@ android {
         applicationId "rw.zanaride.driver"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode (project.findProperty("ZANA_VERSION_CODE") ?: "1").toInteger()
-        versionName (project.findProperty("ZANA_VERSION_NAME") ?: "1.0").toString()
+
+        // Read release version inputs defensively. Gradle can expose an
+        // explicitly supplied property as null in some configuration paths,
+        // so normalize it before Android's versionCode/versionName APIs see it.
+        def zanaVersionCode = project.findProperty("ZANA_VERSION_CODE")
+        def zanaVersionName = project.findProperty("ZANA_VERSION_NAME")
+        versionCode zanaVersionCode == null ? 1 : zanaVersionCode.toString().toInteger()
+        versionName zanaVersionName == null ? "1.0" : zanaVersionName.toString()
+
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // Mapbox's SDK takes its public runtime token as a string resource,
@@ -35,8 +42,6 @@ android {
         resValue "string", "mapbox_access_token", (project.findProperty("MAPBOX_ACCESS_TOKEN") ?: "").toString()
 
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
@@ -71,19 +76,7 @@ dependencies {
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:2.0.0"
 
-    // Mapbox Maps SDK — the real map surface (well-established, stable,
-    // Java-friendly API) that MapboxNavigationPlugin.kt draws the route
-    // line and position marker onto directly, rather than using Mapbox's
-    // newer "drop-in" NavigationView UI component. That component is
-    // designed for XML/Kotlin usage with real navigation route line
-    // and turn card polish this project doesn't have yet, but this is
-    // real navigation on Mapbox's actual routing engine and location
-    // data — not a placeholder.
     implementation 'com.mapbox.maps:android:11.8.0'
-
-    // Mapbox Navigation Core SDK — routing, trip session, rerouting,
-    // arrival detection. No UI of its own; MapboxNavigationPlugin.kt
-    // drives the MapView above directly from this.
     implementation 'com.mapbox.navigationcore:android:3.27.0'
 
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
@@ -92,7 +85,7 @@ dependencies {
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
-    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoVersion"
     implementation project(':capacitor-cordova-android-plugins')
 }
 
