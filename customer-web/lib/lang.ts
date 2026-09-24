@@ -543,3 +543,23 @@ Object.assign(UI, {
   'How does the fare work?': { en: 'How does the fare work?', fr: 'Comment fonctionne le tarif ?', rw: 'Igiciro cy’urugendo gitegurwa gite?' },
   'Fares are calculated by distance and time. You see the estimate before booking.': { en: 'Fares are calculated by distance and time. You see the estimate before booking.', fr: 'Les tarifs sont calculés selon la distance et le temps. Vous voyez l’estimation avant de réserver.', rw: 'Ibiciro bibarwa hashingiwe ku ntera n’igihe. Ubona ikigereranyo mbere yo gutanga ubusabe.' },
 });
+
+
+Object.assign(UI, {
+  'Basic Car': { en: 'Basic Car', fr: 'Voiture standard', rw: 'Imodoka isanzwe' },
+  'Comfortable · up to 4': { en: 'Comfortable · up to 4', fr: 'Confortable · jusqu’à 4', rw: 'Yoroheye · abantu bagera kuri 4' },
+  'Premium Car': { en: 'Premium Car', fr: 'Voiture premium', rw: 'Imodoka nziza cyane' },
+  'Top-rated drivers · up to 4': { en: 'Top-rated drivers · up to 4', fr: 'Chauffeurs très bien notés · jusqu’à 4', rw: 'Abashoferi bafite amanota meza · abantu bagera kuri 4' },
+  'Pay the driver directly': { en: 'Pay the driver directly', fr: 'Payez directement le chauffeur', rw: 'Ishyura umushoferi ako kanya' },
+  'Deducted at trip end': { en: 'Deducted at trip end', fr: 'Déduit à la fin du trajet', rw: 'Bikurwa urugendo rurangiye' },
+  'MoMo request at trip end': { en: 'MoMo request at trip end', fr: 'Demande MoMo à la fin du trajet', rw: 'Ubusabe bwa MoMo ku musozo w’urugendo' },
+  'Balance:': { en: 'Balance:', fr: 'Solde :', rw: 'Amafaranga asigaye:' },
+  'need': { en: 'need', fr: 'besoin de', rw: 'ukeneye' },
+  'more': { en: 'more', fr: 'de plus', rw: 'andi' },
+  'Paying from your Zana Wallet costs less in fees and skips the payment prompt.': { en: 'Paying from your Zana Wallet costs less in fees and skips the payment prompt.', fr: 'Payer avec votre portefeuille Zana coûte moins cher et évite la demande de paiement.', rw: 'Kwishyura ukoresheje Zana Wallet bigabanya amafaranga y’ubwishyu kandi ntutegereze ubusabe.' },
+  'Fare is calculated by distance and vehicle type.': { en: 'Fare is calculated by distance and vehicle type.', fr: 'Le tarif est calculé selon la distance et le type de véhicule.', rw: 'Igiciro kibazwa hakurikijwe intera n’ubwoko bw’imodoka.' },
+  'Finding your driver...': { en: 'Finding your driver...', fr: 'Recherche de votre chauffeur...', rw: 'Turimo gushaka umushoferi wawe...' },
+  'Confirm': { en: 'Confirm', fr: 'Confirmer', rw: 'Emeza' },
+  'Change ride type': { en: 'Change ride type', fr: 'Changer de type de trajet', rw: 'Hindura ubwoko bw’urugendo' },
+  'Could not reach the server.': { en: 'Could not reach the server.', fr: 'Impossible de joindre le serveur.', rw: 'Ntibyashobotse kugera kuri seriveri.' },
+});
