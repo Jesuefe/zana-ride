@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useLang } from '../lib/LangContext';
+import { useLang } from '../../lib/LangContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronRight, Clock, MapPin, Check } from 'lucide-react';
 import { estimateRide, createRide, ServiceType, fetchWallet } from '../../lib/api/trips';
