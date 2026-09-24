@@ -61,8 +61,8 @@ export default function EarningsPage() {
   const handleWithdraw = async () => {
     const amount = Number(withdrawAmount);
     if (!amount || amount < 10000) { setError('Minimum withdrawal is 10,000 RWF'); return; }
-    if (amount > (data?.walletBalance ?? 0)) { setError('Insufficient balance'); return; }
-    if (!withdrawPhone || withdrawPhone.replace(/\D/g,'').length < 9) { setError('Enter a valid phone number'); return; }
+    if (amount > (data?.walletBalance ?? 0)) { setError(dt('Insufficient balance')); return; }
+    if (!withdrawPhone || withdrawPhone.replace(/\D/g,'').length < 9) { setError(dt('Enter a valid phone number')); return; }
 
     setWithdrawing(true); setError('');
     try {
@@ -87,7 +87,7 @@ export default function EarningsPage() {
   const handleStartSettle = async () => {
     setSettleError('');
     if (!settlePhone || settlePhone.replace(/\D/g,'').length < 9) {
-      setSettleError('Enter a valid phone number'); return;
+      setSettleError(dt('Enter a valid phone number')); return;
     }
     try {
       const { ref } = await api.post<{ ref: string }>('/wallet/settle-debt', {
@@ -143,7 +143,7 @@ export default function EarningsPage() {
         <div className={`rounded-2xl p-5 text-white ${data && data.netBalance < 0 ? 'bg-amber-600' : 'bg-zana-primary'}`}>
           <div className="flex items-center gap-2 mb-1">
             {data && data.netBalance < 0 ? <AlertCircle size={16} className="text-white/70" /> : <Wallet size={16} className="text-white/70" />}
-            <p className="text-white/70 text-xs">{data && data.netBalance < 0 ? 'Balance owed to Zana' : 'Available to withdraw'}</p>
+            <p className="text-white/70 text-xs">{data && data.netBalance < 0 ? dt('Balance owed to Zana') : dt('Available to withdraw')}</p>
           </div>
           <p className="text-3xl font-bold">{data ? fmt(Math.abs(data.netBalance)) : '…'}{data && data.netBalance < 0 ? ' owed' : ''}</p>
           {data && data.zanaDue > 0 && (
@@ -163,10 +163,10 @@ export default function EarningsPage() {
         {/* Earnings grid */}
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: "Today's earnings", value: data?.todayEarnings, icon: TrendingUp, color: 'text-green-600' },
-            { label: 'Cash collected today', value: data?.cashCollectedToday, icon: Banknote, color: 'text-amber-600' },
-            { label: 'This week', value: data?.weekEarnings, icon: TrendingUp, color: 'text-blue-600' },
-            { label: 'Total earned', value: data?.totalEarnings, icon: TrendingUp, color: 'text-zana-primary' },
+            { label: dt("Today's earnings"), value: data?.todayEarnings, icon: TrendingUp, color: 'text-green-600' },
+            { label: dt('Cash collected today'), value: data?.cashCollectedToday, icon: Banknote, color: 'text-amber-600' },
+            { label: dt('This week'), value: data?.weekEarnings, icon: TrendingUp, color: 'text-blue-600' },
+            { label: dt('Total earned'), value: data?.totalEarnings, icon: TrendingUp, color: 'text-zana-primary' },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="bg-white rounded-xl p-4 shadow-sm">
               <Icon size={16} className={`${color} mb-2`} />
@@ -264,7 +264,7 @@ export default function EarningsPage() {
                 className="w-full mt-4 bg-zana-primary text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40"
               >
                 {withdrawing ? <Loader2 size={16} className="animate-spin" /> : <ArrowDownToLine size={16} />}
-                {withdrawing ? 'Processing…' : 'Withdraw'}
+                {withdrawing ? dt('Processing…') : dt('Withdraw')}
               </button>
               <p className="text-[11px] text-gray-400 text-center mt-2">{dt("Withdrawals are processed via Paypack MoMo")}</p>
             </>
