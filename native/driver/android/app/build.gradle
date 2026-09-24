@@ -23,9 +23,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
 
-        // Read release version inputs defensively. Gradle can expose an
-        // explicitly supplied property as null in some configuration paths,
-        // so normalize it before Android's versionCode/versionName APIs see it.
+        // Read release version inputs defensively. Normalize them before
+        // Android's versionCode/versionName APIs receive them.
         def zanaVersionCode = project.findProperty("ZANA_VERSION_CODE")
         def zanaVersionName = project.findProperty("ZANA_VERSION_NAME")
         versionCode zanaVersionCode == null ? 1 : zanaVersionCode.toString().toInteger()
@@ -33,12 +32,8 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
-        // Mapbox's SDK takes its public runtime token as a string resource,
-        // not a manifest tag — this generates R.string.mapbox_access_token
-        // at build time from the CI secret, so no real token is ever
-        // committed. This is the PUBLIC token (used while the app runs);
-        // the separate MAPBOX_DOWNLOADS_TOKEN above is only used to
-        // authenticate downloading the SDK itself during the build.
+        // Mapbox's SDK takes its public runtime token as a string resource.
+        // The token is supplied at build time and is not committed.
         resValue "string", "mapbox_access_token", (project.findProperty("MAPBOX_ACCESS_TOKEN") ?: "").toString()
 
         aaptOptions {
@@ -85,7 +80,7 @@ dependencies {
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
-    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
 }
 
