@@ -27,8 +27,25 @@ type Dropoff = { lat: number; lng: number; address: string } | null;
 export default function DeliverPage() {
   const router = useRouter();
 
-  const [itemDescription, setItemDescription] = useState('');
+  const [selectedPackageType, setSelectedPackageType] = useState('');
+  const [itemDetails, setItemDetails] = useState('');
   const [weight, setWeight] = useState<PackageWeight>('UNDER_1KG');
+
+  const PACKAGE_TYPES = [
+    ['Food', '🍔'],
+    ['Clothes', '👕'],
+    ['Documents', '📄'],
+    ['Package', '📦'],
+    ['Medicine', '💊'],
+    ['Groceries', '🛒'],
+    ['Gift', '🎁'],
+    ['Electronics', '📱'],
+    ['Shoes', '👟'],
+    ['Books', '📚'],
+    ['Cosmetics', '🧴'],
+    ['Household', '🏠'],
+    ['Other', '＋'],
+  ] as const;
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
 
@@ -169,7 +186,7 @@ export default function DeliverPage() {
   };
 
   const canSubmit =
-    itemDescription.trim().length > 1 && dropoff !== null && receiverPhone.replace(/\D/g, '').length >= 9 &&
+    selectedPackageType.trim().length > 1 && dropoff !== null && receiverPhone.replace(/\D/g, '').length >= 9 &&
     (paymentMethod !== 'MOBILE_MONEY' || momoPhone.replace(/\D/g, '').length >= 9);
 
   const handleSubmit = async () => {
@@ -178,7 +195,9 @@ export default function DeliverPage() {
     setError(null);
     try {
       const delivery = await createDelivery({
-        itemDescription: itemDescription.trim(),
+        itemDescription: itemDetails.trim()
+          ? `${selectedPackageType}: ${itemDetails.trim()}`
+          : selectedPackageType.trim(),
         weight,
         imageBase64: imageBase64 ?? undefined,
         pickupAddress,
@@ -259,12 +278,37 @@ export default function DeliverPage() {
 
         <div>
           <label className="text-xs font-semibold text-gray-900 block mb-1.5">What are you sending?</label>
-          <input
-            value={itemDescription}
-            onChange={(e) => setItemDescription(e.target.value)}
-            placeholder="Documents, food, clothes, electronics…"
-            className="w-full border border-zana-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
-          />
+          <div className="grid grid-cols-4 gap-2">
+            {PACKAGE_TYPES.map(([label, icon]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setSelectedPackageType(label)}
+                className={`flex flex-col items-center justify-center gap-1.5 min-h-20 rounded-xl border-1.5 px-1.5 py-2 transition-all active:scale-95 ${
+                  selectedPackageType === label
+                    ? 'border-zana-primary bg-zana-primary-light text-zana-primary'
+                    : 'border-zana-border bg-white text-gray-700'
+                }`}
+                style={{ borderWidth: 1.5 }}
+              >
+                <span className="text-xl leading-none">{icon}</span>
+                <span className="text-[10px] font-bold text-center leading-tight">{label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-3">
+            <label className="text-[11px] font-semibold text-gray-600 block mb-1.5">
+              Additional details <span className="font-normal text-gray-400">(optional)</span>
+            </label>
+            <textarea
+              value={itemDetails}
+              onChange={(e) => setItemDetails(e.target.value)}
+              placeholder="e.g. 2 plates of food and 1 bottle of juice"
+              rows={2}
+              className="w-full border border-zana-border rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
+            />
+          </div>
         </div>
 
         <div>
