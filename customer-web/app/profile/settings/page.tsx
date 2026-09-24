@@ -9,6 +9,7 @@ import { api } from '../../../lib/api/client';
 import { ApiError } from '../../../lib/api/client';
 
 export default function AccountSettingsPage() {
+  const { t } = useLang();
   const router = useRouter();
   const [user, setUser] = useState<ApiUser | null>(null);
   const [firstName, setFirstName] = useState('');
@@ -42,7 +43,7 @@ export default function AccountSettingsPage() {
     <div className="p-4">
       <div className="mb-6"><ThemePicker /></div>
       <div className="mb-6">
-        <label className="text-xs font-medium text-gray-500 block mb-2">Language</label>
+        <label className="text-xs font-medium text-gray-500 block mb-2">{t("Language")}</label>
         <LanguageSelector variant="light" />
       </div>
       <div className="flex items-center gap-3 mb-6">
