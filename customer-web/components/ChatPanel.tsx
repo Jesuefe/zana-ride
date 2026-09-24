@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useLang } from '../lib/LangContext';
 import { X, Send, MessageCircle, Loader2 } from 'lucide-react';
 import { sendMessage, getMessages, ChatMessage } from '../lib/api/chat';
 import { getStoredLang, Lang } from '../lib/lang';
@@ -9,6 +10,7 @@ import { getToken } from '../lib/api/client';
 // Decode just the sub from the JWT so we know which messages are "mine"
 // without an extra API call.
 function getUserIdFromToken(): string | null {
+  const { t } = useLang();
   try {
     const token = getToken();
     if (!token) return null;
@@ -20,6 +22,7 @@ function getUserIdFromToken(): string | null {
 }
 
 export default function ChatPanel({
+  const { t } = useLang();
   context,
   contextId,
   onClose,
@@ -76,7 +79,7 @@ export default function ChatPanel({
           <p className="text-sm font-semibold text-gray-900">
             {context === 'trip' ? 'Chat with driver' : 'Chat with courier'}
           </p>
-          <p className="text-[10px] text-zana-muted">Messages auto-translate · History clears after ride</p>
+          <p className="text-[10px] text-zana-muted">{t('Messages auto-translate · History clears after ride')}</p>
         </div>
         <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
           <X size={15} />
@@ -88,7 +91,7 @@ export default function ChatPanel({
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <MessageCircle size={32} className="text-gray-200 mb-2" />
-            <p className="text-sm text-zana-muted">No messages yet. Say hello!</p>
+            <p className="text-sm text-zana-muted">{t('No messages yet. Say hello!')}</p>
           </div>
         )}
         {messages.map(m => {
