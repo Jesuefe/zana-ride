@@ -37,7 +37,7 @@ export default function DriverBottomNav() {
                 strokeWidth={active ? 2.5 : 1.8}
               />
               <span className={`text-[10px] font-medium ${active ? 'text-zana-primary' : 'text-gray-400'}`}>
-                {label}
+                {dt(label)}
               </span>
             </button>
           );
