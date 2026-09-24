@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DeliveryStatus } from '@prisma/client';
 
@@ -23,6 +23,30 @@ export class MerchantService {
     return this.prisma.delivery.findMany({
       where: { merchantId },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async cancelDelivery(deliveryId: string, merchantId: string, reason?: string) {
+    const delivery = await this.prisma.delivery.findFirst({ where: { id: deliveryId, merchantId } });
+    if (!delivery) throw new NotFoundException('Delivery not found');
+
+    const cancellable: DeliveryStatus[] = [
+      DeliveryStatus.REQUESTED,
+      DeliveryStatus.ACCEPTED,
+      DeliveryStatus.SEARCHING_RIDER,
+      DeliveryStatus.RIDER_ASSIGNED,
+    ];
+    if (!cancellable.includes(delivery.status)) {
+      throw new BadRequestException('This delivery can no longer be cancelled');
+    }
+
+    return this.prisma.delivery.update({
+      where: { id: deliveryId },
+      data: {
+        status: DeliveryStatus.CANCELLED,
+        cancelledAt: new Date(),
+        cancellationReason: reason?.trim() || null,
+      },
     });
   }
 
