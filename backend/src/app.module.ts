@@ -8,6 +8,7 @@ import { TripsModule } from './trips/trips.module';
 import { WalletModule } from './wallet/wallet.module';
 import { MerchantModule } from './merchant/merchant.module';
 import { HealthController } from './health.controller';
+import { SafetyModule } from './safety/safety.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { HealthController } from './health.controller';
     TripsModule,
     WalletModule,
     MerchantModule,
+    SafetyModule,
   ],
   controllers: [HealthController],
 })
