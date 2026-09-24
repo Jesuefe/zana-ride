@@ -217,6 +217,16 @@ Object.assign(UI, {
   'All services': { en: 'All services', fr: 'Tous les services', rw: 'Serivisi zose' },
 });
 
+Object.assign(UI, {
+  'Account settings': { en: 'Account settings', fr: 'Paramètres du compte', rw: 'Igenamiterere rya konti' },
+  'Saved places': { en: 'Saved places', fr: 'Lieux enregistrés', rw: 'Ahantu wabikiye' },
+  'Ride history': { en: 'Ride history', fr: 'Historique des trajets', rw: 'Amateka y’ingendo' },
+  'Zana Points': { en: 'Zana Points', fr: 'Points Zana', rw: 'Amanota ya Zana' },
+  'Safety': { en: 'Safety', fr: 'Sécurité', rw: 'Umutekano' },
+  'Help & support': { en: 'Help & support', fr: 'Aide et assistance', rw: 'Ubufasha na serivisi' },
+  'Log out': { en: 'Log out', fr: 'Se déconnecter', rw: 'Sohoka' },
+});
+
 export function t(key: string, lang: Lang): string {
   return UI[key]?.[lang] ?? key;
 }
