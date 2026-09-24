@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Store, Clock } from 'lucide-react';
 import { fetchMarkets, Market } from '../../lib/api/marketplace';
+import { useLang } from '../../lib/LangContext';
 
 export default function MarketsPage() {
+  const { t } = useLang();
   const router = useRouter();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
