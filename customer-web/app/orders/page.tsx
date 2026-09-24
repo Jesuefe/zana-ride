@@ -85,7 +85,7 @@ function OrdersContent() {
                 </span>
               </div>
               <p className="text-sm font-bold text-zana-primary">{o.total?.toLocaleString()} RWF</p>
-              <p className="text-[11px] text-zana-muted mt-2">Tap to view order details</p>
+              <p className="text-[11px] text-zana-muted mt-2">{t('Tap to view order details')}</p>
             </button>
           ))}
         </div>
@@ -176,9 +176,9 @@ function OrdersContent() {
               const deliveryFee = Math.max(0, grandTotal - itemsTotal);
               return (
                 <div className="rounded-2xl bg-gray-50 p-4 mb-4">
-                  <p className="text-[10px] font-black uppercase tracking-wide text-gray-400 mb-2">Order summary</p>
+                  <p className="text-[10px] font-black uppercase tracking-wide text-gray-400 mb-2">{t('Order summary')}</p>
                   <div className="flex justify-between text-sm py-1">
-                    <span className="text-gray-600">Items</span>
+                    <span className="text-gray-600">{t('Items')}</span>
                     <span className="font-semibold text-gray-900">{itemsTotal.toLocaleString()} RWF</span>
                   </div>
                   <div className="flex justify-between text-sm py-1">
@@ -186,14 +186,14 @@ function OrdersContent() {
                     <span className="font-semibold text-gray-900">{deliveryFee.toLocaleString()} RWF</span>
                   </div>
                   <div className="border-t border-gray-200 mt-2 pt-3 flex justify-between">
-                    <span className="font-black text-gray-900">Total</span>
+                    <span className="font-black text-gray-900">{t('Total')}</span>
                     <span className="font-black text-lg text-zana-primary">{grandTotal.toLocaleString()} RWF</span>
                   </div>
                 </div>
               );
             })()}
             <div className="rounded-xl bg-gray-50 p-3 mb-4 space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-wide text-gray-400">Delivery recipient</p>
+              <p className="text-[10px] font-black uppercase tracking-wide text-gray-400">{t('Delivery recipient')}</p>
               <p className="text-sm font-bold text-gray-900">{selectedOrder.receiverName || 'Myself'}</p>
               {selectedOrder.receiverPhone && <p className="text-xs text-gray-600">{selectedOrder.receiverPhone}</p>}
               {selectedOrder.dropoffAddress && <p className="text-xs text-gray-600 flex items-start gap-1"><MapPin size={12} className="text-zana-primary mt-0.5 shrink-0" />{selectedOrder.dropoffAddress}</p>}
