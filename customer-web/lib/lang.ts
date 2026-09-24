@@ -215,6 +215,7 @@ export const UI: Record<string, Record<Lang, string>> = {
   'No shops available yet.': { en: 'No shops available yet.', fr: 'Aucun magasin disponible pour le moment.', rw: 'Nta maduka arahari ubu. },
   'Food & Drinks': { en: 'Food & Drinks', fr: 'Nourriture et boissons', rw: 'Ibiribwa n’ibinyobwa },
   'No restaurants available yet.': { en: 'No restaurants available yet.', fr: 'Aucun restaurant disponible pour le moment.', rw: 'Nta maresitora arahari ubu. },
+  'Receiver can\'t explain their address? Ask them to send you their Zana location code.': { en: 'Receiver can\'t explain their address? Ask them to send you their Zana location code.', fr: 'Le destinataire ne peut pas expliquer son adresse ? Demandez-lui d’envoyer son code de localisation Zana.', rw: 'Uwo wohereza ntashobora gusobanura aho ari? Musabe akohereze kode y’aho ari ya Zana.' },
 
 };
 
