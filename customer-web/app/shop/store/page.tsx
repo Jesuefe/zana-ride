@@ -297,7 +297,7 @@ function StoreContent() {
                 </div>
               ))}
               <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                <span className="text-gray-600">Delivery</span>
+                <span className="text-gray-600">{t("Delivery")}</span>
                 <span className="font-semibold">{deliveryFee.toLocaleString()} RWF</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-100">
@@ -308,7 +308,7 @@ function StoreContent() {
               </div>
             </div>
 
-            <p className="text-xs font-bold text-gray-500 uppercase mb-2">Payment</p>
+            <p className="text-xs font-bold text-gray-500 uppercase mb-2">{t("Payment")}</p>
             <div className="grid grid-cols-2 gap-2 mb-2">
               {([['WALLET', 'Zana Wallet'], ['MOBILE_MONEY', 'Mobile Money']] as const).map(([id, label]) => (
                 <button
@@ -363,6 +363,7 @@ function StoreContent() {
 }
 
 export default function StorePage() {
+  const { t } = useLang();
   return (
     <Suspense fallback={null}>
       <StoreContent />
