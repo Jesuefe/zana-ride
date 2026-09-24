@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { login } from '../../lib/api/auth';
+import { useLang } from '../../lib/LangContext';
 import { ApiError } from '../../lib/api/client';
 
 export default function LoginPage() {
+  const { t } = useLang();
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
