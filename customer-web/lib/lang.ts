@@ -234,6 +234,14 @@ export const UI: Record<string, Record<Lang, string>> = {
   'Pay driver directly': { en: 'Pay driver directly', fr: 'Payer directement le chauffeur', rw: 'Ishyura umushoferi ako kanya },
   'Deducted at trip end': { en: 'Deducted at trip end', fr: 'Déduit à la fin du trajet', rw: 'Bivanwamo urugendo rurangiye },
   'MoMo request at trip end': { en: 'MoMo request at trip end', fr: 'Demande MoMo à la fin du trajet', rw: 'Ubusabe bwa MoMo urugendo rurangiye },
+  'Phone': { en: 'Phone', fr: 'Téléphone', rw: 'Telefone },
+  'Phone number cannot be changed.': { en: 'Phone number cannot be changed.', fr: 'Le numéro de téléphone ne peut pas être modifié.', rw: 'Numero ya telefone ntishobora guhindurwa. },
+  'Saved!': { en: 'Saved!', fr: 'Enregistré !', rw: 'Byabitswe! },
+  'Send my location': { en: 'Send my location', fr: 'Envoyer ma localisation', rw: 'Ohereza aho ndi },
+  'Your location code': { en: 'Your location code', fr: 'Votre code de localisation', rw: 'Kode y’aho uri },
+  'This code has expired': { en: 'This code has expired', fr: 'Ce code a expiré', rw: 'Iyi kode yarangiye },
+  'Check back soon.': { en: 'Check back soon.', fr: 'Revenez bientôt.', rw: 'Garuka vuba. },
+  'Could not load shops.': { en: 'Could not load shops.', fr: 'Impossible de charger les magasins.', rw: 'Ntibyashobotse gufungura amaduka. },
 
 };
 
