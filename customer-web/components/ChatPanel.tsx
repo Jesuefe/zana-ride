@@ -10,7 +10,6 @@ import { getToken } from '../lib/api/client';
 // Decode just the sub from the JWT so we know which messages are "mine"
 // without an extra API call.
 function getUserIdFromToken(): string | null {
-  const { t } = useLang();
   try {
     const token = getToken();
     if (!token) return null;
@@ -22,7 +21,6 @@ function getUserIdFromToken(): string | null {
 }
 
 export default function ChatPanel({
-  const { t } = useLang();
   context,
   contextId,
   onClose,
@@ -31,6 +29,7 @@ export default function ChatPanel({
   contextId: string;
   onClose: () => void;
 }) {
+  const { t } = useLang();
   const lang = getStoredLang() as Lang;
   const myId = getUserIdFromToken();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
