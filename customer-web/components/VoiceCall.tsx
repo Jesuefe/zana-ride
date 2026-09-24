@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { PhoneOff, Mic, MicOff, Loader2 } from 'lucide-react';
 import { api } from '../lib/api/client';
+import { useLang } from '../lib/LangContext';
 import {
   Room, RoomEvent, Track, ConnectionState,
   type RemoteParticipant, type RemoteTrackPublication,
@@ -24,6 +25,7 @@ type Props = {
 };
 
 export default function VoiceCall({
+  const { t } = useLang();
   rideId,
   incomingCallId,
   roomName: incomingRoom,
@@ -284,9 +286,7 @@ export default function VoiceCall({
 
         {state === 'failed' && (
           <button onClick={() => { cleanup(); onClose(); }}
-            className="mt-2 bg-white/10 text-white text-sm px-6 py-2 rounded-full">
-            Try again
-          </button>
+            className="mt-2 bg-white/10 text-white text-sm px-6 py-2 rounded-full">{t("Try again")}</button>
         )}
       </div>
 
