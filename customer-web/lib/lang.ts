@@ -653,3 +653,9 @@ Object.assign(UI, {
   'Resend code': { en: 'Resend code', fr: 'Renvoyer le code', rw: 'Ongera wohereze kode' },
   'Didn’t get it? Send to email instead': { en: 'Didn’t get it? Send to email instead', fr: 'Vous ne l’avez pas reçu ? Envoyer plutôt par e-mail', rw: 'Ntabwo wayibonye? Ohereza kuri imeyili aho' },
 });
+
+
+Object.assign(UI, {
+  'Gym': { en: 'Gym', fr: 'Salle de sport', rw: 'Siporo' },
+  'School': { en: 'School', fr: 'École', rw: 'Ishuri' },
+});
