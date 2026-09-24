@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { Star, X, Loader2 } from 'lucide-react';
 import { api } from '../lib/api/client';
+import { useLang } from '../lib/LangContext';
 
 export default function RatingModal({
+  const { t } = useLang();
   tripId,
   driverName,
   onClose,
@@ -39,7 +41,7 @@ export default function RatingModal({
     <div className="fixed inset-0 z-50 flex items-end bg-black/50">
       <div className="w-full bg-white rounded-t-2xl p-6 animate-fade-slide-up">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-gray-900">Rate your ride</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t("Rate your ride")}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
             <X size={15} />
           </button>
