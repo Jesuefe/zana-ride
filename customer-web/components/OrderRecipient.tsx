@@ -56,7 +56,7 @@ export default function OrderRecipient({ value, onChange, defaultAddress, defaul
 
   return (
     <div className="border border-gray-100 rounded-2xl p-3 bg-gray-50/70">
-      <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">Deliver to</p>
+      <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">{t('Deliver to')}</p>
 
       <div className="grid grid-cols-2 gap-2 mb-3">
         <button type="button" onClick={() => set({
@@ -68,10 +68,10 @@ export default function OrderRecipient({ value, onChange, defaultAddress, defaul
           lng: defaultLng,
           note: '',
         })} className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-xs font-bold ${!value.forSomeoneElse ? 'border-zana-primary bg-zana-primary text-white' : 'border-white bg-white text-gray-600'}`}>
-          <UserRound size={14} /> Myself
+          <UserRound size={14} /> {t('Myself')}
         </button>
         <button type="button" onClick={() => set({ forSomeoneElse: true })} className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-xs font-bold ${value.forSomeoneElse ? 'border-zana-primary bg-zana-primary text-white' : 'border-white bg-white text-gray-600'}`}>
-          <UsersRound size={14} /> Someone else
+          <UsersRound size={14} /> {t('Someone else')}
         </button>
       </div>
 
@@ -92,9 +92,9 @@ export default function OrderRecipient({ value, onChange, defaultAddress, defaul
             <div className="p-2.5">
               <div className="flex items-center gap-2">
                 <MapPin size={14} className="text-zana-primary shrink-0" />
-                <input value={value.address} onChange={e => set({ address: e.target.value })} placeholder="Delivery address" className="w-full text-sm outline-none" />
+                <input value={value.address} onChange={e => set({ address: e.target.value })} placeholder={t("Delivery address")} className="w-full text-sm outline-none" />
               </div>
-              <p className="text-[10px] text-gray-400 mt-1.5">Drag the pin to the recipient's exact location. The order sends these coordinates with the address.</p>
+              <p className="text-[10px] text-gray-400 mt-1.5"{t("Drag the pin to the recipient's exact location. The order sends these coordinates with the address.")}/p>
               <button type="button" onClick={useCurrentLocation} disabled={locating} className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-zana-primary disabled:opacity-50">
                 {locating ? <Loader2 size={12} className="animate-spin" /> : <Navigation size={12} />}
                 {t("Use this device's current location")}
@@ -102,13 +102,13 @@ export default function OrderRecipient({ value, onChange, defaultAddress, defaul
             </div>
           </div>
 
-          <input value={value.note} onChange={e => set({ note: e.target.value })} placeholder="Delivery note (optional)" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-zana-primary" />
-          <p className="text-[10px] text-gray-400">The account holder pays. The recipient only receives the order.</p>
+          <input value={value.note} onChange={e => set({ note: e.target.value })} placeholder={t("Delivery note (optional)")} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-zana-primary" />
+          <p className="text-[10px] text-gray-400"{t('The account holder pays. The recipient only receives the order.')}</p>
         </div>
       ) : (
         <div className="flex items-center gap-2 text-xs text-gray-600 bg-white rounded-xl px-3 py-2.5">
           <MapPin size={14} className="text-zana-primary shrink-0" />
-          <span className="truncate">{defaultAddress || 'Your saved delivery location'}</span>
+          <span className="truncate">{defaultAddress || t('Your saved delivery location')}</span>
         </div>
       )}
     </div>
