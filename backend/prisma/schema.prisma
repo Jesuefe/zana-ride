@@ -36,6 +36,7 @@ model User {
   merchant    Merchant?
   wallet      Wallet?
   tripsAsCustomer Trip[]  @relation("CustomerTrips")
+  safetyAlerts    SafetyAlert[]
   ratingsGiven    Rating[] @relation("RatingsGiven")
   ratingsReceived Rating[] @relation("RatingsReceived")
 }
@@ -116,6 +117,24 @@ enum TripStatus {
   NO_DRIVER_FOUND
 }
 
+model SafetyAlert {
+  id        String   @id @default(uuid())
+  userId    String
+  tripId    String?
+  role      UserRole
+  lat       Float?
+  lng       Float?
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  trip      Trip?    @relation(fields: [tripId], references: [id])
+
+  @@index([createdAt])
+  @@index([tripId])
+  @@index([userId, resolved])
+}
+
 model Trip {
   id                 String     @id @default(uuid())
   customerId         String
@@ -143,6 +162,7 @@ model Trip {
   completedAt         DateTime?
 
   ratings            Rating[]
+  safetyAlerts       SafetyAlert[]
 }
 
 model Rating {
