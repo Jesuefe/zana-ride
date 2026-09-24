@@ -29,8 +29,8 @@ export default function ChatPanel({
   contextId: string;
   onClose: () => void;
 }) {
-  const { t } = useLang();
-  const lang = getStoredLang() as Lang;
+  const { t, dt, lang } = useLang();
+  const storedLang = getStoredLang() as Lang;
   const myId = getUserIdFromToken();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -39,13 +39,13 @@ export default function ChatPanel({
 
   useEffect(() => {
     const load = () =>
-      getMessages(context, contextId, lang)
+      getMessages(context, contextId, storedLang)
         .then(setMessages)
         .catch(() => {});
     load();
     const interval = setInterval(load, 2000);
     return () => clearInterval(interval);
-  }, [context, contextId, lang]);
+  }, [context, contextId, storedLang]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -57,8 +57,8 @@ export default function ChatPanel({
     setSending(true);
     setInput('');
     try {
-      await sendMessage(context, contextId, text, lang);
-      const updated = await getMessages(context, contextId, lang);
+      await sendMessage(context, contextId, text, storedLang);
+      const updated = await getMessages(context, contextId, text ? storedLang : storedLang);
       setMessages(updated);
     } catch {
       setInput(text);
