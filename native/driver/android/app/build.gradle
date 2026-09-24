@@ -31,11 +31,6 @@ android {
         versionName zanaVersionName == null ? "1.0" : zanaVersionName.toString()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-
-        // Mapbox's SDK takes its public runtime token as a string resource.
-        // The token is supplied at build time and is not committed.
-        resValue "string", "mapbox_access_token", (project.findProperty("MAPBOX_ACCESS_TOKEN") ?: "").toString()
-
         aaptOptions {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
@@ -70,9 +65,6 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:2.0.0"
-
-    implementation 'com.mapbox.maps:android:11.8.0'
-    implementation 'com.mapbox.navigationcore:android:3.27.0'
 
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
