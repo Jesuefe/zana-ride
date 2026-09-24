@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Users, Car, Store, Package, Truck, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { Users, Car, Store, Package, Truck, TrendingUp, AlertCircle, CheckCircle, ShieldAlert, ArrowUpRight } from 'lucide-react';
 import AdminShell from '../../components/AdminShell';
 import { getOverview } from '../../lib/api/admin';
 
@@ -43,6 +43,17 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Overview</h1>
         <p className="text-sm text-gray-500 mb-6">Live platform stats — refreshes every 15 seconds.</p>
+
+        {/* Safety command shortcut */}
+        <a href="/safety" className="group block bg-gray-950 rounded-2xl p-4 mb-5 shadow-sm border border-gray-800 hover:border-red-500/60 transition-colors">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-900/30"><ShieldAlert size={20} className="text-white" /></div>
+              <div><p className="text-sm font-bold text-white">Safety Command Center</p><p className="text-xs text-gray-400 mt-0.5">Monitor SOS incidents, respond fast and manage emergency cases.</p></div>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-bold text-red-400 shrink-0"><span className="hidden sm:inline">OPEN SAFETY</span><ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></div>
+          </div>
+        </a>
 
         {/* Pending approvals — most urgent */}
         {data && (data.pendingDrivers > 0 || data.pendingMerchants > 0 || data.pendingProducts > 0) && (
