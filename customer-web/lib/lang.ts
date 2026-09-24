@@ -406,3 +406,5 @@ Object.assign(UI, {
   'SOS Feature': { en: 'SOS Feature', fr: 'Fonction SOS', rw: 'Serivisi ya SOS' },
   'During any active ride, shake your phone or tap the SOS button to report a safety concern. Our team will be alerted immediately.': { en: 'During any active ride, shake your phone or tap the SOS button to report a safety concern. Our team will be alerted immediately.', fr: 'Pendant tout trajet actif, secouez votre téléphone ou appuyez sur le bouton SOS pour signaler un problème de sécurité. Notre équipe sera alertée immédiatement.', rw: 'Mu rugendo urimo, nyeganyeza telefoni cyangwa ukande kuri SOS kugira ngo utange amakuru ku kibazo cy’umutekano. Itsinda ryacu rizahita ribimenyeshwa.' },
 });
+
+// Deployment heartbeat: keep the production Pages build tracking the latest main commit.
