@@ -176,7 +176,7 @@ export default function HomePage() {
                   }`}>
                     {t.icon}
                   </div>
-                  <p className="text-xs font-bold text-gray-900">{t.key}</p>
+                  <p className="text-xs font-bold text-gray-900">{t(t.key)}</p>
                   <p className="text-[10px] text-gray-400 leading-tight line-clamp-1 w-full">
                     {t.place
                       ? t.place.address.split(',')[0]
@@ -238,11 +238,11 @@ export default function HomePage() {
             <p className="text-white/70 text-xs mt-1">{t('Fast · Safe · Affordable')}</p>
             <button onClick={() => router.push('/deliver')}
               className="mt-3 flex items-center gap-1.5 bg-white/20 text-white text-xs font-bold px-4 py-2 rounded-full">
-              Book now <ChevronRight size={12} />
+              {t('Book now')} <ChevronRight size={12} />
             </button>
           </div>
           <div className="w-24 h-24 relative shrink-0">
-            <Image src="/icons/package-box.png" alt="delivery" fill className="object-contain" />
+            <Image src="/icons/package-box.png" alt={t('delivery')} fill className="object-contain" />
           </div>
         </div>
       </div>
@@ -305,7 +305,7 @@ export default function HomePage() {
                 className="flex flex-col items-center gap-2 py-5 rounded-2xl border-2 border-gray-100 active:scale-95 transition-transform"
                 style={{ background: '#FDF6E3' }}
               >
-                <Image src="/icons/motorbike.png" alt="Moto" width={44} height={44} className="object-contain" />
+                <Image src="/icons/motorbike.png" alt={t('Moto')} width={44} height={44} className="object-contain" />
                 <p className="text-sm font-black text-gray-900">{t('Moto')}</p>
                 <p className="text-[10px] text-gray-500 -mt-1">{t('Fast & cheap')}</p>
               </button>
@@ -322,8 +322,8 @@ export default function HomePage() {
                 className="flex flex-col items-center gap-2 py-5 rounded-2xl border-2 border-gray-100 active:scale-95 transition-transform"
                 style={{ background: '#EEF9F6' }}
               >
-                <Image src="/icons/car.png" alt="Car" width={44} height={44} className="object-contain" />
-                <p className="text-sm font-black text-gray-900">Car</p>
+                <Image src="/icons/car.png" alt={t('Car')} width={44} height={44} className="object-contain" />
+                <p className="text-sm font-black text-gray-900">{t('Car')}</p>
                 <p className="text-[10px] text-gray-500 -mt-1">Comfortable</p>
               </button>
             </div>
@@ -332,7 +332,7 @@ export default function HomePage() {
               onClick={() => { setRidePick(null); router.push('/profile/places'); }}
               className="w-full text-center text-xs text-gray-400 mt-5 py-1"
             >
-              Change this saved place
+              {t('Change this saved place')}
             </button>
           </div>
         </div>
@@ -342,10 +342,10 @@ export default function HomePage() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-3 z-40">
         <div className="flex items-center justify-around">
           {[
-            { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>, label: 'Home', route: '/', active: true },
-            { icon: <Package size={22} />, label: 'Orders', route: '/orders', active: false },
-            { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="15" rx="3"/><path d="M16 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0z" fill="currentColor" stroke="none"/><path d="M2 9h20"/></svg>, label: 'Wallet', route: '/wallet', active: false },
-            { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: 'Profile', route: '/profile', active: false },
+            { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>, label: t('Home'), route: '/', active: true },
+            { icon: <Package size={22} />, label: t('Orders'), route: '/orders', active: false },
+            { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="15" rx="3"/><path d="M16 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0z" fill="currentColor" stroke="none"/><path d="M2 9h20"/></svg>, label: t('Wallet'), route: '/wallet', active: false },
+            { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: t('Profile'), route: '/profile', active: false },
           ].map(item => (
             <button key={item.label} onClick={() => router.push(item.route)}
               className={`flex flex-col items-center gap-1 ${item.active ? 'text-zana-primary' : 'text-gray-400'}`}>
