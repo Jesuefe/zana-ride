@@ -398,3 +398,30 @@ Object.assign(DRIVER_UI, {
   'Min 1,000 RWF': { en: 'Min 1,000 RWF', fr: 'Min. 1 000 RWF', rw: 'Nibura 1,000 RWF' },
   '788 123 456': { en: '788 123 456', fr: '788 123 456', rw: '788 123 456' },
 });
+
+
+Object.assign(UI, {
+  'Cash payment': { en: 'Cash payment', fr: 'Paiement en espèces', rw: 'Ubwishyu bw’amafaranga mu ntoki' },
+  'Your earnings': { en: 'Your earnings', fr: 'Vos revenus', rw: 'Amafaranga winjije' },
+  'Done': { en: 'Done', fr: 'Terminé', rw: 'Byarangiye' },
+  'I understand — continue': { en: 'I understand — continue', fr: 'Je comprends — continuer', rw: 'Ndabyumva — komeza' },
+  'Offline': { en: 'Offline', fr: 'Hors ligne', rw: 'Nturi kumurongo' },
+  'Slide to go offline': { en: 'Slide to go offline', fr: 'Glissez pour vous déconnecter', rw: 'Kurura ujye hanze y’umurongo' },
+  'Going offline...': { en: 'Going offline...', fr: 'Déconnexion...', rw: 'Turimo kuva kumurongo...' },
+  'Slide to go online': { en: 'Slide to go online', fr: 'Glissez pour vous connecter', rw: 'Kurura ujye kumurongo' },
+  'Choose your mode...': { en: 'Choose your mode...', fr: 'Choisissez votre mode...', rw: 'Hitamo uburyo ushaka...' },
+  'Online': { en: 'Online', fr: 'En ligne', rw: 'Uri kumurongo' },
+  'Completed': { en: 'Completed', fr: 'Terminé', rw: 'Byarangiye' },
+  'Online time': { en: 'Online time', fr: 'Temps en ligne', rw: 'Igihe uri kumurongo' },
+  'Rating': { en: 'Rating', fr: 'Note', rw: 'Amanota' },
+  'Passenger pickup requests': { en: 'Passenger pickup requests', fr: 'Demandes de prise en charge des passagers', rw: 'Ubusabe bwo gutwara abagenzi' },
+  'Package delivery requests': { en: 'Package delivery requests', fr: 'Demandes de livraison de colis', rw: 'Ubusabe bwo kugeza ibintu' },
+  'Rides and deliveries': { en: 'Rides and deliveries', fr: 'Courses et livraisons', rw: 'Ingendo no kugeza ibintu' },
+  'Slide to accept ride': { en: 'Slide to accept ride', fr: 'Glissez pour accepter la course', rw: 'Kurura wemere urugendo' },
+  'Accepting…': { en: 'Accepting…', fr: 'Acceptation…', rw: 'Turabyemera…' },
+  'Accepted!': { en: 'Accepted!', fr: 'Acceptée !', rw: 'Byemejwe!' },
+  'Could not go offline. Check your connection.': { en: 'Could not go offline. Check your connection.', fr: 'Impossible de se déconnecter. Vérifiez votre connexion.', rw: 'Ntibyashobotse kuva kumurongo. Reba umurongo wa internet.' },
+  'Could not go online. Check your connection.': { en: 'Could not go online. Check your connection.', fr: 'Impossible de se connecter. Vérifiez votre connexion.', rw: 'Ntibyashobotse kujya kumurongo. Reba umurongo wa internet.' },
+  'Someone else already took this ride.': { en: 'Someone else already took this ride.', fr: 'Un autre chauffeur a déjà accepté cette course.', rw: 'Undi mushoferi yamaze kwemera uru rugendo.' },
+  'Could not accept — check your connection and try again.': { en: 'Could not accept — check your connection and try again.', fr: 'Impossible d’accepter — vérifiez votre connexion et réessayez.', rw: 'Ntibyashobotse kwemera — reba umurongo wa internet wongere ugerageze.' },
+});
