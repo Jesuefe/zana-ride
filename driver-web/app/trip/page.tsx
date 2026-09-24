@@ -609,7 +609,7 @@ function TripContent() {
             <textarea
               value={cancelReason}
               onChange={e => setCancelReason(e.target.value)}
-              placeholder="e.g. vehicle problem, customer not reachable…"
+              placeholder={tt("vehicle problem, customer not reachable…", lang)}
               rows={3}
               autoFocus
               className="w-full border-1.5 border-zana-border rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-zana-primary"
@@ -636,7 +636,7 @@ function TripContent() {
       {showRating && trip && (
         <RatingModal
           tripId={trip.id}
-          driverName={trip.customer?.firstName ?? 'passenger'}
+          driverName={trip.customer?.firstName ?? tt('passenger', lang)}
           onClose={() => setShowRating(false)}
         />
       )}
@@ -752,7 +752,7 @@ function TripContent() {
           roomName={outgoingRoom}
           wsUrl={outgoingWsUrl}
           token={outgoingToken}
-          participantLabel={trip.customer?.firstName ?? 'Passenger'}
+          participantLabel={trip.customer?.firstName ?? tt('Passenger', lang)}
           onClose={() => { setShowCall(false); setOutgoingCallId(null); }}
           onSpeakerStateChange={s => { setSpeakerOn(s.speakerOn); setSpeakerSupported(s.speakerSupported); }}
         />
