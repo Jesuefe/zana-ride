@@ -3,12 +3,13 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Shield, Phone, AlertTriangle } from 'lucide-react';
 
 export default function SafetyPage() {
+  const { t } = useLang();
   const router = useRouter();
   return (
     <div className="p-4">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><ArrowLeft size={16} /></button>
-        <h1 className="text-lg font-bold text-gray-900">Safety</h1>
+        <h1 className="text-lg font-bold text-gray-900">{t("Safety")}</h1>
       </div>
       <div className="space-y-3">
         <div className="bg-white rounded-2xl p-5 shadow-sm">
