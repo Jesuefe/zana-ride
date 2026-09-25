@@ -2,21 +2,28 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ServiceType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
-export type FareRates = { base: number; perKm: number; perMin: number; bookingFee: number; minimum: number };
+export type FareRates = {
+  base: number;
+  perKm: number;
+  perMin: number;
+  bookingFee: number;
+  minimum: number;
+  commissionRate: number;
+  freeWaitingMinutes: number;
+  waitingPerMinute: number;
+};
 
-// Seed values used to populate the database on first boot. After that the
-// database is the source of truth, so pricing can be changed from the admin
-// dashboard without a redeploy.
+// These defaults preserve the existing calibrated ZANA fare curves while
+// moving the operational source of truth into FareConfig. Admin changes are
+// therefore live and do not require a redeploy.
 const DEFAULT_RATES: Record<ServiceType, FareRates> = {
-  BIKE: { base: 500, perKm: 250, perMin: 30, bookingFee: 100, minimum: 1000 },
-  ECONOMY: { base: 1000, perKm: 400, perMin: 50, bookingFee: 200, minimum: 1500 },
-  COMFORT: { base: 1500, perKm: 600, perMin: 70, bookingFee: 300, minimum: 2500 },
+  BIKE: { base: 342, perKm: 132, perMin: 0, bookingFee: 0, minimum: 500, commissionRate: 15, freeWaitingMinutes: 10, waitingPerMinute: 100 },
+  ECONOMY: { base: -3737, perKm: 1447, perMin: 0, bookingFee: 0, minimum: 4000, commissionRate: 15, freeWaitingMinutes: 10, waitingPerMinute: 100 },
+  COMFORT: { base: -5605, perKm: 2171, perMin: 0, bookingFee: 0, minimum: 6000, commissionRate: 15, freeWaitingMinutes: 10, waitingPerMinute: 100 },
 };
 
 @Injectable()
 export class FareService implements OnModuleInit {
-  // Cached in memory so fare estimates don't hit the database on every
-  // request — refreshed whenever an admin updates pricing.
   private cache: Record<string, FareRates> = { ...DEFAULT_RATES };
 
   constructor(private prisma: PrismaService) {}
@@ -45,6 +52,9 @@ export class FareService implements OnModuleInit {
         perMin: c.perMin,
         bookingFee: c.bookingFee,
         minimum: c.minimum,
+        commissionRate: c.commissionRate,
+        freeWaitingMinutes: c.freeWaitingMinutes,
+        waitingPerMinute: c.waitingPerMinute,
       };
     }
   }
@@ -53,49 +63,21 @@ export class FareService implements OnModuleInit {
     return this.cache[serviceType] ?? DEFAULT_RATES[serviceType];
   }
 
-  estimateFare(serviceType: ServiceType, distanceKm: number, _durationMin: number) {
-    // ZANA Kigali calibrated fare model.
-    // Moto anchors:
-    // 8.8 km  -> 1,500 RWF
-    // 16.4 km -> 2,500 RWF
-    //
-    // Car anchors:
-    // 8.8 km  -> 9,000 RWF
-    // 16.4 km -> 20,000 RWF
-    //
-    // ZANA calculates its own fare. RURA is NOT used to calculate
-    // or override the customer fare.
-    const MOTO_BASE = 342.10526315789434;
-    const MOTO_PER_KM = 131.5789473684211;
-    const MOTO_MINIMUM = 500;
-
-    const CAR_BASE = -3736.842105263162;
-    const CAR_PER_KM = 1447.368421052632;
-    const CAR_MINIMUM = 4000;
-
-    // Comfort was previously priced identically to Economy — both just
-    // "isCar" — even though the FareConfig seed data above always implied
-    // Comfort should run roughly 1.5x Economy's base and per-km rates.
-    // Applying that same proportion here to the actual calibrated formula,
-    // rather than leaving Comfort as a same-priced label with no real
-    // premium.
-    const COMFORT_MULTIPLIER = 1.5;
-
+  estimateFare(serviceType: ServiceType, distanceKm: number, durationMin: number) {
+    const rates = this.getRates(serviceType);
     const safeDistanceKm = Math.max(0, distanceKm);
-
-    const isMoto = serviceType === ServiceType.BIKE;
-    const isComfort = serviceType === ServiceType.COMFORT;
-
-    const base = isMoto ? MOTO_BASE : isComfort ? CAR_BASE * COMFORT_MULTIPLIER : CAR_BASE;
-    const perKm = isMoto ? MOTO_PER_KM : isComfort ? CAR_PER_KM * COMFORT_MULTIPLIER : CAR_PER_KM;
-    const minimum = isMoto ? MOTO_MINIMUM : isComfort ? Math.round(CAR_MINIMUM * COMFORT_MULTIPLIER) : CAR_MINIMUM;
+    const safeDurationMin = Math.max(0, durationMin);
 
     const normalFare = Math.max(
-      minimum,
-      base + safeDistanceKm * perKm,
+      rates.minimum,
+      rates.base +
+        safeDistanceKm * rates.perKm +
+        safeDurationMin * rates.perMin +
+        rates.bookingFee,
     );
 
-    // Kigali local time.
+    // Existing Kigali rush policy is preserved; admin fare controls change
+    // the underlying rate card without changing the platform's time policy.
     const kigaliHour = Number(
       new Intl.DateTimeFormat('en-US', {
         timeZone: 'Africa/Kigali',
@@ -112,6 +94,25 @@ export class FareService implements OnModuleInit {
 
     return Math.round(normalFare * rushMultiplier);
   }
+
+  async findAll() {
+    return this.prisma.fareConfig.findMany({ orderBy: { serviceType: 'asc' } });
+  }
+
+  async update(serviceType: ServiceType, rates: Partial<FareRates>) {
+    const allowed: Partial<FareRates> = {};
+    for (const key of ['base','perKm','perMin','bookingFee','minimum','commissionRate','freeWaitingMinutes','waitingPerMinute'] as const) {
+      if (rates[key] !== undefined) allowed[key] = rates[key];
+    }
+
+    const updated = await this.prisma.fareConfig.update({
+      where: { serviceType },
+      data: allowed,
+    });
+    await this.refreshCache();
+    return updated;
+  }
+}
 
   async findAll() {
     return this.prisma.fareConfig.findMany({ orderBy: { serviceType: 'asc' } });
