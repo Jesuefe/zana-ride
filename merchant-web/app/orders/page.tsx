@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { fetchMyOrders, updateOrderStatus } from '../../lib/api/merchant';
+import { fetchMyOrders, updateOrderStatus, fetchMerchantEarnings, MerchantEarnings } from '../../lib/api/merchant';
 import { Package, Clock, ChevronRight, Truck } from 'lucide-react';
 
 // Merchant only handles: PENDING → CONFIRMED → PREPARING → READY_FOR_PICKUP
@@ -35,8 +35,12 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [advancing, setAdvancing] = useState<string | null>(null);
   const [filter, setFilter] = useState('active');
+  const [earnings, setEarnings] = useState<MerchantEarnings | null>(null);
 
-  const load = () => fetchMyOrders().then(setOrders).catch(() => {});
+  const load = () => {
+    fetchMyOrders().then(setOrders).catch(() => {});
+    fetchMerchantEarnings().then(setEarnings).catch(() => {});
+  };
 
   useEffect(() => {
     load();
@@ -135,6 +139,23 @@ export default function OrdersPage() {
                     </div>
                   );
                 })()
+
+                {/* Settlement — only appears once the order has actually delivered */}
+                {o.status === 'DELIVERED' && (() => {
+                  const settlement = earnings?.settlements.find(s => s.orderId === o.id);
+                  if (!settlement) return null;
+                  return (
+                    <div className="bg-green-50 rounded-xl p-3 mb-3 border border-green-100">
+                      <p className="text-xs font-bold text-green-800 mb-2">Settlement</p>
+                      <div className="grid grid-cols-3 gap-2 text-[11px]">
+                        <div><p className="text-green-600">Gross</p><p className="font-bold text-gray-900">{settlement.grossAmount.toLocaleString()} RWF</p></div>
+                        <div><p className="text-green-600">Zana 15%</p><p className="font-bold text-gray-900">−{settlement.commissionAmount.toLocaleString()} RWF</p></div>
+                        <div><p className="text-green-600">You receive</p><p className="font-black text-zana-primary">{settlement.merchantNet.toLocaleString()} RWF</p></div>
+                      </div>
+                      <p className="text-[10px] text-green-700 mt-2">Settlement credited to your Zana wallet.</p>
+                    </div>
+                  );
+                })()}
 
                 {/* Driver handling notice */}
                 {isDriverHandling && (
