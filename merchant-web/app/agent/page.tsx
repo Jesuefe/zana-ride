@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Store, Plus, Package, Check, Trash2 } from 'lucide-react';
+import { Store, Plus, Package, Check, Trash2, Wallet } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { requestAgentPriceChange } from '../../lib/api/merchant';
 
 /**
  * Agent view. Agents work inside a physical market: they list what is on
@@ -20,6 +21,7 @@ export default function AgentPage() {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [priceNote, setPriceNote] = useState('');
   const [saving, setSaving] = useState(false);
 
   const load = () => {
@@ -107,6 +109,7 @@ export default function AgentPage() {
           </button>
         ))}
       </div>
+      <button onClick={() => window.location.href = '/agent/earnings'} className="w-full mb-4 flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm"><Wallet size={17} className="text-zana-primary"/><div className="flex-1 text-left"><p className="font-bold text-sm">Earnings & settlement</p><p className="text-[11px] text-gray-500">See your 40% share of market markup</p></div><span className="text-xs font-bold text-zana-primary">View</span></button>
 
       {/* Orders */}
       {tab === 'orders' && (
@@ -175,8 +178,9 @@ export default function AgentPage() {
                 placeholder="Item name, e.g. Tomatoes (1kg)"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
               <input value={price} onChange={e => setPrice(e.target.value.replace(/\D/g, ''))}
-                placeholder="Price in RWF" inputMode="numeric"
+                placeholder="Market price in RWF" inputMode="numeric"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
+              <p className="text-[11px] text-gray-500">Zana will list it at 20% above the market price. You cannot choose the customer price directly.</p>
               <button onClick={addItem} disabled={saving || !name.trim() || !price}
                 className="w-full bg-zana-primary text-white font-bold py-3 rounded-xl disabled:opacity-40">
                 {saving ? 'Saving…' : 'Add to today\'s list'}
@@ -194,7 +198,7 @@ export default function AgentPage() {
               <div key={p.id} className="bg-white rounded-2xl p-3 flex items-center gap-3">
                 <div className="flex-1">
                   <p className="font-bold text-sm text-gray-900">{p.name}</p>
-                  <p className="text-sm text-zana-primary font-black">{p.price?.toLocaleString()} RWF</p>
+                  <p className="text-sm text-zana-primary font-black">{p.price?.toLocaleString()} RWF customer price</p><p className="text-[11px] text-gray-400">Includes 20% Zana markup</p>
                 </div>
                 <button onClick={() => removeItem(p.id)}
                   className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center">
