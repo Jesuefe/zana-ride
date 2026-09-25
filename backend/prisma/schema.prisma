@@ -888,13 +888,15 @@ model AgentSettlement {
   orderId              String   @unique
   order                Order    @relation(fields: [orderId], references: [id])
   agentId              String
-  agent                Agent    @relation(fields: [agentId], references: [id])
-  underlyingAmount     Int
-  customerAmount       Int
-  markupAmount         Int
-  markupPercent        Float
-  agentRate            Float
-  zanaRate             Float
+  agent                Agent   @relation(fields: [agentId], references: [id])
+  // Kept for compatibility with settlements created before the markup ledger.
+  grossMargin          Int?
+  underlyingAmount     Int?
+  customerAmount       Int?
+  markupAmount         Int?
+  markupPercent        Float?
+  agentRate            Float?
+  zanaRate             Float?
   agentEarning         Int
   zanaEarning          Int
   actualPurchaseCost   Int
