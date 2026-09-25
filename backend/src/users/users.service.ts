@@ -25,4 +25,23 @@ export class UsersService {
       include: { driver: { include: { user: true } } },
     });
   }
+
+  async updateLanguage(userId: string, language: string) {
+    return this.prisma.user.update({ where: { id: userId }, data: { language } });
+  }
+
+  async getSavedPlaces(userId: string) {
+    return this.prisma.savedPlace.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } });
+  }
+
+  async addSavedPlace(userId: string, data: { label: string; address: string; lat: number; lng: number }) {
+    const count = await this.prisma.savedPlace.count({ where: { userId } });
+    if (count >= 5) throw new Error('Maximum 5 saved places allowed');
+    return this.prisma.savedPlace.create({ data: { userId, ...data } });
+  }
+
+  async deleteSavedPlace(userId: string, placeId: string) {
+    return this.prisma.savedPlace.deleteMany({ where: { id: placeId, userId } });
+  }
+
 }

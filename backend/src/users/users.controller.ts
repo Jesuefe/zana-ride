@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/roles.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.strategy';
@@ -15,15 +15,28 @@ export class UsersController {
   }
 
   @Patch('me')
-  updateMe(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: { firstName?: string; lastName?: string; email?: string },
-  ) {
+  update(@CurrentUser() user: JwtPayload, @Body() body: { firstName?: string; lastName?: string; email?: string }) {
     return this.usersService.updateProfile(user.sub, body);
   }
 
-  @Get('me/trips')
-  myTrips(@CurrentUser() user: JwtPayload) {
-    return this.usersService.myTrips(user.sub);
+  @Patch('language')
+  updateLanguage(@CurrentUser() user: JwtPayload, @Body() body: { language: string }) {
+    return this.usersService.updateLanguage(user.sub, body.language);
   }
+
+  @Get('saved-places')
+  getSavedPlaces(@CurrentUser() user: JwtPayload) {
+    return this.usersService.getSavedPlaces(user.sub);
+  }
+
+  @Post('saved-places')
+  addSavedPlace(@CurrentUser() user: JwtPayload, @Body() body: { label: string; address: string; lat: number; lng: number }) {
+    return this.usersService.addSavedPlace(user.sub, body);
+  }
+
+  @Delete('saved-places/:id')
+  deleteSavedPlace(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.usersService.deleteSavedPlace(user.sub, id);
+  }
+
 }
