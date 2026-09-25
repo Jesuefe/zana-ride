@@ -151,17 +151,3 @@ export class FareService implements OnModuleInit {
     return updated;
   }
 }
-
-  async findAll() {
-    return this.prisma.fareConfig.findMany({ orderBy: { serviceType: 'asc' } });
-  }
-
-  async update(serviceType: ServiceType, rates: Partial<FareRates>) {
-    const updated = await this.prisma.fareConfig.update({
-      where: { serviceType },
-      data: rates,
-    });
-    await this.refreshCache();
-    return updated;
-  }
-}
