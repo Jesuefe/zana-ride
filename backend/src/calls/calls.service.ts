@@ -5,12 +5,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
-import { SchedulerRegistry } from '@nestjs/schedule';
+import { SchedulerRegistry, Cron, CronExpression } from '@nestjs/schedule';
 import { AccessToken } from 'livekit-server-sdk';
 import { CallStatus } from '@prisma/client';
 
 const RING_TIMEOUT_MS = 30_000; // 30 seconds
 const GHOST_TIMEOUT_MS = 60_000; // 60 seconds heartbeat
+const LIVEKIT_TOKEN_TTL_SECONDS = 3600;
 
 @Injectable()
 export class CallsService {
@@ -30,7 +31,7 @@ export class CallsService {
   private async mintToken(userId: string, roomName: string, identity: string): Promise<string> {
     const at = new AccessToken(this.apiKey, this.apiSecret, {
       identity,
-      ttl: 600, // 10 minutes
+      ttl: LIVEKIT_TOKEN_TTL_SECONDS,
     });
     at.addGrant({
       roomJoin: true,
@@ -40,6 +41,48 @@ export class CallsService {
       canPublishData: true,
     });
     return at.toJwt();
+  }
+
+  @Cron(CronExpression.EVERY_30_SECONDS)
+  async cleanupStaleCalls() {
+    const now = new Date();
+    const ghostCutoff = new Date(Date.now() - GHOST_TIMEOUT_MS);
+    const ringing = await this.prisma.call.findMany({
+      where: { status: CallStatus.RINGING, expiresAt: { lte: now } },
+      select: { id: true, callerId: true, receiverId: true },
+    });
+    for (const call of ringing) {
+      const updated = await this.prisma.call.updateMany({
+        where: { id: call.id, status: CallStatus.RINGING },
+        data: { status: CallStatus.MISSED, endedAt: now },
+      });
+      if (updated.count) {
+        this.clearRingTimeout(call.id);
+        this.gateway.sendToUser(call.callerId, 'call:missed', { callId: call.id });
+        this.gateway.sendToUser(call.receiverId, 'call:missed', { callId: call.id });
+      }
+    }
+    const stale = await this.prisma.call.findMany({
+      where: {
+        status: { in: [CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED] },
+        updatedAt: { lt: ghostCutoff },
+      },
+      select: { id: true, callerId: true, receiverId: true },
+    });
+    for (const call of stale) {
+      const updated = await this.prisma.call.updateMany({
+        where: {
+          id: call.id,
+          status: { in: [CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED] },
+          updatedAt: { lt: ghostCutoff },
+        },
+        data: { status: CallStatus.ENDED, endedAt: now },
+      });
+      if (updated.count) {
+        this.gateway.sendToUser(call.callerId, 'call:ended', { callId: call.id, reason: 'TIMEOUT' });
+        this.gateway.sendToUser(call.receiverId, 'call:ended', { callId: call.id, reason: 'TIMEOUT' });
+      }
+    }
   }
 
   private async getRideParties(rideId: string) {
@@ -152,6 +195,8 @@ export class CallsService {
 
     // Check for an existing active call on this ride or delivery, whichever
     // applies.
+    await this.cleanupStaleCalls();
+
     const existing = await this.prisma.call.findFirst({
       where: {
         ...(context === 'delivery' ? { deliveryId: contextId } : { rideId: contextId }),
@@ -228,10 +273,11 @@ export class CallsService {
     // Generate receiver's LiveKit token
     const token = await this.mintToken(userId, call.roomName, receiverIdentity);
 
-    await this.prisma.call.update({
-      where: { id: callId },
-      data: { status: CallStatus.ACCEPTED, answeredAt: new Date() },
+    const accepted = await this.prisma.call.updateMany({
+      where: { id: callId, receiverId: userId, status: CallStatus.RINGING, expiresAt: { gt: new Date() } },
+      data: { status: CallStatus.ACCEPTED, answeredAt: new Date(), updatedAt: new Date() },
     });
+    if (!accepted.count) throw new ConflictException('CALL_ALREADY_HANDLED');
 
     console.log(`[CALL] ACCEPTED ${callId} by ${userId}`);
 
@@ -329,11 +375,12 @@ export class CallsService {
   async markConnected(callId: string, userId: string) {
     const call = await this.prisma.call.findUnique({ where: { id: callId } });
     if (!call) throw new NotFoundException('CALL_NOT_FOUND');
-    if (call.status === CallStatus.ACCEPTED || call.status === CallStatus.CONNECTING) {
-      await this.prisma.call.update({
-        where: { id: callId },
-        data: { status: CallStatus.CONNECTED, connectedAt: new Date() },
-      });
+    if (call.callerId !== userId && call.receiverId !== userId) throw new ForbiddenException('INVALID_CALL_PARTICIPANT');
+    if (![CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED].includes(call.status)) {
+      throw new BadRequestException(`CALL_NOT_ACTIVE (status: ${call.status})`);
+    }
+    if (call.status !== CallStatus.CONNECTED) {
+      await this.prisma.call.update({ where: { id: callId }, data: { status: CallStatus.CONNECTED, connectedAt: new Date(), updatedAt: new Date() } });
       console.log(`[CALL] CONNECTED ${callId}`);
     }
     return { callId, status: 'CONNECTED' };
@@ -344,11 +391,9 @@ export class CallsService {
   async heartbeat(callId: string, userId: string) {
     const call = await this.prisma.call.findUnique({ where: { id: callId } });
     if (!call) throw new NotFoundException('CALL_NOT_FOUND');
-    // just touch updatedAt
-    await this.prisma.call.update({
-      where: { id: callId },
-      data: { updatedAt: new Date() },
-    });
+    if (call.callerId !== userId && call.receiverId !== userId) throw new ForbiddenException('INVALID_CALL_PARTICIPANT');
+    if (![CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED].includes(call.status)) throw new BadRequestException(`CALL_NOT_ACTIVE (status: ${call.status})`);
+    await this.prisma.call.update({ where: { id: callId }, data: { updatedAt: new Date() } });
     return { ok: true };
   }
 
@@ -373,6 +418,8 @@ export class CallsService {
     if (call.callerId !== userId && call.receiverId !== userId) {
       throw new ForbiddenException('INVALID_CALL_PARTICIPANT');
     }
+    if (![CallStatus.RINGING, CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED].includes(call.status)) throw new BadRequestException(`CALL_NOT_ACTIVE (status: ${call.status})`);
+    if (call.status === CallStatus.RINGING && new Date() > call.expiresAt) throw new BadRequestException('CALL_EXPIRED');
 
     const identity = `${userId === call.callerId ? 'caller' : 'receiver'}_${userId}`;
     const token = await this.mintToken(userId, call.roomName, identity);
