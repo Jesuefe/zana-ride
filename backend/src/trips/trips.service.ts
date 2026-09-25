@@ -436,8 +436,9 @@ export class TripsService {
       const waitingMinutes = waitingStart
         ? Math.max(0, Math.ceil((waitingEnd - waitingStart) / 60000))
         : 0;
-      const chargeableMinutes = Math.max(0, waitingMinutes - 10);
-      const waitingFee = chargeableMinutes * 100;
+      const policy = this.fareService.getRates(trip.serviceType);
+      const chargeableMinutes = Math.max(0, waitingMinutes - policy.freeWaitingMinutes);
+      const waitingFee = chargeableMinutes * policy.waitingPerMinute;
       data.finalFare = trip.estimatedFare + waitingFee;
     }
 
