@@ -141,6 +141,12 @@ export class FinanceService {
     });
   }
 
+  async marketPriceConfig() { return this.marketConfig(); }
+
+  async priceHistory(productId?: string) {
+    return this.prisma.marketPriceHistory.findMany({ where: productId ? { productId } : {}, include: { product: true }, orderBy: { createdAt: 'desc' }, take: 500 });
+  }
+
   async pendingPriceChanges() {
     return this.prisma.marketPriceHistory.findMany({ where: { status: 'PENDING' }, include: { product: true }, orderBy: { createdAt: 'asc' }});
   }
