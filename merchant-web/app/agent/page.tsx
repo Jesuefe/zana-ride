@@ -150,6 +150,7 @@ export default function AgentPage() {
           </button>
         ))}
       </div>
+      <button onClick={() => window.location.href = '/agent/ride'} className="w-full mb-3 flex items-center gap-3 bg-zana-primary text-white rounded-2xl px-4 py-3 shadow-sm"><div className="flex-1 text-left"><p className="font-black text-sm">Book a ZANA ride</p><p className="text-[11px] opacity-90">Request a moto, Economy or Premium car from the market.</p></div><span className="text-xs font-black">Book →</span></button>
       <button onClick={() => window.location.href = '/agent/earnings'} className="w-full mb-4 flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm"><Wallet size={17} className="text-zana-primary"/><div className="flex-1 text-left"><p className="font-bold text-sm">Earnings & settlement</p><p className="text-[11px] text-gray-500">See your 40% share of market markup</p></div><span className="text-xs font-bold text-zana-primary">View</span></button>
 
       {/* Orders */}
