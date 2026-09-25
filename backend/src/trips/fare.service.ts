@@ -73,15 +73,22 @@ export class FareService implements OnModuleInit {
     const CAR_PER_KM = 1447.368421052632;
     const CAR_MINIMUM = 4000;
 
+    // Comfort was previously priced identically to Economy — both just
+    // "isCar" — even though the FareConfig seed data above always implied
+    // Comfort should run roughly 1.5x Economy's base and per-km rates.
+    // Applying that same proportion here to the actual calibrated formula,
+    // rather than leaving Comfort as a same-priced label with no real
+    // premium.
+    const COMFORT_MULTIPLIER = 1.5;
+
     const safeDistanceKm = Math.max(0, distanceKm);
 
-    const isCar =
-      serviceType === ServiceType.ECONOMY ||
-      serviceType === ServiceType.COMFORT;
+    const isMoto = serviceType === ServiceType.BIKE;
+    const isComfort = serviceType === ServiceType.COMFORT;
 
-    const base = isCar ? CAR_BASE : MOTO_BASE;
-    const perKm = isCar ? CAR_PER_KM : MOTO_PER_KM;
-    const minimum = isCar ? CAR_MINIMUM : MOTO_MINIMUM;
+    const base = isMoto ? MOTO_BASE : isComfort ? CAR_BASE * COMFORT_MULTIPLIER : CAR_BASE;
+    const perKm = isMoto ? MOTO_PER_KM : isComfort ? CAR_PER_KM * COMFORT_MULTIPLIER : CAR_PER_KM;
+    const minimum = isMoto ? MOTO_MINIMUM : isComfort ? Math.round(CAR_MINIMUM * COMFORT_MULTIPLIER) : CAR_MINIMUM;
 
     const normalFare = Math.max(
       minimum,
