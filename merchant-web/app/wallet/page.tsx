@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Loader2, Check, X } from 'lucide-react';
 import Topbar from '../../components/Topbar';
 import { fetchWallet, ApiWallet, withdrawWallet } from '../../lib/api/merchant';
-import { api } from '../../lib/api/client';
 
 export default function WalletPage() {
   const [wallet, setWallet] = useState<ApiWallet | null>(null);
