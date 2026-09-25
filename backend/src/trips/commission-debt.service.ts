@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { FareService } from './fare.service';
+import { ServiceType } from '@prisma/client';
 
 const SAFETY_POOL = 5000; // RWF — drivers always keep this minimum
-const COMMISSION_RATE = 0.15;
-
 type Source = { tripId: string } | { deliveryId: string };
 
 @Injectable()
 export class CommissionDebtService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private fareService: FareService) {}
 
   // Shared by both trips and deliveries — the spec was explicit that
   // deliveries must reuse the exact same financial engine rather than a
@@ -16,7 +16,14 @@ export class CommissionDebtService {
   // commission handling actually happens. tripId/deliveryId branch only
   // the couple of lines that decide which foreign key gets written.
   private async settleCommission(source: Source, fare: number, driverId: string, paymentMethod: string) {
-    const commission = Math.round(fare * COMMISSION_RATE);
+    // Ride commission is controlled by the same live FareConfig that
+    // operations uses for customer pricing. This keeps BIKE, ECONOMY and
+    // COMFORT independently controllable from the admin control center.
+    const serviceType = 'tripId' in source
+      ? (await this.prisma.trip.findUnique({ where: { id: source.tripId }, select: { serviceType: true } }))?.serviceType
+      : ServiceType.BIKE;
+    const commissionRate = serviceType ? this.fareService.getRates(serviceType).commissionRate : 15;
+    const commission = Math.round(fare * (commissionRate / 100));
     const driverCut = fare - commission;
 
     // Claim this trip/delivery's commission BEFORE touching any wallet
@@ -30,7 +37,7 @@ export class CommissionDebtService {
     try {
       if ('tripId' in source) {
         await this.prisma.commission.create({
-          data: { tripId: source.tripId, amount: commission, ratePercent: 15, walletCoveredAmount: 0, debtCreatedAmount: 0 },
+          data: { tripId: source.tripId, amount: commission, ratePercent: commissionRate, walletCoveredAmount: 0, debtCreatedAmount: 0 },
         });
       } else {
         await this.prisma.commission.create({
