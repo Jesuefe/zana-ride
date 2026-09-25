@@ -122,7 +122,19 @@ export class MarketsService {
       where: { id: productId, marketId: agent.marketId! },
     });
     if (!product) throw new NotFoundException('Product not found in your market');
-    return this.prisma.product.update({ where: { id: productId }, data });
+    // Agents may maintain operational fields, but price/reference cost are
+    // protected financial fields and must go through the price-review endpoint.
+    const allowed: any = {};
+    for (const key of ['name', 'description', 'imageUrl', 'stock', 'available']) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) allowed[key] = data[key];
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'stock') && (!Number.isInteger(data.stock) || data.stock < 0)) {
+      throw new BadRequestException('INVALID_STOCK');
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'name') && (!data.name || String(data.name).trim().length < 2)) {
+      throw new BadRequestException('INVALID_PRODUCT_NAME');
+    }
+    return this.prisma.product.update({ where: { id: productId }, data: allowed });
   }
 
   async deleteProduct(userId: string, productId: string) {
@@ -131,7 +143,7 @@ export class MarketsService {
       where: { id: productId, marketId: agent.marketId! },
     });
     if (!product) throw new NotFoundException('Product not found in your market');
-    return this.prisma.product.delete({ where: { id: productId } });
+    // Preserve products referenced by historical orders; disable instead of deleting financial history.\n    return this.prisma.product.update({ where: { id: productId }, data: { available: false, status: 'DISABLED' } });
   }
 
   // The agent's queue — everything customers have ordered from this market.
@@ -166,9 +178,20 @@ export class MarketsService {
     // actually keys off; without it, there's nothing to distinguish a
     // negotiated saving from the reference stall price at all.
     if (actualPrices) {
-      for (const [orderItemId, actualPurchasePrice] of Object.entries(actualPrices)) {
-        await this.prisma.orderItem.updateMany({
-          where: { id: orderItemId, orderId },
+      const items = await this.prisma.orderItem.findMany({ where: { orderId } });
+      const itemMap = new Map(items.map(i => [i.id, i]));
+      for (const [orderItemId, rawPrice] of Object.entries(actualPrices)) {
+        const item = itemMap.get(orderItemId);
+        const actualPurchasePrice = Number(rawPrice);
+        if (!item) throw new BadRequestException('ORDER_ITEM_NOT_FOUND');
+        if (!Number.isFinite(actualPurchasePrice) || !Number.isInteger(actualPurchasePrice) || actualPurchasePrice < 0) {
+          throw new BadRequestException('INVALID_PURCHASE_PRICE');
+        }
+        if (actualPurchasePrice > item.price) {
+          throw new BadRequestException('PURCHASE_PRICE_EXCEEDS_CUSTOMER_PRICE');
+        }
+        await this.prisma.orderItem.update({
+          where: { id: item.id },
           data: { actualPurchasePrice },
         });
       }
