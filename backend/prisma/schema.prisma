@@ -884,19 +884,23 @@ model MerchantSettlement {
 }
 
 model AgentSettlement {
-  id                 String   @id @default(uuid())
-  orderId            String   @unique
-  order            Order    @relation(fields: [orderId], references: [id])
-  agentId            String
-  agent              Agent   @relation(fields: [agentId], references: [id])
-  grossMargin        Int
-  agentRate          Float
-  agentEarning       Int
-  zanaEarning        Int
-  actualPurchaseCost Int
-  status             String   @default("SETTLED")
-  createdAt          DateTime @default(now())
-  settledAt          DateTime @default(now())
+  id                   String   @id @default(uuid())
+  orderId              String   @unique
+  order                Order    @relation(fields: [orderId], references: [id])
+  agentId              String
+  agent                Agent    @relation(fields: [agentId], references: [id])
+  underlyingAmount     Int
+  customerAmount       Int
+  markupAmount         Int
+  markupPercent        Float
+  agentRate            Float
+  zanaRate             Float
+  agentEarning         Int
+  zanaEarning          Int
+  actualPurchaseCost   Int
+  status               String   @default("SETTLED")
+  createdAt            DateTime @default(now())
+  settledAt            DateTime @default(now())
 
   @@index([agentId, createdAt])
 }
@@ -905,7 +909,10 @@ model MarketPriceConfig {
   id                    String   @id @default(uuid())
   autoApprovePercent    Float    @default(15)
   hardRejectPercent     Float    @default(100)
-  agentEarningRate      Float    @default(50)
+  markupPercent         Float    @default(20)
+  agentEarningRate      Float    @default(40)
+  zanaMarkupShare       Float    @default(60)
+  agentMarkupShare      Float    @default(40)
   updatedAt             DateTime @updatedAt
 }
 
