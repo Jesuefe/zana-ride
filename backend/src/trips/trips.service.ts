@@ -132,42 +132,13 @@ export class TripsService {
       return this.prisma.trip.findMany({ where: { id: { in: created.map((t) => t.id) } } });
     }
 
-    // Real, individual offer records — previously a driver's app just
-    // polled a shared list of "searching" trips with no record of who was
-    // actually offered what. Top 5 nearest, matching the max simultaneous
-    // offers a driver's screen is meant to show; each expires on its own
-    // 20 seconds after being created, not tied to whether the driver's
-    // app happens to be open to see it.
-    const OFFER_COUNT = 5;
-    const OFFER_TTL_MS = 20_000;
-    const offered = nearby.slice(0, OFFER_COUNT);
-    const expiresAt = new Date(Date.now() + OFFER_TTL_MS);
-
+    // Dispatch protection:
+    // - one ride is offered to at most 4 drivers at a time
+    // - one driver can hold at most 4 pending ride offers at a time
+    // - if an offer is declined/expired, the ride can be refilled with the
+    //   next eligible driver without broadcasting the ride to everyone.
     for (const trip of created) {
-      await this.prisma.rideOffer.createMany({
-        data: offered.map((d) => ({
-          tripId: trip.id,
-          driverId: d.id,
-          distanceKm: Math.round(d.distanceKm * 10) / 10,
-          expiresAt,
-        })),
-      });
-      for (const d of offered) {
-        // sendToUser targets a room keyed by the User's own id, not the
-        // Driver record's id — the two are different rows entirely. Using
-        // d.id here would have silently sent to a room nobody's socket
-        // ever actually joins; the offer record itself would still have
-        // been created correctly, just with no real-time ring ever
-        // reaching the driver at all — a quiet, easy-to-miss failure.
-        this.gateway.sendToUser(d.userId, 'ride:offer', {
-          tripId: trip.id,
-          pickupAddress: trip.pickupAddress,
-          destinationAddress: trip.destinationAddress,
-          distanceKm: Math.round(d.distanceKm * 10) / 10,
-          fare: trip.estimatedFare,
-          expiresAt,
-        });
-      }
+      await this.refreshTripOffers(trip.id);
     }
 
     return created;
@@ -191,64 +162,182 @@ export class TripsService {
   }
 
   async assignDriver(tripId: string, driverId: string) {
-    // The frontend already hides ride offers from an offline driver, but
-    // that was the only thing stopping one — nothing here ever verified
-    // it. A stale cached offer, or a direct call to this endpoint,
-    // could let someone accept a real ride while genuinely offline, with
-    // no way to actually reach the passenger. Checked once here rather
-    // than relying on the client's own claim of being online.
+    const now = new Date();
+
     const driver = await this.prisma.driver.findUnique({
-      where: { id: driverId }, select: { onlineStatus: true },
+      where: { id: driverId },
+      select: { onlineStatus: true },
     });
-    if (driver?.onlineStatus !== 'ONLINE') {
+    if (driver?.onlineStatus !== DriverOnlineStatus.ONLINE) {
       throw new BadRequestException('You must be online to accept a ride');
     }
 
-    // Was a plain unconditional update — two drivers tapping accept on the
-    // same ride within the same race window would both succeed, with
-    // whichever request the database happened to process last silently
-    // overwriting the other's assignment. The first driver's own app
-    // still believes they have the ride; the trip record says otherwise.
-    // This is the same class of bug as the double-completion issue,
-    // just at ride-assignment time instead of ride-completion time, and
-    // arguably more serious: it can put two drivers en route to the same
-    // passenger, or leave one driving toward a ride that no longer
-    // belongs to them without any indication anything went wrong.
-    const { count } = await this.prisma.trip.updateMany({
-      where: { id: tripId, status: TripStatus.SEARCHING_DRIVER, driverId: null },
-      data: { driverId, status: TripStatus.DRIVER_ASSIGNED, acceptedAt: new Date() },
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Acceptance must come from a real, still-live offer. This prevents a
+      // stale/direct trip-id call from bypassing the 4-driver offer pool.
+      const offer = await tx.rideOffer.findFirst({
+        where: {
+          tripId,
+          driverId,
+          status: 'PENDING',
+          expiresAt: { gte: now },
+          trip: { status: TripStatus.SEARCHING_DRIVER, driverId: null },
+        },
+        select: { id: true },
+      });
+      if (!offer) {
+        throw new BadRequestException('Ride offer is no longer available');
+      }
+
+      // The conditional update is the race-protection lock. If two drivers
+      // accept the same ride at nearly the same time, exactly one update can
+      // move SEARCHING_DRIVER -> DRIVER_ASSIGNED.
+      const { count } = await tx.trip.updateMany({
+        where: { id: tripId, status: TripStatus.SEARCHING_DRIVER, driverId: null },
+        data: { driverId, status: TripStatus.DRIVER_ASSIGNED, acceptedAt: now },
+      });
+      if (count === 0) {
+        throw new BadRequestException('This ride has already been accepted by another driver');
+      }
+
+      await tx.rideOffer.update({
+        where: { id: offer.id },
+        data: { status: 'ACCEPTED', respondedAt: now },
+      });
+
+      // Every other driver holding this ride loses the offer immediately.
+      await tx.rideOffer.updateMany({
+        where: {
+          tripId,
+          driverId: { not: driverId },
+          status: 'PENDING',
+        },
+        data: { status: 'CANCELLED', respondedAt: now },
+      });
+
+      // A driver can only have one active ride. Clear their other pending
+      // offers so the app cannot keep presenting rides they cannot accept.
+      await tx.rideOffer.updateMany({
+        where: {
+          driverId,
+          tripId: { not: tripId },
+          status: 'PENDING',
+        },
+        data: { status: 'CANCELLED', respondedAt: now },
+      });
+
+      return { offerId: offer.id };
     });
 
-    if (count === 0) {
-      throw new BadRequestException('This ride has already been accepted by another driver');
-    }
-
-    // Only mark this driver busy once their own acceptance genuinely won —
-    // the losing driver in a race must not be marked busy for a ride they
-    // don't actually have.
     await this.driversService.setOnlineStatus(driverId, DriverOnlineStatus.BUSY);
 
-    // Best-effort, not required — the app hasn't been updated to actually
-    // fetch and act on real offers yet, so today every acceptance still
-    // arrives here with no RideOffer behind it at all, and must keep
-    // working exactly as it already does. Once a real offer does exist,
-    // mark it accepted and immediately invalidate every competing offer
-    // for the same ride, so a driver who already lost the race to
-    // whoever accepted first isn't still staring at a live countdown for
-    // a ride that's already gone.
+    // Notify losing drivers and the accepting driver after the transaction
+    // has committed, so the real-time UI never reflects an uncommitted state.
     try {
-      await this.prisma.rideOffer.updateMany({
-        where: { tripId, driverId, status: 'PENDING' },
-        data: { status: 'ACCEPTED', respondedAt: new Date() },
+      const cancelled = await this.prisma.rideOffer.findMany({
+        where: { tripId, status: 'CANCELLED', respondedAt: now },
+        include: { driver: { select: { userId: true } } },
       });
-      await this.prisma.rideOffer.updateMany({
-        where: { tripId, driverId: { not: driverId }, status: 'PENDING' },
-        data: { status: 'CANCELLED', respondedAt: new Date() },
-      });
+      for (const offer of cancelled) {
+        this.gateway.sendToUser(offer.driver.userId, 'ride:offer-cancelled', { tripId });
+      }
+      this.gateway.sendToUser(
+        (await this.prisma.driver.findUnique({ where: { id: driverId }, select: { userId: true } }))!.userId,
+        'ride:accepted',
+        { tripId, offerId: result.offerId },
+      );
     } catch {}
+
     return this.prisma.trip.findUnique({ where: { id: tripId } });
   }
 
+  /**
+   * Keep a ride protected by a maximum of four simultaneous drivers.
+   * Also protects each driver's screen from growing beyond four pending
+   * ride offers. Declined/expired offers are never immediately re-offered
+   * to the same driver for the same trip.
+   */
+  private async refreshTripOffers(tripId: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { id: tripId },
+      select: {
+        id: true,
+        serviceType: true,
+        pickupLat: true,
+        pickupLng: true,
+        pickupAddress: true,
+        destinationAddress: true,
+        estimatedFare: true,
+        status: true,
+      },
+    });
+    if (!trip || trip.status !== TripStatus.SEARCHING_DRIVER) return;
+
+    const OFFER_DRIVER_LIMIT = 4;
+    const DRIVER_PENDING_LIMIT = 4;
+    const OFFER_TTL_MS = 20_000;
+
+    const pending = await this.prisma.rideOffer.findMany({
+      where: { tripId, status: 'PENDING', expiresAt: { gte: new Date() } },
+      select: { driverId: true },
+    });
+
+    if (pending.length >= OFFER_DRIVER_LIMIT) return;
+
+    const nearby = await this.driversService.findNearbyAvailable(
+      trip.pickupLat,
+      trip.pickupLng,
+      trip.serviceType,
+    );
+
+    const existingForTrip = await this.prisma.rideOffer.findMany({
+      where: { tripId },
+      select: { driverId: true },
+    });
+    const alreadyOffered = new Set(existingForTrip.map((o) => o.driverId));
+
+    const candidates: typeof nearby = [];
+    for (const candidate of nearby) {
+      if (pending.some((o) => o.driverId === candidate.id)) continue;
+      if (alreadyOffered.has(candidate.id)) continue;
+
+      const driverPending = await this.prisma.rideOffer.count({
+        where: {
+          driverId: candidate.id,
+          status: 'PENDING',
+          expiresAt: { gte: new Date() },
+        },
+      });
+      if (driverPending >= DRIVER_PENDING_LIMIT) continue;
+
+      candidates.push(candidate);
+      if (pending.length + candidates.length >= OFFER_DRIVER_LIMIT) break;
+    }
+
+    if (candidates.length === 0) return;
+
+    const expiresAt = new Date(Date.now() + OFFER_TTL_MS);
+    await this.prisma.rideOffer.createMany({
+      data: candidates.map((d) => ({
+        tripId,
+        driverId: d.id,
+        distanceKm: Math.round(d.distanceKm * 10) / 10,
+        expiresAt,
+      })),
+      skipDuplicates: true,
+    });
+
+    for (const d of candidates) {
+      this.gateway.sendToUser(d.userId, 'ride:offer', {
+        tripId,
+        pickupAddress: trip.pickupAddress,
+        destinationAddress: trip.destinationAddress,
+        distanceKm: Math.round(d.distanceKm * 10) / 10,
+        fare: trip.estimatedFare,
+        expiresAt,
+      });
+    }
+  }
   async updateStatus(tripId: string, status: TripStatus) {
     const timestampField: Partial<Record<TripStatus, string>> = {
       DRIVER_ARRIVED: 'arrivedAt',
@@ -511,28 +600,46 @@ export class TripsService {
   async findMyOffers(driverId: string) {
     const now = new Date();
 
-    await this.prisma.rideOffer.updateMany({
+    const expired = await this.prisma.rideOffer.findMany({
       where: { driverId, status: 'PENDING', expiresAt: { lt: now } },
-      data: { status: 'EXPIRED', respondedAt: now },
+      select: { id: true, tripId: true },
     });
+
+    if (expired.length) {
+      await this.prisma.rideOffer.updateMany({
+        where: { id: { in: expired.map((o) => o.id) }, status: 'PENDING' },
+        data: { status: 'EXPIRED', respondedAt: now },
+      });
+      for (const tripId of [...new Set(expired.map((o) => o.tripId))]) {
+        await this.refreshTripOffers(tripId);
+      }
+    }
 
     return this.prisma.rideOffer.findMany({
       where: { driverId, status: 'PENDING', expiresAt: { gte: now } },
       include: { trip: { include: { customer: true } } },
       orderBy: { offeredAt: 'asc' },
+      take: 4,
     });
   }
 
   async declineOffer(offerId: string, driverId: string) {
-    // Immediate, not waiting out the countdown — a driver who's already
-    // said no shouldn't still be looking at a live timer for it.
-    const { count } = await this.prisma.rideOffer.updateMany({
+    const now = new Date();
+    const offer = await this.prisma.rideOffer.findFirst({
       where: { id: offerId, driverId, status: 'PENDING' },
-      data: { status: 'DECLINED', respondedAt: new Date() },
+      select: { id: true, tripId: true },
     });
-    if (count === 0) {
+    if (!offer) {
       throw new BadRequestException('Offer not found or already responded to');
     }
+
+    await this.prisma.rideOffer.update({
+      where: { id: offer.id },
+      data: { status: 'DECLINED', respondedAt: now },
+    });
+
+    // Refill this ride, but never above four simultaneous driver offers.
+    await this.refreshTripOffers(offer.tripId);
     return { declined: true };
   }
 
