@@ -118,7 +118,10 @@ export class FinanceService {
   async setAgentRate(actorId: string, rate: number) {
     if (!Number.isFinite(rate) || rate < 0 || rate > 100) throw new BadRequestException('INVALID_AGENT_RATE');
     const before = await this.marketConfig();
-    const after = await this.prisma.marketPriceConfig.update({ where: { id: before.id }, data: { agentEarningRate: rate }});
+    const after = await this.prisma.marketPriceConfig.update({
+      where: { id: before.id },
+      data: { agentEarningRate: rate, agentMarkupShare: rate, zanaMarkupShare: 100 - rate },
+    });
     await this.audit(actorId, 'MARKET_AGENT_RATE_CHANGED', 'MarketPriceConfig', after.id, before, after);
     return after;
   }
