@@ -48,6 +48,7 @@ model User {
   merchant    Merchant?
   agent       Agent?
   wallet      Wallet?
+  auditLogs   AuditLog[]
   tripsAsCustomer Trip[]  @relation("CustomerTrips")
   deliveries      Delivery[] @relation("CustomerDeliveries")
   orders          Order[]    @relation("CustomerOrders")
@@ -172,6 +173,7 @@ model Merchant {
   deliveries    Delivery[]
   products      Product[]
   orders        Order[]    @relation("MerchantOrders")
+  settlements   MerchantSettlement[]
 }
 
 enum ProductStatus {
@@ -204,6 +206,7 @@ model Product {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   orderItems   OrderItem[]
+  priceHistory MarketPriceHistory[]
 }
 
 // Markets are admin-only — agents and riders operate within them.
@@ -236,6 +239,7 @@ model Agent {
   market     Market?   @relation(fields: [marketId], references: [id])
   active     Boolean   @default(true)
   createdAt  DateTime  @default(now())
+  settlements AgentSettlement[]
 }
 
 enum TripStatus {
@@ -630,6 +634,9 @@ model Order {
 
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  merchantSettlement MerchantSettlement?
+  agentSettlement AgentSettlement?
+  auditLogs AuditLog[]
 }
 
 enum PaymentMethod {
@@ -662,6 +669,7 @@ model OrderItem {
   // gets split. Left null for merchant orders, where this distinction
   // doesn't apply at all.
   actualPurchasePrice Int?
+  referenceCostAtOrder Int?
 }
 
 // Chat messages tied to a ride or delivery. After the ride ends the messages
@@ -850,4 +858,83 @@ model RecoveryEvent {
   createdAt DateTime @default(now())
 
   @@index([driverId])
+}
+
+
+model MerchantSettlement {
+  id             String   @id @default(uuid())
+  orderId        String   @unique
+  order          Order    @relation(fields: [orderId], references: [id])
+  merchantId     String
+  merchant       Merchant @relation(fields: [merchantId], references: [id])
+  grossAmount    Int
+  commissionRate Float
+  commissionAmount Int
+  merchantNet    Int
+  status         String   @default("SETTLED")
+  createdAt      DateTime @default(now())
+  settledAt      DateTime @default(now())
+
+  @@index([merchantId, createdAt])
+}
+
+model AgentSettlement {
+  id                 String   @id @default(uuid())
+  orderId            String   @unique
+  order            Order    @relation(fields: [orderId], references: [id])
+  agentId            String
+  agent              Agent   @relation(fields: [agentId], references: [id])
+  grossMargin        Int
+  agentRate          Float
+  agentEarning       Int
+  zanaEarning        Int
+  actualPurchaseCost Int
+  status             String   @default("SETTLED")
+  createdAt          DateTime @default(now())
+  settledAt          DateTime @default(now())
+
+  @@index([agentId, createdAt])
+}
+
+model MarketPriceConfig {
+  id                    String   @id @default(uuid())
+  autoApprovePercent    Float    @default(15)
+  hardRejectPercent     Float    @default(100)
+  agentEarningRate      Float    @default(50)
+  updatedAt             DateTime @updatedAt
+}
+
+model MarketPriceHistory {
+  id                String   @id @default(uuid())
+  productId         String
+  product            Product  @relation(fields: [productId], references: [id])
+  marketId          String
+  oldPrice          Int?
+  newPrice          Int
+  oldReferenceCost  Int?
+  newReferenceCost  Int?
+  changedBy         String
+  reason            String?
+  status            String   @default("APPROVED")
+  approvedBy        String?
+  approvedAt        DateTime?
+  createdAt         DateTime @default(now())
+
+  @@index([productId, createdAt])
+  @@index([marketId, status])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorId      String?
+  action       String
+  entityType   String
+  entityId     String?
+  beforeJson   String?
+  afterJson    String?
+  metadataJson String?
+  createdAt    DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId, createdAt])
 }
