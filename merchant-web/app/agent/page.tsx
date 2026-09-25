@@ -25,6 +25,8 @@ export default function AgentPage() {
   const [editPrice, setEditPrice] = useState('');
   const [editReason, setEditReason] = useState('');
   const [saving, setSaving] = useState(false);
+  const [purchaseCosts, setPurchaseCosts] = useState<Record<string, string>>({});
+  const [savingPurchaseCosts, setSavingPurchaseCosts] = useState<string | null>(null);
 
   const load = () => {
     api.get<any>('/agent/me').then(r => setMarket(r.market)).catch(e => setError(e?.message ?? ''));
@@ -45,7 +47,7 @@ export default function AgentPage() {
     if (!name.trim() || !price) return;
     setSaving(true);
     try {
-      await api.post('/agent/products', { name: name.trim(), price: Number(price), stock: 99 });
+      await api.post('/agent/products', { name: name.trim(), price: Number(price), referenceCost: Number(price), stock: 99 });
       setName(''); setPrice(''); setAdding(false);
       api.get<any[]>('/agent/products').then(setProducts).catch(() => {});
     } catch (e: any) {
@@ -68,8 +70,36 @@ export default function AgentPage() {
   };
 
   const setStatus = async (id: string, status: string) => {
-    await api.patch(`/agent/orders/${id}/status`, { status }).catch(() => {});
-    api.get<any[]>('/agent/orders').then(setOrders).catch(() => {});
+    const actualPrices: Record<string, number> = {};
+    if (status === 'READY_FOR_PICKUP') {
+      for (const [itemId, raw] of Object.entries(purchaseCosts)) {
+        if (raw === '') continue;
+        const value = Number(raw);
+        if (!Number.isInteger(value) || value < 0) {
+          setError('Purchase cost must be a whole number in RWF.');
+          return;
+        }
+        actualPrices[itemId] = value;
+      }
+    }
+
+    setSavingPurchaseCosts(id);
+    try {
+      await api.patch(`/agent/orders/${id}/status`, {
+        status,
+        ...(Object.keys(actualPrices).length ? { actualPrices } : {}),
+      });
+      setPurchaseCosts(current => {
+        const next = { ...current };
+        Object.keys(actualPrices).forEach(itemId => delete next[itemId]);
+        return next;
+      });
+      await api.get<any[]>('/agent/orders').then(setOrders);
+    } catch (e: any) {
+      setError(e?.message ?? 'Could not update the order');
+    } finally {
+      setSavingPurchaseCosts(null);
+    }
   };
 
   // Agents only ever move an order through these three states — the rider
@@ -155,12 +185,48 @@ export default function AgentPage() {
                   ))}
                 </div>
 
+                {o.status === 'PREPARING' && (
+                  <div className="bg-gray-50 rounded-xl p-3 mb-3">
+                    <p className="text-xs font-bold text-gray-800">Record actual market purchase cost</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5 mb-2">
+                      Optional: enter what you actually paid at the stall. It cannot exceed the underlying market reference price.
+                    </p>
+                    <div className="space-y-2">
+                      {o.items?.map((i: any) => (
+                        <div key={i.id} className="flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-gray-700 truncate">{i.product?.name} ×{i.quantity}</p>
+                            <p className="text-[10px] text-gray-400">
+                              Reference: {(i.referenceCostAtOrder ?? i.product?.referenceCost ?? 0).toLocaleString()} RWF each
+                            </p>
+                          </div>
+                          <input
+                            value={purchaseCosts[i.id] ?? ''}
+                            onChange={e => setPurchaseCosts(current => ({ ...current, [i.id]: e.target.value.replace(/\D/g, '') }))}
+                            placeholder={String(i.referenceCostAtOrder ?? i.product?.referenceCost ?? '')}
+                            inputMode="numeric"
+                            className="w-28 border border-gray-200 rounded-lg px-2.5 py-2 text-xs bg-white"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setStatus(o.id, 'READY_FOR_PICKUP')}
+                      disabled={savingPurchaseCosts === o.id}
+                      className="w-full mt-3 bg-zana-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl disabled:opacity-50"
+                    >
+                      {savingPurchaseCosts === o.id ? 'Saving…' : 'Save costs & mark ready for pickup'}
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center">
                   <span className="font-black text-gray-900">{o.total?.toLocaleString()} RWF</span>
-                  {step && (
+                  {step && o.status !== 'PREPARING' && (
                     <button onClick={() => setStatus(o.id, step.to)}
-                      className="bg-zana-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl">
-                      {step.label}
+                      disabled={savingPurchaseCosts === o.id}
+                      className="bg-zana-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl disabled:opacity-50">
+                      {savingPurchaseCosts === o.id ? 'Saving…' : step.label}
                     </button>
                   )}
                   {o.status === 'READY_FOR_PICKUP' && (
