@@ -1053,7 +1053,7 @@ export default function DriverHome() {
         </div>
       )}
 
-      {/* Incoming ride offers — up to 5 at once, each a real, individually
+      {/* Incoming ride offers — up to 4 at once, each a real, individually
           tracked offer rather than a single shared slot. Stacked in a
           scrollable list rather than each fixed independently, since more
           than one at the same screen position would just sit on top of
