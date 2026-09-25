@@ -56,7 +56,7 @@ export default function FinancialPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           <Card label="Total Revenue (rides)" value={fmt(snapshot?.totalRevenue)} />
-          <Card label="Total Commission Earned" value={fmt(snapshot?.totalCommission)} sub="15% per ride" color="green" />
+          <Card label="Total Commission Earned" value={fmt(snapshot?.totalCommission)} sub="Live ride commission policy" color="green" />
           <Card label="Total Expenses" value={fmt(snapshot?.totalExpenses)} color="red" />
           <Card label="Net Profit" value={fmt(snapshot?.netProfit)} color={snapshot?.netProfit >= 0 ? 'green' : 'red'} />
         </div>
@@ -93,7 +93,7 @@ export default function FinancialPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
           <Card label="Monthly Salary Burden" value={fmt(snapshot?.monthlySalaryBurden)} sub="All active staff" color="amber" />
-          <Card label="Ride Commissions" value={fmt(commissions?.rideCommission)} sub={`${commissions?.rideCount ?? 0} rides`} />
+          <Card label="Ride Commissions" value={fmt(commissions?.rideCommission)} sub={`${commissions?.rideCount ?? 0} rides · policy-driven`} />
           <Card label="Delivery Commissions" value={fmt(commissions?.deliveryCommission)} sub={`${commissions?.deliveryCount ?? 0} deliveries`} />
         </div>
 
