@@ -293,7 +293,15 @@ export class OrdersService {
   async findForCustomer(customerId: string) {
     return this.prisma.order.findMany({
       where: { customerId },
-      include: { items: { include: { product: true } }, merchant: true },
+      include: {
+        items: { include: { product: true } },
+        merchant: true,
+        delivery: {
+          include: {
+            driver: { select: { id: true, lastLat: true, lastLng: true, vehicle: true, plate: true, rating: true, user: { select: { firstName: true, phone: true } } } },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -349,6 +357,7 @@ export class OrdersService {
         const dispatchedDelivery = await this.prisma.delivery.create({
           data: {
             customerId: order.customerId,
+            orderId: order.id,
             merchantId: order.merchantId ?? null,
             status: 'REQUESTED',
             trackingCode: 'ZD' + Math.random().toString(36).slice(2, 8).toUpperCase(),
