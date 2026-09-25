@@ -21,7 +21,9 @@ export default function AgentPage() {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [priceNote, setPriceNote] = useState('');
+  const [editing, setEditing] = useState<any>(null);
+  const [editPrice, setEditPrice] = useState('');
+  const [editReason, setEditReason] = useState('');
   const [saving, setSaving] = useState(false);
 
   const load = () => {
@@ -49,6 +51,15 @@ export default function AgentPage() {
     } catch (e: any) {
       setError(e?.message ?? 'Could not add the item');
     } finally { setSaving(false); }
+  };
+
+  const requestPrice = async () => {
+    if (!editing || !editPrice) return;
+    try {
+      await requestAgentPriceChange(editing.id, { referenceCost: Number(editPrice), reason: editReason || 'Market price update' });
+      setEditing(null); setEditPrice(''); setEditReason('');
+      api.get<any[]>('/agent/products').then(setProducts).catch(() => {});
+    } catch (e: any) { setError(e?.message ?? 'Could not submit price change'); }
   };
 
   const removeItem = async (id: string) => {
@@ -188,6 +199,8 @@ export default function AgentPage() {
             </div>
           )}
 
+          {editing && <div className="bg-white rounded-2xl p-4 mb-3 shadow-sm"><p className="font-bold text-sm">Request market price change</p><p className="text-[11px] text-gray-500 mt-1">Enter the current underlying market price. Zana will calculate the customer price at +20%.</p><input value={editPrice} onChange={e=>setEditPrice(e.target.value.replace(/\D/g,''))} placeholder="Market price in RWF" inputMode="numeric" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mt-2"/><input value={editReason} onChange={e=>setEditReason(e.target.value)} placeholder="Reason (optional)" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mt-2"/><div className="flex gap-2 mt-2"><button onClick={requestPrice} disabled={!editPrice} className="flex-1 bg-zana-primary text-white font-bold py-2.5 rounded-xl disabled:opacity-40">Submit request</button><button onClick={()=>setEditing(null)} className="px-4 border border-gray-200 rounded-xl text-sm">Cancel</button></div></div>}
+
           <div className="space-y-2">
             {products.length === 0 && !adding && (
               <p className="text-center text-sm text-gray-500 py-10">
@@ -200,10 +213,9 @@ export default function AgentPage() {
                   <p className="font-bold text-sm text-gray-900">{p.name}</p>
                   <p className="text-sm text-zana-primary font-black">{p.price?.toLocaleString()} RWF customer price</p><p className="text-[11px] text-gray-400">Includes 20% Zana markup</p>
                 </div>
-                <button onClick={() => removeItem(p.id)}
-                  className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center">
+                <div className="flex gap-2"><button onClick={() => { setEditing(p); setEditPrice(String(Math.round((p.referenceCost ?? p.price) || 0))); }} className="text-xs font-bold text-zana-primary px-2">Price</button><button onClick={() => removeItem(p.id)} className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center">
                   <Trash2 size={15} className="text-red-500" />
-                </button>
+                </button></div>
               </div>
             ))}
           </div>
