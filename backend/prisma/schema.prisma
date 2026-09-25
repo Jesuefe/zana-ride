@@ -416,14 +416,17 @@ model Rating {
 }
 
 model FareConfig {
-  id          String      @id @default(uuid())
-  serviceType ServiceType @unique
-  base        Int
-  perKm       Int
-  perMin      Int
-  bookingFee  Int
-  minimum     Int
-  updatedAt   DateTime    @updatedAt
+  id                  String      @id @default(uuid())
+  serviceType         ServiceType @unique
+  base                Int
+  perKm               Int
+  perMin              Int
+  bookingFee          Int
+  minimum             Int
+  commissionRate      Float       @default(15)
+  freeWaitingMinutes  Int         @default(10)
+  waitingPerMinute    Int         @default(100)
+  updatedAt           DateTime    @updatedAt
 }
 
 model Wallet {
