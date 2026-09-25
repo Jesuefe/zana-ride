@@ -40,7 +40,6 @@ import { HealthController } from './health.controller';
       limit: 200,  // 200 requests per minute per IP
     }]),
     ConfigModule.forRoot({ isGlobal: true }),
-    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     UsersModule,

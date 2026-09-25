@@ -68,20 +68,6 @@ export class MerchantController {
     return this.merchantService.deleteProduct(user.sub, id);
   }
 
-  /**
-   * Merchants withdraw through the same path as everyone else, so they get
-   * the balance check, the pending transaction record, the real Paypack
-   * cashout and the automatic refund if it fails.
-   */
-  @Post('wallet/withdraw')
-  async withdraw(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: { amount: number },
-  ) {
-    const merchant = await this.merchantService.findByUserId(user.sub);
-    return this.walletService.withdraw(merchant.userId, body.amount);
-  }
-
   @Patch('location')
   async updateLocation(
     @CurrentUser() user: JwtPayload,
