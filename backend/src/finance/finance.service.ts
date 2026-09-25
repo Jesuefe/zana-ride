@@ -128,10 +128,15 @@ export class FinanceService {
     if (!agent?.active || !agent.marketId) throw new BadRequestException('AGENT_NOT_ACTIVE');
     const product = await this.prisma.product.findFirst({ where: { id: productId, marketId: agent.marketId }});
     if (!product) throw new NotFoundException('PRODUCT_NOT_IN_YOUR_MARKET');
-    const newPrice = data.price ?? product.price;
-    const newReference = data.referenceCost ?? product.referenceCost ?? newPrice;
-    if (newPrice <= 0 || newReference <= 0) throw new BadRequestException('INVALID_PRICE');
     const cfg = await this.marketConfig();
+    const newReference = data.referenceCost ?? product.referenceCost;
+    if (!newReference || !Number.isInteger(newReference) || newReference <= 0) {
+      throw new BadRequestException('INVALID_MARKET_PRICE');
+    }
+    const newPrice = Math.round(newReference * (1 + cfg.markupPercent / 100));
+    if (data.price != null && data.price !== newPrice) {
+      throw new BadRequestException('PRICE_MUST_MATCH_MARKUP');
+    }
     const changePct = Math.abs(newPrice - product.price) / Math.max(1, product.price) * 100;
     if (changePct > cfg.hardRejectPercent) throw new BadRequestException('PRICE_CHANGE_TOO_LARGE');
     const status = changePct <= cfg.autoApprovePercent ? 'APPROVED' : 'PENDING';
