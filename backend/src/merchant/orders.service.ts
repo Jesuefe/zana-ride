@@ -18,6 +18,7 @@ import { PaypackService } from '../wallet/paypack.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
 import { OrderStatus } from '@prisma/client';
 import { DeliveriesService } from '../deliveries/deliveries.service';
+import { FinanceService } from '../finance/finance.service';
 
 @Injectable()
 export class OrdersService {
@@ -26,6 +27,7 @@ export class OrdersService {
     private deliveriesService: DeliveriesService,
     private paypack: PaypackService,
     private gateway: ZanaGateway,
+    private finance: FinanceService,
   ) {}
 
   // Shared by both order creation and status updates — a small, direct
@@ -164,6 +166,7 @@ export class OrdersService {
             productId: item.productId,
             quantity: item.quantity,
             price: products.find(p => p.id === item.productId)!.price,
+            referenceCostAtOrder: products.find(p => p.id === item.productId)!.referenceCost,
           })),
         },
       } as any,
@@ -324,81 +327,7 @@ export class OrdersService {
       },
     });
 
-    // Previously nothing anywhere in the order lifecycle ever paid the
-    // merchant or the agent who fulfilled it — the item total the
-    // customer paid just had no destination at all once an order
-    // reached this point.
-    //
-    // Merchant orders and market/agent orders are genuinely different
-    // businesses wearing the same Order model. A merchant owns their
-    // inventory and sets their own price, so a flat commission on the
-    // total makes sense there. An agent doesn't own anything — they're
-    // paid specifically for the gap between what the customer paid and
-    // what the item actually cost, split with Zana, with the agent
-    // keeping the full benefit of any negotiation. These need two
-    // genuinely separate calculations, not one formula stretched to
-    // cover both.
-    if (status === OrderStatus.DELIVERED) {
-      const isMarketOrder = !!(order as any).marketId;
-      let payout = 0;
-      let payeeUserId: string | null = null;
-
-      if (isMarketOrder) {
-        payeeUserId = await this.resolveAgentPayeeUserId((order as any).agentId);
-        for (const item of order.items) {
-          const referenceCost = (item.product as any).referenceCost as number | null;
-          if (referenceCost == null) continue; // no reference price recorded — nothing to split
-          const marginPerUnit = item.price - referenceCost;
-          const zanaSharePerUnit = Math.round(marginPerUnit / 2);
-          const actualPaid = (item as any).actualPurchasePrice ?? referenceCost;
-          const savingPerUnit = Math.max(0, referenceCost - actualPaid);
-          const agentSharePerUnit = (marginPerUnit - zanaSharePerUnit) + savingPerUnit;
-          payout += agentSharePerUnit * item.quantity;
-        }
-      } else {
-        // Same 15% used for rides/deliveries, applied here for
-        // consistency — a genuine business call, not something to
-        // treat as settled just because it's now implemented.
-        const commission = Math.round(order.total * 0.15);
-        payout = order.total - commission;
-        payeeUserId = (order as any).merchant?.user?.id ?? null;
-      }
-
-      if (payeeUserId && payout > 0) {
-        // Same atomic pattern already proven throughout the rest of the
-        // app — claim the payout exactly once per order rather than
-        // trusting this method is only ever called a single time.
-        const alreadyPaid = await this.prisma.walletTransaction.findFirst({
-          where: { reference: `Order payout: ${order.id}` },
-        });
-        if (!alreadyPaid) {
-          const wallet = await this.prisma.wallet.upsert({
-            where: { userId: payeeUserId },
-            create: { userId: payeeUserId, balance: 0 },
-            update: {},
-          });
-          const balanceBefore = wallet.balance;
-          await this.prisma.wallet.update({
-            where: { userId: payeeUserId },
-            data: { balance: { increment: payout } },
-          });
-          await this.prisma.walletTransaction.create({
-            data: {
-              walletId: wallet.id,
-              amount: payout,
-              balanceBefore,
-              balanceAfter: balanceBefore + payout,
-              status: 'COMPLETED' as any,
-              reference: `Order payout: ${order.id}`,
-            },
-          });
-        }
-      } else if (!payeeUserId) {
-        console.error(`[ORDER] No merchant or agent to pay out for order ${order.id} — payout skipped.`);
-      }
-    }
-
-    // Admin's order screen previously had no live path at all for this —
+    // Financial settlement is idempotent and owns the merchant/agent ledger + wallet credit.\n    if (status === OrderStatus.DELIVERED) {\n      try {\n        await this.finance.settleOrder(id);\n      } catch (e: any) {\n        console.error(`[ORDER] Settlement failed for ${id}:`, e?.message);\n        throw e;\n      }\n    }\n\n    // Admin's order screen previously had no live path at all for this —
     // manual refresh only, regardless of what changed.
     await this.notifyAdmins('order:status', { orderId: id, status });
 
