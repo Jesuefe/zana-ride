@@ -83,3 +83,36 @@ export async function recordSalaryPayment(data: any) { return api.post('/admin/s
 export async function getOrders() { return api.get<any[]>('/admin/orders'); }
 
 export async function deleteProduct(id: string) { return api.delete(`/admin/products/${id}`); }
+
+
+export async function getMerchantFinance(merchantId: string) {
+  return api.get<any>(`/admin/finance/merchants/${merchantId}`);
+}
+
+export async function getAgentFinance(agentId: string) {
+  return api.get<any>(`/admin/finance/agents/${agentId}`);
+}
+
+export async function getMarketPriceConfig() {
+  return api.get<any>('/admin/market-price-config');
+}
+
+export async function getMarketPriceHistory(productId?: string) {
+  return api.get<any[]>(`/admin/market-price-history${productId ? `?productId=${encodeURIComponent(productId)}` : ''}`);
+}
+
+export async function getMarketPriceReviews() {
+  return api.get<any[]>('/admin/market-price-reviews');
+}
+
+export async function reviewMarketPrice(id: string, approve: boolean, reason?: string) {
+  return api.patch(`/admin/market-price-reviews/${id}`, { approve, reason });
+}
+
+export async function updateMarketAgentRate(rate: number) {
+  return api.patch('/admin/market-agent-rate', { rate });
+}
+
+export async function getFinanceAudit(limit = 100) {
+  return api.get<any[]>(`/admin/audit?limit=${limit}`);
+}
