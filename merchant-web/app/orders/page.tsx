@@ -112,7 +112,7 @@ export default function OrdersPage() {
                   {o.items?.map((item: any) => (
                     <div key={item.id} className="flex items-center justify-between text-sm">
                       <span className="text-gray-700">{item.product?.name} <span className="text-gray-400">×{item.quantity}</span></span>
-                      <span className="font-semibold text-gray-900">{((item.product?.price ?? 0) * item.quantity).toLocaleString()} RWF</span>
+                      <span className="font-semibold text-gray-900">{((item.price ?? item.product?.price ?? 0) * item.quantity).toLocaleString()} RWF</span>
                     </div>
                   ))}
                 </div>
