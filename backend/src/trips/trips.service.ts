@@ -303,8 +303,9 @@ export class TripsService {
    */
   private async refreshTripOffers(tripId: string) {
     // Multiple triggers can arrive together (new ride, decline, expiry,
-    // scheduler). Keep one refresh per ride in this API instance so two
-    // refreshes cannot both observe the same empty slot and overfill it.
+    // scheduler). This in-memory check is a cheap first-line optimization —
+    // it only protects against redundant concurrent calls within this one
+    // process, so it's kept as a fast short-circuit, not the real guard.
     if (this.refreshingTripIds.has(tripId)) return;
     this.refreshingTripIds.add(tripId);
     try {
@@ -327,66 +328,85 @@ export class TripsService {
     const DRIVER_PENDING_LIMIT = 4;
     const OFFER_TTL_MS = 20_000;
 
-    const pending = await this.prisma.rideOffer.findMany({
-      where: { tripId, status: 'PENDING', expiresAt: { gte: new Date() } },
-      select: { driverId: true },
-    });
-
-    if (pending.length >= OFFER_DRIVER_LIMIT) return;
-
+    // Nearby-driver lookup is read-only and doesn't need to be atomic with
+    // the write below, so it stays outside the locked transaction to keep
+    // the lock held as briefly as possible.
     const nearby = await this.driversService.findNearbyAvailable(
       trip.pickupLat,
       trip.pickupLng,
       trip.serviceType,
     );
+    if (nearby.length === 0) return;
 
-    const existingForTrip = await this.prisma.rideOffer.findMany({
-      where: { tripId },
-      select: { driverId: true },
-    });
-    const alreadyOffered = new Set(existingForTrip.map((o) => o.driverId));
+    // Previously the 4-driver-per-trip and 4-offer-per-driver limits were
+    // only ever checked with a plain read (count) before the write — safe
+    // for one process, but two truly concurrent calls (from this same
+    // instance racing past the in-memory check above under load, or from
+    // a second API instance if this ever scales beyond one) could both
+    // read a count under the limit and both proceed to insert, together
+    // exceeding it. A Postgres advisory lock scoped to this specific trip
+    // ID serializes every read-check-write sequence for this trip across
+    // every connection and every process, not just within this one, and
+    // is automatically released when the transaction ends — no separate
+    // unlock call to forget.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${tripId}))`;
 
-    const candidates: typeof nearby = [];
-    for (const candidate of nearby) {
-      if (pending.some((o) => o.driverId === candidate.id)) continue;
-      if (alreadyOffered.has(candidate.id)) continue;
-
-      const driverPending = await this.prisma.rideOffer.count({
-        where: {
-          driverId: candidate.id,
-          status: 'PENDING',
-          expiresAt: { gte: new Date() },
-        },
+      const pending = await tx.rideOffer.findMany({
+        where: { tripId, status: 'PENDING', expiresAt: { gte: new Date() } },
+        select: { driverId: true },
       });
-      if (driverPending >= DRIVER_PENDING_LIMIT) continue;
 
-      candidates.push(candidate);
-      if (pending.length + candidates.length >= OFFER_DRIVER_LIMIT) break;
-    }
+      if (pending.length >= OFFER_DRIVER_LIMIT) return;
 
-    if (candidates.length === 0) return;
-
-    const expiresAt = new Date(Date.now() + OFFER_TTL_MS);
-    await this.prisma.rideOffer.createMany({
-      data: candidates.map((d) => ({
-        tripId,
-        driverId: d.id,
-        distanceKm: Math.round(d.distanceKm * 10) / 10,
-        expiresAt,
-      })),
-      skipDuplicates: true,
-    });
-
-    for (const d of candidates) {
-      this.gateway.sendToUser(d.userId, 'ride:offer', {
-        tripId,
-        pickupAddress: trip.pickupAddress,
-        destinationAddress: trip.destinationAddress,
-        distanceKm: Math.round(d.distanceKm * 10) / 10,
-        fare: trip.estimatedFare,
-        expiresAt,
+      const existingForTrip = await tx.rideOffer.findMany({
+        where: { tripId },
+        select: { driverId: true },
       });
-    }
+      const alreadyOffered = new Set(existingForTrip.map((o) => o.driverId));
+
+      const candidates: typeof nearby = [];
+      for (const candidate of nearby) {
+        if (pending.some((o) => o.driverId === candidate.id)) continue;
+        if (alreadyOffered.has(candidate.id)) continue;
+
+        const driverPending = await tx.rideOffer.count({
+          where: {
+            driverId: candidate.id,
+            status: 'PENDING',
+            expiresAt: { gte: new Date() },
+          },
+        });
+        if (driverPending >= DRIVER_PENDING_LIMIT) continue;
+
+        candidates.push(candidate);
+        if (pending.length + candidates.length >= OFFER_DRIVER_LIMIT) break;
+      }
+
+      if (candidates.length === 0) return;
+
+      const expiresAt = new Date(Date.now() + OFFER_TTL_MS);
+      await tx.rideOffer.createMany({
+        data: candidates.map((d) => ({
+          tripId,
+          driverId: d.id,
+          distanceKm: Math.round(d.distanceKm * 10) / 10,
+          expiresAt,
+        })),
+        skipDuplicates: true,
+      });
+
+      for (const d of candidates) {
+        this.gateway.sendToUser(d.userId, 'ride:offer', {
+          tripId,
+          pickupAddress: trip.pickupAddress,
+          destinationAddress: trip.destinationAddress,
+          distanceKm: Math.round(d.distanceKm * 10) / 10,
+          fare: trip.estimatedFare,
+          expiresAt,
+        });
+      }
+    });
     } finally {
       this.refreshingTripIds.delete(tripId);
     }
