@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, DollarSign, Users, Plus, Trash2, RefreshCw, Check, X } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
-import { getFinancial, getCommissionSummary, getExpenses, createExpense, deleteExpense, getMarketPriceConfig, getMarketPriceReviews, reviewMarketPrice, getFinanceAudit, updateMarketAgentRate } from '../../../lib/api/admin';
+import { getFinancial, getCommissionSummary, getExpenses, createExpense, deleteExpense, getMarketPriceConfig, getMarketPriceReviews, reviewMarketPrice, getFinanceAudit, updateMarketAgentRate, getAccountingLedger } from '../../../lib/api/admin';
 
 function Card({ label, value, sub, color = 'green' }: any) {
   const colors: Record<string, string> = { green: 'bg-green-50 text-green-700', red: 'bg-red-50 text-red-700', blue: 'bg-blue-50 text-blue-700', amber: 'bg-amber-50 text-amber-700' };
@@ -25,10 +25,12 @@ export default function FinancialPage() {
   const [priceReviews, setPriceReviews] = useState<any[]>([]);
   const [audit, setAudit] = useState<any[]>([]);
   const [agentRate, setAgentRate] = useState('');
+  const [ledger, setLedger] = useState<any>(null);
   const CATEGORIES = ['Office', 'Fuel', 'Marketing', 'Software', 'Salaries', 'Equipment', 'Other'];
 
   const load = () => {
     getFinancial().then(setSnapshot).catch(() => {});
+    getAccountingLedger(500).then(setLedger).catch(() => {});
     getCommissionSummary().then(setCommissions).catch(() => {});
     getExpenses().then(setExpenses).catch(() => {});
     Promise.all([getMarketPriceConfig(), getMarketPriceReviews(), getFinanceAudit(100)]).then(([cfg, reviews, logs]) => { setMarketConfig(cfg); setPriceReviews(reviews); setAudit(logs); setAgentRate(String(cfg.agentMarkupShare ?? 40)); }).catch(() => {});
@@ -88,6 +90,27 @@ export default function FinancialPage() {
             <div className="max-h-72 overflow-auto">
               {priceReviews.length===0 ? <p className="p-5 text-sm text-gray-400">No pending reviews.</p> : priceReviews.map(r=><div key={r.id} className="p-4 border-b border-gray-50 flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">{r.product?.name ?? 'Product'}</p><p className="text-xs text-gray-500">{r.oldPrice?.toLocaleString()} → {r.newPrice?.toLocaleString()} RWF</p></div><div className="flex gap-1"><button onClick={async()=>{await reviewMarketPrice(r.id,true);load();}} className="p-2 rounded-lg bg-green-50 text-green-700"><Check size={14}/></button><button onClick={async()=>{await reviewMarketPrice(r.id,false);load();}} className="p-2 rounded-lg bg-red-50 text-red-700"><X size={14}/></button></div></div>)}
             </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-5 mb-6">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div><h2 className="font-black text-gray-900">Unified Accounting Ledger</h2><p className="text-xs text-gray-500 mt-1">One operational view across rides, deliveries, marketplace orders, commissions, wallets, debt and expenses — ready for the future AI accounting layer.</p></div>
+            <button onClick={() => getAccountingLedger(500).then(setLedger)} className="text-xs font-bold px-3 py-2 border border-gray-200 rounded-lg flex items-center gap-1"><RefreshCw size={13}/> Refresh</button>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 mb-4">
+            {[
+              ['Total GMV', ledger?.totals?.gmv], ['Ride GMV', ledger?.totals?.rideGmv], ['Delivery GMV', ledger?.totals?.deliveryGmv],
+              ['Marketplace', ledger?.totals?.marketplaceGmv], ['Commission', ledger?.totals?.commission], ['Driver debt', ledger?.totals?.outstandingDriverDebt],
+            ].map(([label, value]) => <div key={label} className="bg-gray-50 rounded-lg p-3"><p className="text-[10px] uppercase font-bold text-gray-400">{label}</p><p className="text-sm font-black text-gray-900 mt-1">{fmt(Number(value ?? 0))}</p></div>)}
+          </div>
+          <div className="max-h-80 overflow-auto border border-gray-100 rounded-lg">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-gray-50"><tr>{['Time','Type','Direction','Amount','Reference','Status','Account'].map(h=><th key={h} className="text-left px-3 py-2 font-bold text-gray-500">{h}</th>)}</tr></thead>
+              <tbody>{(ledger?.rows ?? []).map((row:any)=><tr key={row.type+row.entityId+row.at} className="border-t border-gray-50">
+                <td className="px-3 py-2 whitespace-nowrap text-gray-500">{new Date(row.at).toLocaleString()}</td><td className="px-3 py-2 font-bold">{row.type}</td><td className="px-3 py-2">{row.direction}</td><td className="px-3 py-2 font-black">{fmt(row.amount)}</td><td className="px-3 py-2 font-mono text-[10px]">{row.reference ?? '—'}</td><td className="px-3 py-2">{row.status}</td><td className="px-3 py-2">{row.account ?? '—'}</td>
+              </tr>)}</tbody>
+            </table>
           </div>
         </div>
 
