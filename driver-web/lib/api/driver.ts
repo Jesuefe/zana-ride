@@ -23,7 +23,7 @@ export type DriverTrip = {
   destinationAddress: string;
   destinationLat: number;
   destinationLng: number;
-  customer: { firstName: string | null; lastName: string | null; phone: string };
+  customer: { firstName: string | null; lastName: string | null; phone: string; role?: string };
 };
 
 export async function fetchMyDriverProfile() {
