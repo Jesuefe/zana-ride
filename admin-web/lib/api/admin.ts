@@ -62,6 +62,8 @@ export async function updateFare(serviceType: string, data: any) {
 }
 
 export async function getFinancial() { return api.get<any>('/admin/financial'); }
+export async function getAccountingLedger(limit = 500) { return api.get<any>(`/admin/accounting/ledger?limit=${limit}`); }
+export async function getLiveOperations() { return api.get<any>('/admin/operations/live'); }
 export async function getCommissions() { return api.get<any[]>('/admin/commissions'); }
 export async function getCommissionSummary() { return api.get<any>('/admin/commissions/summary'); }
 
