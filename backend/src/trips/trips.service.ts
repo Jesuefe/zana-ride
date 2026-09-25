@@ -320,6 +320,7 @@ export class TripsService {
         destinationAddress: true,
         estimatedFare: true,
         status: true,
+        customer: { select: { firstName: true, lastName: true, role: true } },
       },
     });
     if (!trip || trip.status !== TripStatus.SEARCHING_DRIVER) return;
@@ -403,6 +404,8 @@ export class TripsService {
           destinationAddress: trip.destinationAddress,
           distanceKm: Math.round(d.distanceKm * 10) / 10,
           fare: trip.estimatedFare,
+          requesterName: [trip.customer?.firstName, trip.customer?.lastName].filter(Boolean).join(' ') || 'Passenger',
+          requesterRole: trip.customer?.role ?? 'CUSTOMER',
           expiresAt,
         });
       }
