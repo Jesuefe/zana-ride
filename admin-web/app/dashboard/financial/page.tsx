@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Users, Plus, Trash2 } from 'lucide-react';
+import { TrendingUp, DollarSign, Users, Plus, Trash2, RefreshCw, Check, X } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
-import { getFinancial, getCommissionSummary, getExpenses, createExpense, deleteExpense } from '../../../lib/api/admin';
+import { getFinancial, getCommissionSummary, getExpenses, createExpense, deleteExpense, getMarketPriceConfig, getMarketPriceReviews, reviewMarketPrice, getFinanceAudit, updateMarketAgentRate } from '../../../lib/api/admin';
 
 function Card({ label, value, sub, color = 'green' }: any) {
   const colors: Record<string, string> = { green: 'bg-green-50 text-green-700', red: 'bg-red-50 text-red-700', blue: 'bg-blue-50 text-blue-700', amber: 'bg-amber-50 text-amber-700' };
@@ -21,12 +21,17 @@ export default function FinancialPage() {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [form, setForm] = useState({ title: '', amount: '', category: 'Office', description: '' });
+  const [marketConfig, setMarketConfig] = useState<any>(null);
+  const [priceReviews, setPriceReviews] = useState<any[]>([]);
+  const [audit, setAudit] = useState<any[]>([]);
+  const [agentRate, setAgentRate] = useState('');
   const CATEGORIES = ['Office', 'Fuel', 'Marketing', 'Software', 'Salaries', 'Equipment', 'Other'];
 
   const load = () => {
     getFinancial().then(setSnapshot).catch(() => {});
     getCommissionSummary().then(setCommissions).catch(() => {});
     getExpenses().then(setExpenses).catch(() => {});
+    Promise.all([getMarketPriceConfig(), getMarketPriceReviews(), getFinanceAudit(100)]).then(([cfg, reviews, logs]) => { setMarketConfig(cfg); setPriceReviews(reviews); setAudit(logs); setAgentRate(String(cfg.agentMarkupShare ?? 40)); }).catch(() => {});
   };
   useEffect(() => { load(); }, []);
 
@@ -54,6 +59,36 @@ export default function FinancialPage() {
           <Card label="Total Commission Earned" value={fmt(snapshot?.totalCommission)} sub="15% per ride" color="green" />
           <Card label="Total Expenses" value={fmt(snapshot?.totalExpenses)} color="red" />
           <Card label="Net Profit" value={fmt(snapshot?.netProfit)} color={snapshot?.netProfit >= 0 ? 'green' : 'red'} />
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <Card label="Marketplace Markup" value={`${marketConfig?.markupPercent ?? 20}%`} sub="Configured customer markup" />
+          <Card label="Agent Markup Share" value={`${marketConfig?.agentMarkupShare ?? 40}%`} sub={`Zana ${marketConfig?.zanaMarkupShare ?? 60}%`} color="blue" />
+          <Card label="Pending Price Reviews" value={String(priceReviews.length)} sub="Requires admin action" color={priceReviews.length ? "amber" : "green"} />
+          <Card label="Finance Audit Events" value={String(audit.length)} sub="Latest 100 events" />
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-4 mb-6">
+          <div className="bg-white rounded-xl p-5 shadow-sm">
+            <h2 className="font-semibold text-gray-900">Market pricing controls</h2>
+            <p className="text-xs text-gray-500 mt-1">Pricing and markup split used by the marketplace.</p>
+            <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
+              <div className="bg-gray-50 rounded-lg p-3"><span className="text-gray-500 text-xs">Markup</span><p className="font-bold">{marketConfig?.markupPercent ?? 20}%</p></div>
+              <div className="bg-gray-50 rounded-lg p-3"><span className="text-gray-500 text-xs">Auto-approve</span><p className="font-bold">{marketConfig?.autoApprovePercent ?? 15}%</p></div>
+              <div className="bg-gray-50 rounded-lg p-3"><span className="text-gray-500 text-xs">Hard reject</span><p className="font-bold">{marketConfig?.hardRejectPercent ?? 100}%</p></div>
+              <div className="bg-gray-50 rounded-lg p-3"><span className="text-gray-500 text-xs">Zana share</span><p className="font-bold">{marketConfig?.zanaMarkupShare ?? 60}%</p></div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <input value={agentRate} onChange={e=>setAgentRate(e.target.value)} type="number" min="0" max="100" className="w-28 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+              <button onClick={async()=>{const n=Number(agentRate);if(n>=0&&n<=100){await updateMarketAgentRate(n);load();}}} className="bg-zana-primary text-white font-semibold px-3 py-2 rounded-lg text-xs">Save agent share</button>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-gray-100"><h2 className="font-semibold text-gray-900">Pending market price reviews</h2><p className="text-xs text-gray-500 mt-1">Approve or reject agent price changes.</p></div>
+            <div className="max-h-72 overflow-auto">
+              {priceReviews.length===0 ? <p className="p-5 text-sm text-gray-400">No pending reviews.</p> : priceReviews.map(r=><div key={r.id} className="p-4 border-b border-gray-50 flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">{r.product?.name ?? 'Product'}</p><p className="text-xs text-gray-500">{r.oldPrice?.toLocaleString()} → {r.newPrice?.toLocaleString()} RWF</p></div><div className="flex gap-1"><button onClick={async()=>{await reviewMarketPrice(r.id,true);load();}} className="p-2 rounded-lg bg-green-50 text-green-700"><Check size={14}/></button><button onClick={async()=>{await reviewMarketPrice(r.id,false);load();}} className="p-2 rounded-lg bg-red-50 text-red-700"><X size={14}/></button></div></div>)}
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
