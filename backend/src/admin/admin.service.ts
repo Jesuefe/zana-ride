@@ -373,6 +373,12 @@ export class AdminService {
     return this.prisma.market.update({ where: { id }, data });
   }
 
+  async deactivateMarket(id: string) {
+    const market = await this.prisma.market.findUnique({ where: { id } });
+    if (!market) throw new NotFoundException('Market not found');
+    return this.prisma.market.update({ where: { id }, data: { active: false } });
+  }
+
   // Previously the only way to list a market item at all was through an
   // agent's own app — admin had no upload path of their own for market
   // inventory, despite already having one for merchant products.
