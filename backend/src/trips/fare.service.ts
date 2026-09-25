@@ -22,6 +22,16 @@ const DEFAULT_RATES: Record<ServiceType, FareRates> = {
   COMFORT: { base: -5605, perKm: 2171, perMin: 0, bookingFee: 0, minimum: 6000, commissionRate: 15, freeWaitingMinutes: 10, waitingPerMinute: 100 },
 };
 
+// These were the previous FareConfig seed values. They did not drive the
+// live calibrated fare engine, so a first production boot after this change
+// upgrades only untouched legacy rows. A genuinely customized admin rate is
+// left alone.
+const LEGACY_RATES: Record<ServiceType, Omit<FareRates, 'commissionRate' | 'freeWaitingMinutes' | 'waitingPerMinute'>> = {
+  BIKE: { base: 500, perKm: 250, perMin: 30, bookingFee: 100, minimum: 1000 },
+  ECONOMY: { base: 1000, perKm: 400, perMin: 50, bookingFee: 200, minimum: 1500 },
+  COMFORT: { base: 1500, perKm: 600, perMin: 70, bookingFee: 300, minimum: 2500 },
+};
+
 @Injectable()
 export class FareService implements OnModuleInit {
   private cache: Record<string, FareRates> = { ...DEFAULT_RATES };
@@ -35,11 +45,39 @@ export class FareService implements OnModuleInit {
 
   private async ensureSeeded() {
     for (const [serviceType, rates] of Object.entries(DEFAULT_RATES)) {
-      await this.prisma.fareConfig.upsert({
-        where: { serviceType: serviceType as ServiceType },
-        update: {},
-        create: { serviceType: serviceType as ServiceType, ...rates },
-      });
+      const type = serviceType as ServiceType;
+      const existing = await this.prisma.fareConfig.findUnique({ where: { serviceType: type } });
+
+      if (!existing) {
+        await this.prisma.fareConfig.create({ data: { serviceType: type, ...rates } });
+        continue;
+      }
+
+      const legacy = LEGACY_RATES[type];
+      const untouchedLegacy =
+        existing.base === legacy.base &&
+        existing.perKm === legacy.perKm &&
+        existing.perMin === legacy.perMin &&
+        existing.bookingFee === legacy.bookingFee &&
+        existing.minimum === legacy.minimum;
+
+      if (untouchedLegacy) {
+        await this.prisma.fareConfig.update({
+          where: { serviceType: type },
+          data: rates,
+        });
+      } else {
+        // Keep an existing operator-configured card intact, but fill the new
+        // operational controls when Prisma added them with their defaults.
+        await this.prisma.fareConfig.update({
+          where: { serviceType: type },
+          data: {
+            commissionRate: existing.commissionRate ?? rates.commissionRate,
+            freeWaitingMinutes: existing.freeWaitingMinutes ?? rates.freeWaitingMinutes,
+            waitingPerMinute: existing.waitingPerMinute ?? rates.waitingPerMinute,
+          },
+        });
+      }
     }
   }
 
