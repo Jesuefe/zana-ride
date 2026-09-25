@@ -206,6 +206,9 @@ model Product {
   updatedAt    DateTime       @updatedAt
   orderItems   OrderItem[]
   priceHistory MarketPriceHistory[]
+
+  @@index([merchantId])
+  @@index([marketId])
 }
 
 // Markets are admin-only — agents and riders operate within them.
@@ -630,6 +633,10 @@ model Order {
   dropoffLat     Float?
   dropoffLng     Float?
   receiverPhone  String?
+
+  @@index([merchantId, status, createdAt])
+  @@index([marketId, status, createdAt])
+  @@index([agentId, status, createdAt])
 
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
