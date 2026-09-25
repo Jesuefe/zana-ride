@@ -228,8 +228,12 @@ export class AdminController {
   getFares() { return this.adminService.getFares(); }
 
   @Patch('fares/:serviceType')
-  updateFare(@Param('serviceType') serviceType: string, @Body() body: any) {
-    return this.adminService.updateFare(serviceType, body);
+  updateFare(
+    @CurrentUser() user: JwtPayload,
+    @Param('serviceType') serviceType: string,
+    @Body() body: any,
+  ) {
+    return this.adminService.updateFare(serviceType, body, user.sub);
   }
 
   // Live-testing only — see setDriverTestLocation in admin.service.ts
