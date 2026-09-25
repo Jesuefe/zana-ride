@@ -125,7 +125,7 @@ export default function MerchantHistoryPage() {
               {o.items?.map((i: any) => (
                 <div key={i.id} className="flex justify-between text-sm">
                   <span className="text-gray-700">{i.product?.name} ×{i.quantity}</span>
-                  <span className="text-gray-500">{(i.price * i.quantity).toLocaleString()} RWF</span>
+                  <span className="text-gray-500">{((i.price ?? i.product?.price ?? 0) * i.quantity).toLocaleString()} RWF</span>
                 </div>
               ))}
             </div>
