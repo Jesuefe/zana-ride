@@ -19,6 +19,49 @@ export class FinancialService {
     return this.prisma.expense.delete({ where: { id } });
   }
 
+  async getAccountingLedger(limit = 500) {
+    const take = Math.min(Math.max(limit, 50), 1000);
+    const [wallet, commissions, debts, debtSettlements, merchantSettlements, agentSettlements, expenses, trips, deliveries, orders] = await Promise.all([
+      this.prisma.walletTransaction.findMany({ take, orderBy: { createdAt: 'desc' }, include: { wallet: { select: { user: { select: { firstName: true, lastName: true, phone: true, role: true } } } } } }),
+      this.prisma.commission.findMany({ take, orderBy: { createdAt: 'desc' } }),
+      this.prisma.commissionDebt.findMany({ take, orderBy: { createdAt: 'desc' } }),
+      this.prisma.debtSettlement.findMany({ take, orderBy: { createdAt: 'desc' } }),
+      this.prisma.merchantSettlement.findMany({ take, orderBy: { createdAt: 'desc' } }),
+      this.prisma.agentSettlement.findMany({ take, orderBy: { createdAt: 'desc' } }),
+      this.prisma.expense.findMany({ take, orderBy: { createdAt: 'desc' } }),
+      this.prisma.trip.findMany({ where: { status: 'RIDE_COMPLETED' }, take, orderBy: { completedAt: 'desc' }, select: { id: true, finalFare: true, estimatedFare: true, paymentMethod: true, serviceType: true, completedAt: true } }),
+      this.prisma.delivery.findMany({ where: { status: 'DELIVERED' }, take, orderBy: { deliveredAt: 'desc' }, select: { id: true, fee: true, paymentMethod: true, deliveredAt: true } }),
+      this.prisma.order.findMany({ take, orderBy: { createdAt: 'desc' }, select: { id: true, total: true, deliveryFee: true, status: true, paid: true, paymentMethod: true, createdAt: true } }),
+    ]);
+
+    const rows = [
+      ...wallet.map(t => ({ at: t.createdAt, type: 'WALLET_TRANSACTION', direction: t.amount >= 0 ? 'CREDIT' : 'DEBIT', amount: t.amount, reference: t.reference, status: t.status, entityId: t.id, description: t.description, account: t.wallet.user?.phone })),
+      ...commissions.map(t => ({ at: t.createdAt, type: 'ZANA_COMMISSION', direction: 'CREDIT', amount: t.amount, reference: t.tripId ? `TRIP:${t.tripId}` : `DELIVERY:${t.deliveryId}`, status: 'RECORDED', entityId: t.id, description: `Commission ${t.ratePercent}%`, account: 'ZANA' })),
+      ...debts.map(t => ({ at: t.createdAt, type: 'DRIVER_COMMISSION_DEBT', direction: 'RECEIVABLE', amount: t.amount, reference: t.tripId ? `TRIP:${t.tripId}` : `DELIVERY:${t.deliveryId ?? ''}`, status: t.paidAt ? 'PAID' : 'OUTSTANDING', entityId: t.id, description: `Driver commission debt`, account: t.driverId })),
+      ...debtSettlements.map(t => ({ at: t.createdAt, type: 'DEBT_SETTLEMENT', direction: 'CREDIT', amount: t.amount, reference: t.providerRef, status: t.status, entityId: t.id, description: 'Driver debt settlement', account: t.driverId })),
+      ...merchantSettlements.map(t => ({ at: t.createdAt, type: 'MERCHANT_SETTLEMENT', direction: 'PAYABLE', amount: t.merchantNet, reference: `ORDER:${t.orderId}`, status: t.status, entityId: t.id, description: `Merchant settlement after ${t.commissionRate}% commission`, account: t.merchantId })),
+      ...agentSettlements.map(t => ({ at: t.createdAt, type: 'AGENT_SETTLEMENT', direction: 'PAYABLE', amount: t.agentEarning, reference: `ORDER:${t.orderId}`, status: t.status, entityId: t.id, description: `Agent markup share ${t.agentRate ?? 0}%`, account: t.agentId })),
+      ...expenses.map(t => ({ at: t.createdAt, type: 'EXPENSE', direction: 'DEBIT', amount: t.amount, reference: t.id, status: 'RECORDED', entityId: t.id, description: t.title, account: t.category })),
+      ...trips.map(t => ({ at: t.completedAt ?? new Date(), type: 'RIDE_GMV', direction: 'GROSS', amount: t.finalFare ?? t.estimatedFare, reference: `TRIP:${t.id}`, status: 'COMPLETED', entityId: t.id, description: `${t.serviceType} ${t.paymentMethod}`, account: 'RIDES' })),
+      ...deliveries.map(t => ({ at: t.deliveredAt ?? new Date(), type: 'DELIVERY_GMV', direction: 'GROSS', amount: t.fee, reference: `DELIVERY:${t.id}`, status: 'DELIVERED', entityId: t.id, description: t.paymentMethod, account: 'DELIVERIES' })),
+      ...orders.map(t => ({ at: t.createdAt, type: 'ORDER', direction: 'GROSS', amount: t.total + t.deliveryFee, reference: `ORDER:${t.id}`, status: t.status, entityId: t.id, description: `${t.paymentMethod} · ${t.paid ? 'PAID' : 'UNPAID'}`, account: 'MARKETPLACE' })),
+    ].sort((a,b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, take);
+
+    const sum = (items: any[]) => items.reduce((s, x) => s + x.amount, 0);
+    const rideGmv = trips.reduce((s,t)=>s+(t.finalFare ?? t.estimatedFare),0);
+    const deliveryGmv = deliveries.reduce((s,t)=>s+t.fee,0);
+    const orderGmv = orders.filter(o=>o.status !== 'CANCELLED').reduce((s,o)=>s+o.total+o.deliveryFee,0);
+    const commissionTotal = commissions.reduce((s,t)=>s+t.amount,0);
+    const outstandingDebt = debts.filter(d=>!d.paidAt).reduce((s,t)=>s+t.amount,0);
+    const expensesTotal = expenses.reduce((s,t)=>s+t.amount,0);
+    return {
+      generatedAt: new Date(),
+      totals: { rideGmv, deliveryGmv, marketplaceGmv: orderGmv, gmv: rideGmv + deliveryGmv + orderGmv, commission: commissionTotal, outstandingDriverDebt: outstandingDebt, expenses: expensesTotal },
+      counts: { rides: trips.length, deliveries: deliveries.length, orders: orders.length, ledgerRows: rows.length },
+      rows,
+    };
+  }
+
   async getExpenseSummary() {
     const expenses = await this.prisma.expense.findMany();
     const byCategory: Record<string, number> = {};
