@@ -103,7 +103,8 @@ export class MarketsService {
         category: 'GOODS',
         imageUrl,
         stock: data.stock ?? 0,
-        status: 'APPROVED', // agents are trusted staff, no admin review needed
+        status: 'PENDING', // new market listings are not customer-visible until admin approves them
+        available: false,
       } as any,
     });
   }
