@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Loader2, Check, X } from 'lucide-react';
 import Topbar from '../../components/Topbar';
-import { fetchWallet, ApiWallet } from '../../lib/api/merchant';
+import { fetchWallet, ApiWallet, withdrawWallet } from '../../lib/api/merchant';
 import { api } from '../../lib/api/client';
 
 export default function WalletPage() {
@@ -11,7 +11,6 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [amount, setAmount] = useState('');
-  const [phone, setPhone] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -23,12 +22,12 @@ export default function WalletPage() {
     const amt = Number(amount);
     if (!amt || amt < 10000) { setError('Minimum withdrawal is 10,000 RWF'); return; }
     if (amt > (wallet?.balance ?? 0)) { setError('Insufficient balance'); return; }
-    if (!phone.trim()) { setError('Enter your MoMo phone number'); return; }
+    
     setWithdrawing(true); setError('');
     try {
-      await api.post('/merchant/wallet/withdraw', { amount: amt, phone: `+250${phone.replace(/\D/g,'')}` });
+      await withdrawWallet(amt);
       setSuccess(`${amt.toLocaleString()} RWF sent to ${phone}`);
-      setAmount(''); setPhone(''); setShowWithdraw(false);
+      setAmount(''); setShowWithdraw(false);
       load();
     } catch (e: any) {
       setError(e.message ?? 'Withdrawal failed');
@@ -99,7 +98,7 @@ export default function WalletPage() {
               </button>
             </div>
             <p className="text-xs text-gray-400 mb-4">
-              Available: <strong>{(wallet?.balance ?? 0).toLocaleString()} RWF</strong> · Minimum: 1,000 RWF
+              Available: <strong>{(wallet?.balance ?? 0).toLocaleString()} RWF</strong> · Minimum: 10,000 RWF
             </p>
             <div className="space-y-3">
               <div>
@@ -107,15 +106,6 @@ export default function WalletPage() {
                 <input value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g,''))}
                   placeholder="e.g. 5000" inputMode="numeric"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-zana-primary/30" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1.5">MoMo phone number</label>
-                <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3">
-                  <span className="text-sm text-gray-500">+250</span>
-                  <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g,''))}
-                    placeholder="78XXXXXXX" inputMode="tel"
-                    className="flex-1 text-sm outline-none" />
-                </div>
               </div>
               {error && <p className="text-xs text-red-600">{error}</p>}
               <button onClick={handleWithdraw} disabled={withdrawing}
