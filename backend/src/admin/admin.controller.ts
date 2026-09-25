@@ -182,6 +182,11 @@ export class AdminController {
     return this.adminService.updateMarket(id, body);
   }
 
+  @Delete('markets/:id')
+  deactivateMarket(@Param('id') id: string) {
+    return this.adminService.deactivateMarket(id);
+  }
+
   @Post('markets/:id/products')
   addMarketProduct(
     @Param('id') id: string,
