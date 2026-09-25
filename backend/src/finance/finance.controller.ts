@@ -25,6 +25,14 @@ export class FinanceController {
   @Roles('ADMIN')
   adminAgent(@Param('id') id: string) { return this.finance.adminAgent(id); }
 
+  @Get('admin/market-price-config')
+  @Roles('ADMIN')
+  marketPriceConfig() { return this.finance.marketPriceConfig(); }
+
+  @Get('admin/market-price-history')
+  @Roles('ADMIN')
+  priceHistory(@Query('productId') productId?: string) { return this.finance.priceHistory(productId); }
+
   @Get('admin/market-price-reviews')
   @Roles('ADMIN')
   pendingPriceChanges() { return this.finance.pendingPriceChanges(); }
