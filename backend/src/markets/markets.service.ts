@@ -59,6 +59,11 @@ export class MarketsService {
 
   // ── Agent-facing ──────────────────────────────────────────────────────────
 
+  private async marketMarkupPercent() {
+    const config = await this.prisma.marketPriceConfig.findFirst();
+    return config?.markupPercent ?? 20;
+  }
+
   private async requireAgent(userId: string) {
     const agent = await this.prisma.agent.findUnique({
       where: { userId },
@@ -97,7 +102,8 @@ export class MarketsService {
     if (!Number.isInteger(referenceCost) || referenceCost <= 0) {
       throw new BadRequestException('INVALID_MARKET_PRICE');
     }
-    const customerPrice = Math.round(referenceCost * 1.2);
+    const markupPercent = await this.marketMarkupPercent();
+    const customerPrice = Math.round(referenceCost * (1 + markupPercent / 100));
 
     return this.prisma.product.create({
       data: {
