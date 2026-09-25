@@ -179,11 +179,20 @@ export class MarketsService {
     });
     if (!order) throw new NotFoundException('Order not found in your market');
 
-    // Recorded whenever the agent actually provides it — most naturally
-    // when marking items picked up, once they know what they genuinely
-    // paid at the stall. This is what the margin split at completion
-    // actually keys off; without it, there's nothing to distinguish a
-    // negotiated saving from the reference stall price at all.
+    // Agents may only move their market orders through the fulfillment
+    // states they control. Rider/customer delivery states stay outside
+    // the agent workflow.
+    const allowedNext: Record<string, string[]> = {
+      PENDING: ['CONFIRMED', 'PREPARING'],
+      CONFIRMED: ['PREPARING'],
+      PREPARING: ['READY_FOR_PICKUP'],
+    };
+    if (!allowedNext[order.status]?.includes(status)) {
+      throw new BadRequestException('INVALID_AGENT_ORDER_TRANSITION');
+    }
+
+    // Record the actual amount paid at the stall. It can never exceed the
+    // immutable underlying reference cost captured when the order was made.
     if (actualPrices) {
       const items = await this.prisma.orderItem.findMany({ where: { orderId } });
       const itemMap = new Map(items.map(i => [i.id, i]));
@@ -194,8 +203,12 @@ export class MarketsService {
         if (!Number.isFinite(actualPurchasePrice) || !Number.isInteger(actualPurchasePrice) || actualPurchasePrice < 0) {
           throw new BadRequestException('INVALID_PURCHASE_PRICE');
         }
-        if (actualPurchasePrice > item.price) {
-          throw new BadRequestException('PURCHASE_PRICE_EXCEEDS_CUSTOMER_PRICE');
+        const underlying = item.referenceCostAtOrder;
+        if (underlying == null || underlying <= 0) {
+          throw new BadRequestException('MISSING_MARKET_REFERENCE_COST');
+        }
+        if (actualPurchasePrice > underlying) {
+          throw new BadRequestException('PURCHASE_PRICE_EXCEEDS_REFERENCE_COST');
         }
         await this.prisma.orderItem.update({
           where: { id: item.id },
