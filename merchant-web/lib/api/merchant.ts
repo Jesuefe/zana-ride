@@ -38,6 +38,10 @@ export async function fetchWallet() {
   }>('/wallet/me');
 }
 
+export async function withdrawWallet(amount: number) {
+  return api.post<{ ok?: boolean; status?: string; reference?: string }>('/wallet/withdraw', { amount });
+}
+
 export type PackageWeight = 'UNDER_1KG' | 'KG_1_TO_5' | 'KG_5_TO_10' | 'KG_10_TO_20' | 'OVER_20KG';
 
 export const WEIGHT_OPTIONS: { value: PackageWeight; label: string }[] = [
