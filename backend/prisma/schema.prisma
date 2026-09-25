@@ -317,6 +317,7 @@ model RideOffer {
 
   @@index([tripId])
   @@index([driverId, status])
+  @@unique([tripId, driverId])
 }
 
 // A customer's report on a ride already in progress or completed — the
