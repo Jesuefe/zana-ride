@@ -102,7 +102,7 @@ export class FinanceService {
     const agent = await this.prisma.agent.findUnique({ where: { userId }, select: { id: true, marketId: true }});
     if (!agent) throw new NotFoundException('Agent not found');
     const settlements = await this.prisma.agentSettlement.findMany({ where: { agentId: agent.id }, orderBy: { createdAt: 'desc' }, take: 100 });
-    return { agentId: agent.id, marketId: agent.marketId, settlements, totalEarning: settlements.reduce((s,x)=>s+x.agentEarning,0), totalMargin: settlements.reduce((s,x)=>s+x.grossMargin,0) };
+    return { agentId: agent.id, marketId: agent.marketId, settlements, totalEarning: settlements.reduce((s,x)=>s+x.agentEarning,0), totalMarkup: settlements.reduce((s,x)=>s+x.markupAmount,0) };
   }
 
   async adminMerchant(merchantId: string) {
@@ -112,7 +112,7 @@ export class FinanceService {
 
   async adminAgent(agentId: string) {
     const settlements = await this.prisma.agentSettlement.findMany({ where: { agentId }, orderBy: { createdAt: 'desc' }, take: 500 });
-    return { settlements, margin: settlements.reduce((s,x)=>s+x.grossMargin,0), agentEarning: settlements.reduce((s,x)=>s+x.agentEarning,0), zanaEarning: settlements.reduce((s,x)=>s+x.zanaEarning,0) };
+    return { settlements, markup: settlements.reduce((s,x)=>s+x.markupAmount,0), agentEarning: settlements.reduce((s,x)=>s+x.agentEarning,0), zanaEarning: settlements.reduce((s,x)=>s+x.zanaEarning,0) };
   }
 
   async setAgentRate(actorId: string, rate: number) {
