@@ -48,7 +48,6 @@ model User {
   merchant    Merchant?
   agent       Agent?
   wallet      Wallet?
-  auditLogs   AuditLog[]
   tripsAsCustomer Trip[]  @relation("CustomerTrips")
   deliveries      Delivery[] @relation("CustomerDeliveries")
   orders          Order[]    @relation("CustomerOrders")
@@ -636,7 +635,6 @@ model Order {
   updatedAt   DateTime    @updatedAt
   merchantSettlement MerchantSettlement?
   agentSettlement AgentSettlement?
-  auditLogs AuditLog[]
 }
 
 enum PaymentMethod {
