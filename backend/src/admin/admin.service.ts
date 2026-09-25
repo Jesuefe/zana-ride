@@ -86,6 +86,48 @@ export class AdminService {
     return { audience: data.audience, channel: data.channel, recipientCount: recipients.length, sent, failed };
   }
 
+  async getLiveOperations() {
+    const activeStatuses = ['DRIVER_ASSIGNED','DRIVER_EN_ROUTE','DRIVER_ARRIVED','RIDE_IN_PROGRESS'];
+    const [drivers, trips, searching] = await Promise.all([
+      this.prisma.driver.findMany({
+        where: { approvalStatus: 'APPROVED', onlineStatus: { in: ['ONLINE','BUSY'] }, lastLat: { not: null }, lastLng: { not: null } },
+        select: { id: true, lastLat: true, lastLng: true, lastLocationAt: true, onlineStatus: true, serviceType: true, driverMode: true, plate: true, rating: true, user: { select: { firstName: true, lastName: true, phone: true } } },
+      }),
+      this.prisma.trip.findMany({
+        where: { status: { in: activeStatuses as any } },
+        orderBy: { requestedAt: 'desc' },
+        take: 200,
+        include: { customer: { select: { firstName: true, lastName: true, phone: true, role: true } }, driver: { select: { id: true, lastLat: true, lastLng: true, plate: true, serviceType: true, user: { select: { firstName: true, lastName: true, phone: true } } } } },
+      }),
+      this.prisma.trip.count({ where: { status: 'SEARCHING_DRIVER' } }),
+    ]);
+
+    const freshCutoff = Date.now() - 120000;
+    const driverRows = drivers.map(d => ({
+      id: d.id, lat: d.lastLat, lng: d.lastLng, status: d.onlineStatus, serviceType: d.serviceType, driverMode: d.driverMode,
+      plate: d.plate, rating: d.rating, name: [d.user.firstName,d.user.lastName].filter(Boolean).join(' ') || 'Driver',
+      phone: d.user.phone, locationFresh: !!d.lastLocationAt && new Date(d.lastLocationAt).getTime() >= freshCutoff,
+      lastLocationAt: d.lastLocationAt,
+    }));
+    return {
+      generatedAt: new Date(),
+      kpis: {
+        onlineDrivers: driverRows.filter(d => d.status === 'ONLINE').length,
+        busyDrivers: driverRows.filter(d => d.status === 'BUSY').length,
+        activeRides: trips.length,
+        searchingRides: searching,
+      },
+      drivers: driverRows,
+      rides: trips.map(t => ({
+        id: t.id, status: t.status, serviceType: t.serviceType, fare: t.finalFare ?? t.estimatedFare,
+        pickupAddress: t.pickupAddress, destinationAddress: t.destinationAddress,
+        pickup: { lat: t.pickupLat, lng: t.pickupLng }, destination: { lat: t.destinationLat, lng: t.destinationLng },
+        requestedAt: t.requestedAt, customer: t.customer,
+        driver: t.driver ? { id: t.driver.id, lat: t.driver.lastLat, lng: t.driver.lastLng, plate: t.driver.plate, serviceType: t.driver.serviceType, name: [t.driver.user.firstName,t.driver.user.lastName].filter(Boolean).join(' ') || 'Driver' } : null,
+      })),
+    };
+  }
+
   async getDeliveryKpis(period: 'today' | 'week' | 'month' = 'today') {
     const now = new Date();
     const since = new Date(now);
