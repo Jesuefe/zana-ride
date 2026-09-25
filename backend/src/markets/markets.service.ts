@@ -93,13 +93,19 @@ export class MarketsService {
       }
     }
 
+    const referenceCost = Number(data.referenceCost ?? data.price);
+    if (!Number.isInteger(referenceCost) || referenceCost <= 0) {
+      throw new BadRequestException('INVALID_MARKET_PRICE');
+    }
+    const customerPrice = Math.round(referenceCost * 1.2);
+
     return this.prisma.product.create({
       data: {
         marketId: agent.marketId!,
         name: data.name,
         description: data.description,
-        price: data.price,
-        referenceCost: data.referenceCost,
+        price: customerPrice,
+        referenceCost,
         category: 'GOODS',
         imageUrl,
         stock: data.stock ?? 0,
