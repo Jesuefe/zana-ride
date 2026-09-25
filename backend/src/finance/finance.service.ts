@@ -49,22 +49,41 @@ export class FinanceService {
         const agent = await tx.agent.findUnique({ where: { id: order.agentId }, select: { id: true, userId: true }});
         if (!agent) throw new BadRequestException('AGENT_NOT_FOUND');
         const cfg = await tx.marketPriceConfig.findFirst() ?? await tx.marketPriceConfig.create({ data: {} });
-        let actualCost = 0; let margin = 0;
+        let underlyingAmount = 0;
+        let customerAmount = 0;
+        let actualPurchaseCost = 0;
         for (const item of order.items) {
-          const cost = item.actualPurchasePrice ?? item.referenceCostAtOrder ?? item.product.referenceCost;
-          if (cost == null || cost < 0 || cost > item.price) throw new BadRequestException(`INVALID_PURCHASE_COST:${item.id}`);
-          actualCost += cost * item.quantity;
-          margin += Math.max(0, item.price - cost) * item.quantity;
+          const underlying = item.referenceCostAtOrder ?? item.product.referenceCost;
+          if (underlying == null || underlying <= 0) throw new BadRequestException(`MISSING_MARKET_REFERENCE_COST:${item.id}`);
+          const expectedCustomerPrice = Math.round(underlying * (1 + cfg.markupPercent / 100));
+          if (item.price !== expectedCustomerPrice) {
+            throw new BadRequestException(`INVALID_MARKET_MARKUP:${item.id}`);
+          }
+          const actual = item.actualPurchasePrice ?? underlying;
+          if (!Number.isInteger(actual) || actual < 0 || actual > underlying) {
+            throw new BadRequestException(`INVALID_PURCHASE_COST:${item.id}`);
+          }
+          underlyingAmount += underlying * item.quantity;
+          customerAmount += item.price * item.quantity;
+          actualPurchaseCost += actual * item.quantity;
         }
-        const agentEarning = Math.round(margin * cfg.agentEarningRate / 100);
+        const markupAmount = customerAmount - underlyingAmount;
+        const agentRate = cfg.agentMarkupShare;
+        const zanaRate = cfg.zanaMarkupShare;
+        if (agentRate < 0 || zanaRate < 0 || Math.abs(agentRate + zanaRate - 100) > 0.001) {
+          throw new BadRequestException('INVALID_MARKUP_SPLIT');
+        }
+        const agentEarning = Math.round(markupAmount * agentRate / 100);
+        const zanaEarning = markupAmount - agentEarning;
         const settlement = await tx.agentSettlement.create({ data: {
-          orderId, agentId: agent.id, grossMargin: margin, agentRate: cfg.agentEarningRate,
-          agentEarning, zanaEarning: margin - agentEarning, actualPurchaseCost: actualCost,
+          orderId, agentId: agent.id, underlyingAmount, customerAmount, markupAmount,
+          markupPercent: cfg.markupPercent, agentRate, zanaRate,
+          agentEarning, zanaEarning, actualPurchaseCost,
         }});
         if (agentEarning > 0) {
           const wallet = await tx.wallet.upsert({ where: { userId: agent.userId }, create: { userId: agent.userId }, update: {} });
           const updated = await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: agentEarning } }});
-          await tx.walletTransaction.create({ data: { walletId: wallet.id, amount: agentEarning, balanceBefore: wallet.balance, balanceAfter: updated.balance, reference: `AGENT_SETTLEMENT:${orderId}`, description: `Agent earning for market order ${orderId}` }});
+          await tx.walletTransaction.create({ data: { walletId: wallet.id, amount: agentEarning, balanceBefore: wallet.balance, balanceAfter: updated.balance, reference: `AGENT_SETTLEMENT:${orderId}`, description: `Agent 40% share of market markup for order ${orderId}` }});
         }
         return settlement;
       }
