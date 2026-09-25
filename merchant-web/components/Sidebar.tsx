@@ -15,6 +15,7 @@ const navItems = [
   { href: '/products', label: 'My Products', icon: Package },
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/wallet', label: 'Wallet', icon: Wallet },
+  { href: '/earnings', label: 'Earnings', icon: Wallet },
 ];
 
 export default function Sidebar() {
