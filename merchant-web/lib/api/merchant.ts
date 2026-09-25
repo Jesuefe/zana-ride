@@ -160,3 +160,31 @@ export async function fetchMyOrders() {
 export async function updateOrderStatus(id: string, status: string) {
   return api.patch(`/merchant/orders/${id}/status`, { status });
 }
+
+export type MerchantEarnings = {
+  merchantId: string;
+  settlements: Array<{ id: string; orderId: string; grossAmount: number; commissionRate: number; commissionAmount: number; merchantNet: number; status: string; createdAt: string; settledAt: string }>;
+  totalNet: number;
+  totalCommission: number;
+  gross: number;
+};
+
+export async function fetchMerchantEarnings() {
+  return api.get<MerchantEarnings>('/merchant/earnings');
+}
+
+export type AgentEarnings = {
+  agentId: string;
+  marketId: string | null;
+  settlements: Array<{ id: string; orderId: string; underlyingAmount: number | null; customerAmount: number | null; markupAmount: number | null; markupPercent: number | null; agentRate: number | null; zanaRate: number | null; agentEarning: number; zanaEarning: number; actualPurchaseCost: number; status: string; createdAt: string; settledAt: string }>;
+  totalEarning: number;
+  totalMarkup: number;
+};
+
+export async function fetchAgentEarnings() {
+  return api.get<AgentEarnings>('/agent/earnings');
+}
+
+export async function requestAgentPriceChange(id: string, data: { referenceCost: number; reason?: string }) {
+  return api.patch(`/agent/products/${id}/price-request`, data);
+}
