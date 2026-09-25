@@ -383,6 +383,17 @@ export class AdminService {
   // agent's own app — admin had no upload path of their own for market
   // inventory, despite already having one for merchant products.
   async addMarketProduct(marketId: string, data: { name: string; description?: string; price: number; referenceCost?: number; imageBase64?: string; stock?: number }) {
+    const config = await this.prisma.marketPriceConfig.findFirst();
+    const markupPercent = config?.markupPercent ?? 20;
+    const referenceCost = Number(data.referenceCost ?? data.price);
+    if (!Number.isInteger(referenceCost) || referenceCost <= 0) {
+      throw new BadRequestException('INVALID_MARKET_REFERENCE_COST');
+    }
+    const expectedPrice = Math.round(referenceCost * (1 + markupPercent / 100));
+    if (data.price !== expectedPrice) {
+      throw new BadRequestException('PRICE_MUST_MATCH_MARKUP');
+    }
+
     let imageUrl: string | undefined;
     if (data.imageBase64) {
       try {
@@ -397,8 +408,8 @@ export class AdminService {
         marketId,
         name: data.name,
         description: data.description,
-        price: data.price,
-        referenceCost: data.referenceCost,
+        price: expectedPrice,
+        referenceCost,
         category: 'GOODS',
         imageUrl,
         stock: data.stock ?? 0,
@@ -411,11 +422,23 @@ export class AdminService {
   // a listing could only ever be created, never corrected or removed,
   // once it existed.
   async updateMarketProduct(productId: string, data: { name?: string; description?: string; price?: number; referenceCost?: number; imageBase64?: string; stock?: number }) {
-    const update: any = {};
+    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    if (!product || !product.marketId) throw new NotFoundException('Market product not found');
+
+    const config = await this.prisma.marketPriceConfig.findFirst();
+    const markupPercent = config?.markupPercent ?? 20;
+    const nextReference = data.referenceCost ?? product.referenceCost;
+    if (!nextReference || !Number.isInteger(nextReference) || nextReference <= 0) {
+      throw new BadRequestException('INVALID_MARKET_REFERENCE_COST');
+    }
+    const expectedPrice = Math.round(nextReference * (1 + markupPercent / 100));
+    if (data.price != null && data.price !== expectedPrice) {
+      throw new BadRequestException('PRICE_MUST_MATCH_MARKUP');
+    }
+
+    const update: any = { price: expectedPrice, referenceCost: nextReference };
     if (data.name !== undefined) update.name = data.name;
     if (data.description !== undefined) update.description = data.description;
-    if (data.price !== undefined) update.price = data.price;
-    if (data.referenceCost !== undefined) update.referenceCost = data.referenceCost;
     if (data.stock !== undefined) update.stock = data.stock;
     if (data.imageBase64) {
       try {
