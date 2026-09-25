@@ -21,6 +21,7 @@ import { ChatModule } from './chat/chat.module';
 import { SosModule } from './sos/sos.module';
 import { CallsModule } from './calls/calls.module';
 import { HealthController } from './health.controller';
+import { FinanceModule } from './finance/finance.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { HealthController } from './health.controller';
     ChatModule,
     SosModule,
     CallsModule,
+    FinanceModule,
   ],
   controllers: [HealthController],
 })
