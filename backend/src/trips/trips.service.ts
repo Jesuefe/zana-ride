@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Interval } from '@nestjs/schedule';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommissionDebtService } from './commission-debt.service';
@@ -15,6 +16,9 @@ type LatLng = { lat: number; lng: number };
 
 @Injectable()
 export class TripsService {
+  private readonly refreshingTripIds = new Set<string>();
+  private dispatchRefreshRunning = false;
+
   constructor(
     private prisma: PrismaService,
     private driversService: DriversService,
@@ -256,6 +260,41 @@ export class TripsService {
     return this.prisma.trip.findUnique({ where: { id: tripId } });
   }
 
+  // Re-check open rides continuously so a driver who comes online after
+  // the original request can still enter the protected four-driver offer pool.
+  // This is deliberately bounded: only the oldest 25 searching rides are
+  // considered per pass, and refreshTripOffers itself never exceeds four
+  // live driver offers for a single ride.
+  @Interval(5000)
+  async replenishOpenRideOffers() {
+    if (this.dispatchRefreshRunning) return;
+    this.dispatchRefreshRunning = true;
+    try {
+      const now = new Date();
+      const openTrips = await this.prisma.trip.findMany({
+        where: { status: TripStatus.SEARCHING_DRIVER },
+        select: { id: true },
+        orderBy: { requestedAt: 'asc' },
+        take: 25,
+      });
+
+      // Expire stale offers centrally so their four-driver slots become
+      // reusable even when none of the original recipient drivers polls.
+      await this.prisma.rideOffer.updateMany({
+        where: { status: 'PENDING', expiresAt: { lt: now }, trip: { status: TripStatus.SEARCHING_DRIVER } },
+        data: { status: 'EXPIRED', respondedAt: now },
+      });
+
+      for (const trip of openTrips) {
+        await this.refreshTripOffers(trip.id);
+      }
+    } catch (error: any) {
+      console.error('[DISPATCH] Replenishment pass failed:', error?.message ?? error);
+    } finally {
+      this.dispatchRefreshRunning = false;
+    }
+  }
+
   /**
    * Keep a ride protected by a maximum of four simultaneous drivers.
    * Also protects each driver's screen from growing beyond four pending
@@ -263,7 +302,13 @@ export class TripsService {
    * to the same driver for the same trip.
    */
   private async refreshTripOffers(tripId: string) {
-    const trip = await this.prisma.trip.findUnique({
+    // Multiple triggers can arrive together (new ride, decline, expiry,
+    // scheduler). Keep one refresh per ride in this API instance so two
+    // refreshes cannot both observe the same empty slot and overfill it.
+    if (this.refreshingTripIds.has(tripId)) return;
+    this.refreshingTripIds.add(tripId);
+    try {
+      const trip = await this.prisma.trip.findUnique({
       where: { id: tripId },
       select: {
         id: true,
@@ -341,6 +386,9 @@ export class TripsService {
         fare: trip.estimatedFare,
         expiresAt,
       });
+    }
+    } finally {
+      this.refreshingTripIds.delete(tripId);
     }
   }
   async updateStatus(tripId: string, status: TripStatus) {
