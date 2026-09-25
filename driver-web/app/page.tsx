@@ -1077,7 +1077,12 @@ export default function DriverHome() {
                       <div className="w-8 h-8 rounded-full bg-zana-primary-light flex items-center justify-center">
                         <MapPin size={14} className="text-zana-primary" />
                       </div>
-                      <p className="text-xs font-bold text-zana-primary uppercase tracking-wide">{dt("New ride request")}</p>
+                      <div>
+                        <p className="text-xs font-bold text-zana-primary uppercase tracking-wide">{dt("New ride request")}</p>
+                        {(trip as any).customer?.role === 'AGENT' && (
+                          <p className="text-[10px] font-black text-amber-600 uppercase mt-0.5">Market agent booking</p>
+                        )}
+                      </div>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                       <p className="text-sm font-black text-gray-700">{secondsLeft}</p>
