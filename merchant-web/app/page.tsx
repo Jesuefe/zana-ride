@@ -178,16 +178,16 @@ export default function OverviewPage() {
 
       {/* Order history */}
       <button
-        onClick={() => router.push('/history')}
+        onClick={() => router.push('/earnings')}
         className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3.5 shadow-sm mb-4"
       >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-zana-primary-light flex items-center justify-center">
             <TrendingUp size={16} className="text-zana-primary" />
           </div>
-          <span className="text-sm font-bold text-gray-900">Order history &amp; revenue</span>
+          <span className="text-sm font-bold text-gray-900">Earnings &amp; settlements</span>
         </div>
-        <span className="text-xs font-bold text-zana-primary">View</span>
+        <span className="text-xs font-bold text-zana-primary">View earnings</span>
       </button>
 
 
