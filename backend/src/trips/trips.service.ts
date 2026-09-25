@@ -424,7 +424,22 @@ export class TripsService {
     const data: Record<string, unknown> = { status };
     const field = timestampField[status];
     if (field) data[field] = new Date();
-    if (status === TripStatus.RIDE_COMPLETED) data.finalFare = trip.estimatedFare;
+
+    // Customer waiting is free for the first 10 minutes after the driver
+    // arrives. After that, charge 100 RWF for each started minute of waiting.
+    // Waiting ends when the driver starts the trip. The charge is added to
+    // finalFare at completion so every payment/commission path uses the same
+    // final amount.
+    if (status === TripStatus.RIDE_COMPLETED) {
+      const waitingStart = trip.arrivedAt?.getTime();
+      const waitingEnd = trip.startedAt?.getTime() ?? Date.now();
+      const waitingMinutes = waitingStart
+        ? Math.max(0, Math.ceil((waitingEnd - waitingStart) / 60000))
+        : 0;
+      const chargeableMinutes = Math.max(0, waitingMinutes - 10);
+      const waitingFee = chargeableMinutes * 100;
+      data.finalFare = trip.estimatedFare + waitingFee;
+    }
 
     // Atomic guard against the same transition being applied twice — a
     // double-tap on "Complete Trip", or the same request landing twice
