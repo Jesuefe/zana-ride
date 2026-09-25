@@ -533,8 +533,59 @@ export class AdminService {
     return this.prisma.fareConfig.findMany();
   }
 
-  async updateFare(serviceType: string, data: Partial<{ base: number; perKm: number; perMin: number; minimum: number; bookingFee: number }>) {
-    return this.prisma.fareConfig.update({ where: { serviceType: serviceType as any }, data });
+  async updateFare(
+    serviceType: string,
+    data: Partial<{
+      base: number;
+      perKm: number;
+      perMin: number;
+      minimum: number;
+      bookingFee: number;
+      commissionRate: number;
+      freeWaitingMinutes: number;
+      waitingPerMinute: number;
+    }>,
+    actorId?: string,
+  ) {
+    const current = await this.prisma.fareConfig.findUnique({
+      where: { serviceType: serviceType as any },
+    });
+    if (!current) throw new NotFoundException('Fare configuration not found');
+
+    const numeric = Object.entries(data).filter(([, value]) => value !== undefined)
+      .reduce((out, [key, value]) => ({ ...out, [key]: Number(value) }), {} as Record<string, number>);
+
+    for (const [key, value] of Object.entries(numeric)) {
+      if (!Number.isFinite(value)) throw new BadRequestException(`Invalid fare value: ${key}`);
+    }
+    if (numeric.commissionRate !== undefined && (numeric.commissionRate < 0 || numeric.commissionRate > 100)) {
+      throw new BadRequestException('Commission rate must be between 0 and 100');
+    }
+    if (numeric.freeWaitingMinutes !== undefined && (numeric.freeWaitingMinutes < 0 || !Number.isInteger(numeric.freeWaitingMinutes))) {
+      throw new BadRequestException('Free waiting time must be a whole number of minutes');
+    }
+    if (numeric.waitingPerMinute !== undefined && (numeric.waitingPerMinute < 0 || !Number.isInteger(numeric.waitingPerMinute))) {
+      throw new BadRequestException('Waiting charge must be a whole number of RWF per minute');
+    }
+
+    const updated = await this.prisma.fareConfig.update({
+      where: { serviceType: serviceType as any },
+      data: numeric,
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        action: 'FARE_CONFIG_UPDATED',
+        entityType: 'FareConfig',
+        entityId: current.id,
+        beforeJson: JSON.stringify(current),
+        afterJson: JSON.stringify(updated),
+        metadataJson: JSON.stringify({ serviceType }),
+      },
+    }).catch(() => {});
+
+    return updated;
   }
 
   async getOrders() {
