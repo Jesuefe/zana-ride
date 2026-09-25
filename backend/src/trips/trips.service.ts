@@ -235,7 +235,12 @@ export class TripsService {
     // has committed, so the real-time UI never reflects an uncommitted state.
     try {
       const cancelled = await this.prisma.rideOffer.findMany({
-        where: { tripId, status: 'CANCELLED', respondedAt: now },
+        where: {
+          tripId,
+          driverId: { not: driverId },
+          status: 'CANCELLED',
+          respondedAt: now,
+        },
         include: { driver: { select: { userId: true } } },
       });
       for (const offer of cancelled) {
