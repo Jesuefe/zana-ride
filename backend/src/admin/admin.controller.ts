@@ -38,6 +38,16 @@ export class AdminController {
     return this.adminService.getDeliveryKpis(period);
   }
 
+  // Live operations control feed
+  @Get('operations/live')
+  liveOperations() { return this.adminService.getLiveOperations(); }
+
+  // Unified accounting ledger for the operations/AI accounting layer.
+  @Get('accounting/ledger')
+  accountingLedger(@Query('limit') limit?: string) {
+    return this.financialService.getAccountingLedger(limit ? Number(limit) : 500);
+  }
+
   // Financial snapshot
   @Get('financial')
   financial() { return this.financialService.getFinancialSnapshot(); }
