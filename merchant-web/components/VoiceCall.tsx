@@ -158,17 +158,14 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
           audioTracks.forEach((participant) => {
             participant.trackPublications.forEach((publication) => {
               if (publication.kind === Track.Kind.Audio && publication.track) {
-                const attached = publication.track.attach();
-                attached.forEach((node) => {
-                  const el = node as HTMLAudioElement;
-                  el.autoplay = true;
-                  el.muted = false;
-                  el.volume = 1;
-                  el.setAttribute('playsinline', '');
-                  if (!document.body.contains(el)) document.body.appendChild(el);
-                  void el.play().then(() => setAudioBlocked(false)).catch(() => {});
-                  played = true;
-                });
+                const el = publication.track.attach() as HTMLAudioElement;
+                el.autoplay = true;
+                el.muted = false;
+                el.volume = 1;
+                el.setAttribute('playsinline', '');
+                if (!document.body.contains(el)) document.body.appendChild(el);
+                void el.play().then(() => setAudioBlocked(false)).catch(() => {});
+                played = true;
               }
             });
           });
@@ -393,13 +390,11 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
                   roomRef.current?.remoteParticipants.forEach((participant) => {
                     participant.trackPublications.forEach((publication) => {
                       if (publication.kind === Track.Kind.Audio && publication.track) {
-                        publication.track.attach().forEach((node) => {
-                          const el = node as HTMLAudioElement;
-                          el.muted = false; el.volume = 1;
-                          if (!document.body.contains(el)) document.body.appendChild(el);
-                          void el.play().then(() => setAudioBlocked(false)).catch(() => {});
-                          ok = true;
-                        });
+                        const el = publication.track.attach() as HTMLAudioElement;
+                        el.muted = false; el.volume = 1;
+                        if (!document.body.contains(el)) document.body.appendChild(el);
+                        void el.play().then(() => setAudioBlocked(false)).catch(() => {});
+                        ok = true;
                       }
                     });
                   });
