@@ -64,6 +64,7 @@ function startRingtone(): () => void {
 
 export default function VoiceCall({ context, contextId, participantLabel, onClose }: Props) {
   const roomRef = useRef<Room | null>(null);
+  const callIdRef = useRef<string | null>(null);
   const [callState, setCallState] = useState<CallState>('ringing');
   const [muted, setMuted] = useState(false);
   const [speakerOff, setSpeakerOff] = useState(false);
@@ -102,6 +103,7 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
       }>('/calls', { context, contextId });
 
       const { token, wsUrl, callId, roomName } = created;
+      callIdRef.current = callId;
 
       // Listen for the other side accepting or declining before we commit
       // to joining the LiveKit room — joining early just to sit alone in an
@@ -403,7 +405,16 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
                   });
                   return ok;
                 })();
-                if (played) { setError(''); remoteAudioReadyRef.current = true; markMediaReady(); }
+                if (played) {
+                  setError('');
+                  remoteAudioReadyRef.current = true;
+                  if (localMediaReadyRef.current && remotePeerMediaReadyRef.current && !mediaConnectedRef.current) {
+                    mediaConnectedRef.current = true;
+                    setCallState('connected');
+                    if (!timerRef.current) timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+                    if (callIdRef.current) api.post(`/calls/${callIdRef.current}/connected`).catch(() => {});
+                  }
+                }
               }}
                 className="px-4 py-3 rounded-full bg-white text-gray-900 text-xs font-bold">
                 Enable audio
