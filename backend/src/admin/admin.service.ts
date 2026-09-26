@@ -136,14 +136,15 @@ export class AdminService {
       drivers: driverRows,
       deliveries: (deliveries as any[]).map(d => {
         const merchantName = [d.merchant?.user?.firstName, d.merchant?.user?.lastName].filter(Boolean).join(' ');
+        const agent = d.order?.agentId ? agentById.get(d.order.agentId) : undefined;
         return {
           id: d.id, trackingCode: d.trackingCode, status: d.status, itemDescription: d.itemDescription,
           pickupAddress: d.pickupAddress, pickup: { lat: d.pickupLat, lng: d.pickupLng },
           dropoffAddress: d.dropoffAddress, dropoff: { lat: d.dropoffLat, lng: d.dropoffLng },
           receiverName: d.receiverName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || null,
           receiverPhone: d.receiverPhone,
-          pickupContactName: (d.order?.agentId && agentById.get(d.order.agentId) ? ([agentById.get(d.order.agentId).user.firstName, agentById.get(d.order.agentId).user.lastName].filter(Boolean).join(' ') || 'Market agent') : null) || d.order?.market?.pickupContactName || merchantName || d.merchant?.businessName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || 'Pickup contact',
-          pickupPhone: (d.order?.agentId && agentById.get(d.order.agentId)?.user.phone) || d.order?.market?.pickupPhone || d.merchant?.user?.phone || d.customer?.phone || null,
+          pickupContactName: agent ? ([agent.user.firstName, agent.user.lastName].filter(Boolean).join(' ') || 'Market agent') : null || d.order?.market?.pickupContactName || merchantName || d.merchant?.businessName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || 'Pickup contact',
+          pickupPhone: agent?.user.phone || d.order?.market?.pickupPhone || d.merchant?.user?.phone || d.customer?.phone || null,
           driver: d.driver ? { id: d.driver.id, lat: d.driver.lastLat, lng: d.driver.lastLng, plate: d.driver.plate, name: [d.driver.user.firstName,d.driver.user.lastName].filter(Boolean).join(' ') || 'Driver' } : null,
         };
       }),
