@@ -678,7 +678,7 @@ model OrderItem {
   // doesn't apply at all.
   actualPurchasePrice Int?
   referenceCostAtOrder Int?
-  // AVAILABLE | UNAVAILABLE — unavailable items are refunded immediately to the customer wallet.
+  // AVAILABLE | UNAVAILABLE_PENDING | REFUNDED | REMOVED | REPLACED — market item resolution is customer-driven.
   status      String   @default("AVAILABLE")
   refundedAmount Int   @default(0)
   unavailableAt DateTime?
