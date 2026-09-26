@@ -469,6 +469,13 @@ export default function DriverHome() {
         transports: ['websocket'],
       });
       socket.on('ride:offer', () => load());
+      // Live Test Lab position feed. When an admin moves this driver on the
+      // controlled test map, reflect that coordinate on the driver's own map
+      // immediately instead of waiting for the phone's physical GPS.
+      socket.on('driver:position', (data: { lat?: number; lng?: number }) => {
+        if (typeof data?.lat !== 'number' || typeof data?.lng !== 'number') return;
+        setCoords({ lat: data.lat, lng: data.lng });
+      });
       // The instant-removal counterpart to a driver declining — the
       // customer cancelling should clear it from view (and stop the
       // alert sounding for it) right away too, not leave it sitting
