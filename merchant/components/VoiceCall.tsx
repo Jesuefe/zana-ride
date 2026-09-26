@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { api } from '../lib/api/client';
-import { Room, RoomEvent, createLocalTracks, ConnectionState } from 'livekit-client';
+import { Room, RoomEvent, Track, createLocalTracks, ConnectionState } from 'livekit-client';
 import { io, Socket } from 'socket.io-client';
 import { getToken } from '../lib/api/client';
 
@@ -64,14 +64,22 @@ function startRingtone(): () => void {
 
 export default function VoiceCall({ context, contextId, participantLabel, onClose }: Props) {
   const roomRef = useRef<Room | null>(null);
+  const callIdRef = useRef<string | null>(null);
   const [callState, setCallState] = useState<CallState>('ringing');
   const [muted, setMuted] = useState(false);
   const [speakerOff, setSpeakerOff] = useState(false);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState('');
+  const [audioBlocked, setAudioBlocked] = useState(false);
+  const recoveryTimerRef = useRef<any>(null);
+  const endedRef = useRef(false);
   const timerRef = useRef<any>(null);
   const stopRingRef = useRef<(() => void) | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const localMediaReadyRef = useRef(false);
+  const remoteAudioReadyRef = useRef(false);
+  const mediaConnectedRef = useRef(false);
+  const remotePeerMediaReadyRef = useRef(false);
 
   // Start ringing immediately
   useEffect(() => {
@@ -95,6 +103,7 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
       }>('/calls', { context, contextId });
 
       const { token, wsUrl, callId, roomName } = created;
+      callIdRef.current = callId;
 
       // Listen for the other side accepting or declining before we commit
       // to joining the LiveKit room — joining early just to sit alone in an
@@ -122,9 +131,139 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
       });
       roomRef.current = room;
 
-      room.on(RoomEvent.ParticipantConnected, () => {
+      const markMediaReady = () => {
+        if (mediaConnectedRef.current || !localMediaReadyRef.current || !remoteAudioReadyRef.current || !remotePeerMediaReadyRef.current) return;
+        mediaConnectedRef.current = true;
         setCallState('connected');
         if (!timerRef.current) timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+        api.post(`/calls/${callId}/connected`).catch(() => {});
+        console.log('[CALL] TWO-WAY AUDIO CONFIRMED — five gates passed');
+      };
+
+      const publishMediaReady = async () => {
+        if (!room.localParticipant.isMicrophoneEnabled) return;
+        try {
+          const payload = new TextEncoder().encode(JSON.stringify({ type: 'ZANA_MEDIA_READY', callId }));
+          await room.localParticipant.publishData(payload, { reliable: true });
+        } catch (err) {
+          console.warn('[CALL] Media-ready handshake send failed:', err);
+        }
+      };
+
+      const tryPlayRemoteAudio = async () => {
+        let played = false;
+        document.querySelectorAll('audio').forEach(() => {});
+        try {
+          const audioTracks = room.remoteParticipants;
+          audioTracks.forEach((participant) => {
+            participant.trackPublications.forEach((publication) => {
+              if (publication.kind === Track.Kind.Audio && publication.track) {
+                const attached = publication.track.attach();
+                attached.forEach((node) => {
+                  const el = node as HTMLAudioElement;
+                  el.autoplay = true;
+                  el.muted = false;
+                  el.volume = 1;
+                  el.setAttribute('playsinline', '');
+                  if (!document.body.contains(el)) document.body.appendChild(el);
+                  void el.play().then(() => setAudioBlocked(false)).catch(() => {});
+                  played = true;
+                });
+              }
+            });
+          });
+        } catch {}
+        return played;
+      };
+
+      const startRecoveryWindow = () => {
+        clearTimeout(recoveryTimerRef.current);
+        recoveryTimerRef.current = setTimeout(() => {
+          if (!mediaConnectedRef.current) {
+            setError('Call could not restore audio connection');
+            handleEnd();
+          }
+        }, 12_000);
+      };
+
+      const restoreMedia = async () => {
+        if (endedRef.current) return;
+        setCallState('connecting');
+        localMediaReadyRef.current = false;
+        remoteAudioReadyRef.current = false;
+        remotePeerMediaReadyRef.current = false;
+        mediaConnectedRef.current = false;
+        try {
+          const publication = await room.localParticipant.setMicrophoneEnabled(true);
+          localMediaReadyRef.current = !!publication?.track && room.localParticipant.isMicrophoneEnabled;
+          await tryPlayRemoteAudio();
+          await publishMediaReady();
+          markMediaReady();
+        } catch (err) {
+          console.warn('[CALL] Media restore attempt failed:', err);
+        }
+        startRecoveryWindow();
+      };
+
+      room.on(RoomEvent.ParticipantConnected, (participant) => {
+        console.log('[CALL] Remote participant connected:', participant.identity);
+        if (localMediaReadyRef.current) void publishMediaReady();
+      });
+
+      room.on(RoomEvent.DataReceived, (payload, participant) => {
+        try {
+          const message = JSON.parse(new TextDecoder().decode(payload));
+          if (message?.type === 'ZANA_MEDIA_READY' && participant) {
+            remotePeerMediaReadyRef.current = true;
+            console.log('[CALL] Remote peer confirmed microphone publication:', participant.identity);
+            markMediaReady();
+          }
+        } catch {}
+      });
+
+      room.on(RoomEvent.Reconnecting, () => {
+        console.log('[CALL] Reconnecting...');
+        setCallState('connecting');
+        startRecoveryWindow();
+      });
+
+      room.on(RoomEvent.Reconnected, async () => {
+        console.log('[CALL] Reconnected — restoring media');
+        await restoreMedia();
+      });
+
+      room.on(RoomEvent.ConnectionStateChanged, (connectionState: ConnectionState) => {
+        console.log('[CALL] LiveKit connection state:', connectionState);
+        if (connectionState === ConnectionState.Connected && localMediaReadyRef.current) {
+          void publishMediaReady();
+        }
+      });
+
+      room.on(RoomEvent.TrackSubscribed, async (track, _publication, participant) => {
+        if (track.kind !== Track.Kind.Audio) return;
+        console.log('[CALL] Remote audio subscribed from:', participant.identity);
+        const el = track.attach() as HTMLAudioElement;
+        el.autoplay = true;
+        el.muted = false;
+        el.volume = 1;
+        el.setAttribute('playsinline', '');
+        document.body.appendChild(el);
+        try {
+          await el.play();
+          remoteAudioReadyRef.current = true;
+          setAudioBlocked(false);
+          markMediaReady();
+          console.log('[CALL] Remote audio playback confirmed');
+        } catch (err) {
+          console.error('[CALL] Remote audio playback blocked:', err);
+          setAudioBlocked(true);
+          setError('Audio is blocked — tap Enable audio');
+        }
+      });
+
+      room.on(RoomEvent.TrackSubscriptionFailed, (sid) => {
+        console.error('[CALL] Remote audio subscription failed:', sid);
+        setError('Remote audio connection failed');
       });
 
       room.on(RoomEvent.ParticipantDisconnected, () => {
@@ -137,7 +276,9 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
         });
       });
 
-      room.on(RoomEvent.Disconnected, () => handleEnd());
+      room.on(RoomEvent.Disconnected, () => {
+        if (!endedRef.current) handleEnd();
+      });
 
       room.on(RoomEvent.ConnectionStateChanged, (state: ConnectionState) => {
         if (state === ConnectionState.Connected) {
@@ -153,6 +294,14 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
       for (const track of tracks) {
         await room.localParticipant.publishTrack(track);
       }
+      const micPublication = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+      if (!micPublication?.track || !room.localParticipant.isMicrophoneEnabled) {
+        throw new Error('Microphone was not published');
+      }
+      localMediaReadyRef.current = true;
+      await publishMediaReady();
+      markMediaReady();
+      console.log('[CALL] Microphone published and verified');
 
       // Stay in "ringing" state until other party joins
       setCallState('ringing');
@@ -175,6 +324,9 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
   }, []);
 
   const handleEnd = useCallback(() => {
+    if (endedRef.current) return;
+    endedRef.current = true;
+    clearTimeout(recoveryTimerRef.current);
     stopRingRef.current?.();
     clearInterval(timerRef.current);
     roomRef.current?.disconnect();
@@ -233,6 +385,43 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
 
       {callState !== 'ended' && (
         <div className="flex items-end justify-center gap-10">
+          {audioBlocked && (
+            <div className="flex flex-col items-center gap-2">
+              <button onClick={async () => {
+                const played = await (async () => {
+                  let ok = false;
+                  roomRef.current?.remoteParticipants.forEach((participant) => {
+                    participant.trackPublications.forEach((publication) => {
+                      if (publication.kind === Track.Kind.Audio && publication.track) {
+                        publication.track.attach().forEach((node) => {
+                          const el = node as HTMLAudioElement;
+                          el.muted = false; el.volume = 1;
+                          if (!document.body.contains(el)) document.body.appendChild(el);
+                          void el.play().then(() => setAudioBlocked(false)).catch(() => {});
+                          ok = true;
+                        });
+                      }
+                    });
+                  });
+                  return ok;
+                })();
+                if (played) {
+                  setError('');
+                  remoteAudioReadyRef.current = true;
+                  if (localMediaReadyRef.current && remotePeerMediaReadyRef.current && !mediaConnectedRef.current) {
+                    mediaConnectedRef.current = true;
+                    setCallState('connected');
+                    if (!timerRef.current) timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+                    if (callIdRef.current) api.post(`/calls/${callIdRef.current}/connected`).catch(() => {});
+                  }
+                }
+              }}
+                className="px-4 py-3 rounded-full bg-white text-gray-900 text-xs font-bold">
+                Enable audio
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-col items-center gap-2">
             <button onClick={toggleMute}
               className={`w-16 h-16 rounded-full flex items-center justify-center ${muted ? 'bg-white' : 'bg-white/20'}`}>
