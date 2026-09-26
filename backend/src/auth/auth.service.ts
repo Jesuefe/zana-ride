@@ -376,8 +376,8 @@ export class AuthService {
     // code to the account email. The code remains bound to the account phone.
     const isEmail = !!user.email && identifier.trim().toLowerCase() === user.email.toLowerCase();
     if (isEmail) {
-      await this.requestOtp(user.phone, user.email);
-      const e = user.email;
+      await this.requestOtp(user.phone, user.email ?? undefined);
+      const e = user.email!;
       const at = e.indexOf('@');
       const emailHint = at > 1 ? `${e.slice(0, 2)}•••${e.slice(at - 1)}${e.slice(at)}` : null;
       return { sent: true, channel: 'email', phoneHint: null, emailHint };
