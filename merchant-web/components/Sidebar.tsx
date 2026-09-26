@@ -8,7 +8,7 @@ import { clearToken } from '../lib/api/client';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../lib/ThemeContext';
 
-const navItems = [
+const merchantNav = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
   { href: '/new-delivery', label: 'New Delivery', icon: PackagePlus },
   { href: '/deliveries', label: 'Deliveries', icon: PackageSearch },
@@ -18,11 +18,21 @@ const navItems = [
   { href: '/earnings', label: 'Earnings', icon: Wallet },
 ];
 
+const agentNav = [
+  { href: '/agent?view=overview', label: 'Overview', icon: LayoutDashboard },
+  { href: '/agent?view=orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/agent?view=deliveries', label: 'Deliveries', icon: PackageSearch },
+  { href: '/agent?view=items', label: "Today's Items", icon: Package },
+  { href: '/agent?view=wallet', label: 'Wallet', icon: Wallet },
+];
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const { choice, setChoice } = useTheme();
+  const isAgent = pathname.startsWith('/agent');
+  const navItems = isAgent ? agentNav : merchantNav;
 
   const handleLogout = () => { clearToken(); router.push('/login'); };
 
@@ -36,7 +46,7 @@ export default function Sidebar() {
       </div>
       <nav className="flex-1 py-4 overflow-y-auto">
         {navItems.map(item => {
-          const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+          const active = item.href.startsWith('/agent?') ? (isAgent && new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('view') === new URLSearchParams(item.href.split('?')[1]).get('view')) : (pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href)));
           const Icon = item.icon;
           return (
             <Link key={item.href} href={item.href} onClick={() => setOpen(false)}
