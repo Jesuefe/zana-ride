@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Clock, Home, Briefcase, ChevronRight, Search, MapPin, Calendar, Package } from 'lucide-react';
 import { fetchMe, ApiUser } from '../lib/api/auth';
-import { fetchWallet } from '../lib/api/trips';
+import { fetchWallet, recoverActiveRide } from '../lib/api/trips';
+import { haptic } from '../lib/haptics';
 import { api } from '../lib/api/client';
 import { useLang } from '../lib/LangContext';
 
@@ -27,6 +28,7 @@ export default function HomePage() {
   const [ridePick, setRidePick] = useState<{ label: string; address: string; lat: number; lng: number } | null>(null);
 
   const [loadError, setLoadError] = useState(false);
+  const [recoveringRide, setRecoveringRide] = useState(false);
 
   const loadHomeData = () => {
     setLoadError(false);
@@ -65,12 +67,42 @@ export default function HomePage() {
   // every single call fails, not one flaky field — that's the actual
   // signal of a real connectivity problem, not just normal empty data.
   useEffect(() => {
+    let cancelled = false;
+    const recover = async () => {
+      try {
+        setRecoveringRide(true);
+        const activeRide = await recoverActiveRide();
+        if (cancelled || !activeRide) return;
+        haptic('success');
+        router.replace(activeRide.groupId
+          ? `/tracking?groupId=${encodeURIComponent(activeRide.groupId)}`
+          : `/tracking?tripId=${encodeURIComponent(activeRide.id)}`);
+      } catch {
+        // Offline/temporary failure: stay on home and allow the next app
+        // lifecycle or retry to recover from the server.
+      } finally {
+        if (!cancelled) setRecoveringRide(false);
+      }
+    };
+
     loadHomeData();
+    recover();
+    return () => { cancelled = true; };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="min-h-screen bg-white pb-24">
+      {recoveringRide && (
+        <div className="fixed inset-0 z-[80] bg-white/95 flex flex-col items-center justify-center px-8">
+          <div className="w-16 h-16 rounded-full bg-zana-primary-light flex items-center justify-center mb-4 animate-pulse">
+            <span className="text-2xl">🚕</span>
+          </div>
+          <p className="text-lg font-black text-gray-900 text-center">Recovering your ride…</p>
+          <p className="text-sm text-gray-500 text-center mt-1">Please wait while we reconnect you to your active trip.</p>
+        </div>
+      )}
 
       {/* ── Header ──────────────────────────────────────── */}
       <div className="px-5 pt-12 pb-4 bg-white">

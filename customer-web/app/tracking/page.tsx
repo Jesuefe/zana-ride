@@ -14,6 +14,7 @@ import BrandedMap from '../../components/BrandedMap';
 import ReportModal from '../../components/ReportModal';
 import { useShakeDetector, requestMotionPermission } from '../../lib/shake';
 import { useLang } from '../../lib/LangContext';
+import { haptic, startCallVibration, stopHaptic } from '../../lib/haptics';
 
 const STATUS_COPY: Record<string, string> = {
   SEARCHING_DRIVER: 'Finding your driver…',
@@ -126,12 +127,15 @@ function TrackingContent() {
   const [driverEta, setDriverEta] = useState<{ durationText: string; distanceText: string } | null>(null);
   const [cancelNotice, setCancelNotice] = useState<string | null>(null);
   const motionRequested = useRef(false);
+  const previousRideStatusRef = useRef<string | null>(null);
+  const callVibrationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const triggerSOS = () => {
     setShowReport(true);
     if (sosSent) return;
     setSosSent(true);
     // Fire immediately without waiting for GPS permission
+    haptic('warning');
     api.post('/sos', { tripId: primaryTrip?.id }).catch(() => setSosSent(false));
     // Also try to get GPS and update with coordinates
     if (navigator.geolocation) {
@@ -193,6 +197,9 @@ function TrackingContent() {
 
     socket.on('call:incoming', (data: { callId: string; callerName: string }) => {
       setIncomingCallInfo({ callId: data.callId, driverName: data.callerName });
+      stopCallVibration();
+      startCallVibration();
+      callVibrationTimerRef.current = setInterval(startCallVibration, 1600);
       // Play Zana ringtone
       try {
         const audio = new Audio('/ringtone.mp3');
@@ -217,10 +224,10 @@ function TrackingContent() {
       }
     });
 
-    socket.on('call:missed', () => { setIncomingCallInfo(null); try { (window as any).__zanaRingtone?.pause(); } catch {} });
-    socket.on('call:declined', () => { setIncomingCallInfo(null); setShowCall(false); });
-    socket.on('call:cancelled', () => { setIncomingCallInfo(null); setShowCall(false); });
-    socket.on('call:ended', () => { setIncomingCallInfo(null); setShowCall(false); setCallData(null); });
+    socket.on('call:missed', () => { stopCallVibration(); setIncomingCallInfo(null); try { (window as any).__zanaRingtone?.pause(); } catch {} });
+    socket.on('call:declined', () => { stopCallVibration(); setIncomingCallInfo(null); setShowCall(false); });
+    socket.on('call:cancelled', () => { stopCallVibration(); setIncomingCallInfo(null); setShowCall(false); });
+    socket.on('call:ended', () => { stopCallVibration(); setIncomingCallInfo(null); setShowCall(false); setCallData(null); });
     socket.on('chat:message', () => {
       if (!showChatRef.current) setHasUnreadMessage(true);
     });
@@ -233,7 +240,7 @@ function TrackingContent() {
       setCancelNotice(data?.message ?? t('Your driver cancelled this ride'));
     });
 
-    return () => { socket.disconnect(); };
+    return () => { stopCallVibration(); socket.disconnect(); };
   }, []);
 
   // ── Driver → pickup ETA (only while driver is heading to the customer) ───
@@ -284,6 +291,32 @@ function TrackingContent() {
   }, [primaryTrip?.driver?.lastLat, primaryTrip?.driver?.lastLng, primaryTrip?.status]);
   const status = primaryTrip?.status ?? 'SEARCHING_DRIVER';
   const rideIsActive = ACTIVE_STATUSES.includes(status);
+
+  // The phone may have been offline while the driver changed the ride state.
+  // Haptics make the important transition visible even when the customer is
+  // not looking directly at the screen.
+  useEffect(() => {
+    if (!primaryTrip) return;
+    const previous = previousRideStatusRef.current;
+    if (previous && previous !== status) {
+      haptic(
+        status === 'DRIVER_ARRIVED' || status === 'RIDE_COMPLETED'
+          ? 'success'
+          : 'ride'
+      );
+    }
+    previousRideStatusRef.current = status;
+  }, [status, primaryTrip?.id]);
+
+  const stopCallVibration = useCallback(() => {
+    if (callVibrationTimerRef.current) {
+      clearInterval(callVibrationTimerRef.current);
+      callVibrationTimerRef.current = null;
+    }
+    stopHaptic();
+  }, []);
+
+  useEffect(() => () => stopCallVibration(), [stopCallVibration]);
   const mapSource = isGroup ? groupTrips[0] : trip;
 
   useEffect(() => {
@@ -407,6 +440,7 @@ function TrackingContent() {
         {isGroup
           ? groupTrips.map((t) => (
               <DriverCard key={t.id} trip={t} seatLabel={`Moto ${t.groupSeatIndex} · ${STATUS_COPY[t.status] ?? t.status}`} hasUnreadMessage={hasUnreadMessage} onChat={() => { setShowChat(true); setHasUnreadMessage(false); }} onCall={async () => {
+                haptic('tap');
                 const tripId = primaryTrip?.id;
                 if (!tripId) return;
                 try {
@@ -421,6 +455,7 @@ function TrackingContent() {
               }} />
             ))
           : trip && <DriverCard trip={trip} hasUnreadMessage={hasUnreadMessage} onChat={() => { setShowChat(true); setHasUnreadMessage(false); }} onCall={async () => {
+                haptic('tap');
                 const tripId = primaryTrip?.id;
                 if (!tripId) return;
                 try {
@@ -490,7 +525,7 @@ function TrackingContent() {
               </svg>
             </button>
             <button
-              onClick={() => { setIncomingCallInfo(null); setShowCall(true); }}
+              onClick={() => { haptic('tap'); stopCallVibration(); setIncomingCallInfo(null); setShowCall(true); }}
               className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="#00A082">
                 <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
@@ -544,6 +579,8 @@ function TrackingContent() {
           </div>
           <div className="flex items-center gap-3">
             <button onClick={async () => {
+              haptic('tap');
+              stopCallVibration();
               await api.post(`/calls/${incomingCallInfo.callId}/decline`).catch(() => {});
               setIncomingCallInfo(null);
               try { (window as any).__zanaRingtone?.pause(); } catch {}
@@ -554,6 +591,8 @@ function TrackingContent() {
             </button>
             <button onClick={async () => {
               try { (window as any).__zanaRingtone?.pause(); } catch {}
+              haptic('success');
+              stopCallVibration();
               try {
                 const res = await api.post<{callId:string;roomName:string;wsUrl:string;token:string}>(
                   `/calls/${incomingCallInfo.callId}/accept`
