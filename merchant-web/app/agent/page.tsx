@@ -75,8 +75,15 @@ export default function AgentPage() {
   const pickedUp = deliveries.filter(d => d.status === 'PICKED_UP');
   const deliveredToday = deliveries.filter(d => d.status === 'DELIVERED');
   const todayKey = new Date().toDateString();
-  const salesToday = orders.filter(o => new Date(o.createdAt).toDateString() === todayKey).reduce((s, o) => s + Number(o.total || 0), 0);
+  const todayOrders = orders.filter(o => new Date(o.createdAt).toDateString() === todayKey);
+  const salesToday = todayOrders.reduce((s, o) => s + Number(o.total || 0), 0);
   const pendingIssues = orders.reduce((n, o) => n + (o.items || []).filter((i: any) => i.status === 'UNAVAILABLE_PENDING').length, 0);
+  const activePurchasingAmount = purchaseFunds
+    .filter(f => ['AVAILABLE', 'WITHDRAWN'].includes(f.status))
+    .reduce((s, f) => s + Math.max(0, Number(f.authorizedAmount || 0) - Number(f.actualSpend || 0)), 0);
+  const pendingCommission = (earnings?.settlements || [])
+    .filter((s: any) => s.status !== 'SETTLED')
+    .reduce((sum: number, s: any) => sum + Number(s.agentEarning || 0), 0);
 
   const openOrder = async (id: string) => {
     setLoadingDetail(true); setError('');
@@ -177,7 +184,7 @@ export default function AgentPage() {
   const fundFor = (id: string) => purchaseFunds.find(f => f.orderId === id);
 
   const statCards = [
-    [t('Today’s orders',lang), orders.length, ShoppingBag],
+    [t('Today’s orders',lang), todayOrders.length, ShoppingBag],
     [t('Purchasing funds',lang), purchaseFunds.filter(f=>['AVAILABLE','WITHDRAWN'].includes(f.status)).length, Wallet],
     [t('Orders',lang), active.filter(o => ['PENDING','CONFIRMED'].includes(o.status)).length, Clock3],
     ['Shopping now', shopping.length, Package],
@@ -213,7 +220,11 @@ export default function AgentPage() {
             <div className="space-y-2">{orders.slice(0, 8).map(o => <OrderRow key={o.id} order={o} onOpen={() => openOrder(o.id)} />)}{!orders.length && <Empty text="No market orders yet."/>}</div>
           </section>
           <section className="space-y-3">
-            <div className="bg-zana-primary text-white rounded-2xl p-5"><p className="text-xs opacity-80">{t("Agent earnings",lang)}</p><p className="text-3xl font-black mt-1">{money(earnings?.totalEarning)}</p><p className="text-xs opacity-80 mt-1">{earnings?.settlements?.length || 0} settled orders</p></div>
+            <div className="bg-zana-primary text-white rounded-2xl p-5"><p className="text-xs opacity-80">{t("Available balance",lang)}</p><p className="text-3xl font-black mt-1">{money(wallet?.balance)}</p><p className="text-xs opacity-80 mt-1">{t("Earned commission released after delivery.",lang)}</p></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white rounded-2xl border border-gray-100 p-4"><p className="text-[10px] text-gray-500">{t("Purchasing funds in active orders",lang)}</p><p className="text-xl font-black mt-1">{money(activePurchasingAmount)}</p></div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-4"><p className="text-[10px] text-gray-500">{t("Pending commission",lang)}</p><p className="text-xl font-black mt-1">{money(pendingCommission)}</p></div>
+            </div>
             <div className="bg-white rounded-2xl border border-gray-100 p-4"><div className="flex gap-3"><AlertTriangle className="text-amber-500" size={18}/><div><p className="font-bold text-sm">{t("Item issues",lang)}</p><p className="text-xs text-gray-500">{pendingIssues ? pendingIssues + ' item' + (pendingIssues > 1 ? 's are' : ' is') + ' waiting for customer action' : 'No item issues today.'}</p></div></div></div>
           </section>
         </div>
