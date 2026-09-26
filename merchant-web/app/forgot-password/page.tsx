@@ -14,8 +14,8 @@ export default function ForgotPassword() {
   const router = useRouter();
   const [step, setStep] = useState<'identify' | 'reset'>('identify');
   const [identifier, setIdentifier] = useState('');
-  const [phone, setPhone] = useState('');
   const [hint, setHint] = useState<string | null>(null);
+  const [channel, setChannel] = useState<'email' | 'sms' | null>(null);
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -40,12 +40,11 @@ export default function ForgotPassword() {
   const submit = async () => {
     if (password !== confirm) { setError('Those passwords do not match.'); return; }
     if (password.length < 6) { setError('Use at least 6 characters.'); return; }
-    if (!phone) { setError('Enter the phone number the code was sent to.'); return; }
 
     setBusy(true);
     setError('');
     try {
-      await resetPassword(phone, code.trim(), password);
+      await resetPassword(identifier.trim(), code.trim(), password);
       router.replace('/');
     } catch (e: any) {
       const msg = e?.message ?? '';
@@ -95,17 +94,8 @@ export default function ForgotPassword() {
             <h1 className="text-xl font-black text-gray-900">Enter your code</h1>
             <p className="text-sm text-gray-500 mt-1.5 mb-5">
               If that account exists, a code is on its way
-              {hint ? ` to ${hint}` : ''}. Valid for five minutes.
+              {hint ? ` to ${hint}` : ''} {channel === 'email' ? 'by email' : channel === 'sms' ? 'by SMS' : ''}. Valid for five minutes.
             </p>
-
-            {!phone && (
-              <input
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="Phone number the code went to"
-                className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 text-sm mb-3 focus:border-zana-primary focus:outline-none"
-              />
-            )}
 
             <input
               value={code}
