@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, BadGatewayException, 
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../deliveries/storage.service';
 import { DriverApprovalStatus, DriverOnlineStatus, ServiceType } from '@prisma/client';
+import { ZanaGateway } from '../gateway/zana.gateway';
 
 // Matches Uber's own "cash ride limit" concept — a line of credit for
 // commissions owed, not an unlimited one. This exact number is a
