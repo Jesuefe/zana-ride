@@ -42,13 +42,16 @@ export default function TestLocationsPage(){
   }
 
   useEffect(()=>{
-    if(!map.current||!loc||loc.testOverrideLat==null||loc.testOverrideLng==null)return;
+    if(!map.current||!selected)return;
+    const lat=loc?.testOverrideLat!=null?Number(loc.testOverrideLat):selected.lastLat!=null?Number(selected.lastLat):null;
+    const lng=loc?.testOverrideLng!=null?Number(loc.testOverrideLng):selected.lastLng!=null?Number(selected.lastLng):null;
+    if(lat==null||lng==null)return;
     const G=(window as any).google.maps;
     if(marker.current)marker.current.setMap(null);
-    marker.current=new G.Marker({map:map.current,position:{lat:Number(loc.testOverrideLat),lng:Number(loc.testOverrideLng)},draggable:true,title:'Simulated driver'});
+    marker.current=new G.Marker({map:map.current,position:{lat,lng},draggable:true,title:loc?'Simulated driver':'Live driver GPS'});
     marker.current.addListener('dragend',(e:any)=>moveTo({lat:e.latLng.lat(),lng:e.latLng.lng()}));
     map.current.panTo(marker.current.getPosition());
-  },[loc?.testOverrideLat,loc?.testOverrideLng,selected?.id]);
+  },[loc?.testOverrideLat,loc?.testOverrideLng,selected?.id,selected?.lastLat,selected?.lastLng]);
 
   function addPoint(e:any){
     if(!selected)return;
