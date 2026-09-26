@@ -83,6 +83,25 @@ export class AgentController {
     return this.marketsService.getMyOrders(user.sub);
   }
 
+  @Get('orders/:id')
+  orderDetail(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.marketsService.getMyOrderDetail(user.sub, id);
+  }
+
+  @Post('orders/:id/items/:itemId/unavailable')
+  markItemUnavailable(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.marketsService.markItemUnavailable(user.sub, id, itemId);
+  }
+
+  @Get('deliveries')
+  deliveries(@CurrentUser() user: JwtPayload) {
+    return this.marketsService.getMyDeliveries(user.sub);
+  }
+
   @Patch('orders/:id/status')
   updateOrderStatus(
     @CurrentUser() user: JwtPayload,
