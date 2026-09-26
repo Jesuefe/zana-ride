@@ -79,6 +79,7 @@ export default function MarketsPage() {
                   <p className="font-semibold text-gray-900">{m.name}</p>
                   <p className="text-xs text-gray-500 flex items-center gap-1 mt-1"><MapPin size={11} />{m.address}</p>
                   {m.description && <p className="text-xs text-gray-500 mt-1">{m.description}</p>}
+                  {m.pickupPhone && <p className="text-xs text-gray-500 mt-1">Pickup: {m.pickupContactName || 'Contact'} · {m.pickupPhone}</p>}
                   <p className="text-xs text-gray-500 mt-2">{m.agents?.length ?? 0} agent{m.agents?.length !== 1 ? 's' : ''} assigned</p>
                 </div>
                 <button onClick={() => updateMarket(m.id, { active: !m.active }).then(load)} className={`${m.active ? 'text-green-600' : 'text-gray-400'}`}>
