@@ -71,3 +71,24 @@ export const UI: Record<string, Record<Lang, string>> = {
 export function t(key: string, lang: Lang): string {
   return UI[key]?.[lang] ?? key;
 }
+  'Refresh': { en: 'Refresh', fr: 'Actualiser', rw: 'Ongera usubiremo' },
+  'Today’s sales': { en: 'Today’s sales', fr: 'Ventes du jour', rw: 'Ibyagurishijwe uyu munsi' },
+  'Pending shopping': { en: 'Pending shopping', fr: 'Achats en attente', rw: 'Ibitegereje kugurwa' },
+  'Shopping now': { en: 'Shopping now', fr: 'Achats en cours', rw: 'Birimo kugurwa' },
+  'Ready for pickup': { en: 'Ready for pickup', fr: 'Prêt à être retiré', rw: 'Biteguye gufatwa' },
+  'View all': { en: 'View all', fr: 'Voir tout', rw: 'Reba byose' },
+  'Open any order for the complete receipt and timeline.': { en: 'Open any order for the complete receipt and timeline.', fr: 'Ouvrez une commande pour voir le reçu et la chronologie complète.', rw: 'Fungura icyo wifuza kureba inyemezabuguzi n’amateka yose.' },
+  'Item issues': { en: 'Item issues', fr: 'Problèmes d’article', rw: 'Ibibazo by’ibicuruzwa' },
+  'Orders today': { en: 'Orders today', fr: 'Commandes du jour', rw: 'Ibyatumijwe uyu munsi' },
+  'Shop, resolve unavailable items and prepare packages for pickup.': { en: 'Shop, resolve unavailable items and prepare packages for pickup.', fr: 'Achetez, gérez les articles indisponibles et préparez les colis.', rw: 'Gura, kora ku bicuruzwa bidahari kandi utegure ibyo gutwara.' },
+  'Deliveries': { en: 'Deliveries', fr: 'Livraisons', rw: 'Ibigezwa' },
+  'Packages a Zana rider has been assigned to or has picked up from your market.': { en: 'Packages a Zana rider has been assigned to or has picked up from your market.', fr: 'Colis attribués à un coursier Zana ou déjà retirés de votre marché.', rw: 'Ibicuruzwa byahawe cyangwa byafashwe n’umukozi wa Zana ku isoko ryawe.' },
+  'Today’s items': { en: 'Today’s items', fr: 'Articles du jour', rw: 'Ibicuruzwa by’uyu munsi' },
+  'What you can physically source at the market today.': { en: 'What you can physically source at the market today.', fr: 'Ce que vous pouvez réellement trouver au marché aujourd’hui.', rw: 'Ibyo ushobora kubona ku isoko uyu munsi.' },
+  'List item': { en: 'List item', fr: 'Ajouter un article', rw: 'Shyiraho igicuruzwa' },
+  'Add to today’s list': { en: 'Add to today’s list', fr: 'Ajouter à la liste du jour', rw: 'Ongeraho ku rutonde rw’uyu munsi' },
+  'Wallet': { en: 'Wallet', fr: 'Portefeuille', rw: 'Umufuka' },
+  'Recent wallet activity': { en: 'Recent wallet activity', fr: 'Activité récente du portefeuille', rw: 'Ibikorwa biheruka ku mufuka' },
+  'Rider handoff': { en: 'Rider handoff', fr: 'Remise au coursier', rw: 'Guha umukozi ubigeza' },
+  'Waiting for rider': { en: 'Waiting for rider', fr: 'En attente du coursier', rw: 'Gutegereza ubigeza' },
+
