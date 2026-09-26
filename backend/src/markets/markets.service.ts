@@ -187,7 +187,29 @@ export class MarketsService {
 
   async getMyDeliveries(userId: string) {
     const agent = await this.requireAgent(userId);
-    return this.prisma.delivery.findMany({ where: { order: { marketId: agent.marketId! }, status: { in: ['COURIER_ASSIGNED','PICKED_UP','DELIVERED'] } }, include: { order: { select: { id: true, trackingCode: true, total: true, customer: { select: { firstName: true, lastName: true, phone: true } } } }, driver: { include: { user: { select: { id: true, firstName: true, lastName: true, phone: true } } } } }, orderBy: { createdAt: 'desc' }, take: 100 });
+    return this.prisma.delivery.findMany({
+      where: {
+        order: { marketId: agent.marketId! },
+        status: { in: ['REQUESTED','COURIER_ASSIGNED','PICKED_UP','DELIVERED'] },
+      },
+      include: {
+        order: {
+          select: {
+            id: true,
+            trackingCode: true,
+            total: true,
+            customer: { select: { firstName: true, lastName: true, phone: true } },
+          },
+        },
+        driver: {
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true, phone: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
   }
 
   async markItemUnavailable(userId: string, orderId: string, itemId: string) {
