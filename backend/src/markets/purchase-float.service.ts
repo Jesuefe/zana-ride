@@ -43,11 +43,6 @@ export class PurchaseFloatService implements OnModuleInit {
       CREATE INDEX IF NOT EXISTS "AgentPurchaseFund_order_idx"
         ON "AgentPurchaseFund" ("orderId")
     `);
-      CREATE INDEX IF NOT EXISTS "AgentPurchaseFund_agent_status_idx"
-        ON "AgentPurchaseFund" ("agentId", "status", "createdAt");
-      CREATE INDEX IF NOT EXISTS "AgentPurchaseFund_order_idx"
-        ON "AgentPurchaseFund" ("orderId");
-    `);
   }
 
   private async requireAgent(userId: string) {
