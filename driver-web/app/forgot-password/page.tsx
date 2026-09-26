@@ -36,9 +36,6 @@ export default function ForgotPassword() {
     try {
       const res = await requestPasswordReset(id);
       setHint(res?.phoneHint ?? null);
-      // The reset step needs the phone the code went to. If they typed a
-      // phone we already have it; if they typed an email we ask for it.
-      if (/^\+?\d[\d\s]{6,}$/.test(id)) setPhone(id.replace(/\s/g, ''));
       setStep('reset');
     } catch {
       // Deliberately vague: we never confirm whether an account exists.
