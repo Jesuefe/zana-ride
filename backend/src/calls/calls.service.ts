@@ -376,7 +376,7 @@ export class CallsService {
     const call = await this.prisma.call.findUnique({ where: { id: callId } });
     if (!call) throw new NotFoundException('CALL_NOT_FOUND');
     if (call.callerId !== userId && call.receiverId !== userId) throw new ForbiddenException('INVALID_CALL_PARTICIPANT');
-    if (![CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED].includes(call.status as CallStatus)) {
+    if (![CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED].includes(call.status as typeof CallStatus.ACCEPTED)) {
       throw new BadRequestException(`CALL_NOT_ACTIVE (status: ${call.status})`);
     }
     if (call.status !== CallStatus.CONNECTED) {
@@ -392,7 +392,7 @@ export class CallsService {
     const call = await this.prisma.call.findUnique({ where: { id: callId } });
     if (!call) throw new NotFoundException('CALL_NOT_FOUND');
     if (call.callerId !== userId && call.receiverId !== userId) throw new ForbiddenException('INVALID_CALL_PARTICIPANT');
-    if (![CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED].includes(call.status)) throw new BadRequestException(`CALL_NOT_ACTIVE (status: ${call.status})`);
+    if (![CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED].includes(call.status as typeof CallStatus.ACCEPTED)) throw new BadRequestException(`CALL_NOT_ACTIVE (status: ${call.status})`);
     await this.prisma.call.update({ where: { id: callId }, data: { updatedAt: new Date() } });
     return { ok: true };
   }
@@ -418,7 +418,7 @@ export class CallsService {
     if (call.callerId !== userId && call.receiverId !== userId) {
       throw new ForbiddenException('INVALID_CALL_PARTICIPANT');
     }
-    if (![CallStatus.RINGING, CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED].includes(call.status as CallStatus)) throw new BadRequestException(`CALL_NOT_ACTIVE (status: ${call.status})`);
+    if (![CallStatus.RINGING, CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED].includes(call.status as typeof CallStatus.ACCEPTED)) throw new BadRequestException(`CALL_NOT_ACTIVE (status: ${call.status})`);
     if (call.status === CallStatus.RINGING && new Date() > call.expiresAt) throw new BadRequestException('CALL_EXPIRED');
 
     const identity = `${userId === call.callerId ? 'caller' : 'receiver'}_${userId}`;
