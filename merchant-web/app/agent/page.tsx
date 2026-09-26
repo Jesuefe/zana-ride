@@ -8,6 +8,7 @@ import {
 import { api } from '../../lib/api/client';
 import { requestAgentPriceChange, fetchAgentEarnings } from '../../lib/api/merchant';
 import VoiceCall from '../../components/VoiceCall';
+import { getStoredLang, setStoredLang, t, type Lang } from '../../lib/lang';
 
 const money = (n: any) => Number(n || 0).toLocaleString() + ' RWF';
 const label = (s: string) => (s || '').replace(/_/g, ' ');
@@ -28,6 +29,7 @@ export default function AgentPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [purchaseFunds, setPurchaseFunds] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const [lang, setLang] = useState<Lang>('en');
 
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
@@ -54,6 +56,7 @@ export default function AgentPage() {
   };
 
   useEffect(() => {
+    setLang(getStoredLang());
     if (typeof window !== 'undefined') {
       const q = new URLSearchParams(window.location.search).get('view');
       if (q) setView(q);
@@ -82,6 +85,13 @@ export default function AgentPage() {
     finally { setLoadingDetail(false); }
   };
 
+  const withdraw = async (id: string) => {
+    setBusy('withdraw:' + id); setError('');
+    try { await api.post('/agent/purchase-funds/' + id + '/withdraw', {}); await load(); if (selected?.id === id) await openOrder(id); }
+    catch (e: any) { setError(e?.message ?? 'Could not withdraw purchasing funds'); }
+    finally { setBusy(null); }
+  };
+
   const status = async (id: string, next: string) => {
     setBusy(id); setError('');
     try {
@@ -92,7 +102,6 @@ export default function AgentPage() {
       // This is deliberately separate from the agent's normal earnings wallet.
       if (next === 'PREPARING' && ['PENDING', 'CONFIRMED'].includes(o.status)) {
         await api.post('/agent/purchase-funds/' + id + '/accept', {});
-        await api.post('/agent/purchase-funds/' + id + '/withdraw', {});
         await load();
         if (selected?.id === id) await openOrder(id);
         return;
@@ -212,7 +221,7 @@ export default function AgentPage() {
 
       {view === 'orders' && <section>
         <div className="flex items-end justify-between mb-4"><div><h2 className="text-xl font-black">Orders</h2><p className="text-xs text-gray-500">Shop, resolve unavailable items and prepare packages for pickup.</p></div><span className="text-xs font-bold bg-zana-primary/10 text-zana-primary px-3 py-2 rounded-xl">{active.length} active</span></div>
-        <div className="space-y-3">{orders.map(o => <OrderCard key={o.id} order={o} fund={fundFor(o.id)} onOpen={() => openOrder(o.id)} onUnavailable={unavailable} onStatus={status} busy={busy}/>) }{!orders.length && <Empty text="No orders for this market."/>}</div>
+        <div className="space-y-3">{orders.map(o => <OrderCard key={o.id} order={o} fund={fundFor(o.id)} onOpen={() => openOrder(o.id)} onUnavailable={unavailable} onStatus={status} onWithdraw={withdraw} busy={busy} lang={lang}/>) }{!orders.length && <Empty text="No orders for this market."/>}</div>
       </section>}
 
       {view === 'deliveries' && <section>
@@ -229,7 +238,7 @@ export default function AgentPage() {
 
       {view === 'wallet' && <section><div className="mb-4"><h2 className="text-xl font-black">Wallet</h2><p className="text-xs text-gray-500">Your agent earnings and wallet activity.</p></div><div className="grid md:grid-cols-3 gap-3 mb-5"><div className="bg-zana-primary text-white rounded-2xl p-5"><p className="text-xs opacity-80">Available balance</p><p className="text-3xl font-black">{money(wallet?.balance)}</p></div><div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total earnings</p><p className="text-2xl font-black">{money(earnings?.totalEarning)}</p></div><div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total markup</p><p className="text-2xl font-black">{money(earnings?.totalMarkup)}</p></div></div><div className="bg-white rounded-2xl border p-4"><h3 className="font-black mb-3">Recent wallet activity</h3><div className="space-y-2">{(wallet?.transactions||[]).map((t:any)=><div key={t.id} className="flex justify-between py-2 border-b border-gray-50 text-sm"><span>{t.description || t.reference || 'Wallet transaction'}</span><span className={t.amount>=0?'text-zana-primary font-bold':'text-red-500 font-bold'}>{t.amount>=0?'+':''}{money(t.amount)}</span></div>)}</div></div></section>}
 
-      {selected && <OrderDetail order={selected} onClose={()=>setSelected(null)} onUnavailable={unavailable} onCall={(d:any)=>setCall({contextId:d.id,name:d.driver?.user?.firstName||'Rider'})} busy={busy}/>}
+      {selected && <OrderDetail order={selected} fund={fundFor(selected.id)} onClose={()=>setSelected(null)} onUnavailable={unavailable} onCall={(d:any)=>setCall({contextId:d.id,name:d.driver?.user?.firstName||'Rider'})} onWithdraw={withdraw} busy={busy} lang={lang}/>}
       {loadingDetail && <div className="fixed inset-0 z-40 bg-black/20 flex items-center justify-center"><div className="bg-white rounded-2xl px-5 py-4 text-sm font-bold">Loading order…</div></div>}
       {call && <VoiceCall context="delivery" contextId={call.contextId} participantLabel={call.name} onClose={()=>setCall(null)}/>}
     </div>
