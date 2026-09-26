@@ -26,6 +26,7 @@ export default function AgentPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [call, setCall] = useState<any>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [purchaseFunds, setPurchaseFunds] = useState<any[]>([]);
   const [error, setError] = useState('');
 
   const [adding, setAdding] = useState(false);
@@ -47,6 +48,7 @@ export default function AgentPage() {
       api.get<any[]>('/agent/products').then(setProducts).catch(() => {}),
       api.get<any[]>('/agent/deliveries').then(setDeliveries).catch(() => {}),
       api.get<any>('/agent/wallet').then(setWallet).catch(() => {}),
+      api.get<any[]>('/agent/purchase-funds').then(setPurchaseFunds).catch(() => {}),
       fetchAgentEarnings().then(setEarnings).catch(() => {}),
     ]);
   };
@@ -81,19 +83,44 @@ export default function AgentPage() {
   };
 
   const status = async (id: string, next: string) => {
-    setBusy(id);
+    setBusy(id); setError('');
     try {
-      const actualPrices: Record<string, number> = {};
       const o = orders.find(x => x.id === id);
-      if (next === 'READY_FOR_PICKUP' && o) {
+      if (!o) throw new Error('Order not found');
+
+      // Starting shopping first creates the order-scoped purchasing allocation.
+      // This is deliberately separate from the agent's normal earnings wallet.
+      if (next === 'PREPARING' && ['PENDING', 'CONFIRMED'].includes(o.status)) {
+        await api.post('/agent/purchase-funds/' + id + '/accept', {});
+        await load();
+        if (selected?.id === id) await openOrder(id);
+        return;
+      }
+
+      const fund = purchaseFunds.find(f => f.orderId === id);
+      if (next === 'PREPARING' && fund?.status === 'AVAILABLE') {
+        await api.post('/agent/purchase-funds/' + id + '/withdraw', {});
+        await load();
+        return;
+      }
+
+      const actualPrices: Record<string, number> = {};
+      if (next === 'READY_FOR_PICKUP') {
+        if (!fund || fund.status !== 'WITHDRAWN') throw new Error('Withdraw the order shopping funds before marking it ready.');
+        let actualSpend = 0;
         for (const item of o.items || []) {
-          const raw = window.prompt('Actual purchase cost for ' + (item.product?.name || 'item') + ' (RWF). Cancel to leave reference cost.');
-          if (raw === null || raw === '') continue;
-          const n = Number(raw);
+          if (['REFUNDED','REMOVED','UNAVAILABLE_PENDING'].includes(item.status)) continue;
+          const raw = window.prompt('Actual purchase cost for ' + (item.product?.name || 'item') + ' (RWF). Cancel to use the reference cost.');
+          const reference = Number(item.referenceCostAtOrder ?? item.price ?? item.product?.price ?? 0);
+          const n = raw === null || raw === '' ? reference : Number(raw);
           if (!Number.isInteger(n) || n < 0) throw new Error('Purchase cost must be a whole number.');
           actualPrices[item.id] = n;
+          actualSpend += n * Number(item.quantity || 0);
         }
+        if (actualSpend > Number(fund.withdrawnAmount)) throw new Error('Actual shopping spend cannot exceed the amount authorized for this order.');
+        await api.post('/agent/purchase-funds/' + id + '/reconcile', { actualSpend });
       }
+
       await api.patch('/agent/orders/' + id + '/status', { status: next, ...(Object.keys(actualPrices).length ? { actualPrices } : {}) });
       await load();
       if (selected?.id === id) await openOrder(id);
@@ -137,6 +164,7 @@ export default function AgentPage() {
 
   const statusNext = (s: string) => s === 'PENDING' || s === 'CONFIRMED' ? 'PREPARING' : s === 'PREPARING' ? 'READY_FOR_PICKUP' : null;
   const statusButton = (s: string) => s === 'PENDING' || s === 'CONFIRMED' ? 'Start shopping' : s === 'PREPARING' ? 'Mark ready for pickup' : null;
+  const fundFor = (id: string) => purchaseFunds.find(f => f.orderId === id);
 
   const statCards = [
     ['Today’s sales', money(salesToday), Wallet],
@@ -183,7 +211,7 @@ export default function AgentPage() {
 
       {view === 'orders' && <section>
         <div className="flex items-end justify-between mb-4"><div><h2 className="text-xl font-black">Orders</h2><p className="text-xs text-gray-500">Shop, resolve unavailable items and prepare packages for pickup.</p></div><span className="text-xs font-bold bg-zana-primary/10 text-zana-primary px-3 py-2 rounded-xl">{active.length} active</span></div>
-        <div className="space-y-3">{orders.map(o => <OrderCard key={o.id} order={o} onOpen={() => openOrder(o.id)} onUnavailable={unavailable} onStatus={status} busy={busy}/>) }{!orders.length && <Empty text="No orders for this market."/>}</div>
+        <div className="space-y-3">{orders.map(o => <OrderCard key={o.id} order={o} fund={fundFor(o.id)} onOpen={() => openOrder(o.id)} onUnavailable={unavailable} onStatus={status} busy={busy}/>) }{!orders.length && <Empty text="No orders for this market."/>}</div>
       </section>}
 
       {view === 'deliveries' && <section>
@@ -209,9 +237,10 @@ export default function AgentPage() {
 
 function OrderRow({order,onOpen}:any){return <button onClick={onOpen} className="w-full text-left bg-gray-50 rounded-xl p-3 flex items-center gap-3 hover:bg-gray-100"><div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-zana-primary"><ShoppingBag size={16}/></div><div className="flex-1 min-w-0"><div className="flex justify-between gap-3"><p className="font-mono text-xs font-bold text-zana-primary">{order.trackingCode||order.id.slice(0,8)}</p><span className="text-[10px] font-bold uppercase text-gray-500">{label(order.status)}</span></div><p className="text-xs text-gray-600 truncate">{order.customer?.firstName||'Customer'} · {(order.items||[]).length} items · {money(order.total)}</p></div><ChevronRight size={15} className="text-gray-400"/></button>}
 
-function OrderCard({order,onOpen,onUnavailable,onStatus,busy}:any){
+function OrderCard({order,fund,onOpen,onUnavailable,onStatus,busy}:any){
  const next=order.status==='PENDING'||order.status==='CONFIRMED'?'PREPARING':order.status==='PREPARING'?'READY_FOR_PICKUP':null;
- return <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4"><div className="flex justify-between gap-3 mb-3"><button onClick={onOpen} className="text-left"><p className="font-mono text-xs font-bold text-zana-primary">{order.trackingCode||order.id.slice(0,8)}</p><p className="font-bold text-sm">{order.customer?.firstName||'Customer'}</p><p className="text-[11px] text-gray-400">{new Date(order.createdAt).toLocaleString()}</p></button><span className="h-fit px-2.5 py-1 rounded-full bg-gray-100 text-[10px] font-bold uppercase">{label(order.status)}</span></div><div className="space-y-2 border-y border-gray-50 py-3">{(order.items||[]).map((i:any)=><div key={i.id} className="flex items-center gap-2"><div className="flex-1"><p className={['REFUNDED','REMOVED'].includes(i.status)?'line-through text-gray-400':'text-sm font-medium'}>{i.product?.name} ×{i.quantity}</p><p className="text-[10px] text-gray-400">{i.status==='UNAVAILABLE_PENDING'?'Waiting for customer choice':i.status==='REFUNDED'?'Refunded to Zana Wallet':i.status==='REMOVED'?'Removed · refunded to Zana Wallet':i.status==='REPLACED'?'Replaced with this item':money(i.price*i.quantity)}</p></div>{i.status==='AVAILABLE'&&['PENDING','CONFIRMED','PREPARING'].includes(order.status)&&<button disabled={busy===i.id} onClick={()=>onUnavailable(order.id,i.id)} className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1.5 rounded-lg">{busy===i.id?'Notifying…':'Unavailable'}</button>}</div>)}</div><div className="flex items-center justify-between mt-3"><p className="font-black">{money(order.total)}</p>{next?<button disabled={busy===order.id} onClick={()=>onStatus(order.id,next)} className="bg-zana-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl">{busy===order.id?'Saving…':next==='PREPARING'?'Start shopping':'Mark ready for pickup'}</button>:order.status==='READY_FOR_PICKUP'?<span className="text-xs font-bold text-zana-primary">Waiting for rider</span>:null}</div></div>
+ const shoppingFund = fund?.authorizedAmount ?? 0;
+ return <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4"><div className="flex justify-between gap-3 mb-3"><button onClick={onOpen} className="text-left"><p className="font-mono text-xs font-bold text-zana-primary">{order.trackingCode||order.id.slice(0,8)}</p><p className="font-bold text-sm">{order.customer?.firstName||'Customer'}</p><p className="text-[11px] text-gray-400">{new Date(order.createdAt).toLocaleString()}</p></button><span className="h-fit px-2.5 py-1 rounded-full bg-gray-100 text-[10px] font-bold uppercase">{label(order.status)}</span></div><div className="space-y-2 border-y border-gray-50 py-3">{(order.items||[]).map((i:any)=><div key={i.id} className="flex items-center gap-2"><div className="flex-1"><p className={['REFUNDED','REMOVED'].includes(i.status)?'line-through text-gray-400':'text-sm font-medium'}>{i.product?.name} ×{i.quantity}</p><p className="text-[10px] text-gray-400">{i.status==='UNAVAILABLE_PENDING'?'Waiting for customer choice':i.status==='REFUNDED'?'Refunded to Zana Wallet':i.status==='REMOVED'?'Removed · refunded to Zana Wallet':i.status==='REPLACED'?'Replaced with this item':money(i.price*i.quantity)}</p></div>{i.status==='AVAILABLE'&&['PENDING','CONFIRMED','PREPARING'].includes(order.status)&&<button disabled={busy===i.id} onClick={()=>onUnavailable(order.id,i.id)} className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1.5 rounded-lg">{busy===i.id?'Notifying…':'Unavailable'}</button>}</div>)}</div>{fund && <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 p-3"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase text-emerald-700">Order shopping funds</p><p className="text-sm font-black text-emerald-900">{money(shoppingFund)}</p></div><span className="text-[10px] font-bold uppercase text-emerald-700">{label(fund.status)}</span></div>{fund.status==='WITHDRAWN' && <p className="text-[10px] text-emerald-700 mt-1">Funds released for this order only · actual spend must be reconciled before pickup.</p>}</div>}<div className="flex items-center justify-between mt-3"><p className="font-black">{money(order.total)}</p>{next?<button disabled={busy===order.id} onClick={()=>onStatus(order.id,next)} className="bg-zana-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl">{busy===order.id?'Saving…':next==='PREPARING'?(fund?.status==='AVAILABLE'?'Release shopping funds':'Start shopping'):'Mark ready for pickup'}</button>:order.status==='READY_FOR_PICKUP'?<span className="text-xs font-bold text-zana-primary">Waiting for rider</span>:null}</div></div>
 }
 
 function DeliveryCard({delivery,onCall}:any){const d=delivery.driver?.user;return <div className="bg-white rounded-2xl border border-gray-100 p-4"><div className="flex justify-between gap-3"><div><p className="font-mono text-xs font-bold text-zana-primary">{delivery.order?.trackingCode||delivery.trackingCode}</p><p className="font-bold text-sm">{delivery.order?.customer?.firstName||'Customer'}</p><p className="text-xs text-gray-500">{delivery.dropoffAddress}</p></div><span className="h-fit text-[10px] font-bold uppercase bg-gray-100 px-2.5 py-1 rounded-full">{label(delivery.status)}</span></div><div className="mt-3 flex items-center justify-between bg-gray-50 rounded-xl p-3"><div><p className="text-xs font-bold">{d?.firstName||'Zana rider'}</p><p className="text-[10px] text-gray-500">{delivery.driver?.vehicle||'Vehicle'} {delivery.driver?.plate||''}</p></div>{delivery.status!=='DELIVERED'&&d?.phone&&<div className="flex gap-2"><a href={'tel:'+d.phone} className="w-9 h-9 rounded-full bg-white border flex items-center justify-center text-zana-primary"><Phone size={15}/></a><button onClick={onCall} className="w-9 h-9 rounded-full bg-zana-primary text-white flex items-center justify-center"><Phone size={15}/></button></div>}</div></div>}
