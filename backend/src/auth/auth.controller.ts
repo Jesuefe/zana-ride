@@ -1,6 +1,7 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RequestOtpDto, VerifyOtpDto } from './dto/otp.dto';
+import { RecoverAdminDto } from './dto/password-auth.dto';
 import { RegisterDto, LoginDto, RegisterDriverDto } from './dto/password-auth.dto';
 import { JwtAuthGuard } from './roles.guard';
 import { CurrentUser } from './current-user.decorator';
@@ -40,6 +41,14 @@ export class AuthController {
   @Post('register-driver')
   registerDriver(@Body() dto: RegisterDriverDto) {
     return this.authService.registerDriver(dto);
+  }
+
+  // Emergency admin bootstrap. This endpoint is inert unless
+  // ADMIN_RECOVERY_SECRET is configured in the server environment.
+  // Remove that environment variable immediately after successful recovery.
+  @Post('admin/recover')
+  recoverAdmin(@Body() dto: RecoverAdminDto) {
+    return this.authService.recoverAdmin(dto);
   }
 
   @Post('login')
