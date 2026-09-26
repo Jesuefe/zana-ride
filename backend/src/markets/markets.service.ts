@@ -2,7 +2,6 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../deliveries/storage.service';
 import { haversineKm } from '../trips/fare.util';
-import { WalletService } from '../wallet/wallet.service';
 import { PushService } from '../push/push.service';
 
 // Same shape as the merchant delivery fee so pricing stays consistent
@@ -18,7 +17,6 @@ export class MarketsService {
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
-    private wallet: WalletService,
     private push: PushService,
   ) {}
 
