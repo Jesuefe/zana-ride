@@ -4,6 +4,7 @@ import { RedisModule } from './redis/redis.module';
 import { CommonModule } from './common/common.module';
 import { PushModule } from './push/push.module';
 import { MarketsModule } from './markets/markets.module';
+import { PurchaseFloatModule } from './markets/purchase-float.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -30,15 +31,16 @@ import { FinanceModule } from './finance/finance.module';
     CommonModule,
     PushModule,
     MarketsModule,
+    PurchaseFloatModule,
     GatewayModule,
     ThrottlerModule.forRoot([{
       name: 'short',
-      ttl: 1000,   // 1 second
-      limit: 10,   // 10 requests per second per IP
+      ttl: 1000,
+      limit: 10,
     }, {
       name: 'long',
-      ttl: 60000,  // 1 minute
-      limit: 200,  // 200 requests per minute per IP
+      ttl: 60000,
+      limit: 200,
     }]),
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
