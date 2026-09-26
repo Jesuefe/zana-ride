@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { login } from '../../lib/api/auth';
+import { recoverActiveRide } from '../../lib/api/trips';
+import { haptic } from '../../lib/haptics';
 import { ApiError } from '../../lib/api/client';
 import { useLang } from '../../lib/LangContext';
 
@@ -23,7 +25,24 @@ export default function LoginPage() {
     setError(null);
     try {
       await login(identifier.trim(), password);
-      router.push('/');
+      haptic('success');
+
+      // A customer may have lost connectivity, closed the app, or restarted
+      // the phone while a ride was still active. Never create a new ride here:
+      // ask the server for the authoritative active ride and resume it.
+      try {
+        const activeRide = await recoverActiveRide();
+        if (activeRide) {
+          router.replace(activeRide.groupId
+            ? `/tracking?groupId=${encodeURIComponent(activeRide.groupId)}`
+            : `/tracking?tripId=${encodeURIComponent(activeRide.id)}`);
+          return;
+        }
+      } catch {
+        // Login itself succeeded. If recovery is temporarily unavailable,
+        // continue to the home screen; the home screen retries recovery.
+      }
+      router.replace('/');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
     } finally {
