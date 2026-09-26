@@ -83,6 +83,8 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
     clearTimeout(recoveryTimerRef.current);
     audioElementsRef.current.forEach(el => { el.pause(); el.srcObject = null; el.remove(); });
     audioElementsRef.current = [];
+    tryPlayRemoteAudioRef.current = null;
+    markMediaReadyRef.current = null;
     roomRef.current?.disconnect();
     roomRef.current = null;
   }, []);
@@ -311,8 +313,6 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
       api.post(`/calls/${callId}/heartbeat`).catch(() => {});
     }, 10_000);
 
-    tryPlayRemoteAudioRef.current = null;
-    markMediaReadyRef.current = null;
   }, [handleEnd]);
 
   // ── Main effect ────────────────────────────────────────────────────────────
