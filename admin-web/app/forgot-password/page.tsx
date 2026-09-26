@@ -45,7 +45,7 @@ export default function ForgotPassword() {
     setError('');
     try {
       await resetPassword(identifier.trim(), code.trim(), password);
-      router.replace('/');
+      router.replace('/dashboard');
     } catch (e: any) {
       const msg = e?.message ?? '';
       if (msg.includes('INVALID_CODE')) setError('That code is not right.');
