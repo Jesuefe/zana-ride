@@ -369,45 +369,54 @@ export class AuthService {
 
     if (!user?.phone) {
       console.log(`[RESET] no account for ${identifier} — nothing sent`);
-      return { sent: true, phoneHint: null };
+      return { sent: true, channel: null, phoneHint: null, emailHint: null };
+    }
+
+    // Phone recovery sends by SMS; email recovery sends the same one-time
+    // code to the account email. The code remains bound to the account phone.
+    const isEmail = !!user.email && identifier.trim().toLowerCase() === user.email.toLowerCase();
+    if (isEmail) {
+      await this.requestOtp(user.phone, user.email);
+      const e = user.email;
+      const at = e.indexOf('@');
+      const emailHint = at > 1 ? `${e.slice(0, 2)}•••${e.slice(at - 1)}${e.slice(at)}` : null;
+      return { sent: true, channel: 'email', phoneHint: null, emailHint };
     }
 
     await this.requestOtp(user.phone);
-
-    // Show enough of the number to confirm it is theirs, not enough to expose it.
     const p = user.phone;
-    const hint = p.length > 4 ? `${p.slice(0, 4)}\u2022\u2022\u2022${p.slice(-3)}` : null;
-    return { sent: true, phoneHint: hint };
+    const phoneHint = p.length > 4 ? `${p.slice(0, 4)}•••${p.slice(-3)}` : null;
+    return { sent: true, channel: 'sms', phoneHint, emailHint: null };
   }
 
   /** Verify the code and set the new password in one step. */
-  async resetPassword(phone: string, code: string, newPassword: string) {
+  async resetPassword(identifier: string, code: string, newPassword: string) {
     if (!newPassword || newPassword.length < 6) {
       throw new BadRequestException('PASSWORD_TOO_SHORT');
     }
 
-    const entry = await this.readOtp(phone);
+    const user = await this.prisma.user.findFirst({
+      where: { OR: [{ phone: identifier }, { email: identifier }] },
+    });
+    if (!user?.phone) throw new UnauthorizedException('INVALID_CODE');
+
+    const entry = await this.readOtp(user.phone);
     if (!entry || entry.code !== code) {
       throw new UnauthorizedException('INVALID_CODE');
     }
     if (Date.now() > entry.expiresAt) {
-      await this.clearOtp(phone);
+      await this.clearOtp(user.phone);
       throw new UnauthorizedException('CODE_EXPIRED');
     }
-
-    const user = await this.prisma.user.findUnique({ where: { phone } });
-    if (!user) throw new UnauthorizedException('INVALID_CODE');
 
     const hashed = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({
       where: { id: user.id }, data: { password: hashed },
     });
 
-    await this.clearOtp(phone);
-    console.log(`[RESET] password changed for ${phone}`);
+    await this.clearOtp(user.phone);
+    console.log(`[RESET] password changed for ${user.phone}`);
 
-    // Sign them straight in — making someone log in again immediately after
-    // proving they hold the phone is friction with no security benefit.
     const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role });
     return { token, user };
   }
