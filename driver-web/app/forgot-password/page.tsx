@@ -18,8 +18,8 @@ export default function ForgotPassword() {
   const [step, setStep] = useState<'identify' | 'reset'>('identify');
 
   const [identifier, setIdentifier] = useState('');
-  const [phone, setPhone] = useState('');
   const [hint, setHint] = useState<string | null>(null);
+  const [channel, setChannel] = useState<'email' | 'sms' | null>(null);
 
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -51,12 +51,11 @@ export default function ForgotPassword() {
   const submit = async () => {
     if (password !== confirm) { setError(dt('Those passwords do not match.')); return; }
     if (password.length < 6) { setError(dt('Use at least 6 characters.')); return; }
-    if (!phone) { setError(dt('Enter the phone number the code was sent to.')); return; }
 
     setBusy(true);
     setError('');
     try {
-      await resetPassword(phone, code.trim(), password);
+      await resetPassword(identifier.trim(), code.trim(), password);
       router.replace('/');
     } catch (e: any) {
       const msg = e instanceof ApiError ? e.message : '';
@@ -82,7 +81,7 @@ export default function ForgotPassword() {
         <>
           <h1 className="text-2xl font-black text-gray-900">{dt('Forgot your password?')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-7">
-            {dt("Enter the phone number or email on your account and we'll send a code by SMS.")}
+            {dt("Enter the phone number or email on your account and we'll send a secure reset code to that contact.")}
           </p>
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
@@ -112,20 +111,6 @@ export default function ForgotPassword() {
             {dt('If that account exists, a code is on its way')}
             {hint ? ` ${dt('to')} ${hint}` : ''}{dt('. It is valid for five minutes.')}
           </p>
-
-          {!phone && (
-            <div className="mb-4">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                {dt('Phone number the code went to')}
-              </label>
-              <input
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="+250 7xx xxx xxx"
-                className="w-full border-2 border-gray-100 rounded-2xl px-4 py-3.5 mt-2 text-sm focus:border-zana-primary focus:outline-none"
-              />
-            </div>
-          )}
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
             {dt('6-digit code')}
