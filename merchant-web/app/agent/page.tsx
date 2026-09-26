@@ -69,6 +69,8 @@ export default function AgentPage() {
   const ready = active.filter(o => o.status === 'READY_FOR_PICKUP');
   const pickedUp = deliveries.filter(d => d.status === 'PICKED_UP');
   const deliveredToday = deliveries.filter(d => d.status === 'DELIVERED');
+  const todayKey = new Date().toDateString();
+  const salesToday = orders.filter(o => new Date(o.createdAt).toDateString() === todayKey).reduce((s, o) => s + Number(o.total || 0), 0);
   const pendingIssues = orders.reduce((n, o) => n + (o.items || []).filter((i: any) => i.status === 'UNAVAILABLE').length, 0);
 
   const openOrder = async (id: string) => {
@@ -137,6 +139,7 @@ export default function AgentPage() {
   const statusButton = (s: string) => s === 'PENDING' || s === 'CONFIRMED' ? 'Start shopping' : s === 'PREPARING' ? 'Mark ready for pickup' : null;
 
   const statCards = [
+    ['Today’s sales', money(salesToday), Wallet],
     ['Orders today', orders.length, ShoppingBag],
     ['Pending shopping', active.filter(o => ['PENDING','CONFIRMED'].includes(o.status)).length, Clock3],
     ['Shopping now', shopping.length, Package],
