@@ -118,3 +118,11 @@ export async function updateMarketAgentRate(rate: number) {
 export async function getFinanceAudit(limit = 100) {
   return api.get<any[]>(`/admin/audit?limit=${limit}`);
 }
+
+export async function getDriverTestLocations() { return api.get<any[]>('/admin/drivers/test-locations'); }
+export async function setDriverTestLocation(id: string, lat: number | null, lng: number | null) { return api.patch<any>(`/admin/drivers/${id}/test-location`, { lat, lng }); }
+export async function scatterDriverTestLocations(centerLat: number, centerLng: number, radiusMeters = 500) { return api.post<any>('/admin/drivers/test-locations/scatter', { centerLat, centerLng, radiusMeters }); }
+export async function clearDriverTestLocations() { return api.post<any>('/admin/drivers/test-locations/clear-all'); }
+export async function getCustomerTestLocations() { return api.get<any[]>('/admin/customers/test-locations'); }
+export async function setCustomerTestLocation(id: string, lat: number | null, lng: number | null) { return api.patch<any>(`/admin/customers/${id}/test-location`, { lat, lng }); }
+export async function clearAllTestLocations() { return api.post<any>('/admin/test-locations/clear-all'); }

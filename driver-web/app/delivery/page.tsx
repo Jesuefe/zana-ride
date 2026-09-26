@@ -45,6 +45,10 @@ type ActiveDelivery = {
   fee: number;
   customer?: { firstName: string | null; lastName: string | null; phone: string };
   merchant?: { businessName: string; businessAddress?: string; businessLat?: number; businessLng?: number };
+  pickupContactName?: string | null;
+  pickupPhone?: string | null;
+  recipientName?: string | null;
+  recipientPhone?: string | null;
 };
 
 function ActiveDeliveryContent() {
@@ -402,19 +406,27 @@ function ActiveDeliveryContent() {
             </div>
           </div>
 
-          {/* Customer contact */}
-          {delivery.customer && (
-            <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl px-4 py-3">
+          {/* Pickup contact — the rider sees the market agent/person and phone */}
+          {delivery.pickupPhone && (
+            <div className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
               <div>
-                <p className="text-xs text-gray-400">{dt('Customer')}</p>
-                <p className="font-semibold text-gray-900">{delivery.customer.firstName} {delivery.customer.lastName}</p>
+                <p className="text-xs text-amber-700">{dt('Pickup contact')}</p>
+                <p className="font-semibold text-gray-900">{delivery.pickupContactName || dt('Pickup person')}</p>
+                <p className="text-xs text-gray-600 mt-0.5">{delivery.pickupPhone}</p>
               </div>
-              <a href={`tel:${delivery.customer.phone}`}
-                className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                <Phone size={16} className="text-green-600" />
-              </a>
+              <a href={'tel:' + delivery.pickupPhone} className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center" aria-label={dt('Call pickup contact')}><Phone size={16} className="text-green-600" /></a>
             </div>
           )}
+
+          {/* Recipient/customer contact */}
+          <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl px-4 py-3">
+            <div>
+              <p className="text-xs text-gray-400">{dt('Customer / recipient')}</p>
+              <p className="font-semibold text-gray-900">{delivery.recipientName || (delivery.customer ? [delivery.customer.firstName, delivery.customer.lastName].filter(Boolean).join(' ') : dt('Recipient'))}</p>
+              <p className="text-xs text-gray-600 mt-0.5">{delivery.recipientPhone || delivery.customer?.phone}</p>
+            </div>
+            {(delivery.recipientPhone || delivery.customer?.phone) && <a href={'tel:' + (delivery.recipientPhone || delivery.customer?.phone)} className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center" aria-label={dt('Call customer')}><Phone size={16} className="text-green-600" /></a>}
+          </div>
 
           {/* Earnings */}
           <div className="flex items-center justify-between">

@@ -219,6 +219,8 @@ model Market {
   address     String
   lat         Float
   lng         Float
+  pickupContactName String?
+  pickupPhone String?
   imageUrl    String?
   coverUrl    String?
   prepMinutes Int       @default(30)

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { DriversService } from '../drivers/drivers.service';
 import { UserRole, UserStatus, DriverApprovalStatus, MerchantStatus, ProductStatus, DriverMode } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { StorageService } from '../deliveries/storage.service';
@@ -10,6 +11,7 @@ import { SmsService } from '../sms/sms.service';
 export class AdminService {
   constructor(
     private prisma: PrismaService,
+    private driversService: DriversService,
     private storage: StorageService,
     private emailService: EmailService,
     private smsService: SmsService,
@@ -88,7 +90,7 @@ export class AdminService {
 
   async getLiveOperations() {
     const activeStatuses = ['DRIVER_ASSIGNED','DRIVER_EN_ROUTE','DRIVER_ARRIVED','RIDE_IN_PROGRESS'];
-    const [drivers, trips, searching] = await Promise.all([
+    const [drivers, trips, searching, deliveries] = await Promise.all([
       this.prisma.driver.findMany({
         where: { approvalStatus: 'APPROVED', onlineStatus: { in: ['ONLINE','BUSY'] }, lastLat: { not: null }, lastLng: { not: null } },
         select: { id: true, lastLat: true, lastLng: true, lastLocationAt: true, onlineStatus: true, serviceType: true, driverMode: true, plate: true, rating: true, user: { select: { firstName: true, lastName: true, phone: true } } },
@@ -100,7 +102,21 @@ export class AdminService {
         include: { customer: { select: { firstName: true, lastName: true, phone: true, role: true } }, driver: { select: { id: true, lastLat: true, lastLng: true, plate: true, serviceType: true, user: { select: { firstName: true, lastName: true, phone: true } } } } },
       }),
       this.prisma.trip.count({ where: { status: 'SEARCHING_DRIVER' } }),
+      this.prisma.delivery.findMany({
+        where: { status: { in: ['COURIER_ASSIGNED', 'PICKED_UP'] } },
+        orderBy: { createdAt: 'desc' }, take: 200,
+        include: {
+          customer: { select: { firstName: true, lastName: true, phone: true } },
+          driver: { select: { id: true, lastLat: true, lastLng: true, plate: true, user: { select: { firstName: true, lastName: true, phone: true } } } },
+          merchant: { select: { businessName: true, user: { select: { phone: true, firstName: true, lastName: true } } } },
+          order: { include: { market: true } },
+        },
+      }),
     ]);
+
+    const agentIds = (deliveries as any[]).map(d => d.order?.agentId).filter(Boolean);
+    const agents = agentIds.length ? await this.prisma.agent.findMany({ where: { id: { in: agentIds } }, include: { user: { select: { firstName: true, lastName: true, phone: true } } } }) : [];
+    const agentById = new Map(agents.map(a => [a.id, a]));
 
     const freshCutoff = Date.now() - 120000;
     const driverRows = drivers.map(d => ({
@@ -118,6 +134,20 @@ export class AdminService {
         searchingRides: searching,
       },
       drivers: driverRows,
+      deliveries: (deliveries as any[]).map(d => {
+        const merchantName = [d.merchant?.user?.firstName, d.merchant?.user?.lastName].filter(Boolean).join(' ');
+        const agent = d.order?.agentId ? agentById.get(d.order.agentId) : undefined;
+        return {
+          id: d.id, trackingCode: d.trackingCode, status: d.status, itemDescription: d.itemDescription,
+          pickupAddress: d.pickupAddress, pickup: { lat: d.pickupLat, lng: d.pickupLng },
+          dropoffAddress: d.dropoffAddress, dropoff: { lat: d.dropoffLat, lng: d.dropoffLng },
+          receiverName: d.receiverName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || null,
+          receiverPhone: d.receiverPhone,
+          pickupContactName: (agent ? ([agent.user.firstName, agent.user.lastName].filter(Boolean).join(' ') || 'Market agent') : null) || d.order?.market?.pickupContactName || merchantName || d.merchant?.businessName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || 'Pickup contact',
+          pickupPhone: agent?.user.phone || d.order?.market?.pickupPhone || d.merchant?.user?.phone || d.customer?.phone || null,
+          driver: d.driver ? { id: d.driver.id, lat: d.driver.lastLat, lng: d.driver.lastLng, plate: d.driver.plate, name: [d.driver.user.firstName,d.driver.user.lastName].filter(Boolean).join(' ') || 'Driver' } : null,
+        };
+      }),
       rides: trips.map(t => ({
         id: t.id, status: t.status, serviceType: t.serviceType, fare: t.finalFare ?? t.estimatedFare,
         pickupAddress: t.pickupAddress, destinationAddress: t.destinationAddress,
@@ -407,11 +437,13 @@ export class AdminService {
     });
   }
 
-  async createMarket(data: { name: string; description?: string; address: string; lat: number; lng: number; imageUrl?: string }) {
+  async createMarket(data: { name: string; description?: string; address: string; lat: number; lng: number; pickupContactName?: string; pickupPhone: string; imageUrl?: string }) {
+    if (!data.pickupPhone?.trim()) throw new BadRequestException('PICKUP_PHONE_REQUIRED');
     return this.prisma.market.create({ data });
   }
 
-  async updateMarket(id: string, data: Partial<{ name: string; description: string; address: string; lat: number; lng: number; active: boolean }>) {
+  async updateMarket(id: string, data: Partial<{ name: string; description: string; address: string; lat: number; lng: number; pickupContactName: string; pickupPhone: string; active: boolean }>) {
+    if (data.pickupPhone !== undefined && !data.pickupPhone?.trim()) throw new BadRequestException('PICKUP_PHONE_REQUIRED');
     return this.prisma.market.update({ where: { id }, data });
   }
 
@@ -715,10 +747,10 @@ export class AdminService {
   // by default for every driver — this never affects a real account
   // unless explicitly set here.
   async setDriverTestLocation(driverId: string, lat: number | null, lng: number | null) {
-    return this.prisma.driver.update({
-      where: { id: driverId },
-      data: { testOverrideLat: lat, testOverrideLng: lng },
-    });
+    if ((lat === null) !== (lng === null)) throw new BadRequestException('TEST_LOCATION_LAT_LNG_REQUIRED');
+    const updated = await this.prisma.driver.update({ where: { id: driverId }, data: { testOverrideLat: lat, testOverrideLng: lng } });
+    if (lat !== null && lng !== null) await this.driversService.updateLocation(driverId, lat, lng);
+    return updated;
   }
 
   async listDriverTestLocations() {

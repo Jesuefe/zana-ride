@@ -76,6 +76,8 @@ export class DeliveriesService {
   }
 
   async create(input: CreateDeliveryInput, owner: { customerId?: string; merchantId?: string }) {
+    if (!input.receiverPhone?.trim()) throw new BadRequestException('RECEIVER_PHONE_REQUIRED');
+    if (input.receiverPhone.replace(/\D/g, '').length < 9) throw new BadRequestException('INVALID_RECEIVER_PHONE');
     // The dropoff can come either from a map selection or from a Zana
     // location code the receiver shared.
     let dropoffLat = input.dropoffLat;
@@ -775,13 +777,25 @@ export class DeliveriesService {
 
   // Every job the rider is currently carrying, in the order they should run it.
   async activeForDriver(driverId: string) {
-    return this.prisma.delivery.findMany({
+    const rows = await this.prisma.delivery.findMany({
       where: { driverId, status: { in: ['COURIER_ASSIGNED', 'PICKED_UP'] } },
       orderBy: [{ routeSequence: 'asc' }, { assignedAt: 'asc' }],
       include: {
         customer: { select: { firstName: true, lastName: true, phone: true } },
-        merchant: { select: { businessName: true, businessAddress: true, businessLat: true, businessLng: true } },
+        merchant: { select: { businessName: true, businessAddress: true, businessLat: true, businessLng: true, user: { select: { phone: true, firstName: true, lastName: true } } } },
+        order: { include: { market: true } },
       },
+    });
+    const agentIds = rows.map(r => (r as any).order?.agentId).filter(Boolean);
+    const agents = agentIds.length ? await this.prisma.agent.findMany({ where: { id: { in: agentIds } }, include: { user: { select: { firstName: true, lastName: true, phone: true } } } }) : [];
+    const byId = new Map(agents.map(a => [a.id, a]));
+    return rows.map(d => {
+      const order = (d as any).order;
+      const agent = order?.agentId ? byId.get(order.agentId) : null;
+      const merchantName = [d.merchant?.user?.firstName, d.merchant?.user?.lastName].filter(Boolean).join(' ');
+      const pickupContactName = agent ? ([agent.user.firstName, agent.user.lastName].filter(Boolean).join(' ') || 'Market agent') : (order?.market?.pickupContactName || merchantName || d.merchant?.businessName || ([d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || 'Pickup contact'));
+      const pickupPhone = agent?.user.phone || order?.market?.pickupPhone || d.merchant?.user?.phone || d.customer?.phone || null;
+      return { ...d, pickupContactName, pickupPhone, recipientName: d.receiverName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || null, recipientPhone: d.receiverPhone };
     });
   }
 
