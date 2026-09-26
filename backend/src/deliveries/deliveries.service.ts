@@ -9,6 +9,7 @@ import { LocationCodeService } from './location-code.service';
 import { haversineKm, estimateDurationMinutes } from '../trips/fare.util';
 import { CommissionDebtService } from '../trips/commission-debt.service';
 import { assertValidDeliveryTransition } from './delivery-state-machine';
+import { FinanceService } from '../finance/finance.service';
 
 // Deliveries are priced on distance like rides, with a multiplier for heavier
 // packages — a 20kg load is a different job from an envelope even over the
@@ -59,6 +60,7 @@ export class DeliveriesService {
     private paypack: PaypackService,
     private locationCodes: LocationCodeService,
     private commissionDebt: CommissionDebtService,
+    private finance: FinanceService,
   ) {}
 
   quote(pickupLat: number, pickupLng: number, dropoffLat: number, dropoffLng: number, weight: PackageWeight) {
@@ -397,6 +399,14 @@ export class DeliveriesService {
         where: { id: (delivery as any).orderId },
         data: { status: 'DELIVERED' },
       }).catch(() => {});
+    }
+
+    // Market-agent markup is released only after the rider has completed the
+    // delivery. FinanceService is idempotent on orderId, so a retry cannot
+    // credit the agent twice.
+    if ((delivery as any).orderId) {
+      await this.finance.settleOrder((delivery as any).orderId)
+        .catch((e) => console.error('[FINANCE] Order settlement failed:', e?.message));
     }
 
     return updated;
