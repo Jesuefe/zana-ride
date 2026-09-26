@@ -263,9 +263,19 @@ export class MarketsService {
       }
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: status as any, agentId: agent.id } as any,
     });
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: userId,
+        action: 'ORDER_STATUS_CHANGED',
+        entityType: 'ORDER',
+        entityId: orderId,
+        metadataJson: JSON.stringify({ from: order.status, to: status }),
+      },
+    });
+    return updated;
   }
 }
