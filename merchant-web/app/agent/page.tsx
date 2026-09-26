@@ -92,6 +92,7 @@ export default function AgentPage() {
       // This is deliberately separate from the agent's normal earnings wallet.
       if (next === 'PREPARING' && ['PENDING', 'CONFIRMED'].includes(o.status)) {
         await api.post('/agent/purchase-funds/' + id + '/accept', {});
+        await api.post('/agent/purchase-funds/' + id + '/withdraw', {});
         await load();
         if (selected?.id === id) await openOrder(id);
         return;
