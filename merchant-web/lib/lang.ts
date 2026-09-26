@@ -37,7 +37,6 @@ export const UI: Record<string, Record<Lang, string>> = {
 
   'Overview': { en: 'Overview', fr: 'Vue d’ensemble', rw: 'Incamake' },
   'Today’s orders': { en: 'Today’s orders', fr: 'Commandes du jour', rw: 'Ibyatumijwe uyu munsi' },
-  'Orders': { en: 'Orders', fr: 'Commandes', rw: 'Ibyatumijwe' },
   'Deliveries': { en: 'Deliveries', fr: 'Livraisons', rw: 'Ibigezwa' },
   'Today’s items': { en: 'Today’s items', fr: 'Articles du jour', rw: 'Ibicuruzwa by’uyu munsi' },
   'Agent wallet': { en: 'Agent wallet', fr: 'Portefeuille de l’agent', rw: 'Umufuka w’umukozi' },
