@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { timingSafeEqual } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -254,6 +255,68 @@ export class AuthService {
 
     const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role });
     return { token, user };
+  }
+
+  async recoverAdmin(data: {
+    phone: string;
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    recoverySecret: string;
+  }) {
+    const configuredSecret = this.config.get<string>('ADMIN_RECOVERY_SECRET');
+    if (!configuredSecret) {
+      throw new UnauthorizedException('Admin recovery is disabled');
+    }
+
+    const supplied = Buffer.from(data.recoverySecret);
+    const expected = Buffer.from(configuredSecret);
+    const secretMatches = supplied.length === expected.length && timingSafeEqual(supplied, expected);
+    if (!secretMatches) {
+      throw new UnauthorizedException('Invalid recovery credentials');
+    }
+
+    const existingPhone = await this.prisma.user.findUnique({ where: { phone: data.phone } });
+    if (existingPhone) {
+      throw new ConflictException('An account with this phone number already exists');
+    }
+
+    const existingEmail = await this.prisma.user.findUnique({ where: { email: data.email } });
+    if (existingEmail) {
+      throw new ConflictException('An account with this email already exists');
+    }
+
+    if (data.password.length < 12) {
+      throw new BadRequestException('Admin password must be at least 12 characters');
+    }
+
+    const passwordHash = await bcrypt.hash(data.password, 12);
+    const user = await this.prisma.user.create({
+      data: {
+        phone: data.phone,
+        email: data.email,
+        password: passwordHash,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        phoneVerified: true,
+        wallet: { create: { balance: 0 } },
+      },
+      select: {
+        id: true,
+        phone: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    return { created: true, user };
   }
 
   async login(identifier: string, password: string) {

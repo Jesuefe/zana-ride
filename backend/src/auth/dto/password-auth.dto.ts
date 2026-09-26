@@ -59,3 +59,29 @@ export class LoginDto {
   @IsString()
   password: string;
 }
+
+
+export class RecoverAdminDto {
+  @IsString()
+  @Matches(/^\\+?[0-9]{9,15}$/, { message: 'phone must be a valid international phone number' })
+  phone: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(12, { message: 'admin password must be at least 12 characters' })
+  password: string;
+
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @IsString()
+  @MinLength(16, { message: 'recovery secret must be at least 16 characters' })
+  recoverySecret: string;
+}
