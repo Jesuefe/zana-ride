@@ -203,7 +203,9 @@ export class MarketsService {
     const marketName = agent.market?.name ?? 'the market';
     await this.prisma.orderItem.update({ where: { id: item.id }, data: { status: 'UNAVAILABLE_PENDING', unavailableAt: new Date() } as any });
     await this.prisma.auditLog.create({ data: { actorId: userId, action: 'ORDER_ITEM_UNAVAILABLE_PENDING_CUSTOMER_CHOICE', entityType: 'ORDER_ITEM', entityId: item.id, metadataJson: JSON.stringify({ orderId, productId: item.productId, productName: product?.name ?? 'Item', marketName }) } });
-    this.gateway.sendToUser(order.customerId, 'order:item-availability-choice', { orderId, itemId: item.id, productName: product?.name ?? 'Item', marketName, message: `${product?.name ?? 'Item'} is currently unavailable at ${marketName}. What would you like us to do?`, options: ['REFUND', 'REPLACE', 'REMOVE'] });
+    const message = `${product?.name ?? 'Item'} is currently unavailable at ${marketName}. What would you like us to do?`;
+    await this.push.sendToUser(order.customerId, { title: 'Item unavailable — action needed', body: message }, { type: 'ORDER_ITEM_AVAILABILITY_CHOICE', orderId, itemId: item.id });
+    this.gateway.sendToUser(order.customerId, 'order:item-availability-choice', { orderId, itemId: item.id, productName: product?.name ?? 'Item', marketName, message, options: ['REFUND', 'REPLACE', 'REMOVE'] });
     return this.getMyOrderDetail(userId, orderId);
   }
 
@@ -297,6 +299,11 @@ export class MarketsService {
       CONFIRMED: ['PREPARING'],
       PREPARING: ['READY_FOR_PICKUP'],
     };
+    if (status === 'READY_FOR_PICKUP') {
+      const pendingItems = await this.prisma.orderItem.count({ where: { orderId, status: 'UNAVAILABLE_PENDING' } as any });
+      if (pendingItems > 0) throw new BadRequestException('CUSTOMER_ITEM_DECISION_REQUIRED');
+    }
+
     if (!allowedNext[order.status]?.includes(status)) {
       throw new BadRequestException('INVALID_AGENT_ORDER_TRANSITION');
     }
