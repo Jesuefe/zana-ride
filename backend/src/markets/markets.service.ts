@@ -195,6 +195,7 @@ export class MarketsService {
     const order = await this.prisma.order.findFirst({ where: { id: orderId, marketId: agent.marketId! }, include: { customer: { select: { id: true } }, items: true } });
     if (!order) throw new NotFoundException('Order not found in your market');
     if (!['PENDING','CONFIRMED','PREPARING'].includes(order.status)) throw new BadRequestException('ITEM_CAN_NO_LONGER_BE_CHANGED');
+    if (!(order as any).paid) throw new BadRequestException('ORDER_NOT_PAID');
     const item = order.items.find(i => i.id === itemId);
     if (!item) throw new NotFoundException('Order item not found');
     if ((item as any).status === 'UNAVAILABLE') return this.getMyOrderDetail(userId, orderId);
