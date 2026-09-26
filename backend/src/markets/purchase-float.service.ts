@@ -16,7 +16,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PurchaseFloatService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
-  async onModuleInit() {
+  async onModuleInit() { // Order-scoped float: unused money returns to the customer and is recovered from the agent.
     await this.prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "AgentPurchaseFund" (
         "id" TEXT PRIMARY KEY,
@@ -178,37 +178,124 @@ export class PurchaseFloatService implements OnModuleInit {
     return this.decorate(rows[0]);
   }
 
-  /** Reconcile the controlled amount against the receipt after shopping. */
+  /**
+   * Reconcile the order-specific purchasing float after the agent shops.
+   * Any unused amount is a customer refund and the same amount is charged
+   * back to the agent wallet. The agent wallet is allowed to go negative:
+   * this is an earned-money debt, not permission to spend customer funds.
+   */
   async reconcile(userId: string, orderId: string, actualSpend: number) {
     const { agent, order } = await this.getOrderForAgent(userId, orderId);
     if (order.agentId !== agent.id) throw new ForbiddenException('ORDER_NOT_ASSIGNED_TO_YOU');
+    if (!(order as any).paid) throw new BadRequestException('ORDER_NOT_PAID');
     if (!Number.isInteger(actualSpend) || actualSpend < 0) throw new BadRequestException('INVALID_ACTUAL_SPEND');
 
-    const rows = await this.prisma.$queryRawUnsafe<any[]>(
-      `UPDATE "AgentPurchaseFund"
-       SET "actualSpend"=$1,
-           "remainingAmount"=("withdrawnAmount"-$1),
-           "status"='RECONCILED',
-           "reconciledAt"=NOW(),
-           "updatedAt"=NOW()
-       WHERE "orderId"=$2 AND "agentId"=$3 AND "status"='WITHDRAWN' AND $1 <= "withdrawnAmount"
-       RETURNING *`,
-      actualSpend,
-      orderId,
-      agent.id,
-    );
-    if (!rows.length) throw new BadRequestException('PURCHASE_FUNDS_RECONCILIATION_INVALID');
+    const result = await this.prisma.$transaction(async tx => {
+      const fundRows = await tx.$queryRawUnsafe<any[]>(
+        `SELECT * FROM "AgentPurchaseFund" WHERE "orderId"=$1 AND "agentId"=$2 AND "status"='WITHDRAWN' FOR UPDATE`,
+        orderId,
+        agent.id,
+      );
+      if (!fundRows.length) throw new BadRequestException('PURCHASE_FUNDS_RECONCILIATION_INVALID');
 
-    await this.prisma.auditLog.create({
-      data: {
-        actorId: userId,
-        action: 'AGENT_PURCHASE_FUNDS_RECONCILED',
-        entityType: 'ORDER',
-        entityId: orderId,
-        metadataJson: JSON.stringify({ actualSpend, remainingAmount: rows[0].remainingAmount }),
-      },
-    });
-    return this.decorate(rows[0]);
+      const fund = fundRows[0];
+      const withdrawn = Number(fund.withdrawnAmount);
+      if (actualSpend > withdrawn) throw new BadRequestException('PURCHASE_SPEND_EXCEEDS_WITHDRAWN_FUNDS');
+      const remaining = withdrawn - actualSpend;
+
+      const updatedRows = await tx.$queryRawUnsafe<any[]>(
+        `UPDATE "AgentPurchaseFund"
+         SET "actualSpend"=$1,
+             "remainingAmount"=$2,
+             "status"='RECONCILED',
+             "reconciledAt"=NOW(),
+             "updatedAt"=NOW()
+         WHERE "id"=$3 AND "status"='WITHDRAWN'
+         RETURNING *`,
+        actualSpend,
+        remaining,
+        fund.id,
+      );
+      if (!updatedRows.length) throw new BadRequestException('PURCHASE_FUNDS_ALREADY_RECONCILED');
+
+      if (remaining > 0) {
+        const customerWallet = await tx.wallet.findUnique({ where: { userId: order.customerId } });
+        if (!customerWallet) throw new BadRequestException('CUSTOMER_WALLET_NOT_FOUND');
+
+        const agentWallet = await tx.wallet.findUnique({ where: { userId: agent.userId } });
+        if (!agentWallet) throw new BadRequestException('AGENT_WALLET_NOT_FOUND');
+
+        const customerAfter = await tx.wallet.update({
+          where: { id: customerWallet.id },
+          data: { balance: { increment: remaining } },
+        });
+        const agentAfter = await tx.wallet.update({
+          where: { id: agentWallet.id },
+          data: { balance: { decrement: remaining } },
+        });
+        await tx.order.update({ where: { id: orderId }, data: { total: { decrement: remaining }, updatedAt: new Date() } });
+
+        await tx.walletTransaction.create({
+          data: {
+            walletId: customerWallet.id,
+            amount: remaining,
+            balanceBefore: customerWallet.balance,
+            balanceAfter: customerAfter.balance,
+            reference: 'AGENT_PURCHASE_REFUND:' + orderId,
+            description: 'Unused shopping money refunded to customer',
+            status: 'COMPLETED',
+          } as any,
+        });
+        await tx.walletTransaction.create({
+          data: {
+            walletId: agentWallet.id,
+            amount: -remaining,
+            balanceBefore: agentWallet.balance,
+            balanceAfter: agentAfter.balance,
+            reference: 'AGENT_PURCHASE_REFUND_RECOVERY:' + orderId,
+            description: 'Unused shopping money recovered from agent',
+            status: 'COMPLETED',
+          } as any,
+        });
+
+        await tx.auditLog.create({
+          data: {
+            actorId: userId,
+            action: 'AGENT_PURCHASE_UNUSED_REFUNDED_AND_RECOVERED',
+            entityType: 'ORDER',
+            entityId: orderId,
+            metadataJson: JSON.stringify({
+              authorizedAmount: withdrawn,
+              actualSpend,
+              customerRefund: remaining,
+              agentDebit: remaining,
+              agentBalanceAfter: agentAfter.balance,
+            }),
+          },
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          actorId: userId,
+          action: 'AGENT_PURCHASE_FUNDS_RECONCILED',
+          entityType: 'ORDER',
+          entityId: orderId,
+          metadataJson: JSON.stringify({
+            authorizedAmount: withdrawn,
+            actualSpend,
+            remainingAmount: remaining,
+          }),
+        },
+      });
+
+      return { fund: updatedRows[0], customerRefund: remaining };
+    }, { isolationLevel: 'Serializable' });
+
+    return {
+      ...this.decorate(result.fund),
+      customerRefund: Number(result.customerRefund),
+    };
   }
 
   async listMyFunds(userId: string) {
