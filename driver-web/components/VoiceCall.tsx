@@ -70,7 +70,9 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState('');
   const [audioBlocked, setAudioBlocked] = useState(false);
-  const recoveryTimerRef = useRef<any>(null);
+  const recoveryTimerRef = useRef<any>(null);\n  const tryPlayRemoteAudioRef = useRef<(() => Promise<boolean>) | null>(null);
+  const markMediaReadyRef = useRef<(() => void) | null>(null);
+
 
   // ── Cleanup ────────────────────────────────────────────────────────────────
   const cleanup = useCallback(() => {
@@ -196,7 +198,7 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
       console.log('[CALL] TWO-WAY AUDIO CONFIRMED — five gates passed');
     };
 
-    const startRecoveryWindow = () => {
+    markMediaReadyRef.current = markMediaReady;\n    tryPlayRemoteAudioRef.current = tryPlayRemoteAudio;\n\n    const startRecoveryWindow = () => {
       clearTimeout(recoveryTimerRef.current);
       recoveryTimerRef.current = setTimeout(() => {
         if (!mediaMarkedConnected) {
@@ -305,7 +307,7 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
       api.post(`/calls/${callId}/heartbeat`).catch(() => {});
     }, 10_000);
 
-  }, [handleEnd]);
+    tryPlayRemoteAudioRef.current = null;\n    markMediaReadyRef.current = null;\n  }, [handleEnd]);
 
   // ── Main effect ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -472,11 +474,11 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
           {audioBlocked && (
             <div className="flex flex-col items-center gap-2">
               <button onClick={async () => {
-                const played = await tryPlayRemoteAudio();
+                const played = await tryPlayRemoteAudioRef.current?.() ?? false;
                 if (played) {
                   setAudioBlocked(false);
                   setError('');
-                  markMediaReady();
+                  markMediaReadyRef.current?.();
                 }
               }}
                 className="px-4 py-3 rounded-full bg-white text-gray-900 text-xs font-bold">
