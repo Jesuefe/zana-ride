@@ -45,13 +45,13 @@ export async function loginWithCode(phone: string, code: string) {
 }
 
 export async function requestPasswordReset(identifier: string) {
-  return api.post<{ sent: boolean; phoneHint: string | null }>(
+  return api.post<{ sent: boolean; channel: 'email' | 'sms' | null; phoneHint: string | null; emailHint: string | null }>(
     '/auth/password/forgot', { identifier },
   );
 }
 
-export async function resetPassword(phone: string, code: string, password: string) {
-  const result = await api.post<any>('/auth/password/reset', { phone, code, password });
+export async function resetPassword(identifier: string, code: string, password: string) {
+  const result = await api.post<any>('/auth/password/reset', { identifier, code, password });
   if (result?.token) setToken(result.token);
   return result;
 }
