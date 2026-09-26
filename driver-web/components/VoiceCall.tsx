@@ -70,7 +70,8 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState('');
   const [audioBlocked, setAudioBlocked] = useState(false);
-  const recoveryTimerRef = useRef<any>(null);\n  const tryPlayRemoteAudioRef = useRef<(() => Promise<boolean>) | null>(null);
+  const recoveryTimerRef = useRef<any>(null);
+  const tryPlayRemoteAudioRef = useRef<(() => Promise<boolean>) | null>(null);
   const markMediaReadyRef = useRef<(() => void) | null>(null);
 
 
@@ -198,7 +199,10 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
       console.log('[CALL] TWO-WAY AUDIO CONFIRMED — five gates passed');
     };
 
-    markMediaReadyRef.current = markMediaReady;\n    tryPlayRemoteAudioRef.current = tryPlayRemoteAudio;\n\n    const startRecoveryWindow = () => {
+    markMediaReadyRef.current = markMediaReady;
+    tryPlayRemoteAudioRef.current = tryPlayRemoteAudio;
+
+    const startRecoveryWindow = () => {
       clearTimeout(recoveryTimerRef.current);
       recoveryTimerRef.current = setTimeout(() => {
         if (!mediaMarkedConnected) {
@@ -307,7 +311,9 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
       api.post(`/calls/${callId}/heartbeat`).catch(() => {});
     }, 10_000);
 
-    tryPlayRemoteAudioRef.current = null;\n    markMediaReadyRef.current = null;\n  }, [handleEnd]);
+    tryPlayRemoteAudioRef.current = null;
+    markMediaReadyRef.current = null;
+  }, [handleEnd]);
 
   // ── Main effect ────────────────────────────────────────────────────────────
   useEffect(() => {
