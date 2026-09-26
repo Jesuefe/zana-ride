@@ -29,9 +29,6 @@ export default function ForgotPassword() {
     try {
       const res = await requestPasswordReset(identifier.trim());
       setHint(res?.phoneHint ?? null);
-      if (/^\+?\d[\d\s]{6,}$/.test(identifier.trim())) {
-        setPhone(identifier.trim().replace(/\s/g, ''));
-      }
     } catch { /* stay silent about whether the account exists */ }
     setStep('reset');
     setBusy(false);
