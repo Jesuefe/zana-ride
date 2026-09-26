@@ -6,7 +6,7 @@ import { Package, MapPin, Navigation, ShoppingBag, Star, Clock3, ChevronRight, X
 import ReviewSheet from '../../components/ReviewSheet';
 import DeliveryTracker from '../../components/DeliveryTracker';
 import { fetchMyDeliveries, Delivery } from '../../lib/api/deliveries';
-import { fetchMyOrders } from '../../lib/api/trips';
+import { fetchMyOrders, fetchReplacementOptions, resolveUnavailableItem } from '../../lib/api/trips';
 import { cancelOrder } from '../../lib/api/orders';
 import { useLang } from '../../lib/LangContext';
 
@@ -65,6 +65,9 @@ function OrdersContent() {
   const [tab, setTab] = useState<'orders' | 'deliveries'>('orders');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [resolvingItem, setResolvingItem] = useState<string | null>(null);
+  const [replacementOptions, setReplacementOptions] = useState<any[]>([]);
+  const [replacementItem, setReplacementItem] = useState<{ orderId: string; itemId: string } | null>(null);
 
   useEffect(() => {
     const load = () => {
@@ -77,6 +80,35 @@ function OrdersContent() {
   }, []);
 
   const activeOrders = useMemo(() => orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status)), [orders]);
+
+  const resolveItem = async (orderId: string, itemId: string, action: 'REFUND' | 'REPLACE' | 'REMOVE', replacementProductId?: string) => {
+    setResolvingItem(itemId);
+    try {
+      await resolveUnavailableItem(orderId, itemId, action, replacementProductId);
+      const fresh = await fetchMyOrders();
+      setOrders(fresh);
+      setSelectedOrder(fresh.find((x: any) => x.id === orderId) ?? null);
+      setReplacementItem(null);
+      setReplacementOptions([]);
+    } catch (e: any) {
+      window.alert(e?.message ?? 'We could not update this item. Please try again.');
+    } finally {
+      setResolvingItem(null);
+    }
+  };
+
+  const openReplacement = async (orderId: string, itemId: string) => {
+    setResolvingItem(itemId);
+    try {
+      const options = await fetchReplacementOptions(orderId, itemId);
+      setReplacementOptions(options);
+      setReplacementItem({ orderId, itemId });
+    } catch (e: any) {
+      window.alert(e?.message ?? 'Replacement options are no longer available.');
+    } finally {
+      setResolvingItem(null);
+    }
+  };
   const historyOrders = useMemo(() => orders.filter(o => !ACTIVE_ORDER_STATUSES.includes(o.status)), [orders]);
 
   const renderOrder = (o: any, active: boolean) => {
@@ -126,6 +158,18 @@ function OrdersContent() {
               {t(DELIVERY_STATUS[delivery?.status] ?? ORDER_STATUS[o.status]) ?? delivery?.status ?? o.status}
             </span>
           </div>
+
+          {(o.items || []).filter((i: any) => i.status === 'UNAVAILABLE_PENDING').map((i: any) => (
+            <div key={i.id} className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+              <p className="text-sm font-black text-gray-900">{i.product?.name ?? 'Item'} is currently unavailable</p>
+              <p className="text-xs text-gray-600 mt-1">What would you like us to do?</p>
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <button disabled={resolvingItem === i.id} onClick={() => resolveItem(o.id, i.id, 'REFUND')} className="rounded-xl bg-zana-primary text-white py-2 text-[11px] font-black disabled:opacity-50">Refund this item</button>
+                <button disabled={resolvingItem === i.id} onClick={() => openReplacement(o.id, i.id)} className="rounded-xl bg-white border border-gray-200 text-gray-800 py-2 text-[11px] font-black disabled:opacity-50">Replace item</button>
+                <button disabled={resolvingItem === i.id} onClick={() => resolveItem(o.id, i.id, 'REMOVE')} className="rounded-xl bg-white border border-gray-200 text-gray-800 py-2 text-[11px] font-black disabled:opacity-50">Remove item</button>
+              </div>
+            </div>
+          ))}
 
           {active && (
             <div className="mt-4">
@@ -349,6 +393,27 @@ function OrdersContent() {
                 {cancelling === selectedOrder.id ? t('Cancelling…') : t('Cancel order')}
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {replacementItem && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50" onClick={() => { setReplacementItem(null); setReplacementOptions([]); }}>
+          <div className="w-full sm:max-w-md max-h-[85vh] overflow-y-auto bg-white rounded-t-3xl sm:rounded-3xl p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div><p className="text-[10px] font-bold uppercase tracking-wide text-zana-muted">Replace item</p><p className="font-black text-lg">Choose an available item</p></div>
+              <button onClick={() => { setReplacementItem(null); setReplacementOptions([]); }} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><X size={18}/></button>
+            </div>
+            <div className="space-y-2">
+              {replacementOptions.map((p: any) => (
+                <button key={p.id} disabled={resolvingItem === replacementItem.itemId} onClick={() => resolveItem(replacementItem.orderId, replacementItem.itemId, 'REPLACE', p.id)} className="w-full flex items-center gap-3 p-3 rounded-2xl border border-gray-200 text-left disabled:opacity-50">
+                  {p.imageUrl ? <img src={p.imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover"/> : <div className="w-12 h-12 rounded-xl bg-zana-primary-light"/>}
+                  <span className="flex-1"><span className="block text-sm font-bold">{p.name}</span><span className="block text-xs text-zana-muted">{Number(p.price).toLocaleString()} RWF</span></span>
+                  <ChevronRight size={16} className="text-zana-muted"/>
+                </button>
+              ))}
+              {replacementOptions.length === 0 && <p className="text-sm text-zana-muted text-center py-8">No replacement items are currently available.</p>}
+            </div>
           </div>
         </div>
       )}

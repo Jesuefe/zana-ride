@@ -5,6 +5,7 @@ import type { JwtPayload } from '../auth/jwt.strategy';
 import { OrdersService } from './orders.service';
 import { MerchantService } from './merchant.service';
 import { OrderStatus } from '@prisma/client';
+import { MarketsService } from '../markets/markets.service';
 
 // Public marketplace — no auth needed to browse.
 @Controller('marketplace')
@@ -29,7 +30,10 @@ export class MarketplaceController {
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 export class CustomerOrdersController {
-  constructor(private ordersService: OrdersService) {}
+  constructor(
+    private ordersService: OrdersService,
+    private marketsService: MarketsService,
+  ) {}
 
   @Post()
   create(@CurrentUser() user: JwtPayload, @Body() body: any) {
@@ -55,6 +59,21 @@ export class CustomerOrdersController {
       throw new ForbiddenException('Not your order');
     }
     return order;
+  }
+
+  @Get(':id/items/:itemId/replacement-options')
+  async replacementOptions(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Param('itemId') itemId: string) {
+    return this.marketsService.getReplacementProducts(user.sub, id, itemId);
+  }
+
+  @Post(':id/items/:itemId/availability-choice')
+  async availabilityChoice(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() body: { action: 'REFUND' | 'REPLACE' | 'REMOVE'; replacementProductId?: string },
+  ) {
+    return this.marketsService.resolveUnavailableItem(user.sub, id, itemId, body.action, body.replacementProductId);
   }
 
   @Patch(':id/cancel')

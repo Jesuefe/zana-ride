@@ -10,9 +10,10 @@ import { OrdersService } from './orders.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { DeliveriesModule } from '../deliveries/deliveries.module';
 import { FinanceModule } from '../finance/finance.module';
+import { MarketsModule } from '../markets/markets.module';
 
 @Module({
-  imports: [PrismaModule, DeliveriesModule, GatewayModule, WalletModule, FinanceModule],
+  imports: [PrismaModule, DeliveriesModule, GatewayModule, WalletModule, FinanceModule, MarketsModule],
   controllers: [
     MerchantController,
     PublicProductsController,

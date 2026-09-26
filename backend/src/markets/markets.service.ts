@@ -198,24 +198,87 @@ export class MarketsService {
     if (!(order as any).paid) throw new BadRequestException('ORDER_NOT_PAID');
     const item = order.items.find(i => i.id === itemId);
     if (!item) throw new NotFoundException('Order item not found');
-    if ((item as any).status === 'UNAVAILABLE') return this.getMyOrderDetail(userId, orderId);
-    const refund = item.price * item.quantity;
-    const wallet = await this.prisma.wallet.findUnique({ where: { userId: order.customerId } });
-    if (!wallet) throw new BadRequestException('CUSTOMER_WALLET_NOT_FOUND');
-    await this.prisma.$transaction(async tx => {
-      const claimed = await tx.orderItem.updateMany({ where: { id: item.id, orderId, status: 'AVAILABLE' } as any, data: { status: 'UNAVAILABLE', refundedAmount: refund, unavailableAt: new Date() } as any });
-      if (claimed.count !== 1) throw new BadRequestException('ITEM_ALREADY_UNAVAILABLE');
-      await tx.order.update({ where: { id: orderId }, data: { total: { decrement: refund }, updatedAt: new Date() } });
-      const updatedWallet = await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: refund } } });
-      await tx.walletTransaction.create({ data: { walletId: wallet.id, amount: refund, balanceBefore: wallet.balance, balanceAfter: updatedWallet.balance, reference: 'ORDER_ITEM_REFUND:' + orderId + ':' + item.id, description: 'Refund — unavailable market item', status: 'COMPLETED' } as any });
-      await tx.auditLog.create({ data: { actorId: userId, action: 'ORDER_ITEM_UNAVAILABLE_REFUNDED', entityType: 'ORDER', entityId: orderId, metadataJson: JSON.stringify({ orderItemId: item.id, refund, productId: item.productId }) } });
-    }, { isolationLevel: 'Serializable' });
+    if ((item as any).status !== 'AVAILABLE') return this.getMyOrderDetail(userId, orderId);
     const product = await this.prisma.product.findUnique({ where: { id: item.productId }, select: { name: true } });
     const marketName = agent.market?.name ?? 'the market';
-    await this.push.sendToUser(order.customerId, { title: 'Item unavailable — refund issued', body: (product?.name ?? 'Item') + ' was unavailable at ' + marketName + '. ' + refund.toLocaleString() + ' RWF has been refunded to your Zana Wallet.' }, { type: 'ORDER_ITEM_REFUND', orderId, itemId: item.id });
-    this.gateway.sendToUser(order.customerId, 'order:item-refunded', { orderId, itemId: item.id, refund, productName: product?.name ?? 'Item' });
+    await this.prisma.orderItem.update({ where: { id: item.id }, data: { status: 'UNAVAILABLE_PENDING', unavailableAt: new Date() } as any });
+    await this.prisma.auditLog.create({ data: { actorId: userId, action: 'ORDER_ITEM_UNAVAILABLE_PENDING_CUSTOMER_CHOICE', entityType: 'ORDER_ITEM', entityId: item.id, metadataJson: JSON.stringify({ orderId, productId: item.productId, productName: product?.name ?? 'Item', marketName }) } });
+    const message = `${product?.name ?? 'Item'} is currently unavailable at ${marketName}. What would you like us to do?`;
+    await this.push.sendToUser(order.customerId, { title: 'Item unavailable — action needed', body: message }, { type: 'ORDER_ITEM_AVAILABILITY_CHOICE', orderId, itemId: item.id });
+    this.gateway.sendToUser(order.customerId, 'order:item-availability-choice', { orderId, itemId: item.id, productName: product?.name ?? 'Item', marketName, message, options: ['REFUND', 'REPLACE', 'REMOVE'] });
     return this.getMyOrderDetail(userId, orderId);
   }
+
+  async getReplacementProducts(customerId: string, orderId: string, itemId: string) {
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, customerId }, include: { items: true } });
+    if (!order) throw new NotFoundException('Order not found');
+    const item = order.items.find(i => i.id === itemId);
+    if (!item || (item as any).status !== 'UNAVAILABLE_PENDING') throw new BadRequestException('ITEM_NOT_WAITING_FOR_CUSTOMER_CHOICE');
+    if (!order.marketId) throw new BadRequestException('MARKET_ORDER_REQUIRED');
+    return this.prisma.product.findMany({ where: { marketId: order.marketId, status: 'APPROVED', available: true, id: { not: item.productId } }, orderBy: { name: 'asc' }, take: 100 });
+  }
+
+  async resolveUnavailableItem(customerId: string, orderId: string, itemId: string, action: 'REFUND' | 'REPLACE' | 'REMOVE', replacementProductId?: string) {
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, customerId }, include: { items: true } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (!['PENDING','CONFIRMED','PREPARING'].includes(order.status)) throw new BadRequestException('ITEM_CAN_NO_LONGER_BE_CHANGED');
+    const item = order.items.find(i => i.id === itemId);
+    if (!item) throw new NotFoundException('Order item not found');
+    if ((item as any).status !== 'UNAVAILABLE_PENDING') throw new BadRequestException('ITEM_NOT_WAITING_FOR_CUSTOMER_CHOICE');
+    if (!(order as any).paid) throw new BadRequestException('ORDER_NOT_PAID');
+
+    if (action === 'REPLACE') {
+      if (!replacementProductId) throw new BadRequestException('REPLACEMENT_PRODUCT_REQUIRED');
+      if (!order.marketId) throw new BadRequestException('MARKET_ORDER_REQUIRED');
+      const replacement = await this.prisma.product.findFirst({ where: { id: replacementProductId, marketId: order.marketId, status: 'APPROVED', available: true } });
+      if (!replacement) throw new NotFoundException('Replacement item is no longer available');
+      const oldAmount = item.price * item.quantity;
+      const newAmount = replacement.price * item.quantity;
+      const difference = newAmount - oldAmount;
+      await this.prisma.$transaction(async tx => {
+        if (difference > 0) {
+          const wallet = await tx.wallet.findUnique({ where: { userId: customerId } });
+          if (!wallet) throw new BadRequestException('CUSTOMER_WALLET_NOT_FOUND');
+          const debited = await tx.wallet.updateMany({ where: { id: wallet.id, balance: { gte: difference } }, data: { balance: { decrement: difference } } });
+          if (debited.count !== 1) throw new BadRequestException('INSUFFICIENT_WALLET_BALANCE_FOR_REPLACEMENT');
+          const after = await tx.wallet.findUnique({ where: { id: wallet.id } });
+          await tx.walletTransaction.create({ data: { walletId: wallet.id, amount: -difference, balanceBefore: wallet.balance, balanceAfter: after!.balance, reference: 'ORDER_ITEM_REPLACEMENT:' + orderId + ':' + item.id, description: 'Replacement item price difference', status: 'COMPLETED' } as any });
+        } else if (difference < 0) {
+          const wallet = await tx.wallet.findUnique({ where: { userId: customerId } });
+          if (!wallet) throw new BadRequestException('CUSTOMER_WALLET_NOT_FOUND');
+          const refund = -difference;
+          const after = await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: refund } } });
+          await tx.walletTransaction.create({ data: { walletId: wallet.id, amount: refund, balanceBefore: wallet.balance, balanceAfter: after.balance, reference: 'ORDER_ITEM_REPLACEMENT_REFUND:' + orderId + ':' + item.id, description: 'Replacement item price difference refund', status: 'COMPLETED' } as any });
+        }
+        await tx.orderItem.update({ where: { id: item.id }, data: { productId: replacement.id, price: replacement.price, status: 'REPLACED', refundedAmount: difference < 0 ? -difference : 0 } as any });
+        if (difference !== 0) await tx.order.update({ where: { id: orderId }, data: { total: { increment: difference }, updatedAt: new Date() } });
+        await tx.auditLog.create({ data: { actorId: customerId, action: 'ORDER_ITEM_REPLACED', entityType: 'ORDER_ITEM', entityId: item.id, metadataJson: JSON.stringify({ orderId, oldProductId: item.productId, replacementProductId: replacement.id, oldAmount, newAmount, difference }) } });
+      }, { isolationLevel: 'Serializable' });
+      if (order.agentId) {
+        const agent = await this.prisma.agent.findUnique({ where: { id: order.agentId }, select: { userId: true } });
+        if (agent) this.gateway.sendToUser(agent.userId, 'order:item-resolved', { orderId, itemId, action: 'REPLACE', productName: replacement.name });
+      }
+      return this.prisma.order.findUnique({ where: { id: orderId }, include: { items: { include: { product: true } }, market: true, delivery: true } });
+    }
+
+    const refund = item.price * item.quantity;
+    const wallet = await this.prisma.wallet.findUnique({ where: { userId: customerId } });
+    if (!wallet) throw new BadRequestException('CUSTOMER_WALLET_NOT_FOUND');
+    await this.prisma.$transaction(async tx => {
+      const claimed = await tx.orderItem.updateMany({ where: { id: item.id, orderId, status: 'UNAVAILABLE_PENDING' } as any, data: { status: action === 'REFUND' ? 'REFUNDED' : 'REMOVED', refundedAmount: refund, unavailableAt: item.unavailableAt ?? new Date() } as any });
+      if (claimed.count !== 1) throw new BadRequestException('ITEM_ALREADY_RESOLVED');
+      const updatedWallet = await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: refund } } });
+      await tx.order.update({ where: { id: orderId }, data: { total: { decrement: refund }, updatedAt: new Date() } });
+      await tx.walletTransaction.create({ data: { walletId: wallet.id, amount: refund, balanceBefore: wallet.balance, balanceAfter: updatedWallet.balance, reference: 'ORDER_ITEM_' + action + ':' + orderId + ':' + item.id, description: action === 'REFUND' ? 'Refund — unavailable market item' : 'Refund — removed unavailable market item', status: 'COMPLETED' } as any });
+      await tx.auditLog.create({ data: { actorId: customerId, action: action === 'REFUND' ? 'ORDER_ITEM_REFUNDED' : 'ORDER_ITEM_REMOVED', entityType: 'ORDER_ITEM', entityId: item.id, metadataJson: JSON.stringify({ orderId, refund, productId: item.productId }) } });
+    }, { isolationLevel: 'Serializable' });
+    if (order.agentId) {
+      const agent = await this.prisma.agent.findUnique({ where: { id: order.agentId }, select: { userId: true } });
+      if (agent) this.gateway.sendToUser(agent.userId, 'order:item-resolved', { orderId, itemId, action });
+    }
+    return this.prisma.order.findUnique({ where: { id: orderId }, include: { items: { include: { product: true } }, market: true, delivery: true } });
+  }
+
   async updateOrderStatus(
     userId: string,
     orderId: string,
@@ -236,6 +299,11 @@ export class MarketsService {
       CONFIRMED: ['PREPARING'],
       PREPARING: ['READY_FOR_PICKUP'],
     };
+    if (status === 'READY_FOR_PICKUP') {
+      const pendingItems = await this.prisma.orderItem.count({ where: { orderId, status: 'UNAVAILABLE_PENDING' } as any });
+      if (pendingItems > 0) throw new BadRequestException('CUSTOMER_ITEM_DECISION_REQUIRED');
+    }
+
     if (!allowedNext[order.status]?.includes(status)) {
       throw new BadRequestException('INVALID_AGENT_ORDER_TRANSITION');
     }
