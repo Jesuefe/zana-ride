@@ -183,7 +183,7 @@ export class AdminController {
   getMarkets() { return this.adminService.getMarkets(); }
 
   @Post('markets')
-  createMarket(@Body() body: { name: string; description?: string; address: string; lat: number; lng: number }) {
+  createMarket(@Body() body: { name: string; description?: string; address: string; lat: number; lng: number; pickupContactName?: string; pickupPhone: string }) {
     return this.adminService.createMarket(body);
   }
 
