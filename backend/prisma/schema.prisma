@@ -678,6 +678,10 @@ model OrderItem {
   // doesn't apply at all.
   actualPurchasePrice Int?
   referenceCostAtOrder Int?
+  // AVAILABLE | UNAVAILABLE — unavailable items are refunded immediately to the customer wallet.
+  status      String   @default("AVAILABLE")
+  refundedAmount Int   @default(0)
+  unavailableAt DateTime?
 }
 
 // Chat messages tied to a ride or delivery. After the ride ends the messages

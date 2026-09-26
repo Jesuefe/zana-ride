@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../deliveries/storage.service';
 import { haversineKm } from '../trips/fare.util';
+import { PushService } from '../push/push.service';
+import { ZanaGateway } from '../gateway/zana.gateway';
 
 // Same shape as the merchant delivery fee so pricing stays consistent
 // across the whole marketplace.
@@ -16,6 +18,8 @@ export class MarketsService {
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
+    private push: PushService,
+    private gateway: ZanaGateway,
   ) {}
 
   // ── Customer-facing ───────────────────────────────────────────────────────
@@ -173,6 +177,45 @@ export class MarketsService {
     });
   }
 
+  async getMyOrderDetail(userId: string, orderId: string) {
+    const agent = await this.requireAgent(userId);
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, marketId: agent.marketId! }, include: { items: { include: { product: true } }, customer: { select: { id: true, firstName: true, lastName: true, phone: true } }, market: true, delivery: { include: { driver: { include: { user: { select: { id: true, firstName: true, lastName: true, phone: true } } } } } } } });
+    if (!order) throw new NotFoundException('Order not found in your market');
+    const timeline = await this.prisma.auditLog.findMany({ where: { entityType: { in: ['ORDER','ORDER_ITEM'] }, entityId: orderId }, orderBy: { createdAt: 'asc' }, take: 100 });
+    return { ...order, timeline };
+  }
+
+  async getMyDeliveries(userId: string) {
+    const agent = await this.requireAgent(userId);
+    return this.prisma.delivery.findMany({ where: { order: { marketId: agent.marketId! }, status: { in: ['COURIER_ASSIGNED','PICKED_UP','DELIVERED'] } }, include: { order: { select: { id: true, trackingCode: true, total: true, customer: { select: { firstName: true, lastName: true, phone: true } } } }, driver: { include: { user: { select: { id: true, firstName: true, lastName: true, phone: true } } } } }, orderBy: { createdAt: 'desc' }, take: 100 });
+  }
+
+  async markItemUnavailable(userId: string, orderId: string, itemId: string) {
+    const agent = await this.requireAgent(userId);
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, marketId: agent.marketId! }, include: { customer: { select: { id: true } }, items: true } });
+    if (!order) throw new NotFoundException('Order not found in your market');
+    if (!['PENDING','CONFIRMED','PREPARING'].includes(order.status)) throw new BadRequestException('ITEM_CAN_NO_LONGER_BE_CHANGED');
+    if (!(order as any).paid) throw new BadRequestException('ORDER_NOT_PAID');
+    const item = order.items.find(i => i.id === itemId);
+    if (!item) throw new NotFoundException('Order item not found');
+    if ((item as any).status === 'UNAVAILABLE') return this.getMyOrderDetail(userId, orderId);
+    const refund = item.price * item.quantity;
+    const wallet = await this.prisma.wallet.findUnique({ where: { userId: order.customerId } });
+    if (!wallet) throw new BadRequestException('CUSTOMER_WALLET_NOT_FOUND');
+    await this.prisma.$transaction(async tx => {
+      const claimed = await tx.orderItem.updateMany({ where: { id: item.id, orderId, status: 'AVAILABLE' } as any, data: { status: 'UNAVAILABLE', refundedAmount: refund, unavailableAt: new Date() } as any });
+      if (claimed.count !== 1) throw new BadRequestException('ITEM_ALREADY_UNAVAILABLE');
+      await tx.order.update({ where: { id: orderId }, data: { total: { decrement: refund }, updatedAt: new Date() } });
+      const updatedWallet = await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: refund } } });
+      await tx.walletTransaction.create({ data: { walletId: wallet.id, amount: refund, balanceBefore: wallet.balance, balanceAfter: updatedWallet.balance, reference: 'ORDER_ITEM_REFUND:' + orderId + ':' + item.id, description: 'Refund — unavailable market item', status: 'COMPLETED' } as any });
+      await tx.auditLog.create({ data: { actorId: userId, action: 'ORDER_ITEM_UNAVAILABLE_REFUNDED', entityType: 'ORDER', entityId: orderId, metadataJson: JSON.stringify({ orderItemId: item.id, refund, productId: item.productId }) } });
+    }, { isolationLevel: 'Serializable' });
+    const product = await this.prisma.product.findUnique({ where: { id: item.productId }, select: { name: true } });
+    const marketName = agent.market?.name ?? 'the market';
+    await this.push.sendToUser(order.customerId, { title: 'Item unavailable — refund issued', body: (product?.name ?? 'Item') + ' was unavailable at ' + marketName + '. ' + refund.toLocaleString() + ' RWF has been refunded to your Zana Wallet.' }, { type: 'ORDER_ITEM_REFUND', orderId, itemId: item.id });
+    this.gateway.sendToUser(order.customerId, 'order:item-refunded', { orderId, itemId: item.id, refund, productName: product?.name ?? 'Item' });
+    return this.getMyOrderDetail(userId, orderId);
+  }
   async updateOrderStatus(
     userId: string,
     orderId: string,
@@ -223,9 +266,19 @@ export class MarketsService {
       }
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: status as any, agentId: agent.id } as any,
     });
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: userId,
+        action: 'ORDER_STATUS_CHANGED',
+        entityType: 'ORDER',
+        entityId: orderId,
+        metadataJson: JSON.stringify({ from: order.status, to: status }),
+      },
+    });
+    return updated;
   }
 }

@@ -151,10 +151,13 @@ export class CallsService {
       const delivery = await this.getDeliveryParties(contextId);
 
       const merchantUserId = delivery.order?.merchant?.userId;
+      const orderAgentId = (delivery.order as any)?.agentId as string | null;
+      const agentUserId = orderAgentId ? (await this.prisma.agent.findUnique({ where: { id: orderAgentId }, select: { userId: true } }))?.userId ?? null : null;
       const driverUserId = delivery.driver?.user?.id;
       const isMerchant = merchantUserId === callerId;
+      const isAgent = agentUserId === callerId;
       const isDriver = driverUserId === callerId;
-      if (!isMerchant && !isDriver) throw new ForbiddenException('CALL_NOT_AUTHORIZED');
+      if (!isMerchant && !isAgent && !isDriver) throw new ForbiddenException('CALL_NOT_AUTHORIZED');
 
       // Callable once a rider is actually assigned and holding the parcel —
       // before that there is nobody on the other end of the line yet.
@@ -164,13 +167,9 @@ export class CallsService {
       }
       if (!driverUserId) throw new NotFoundException('DRIVER_NOT_FOUND');
 
-      receiverId = isMerchant ? driverUserId : (merchantUserId as string);
-      callerName = isMerchant
-        ? (delivery.order?.merchant?.businessName ?? 'Merchant')
-        : (delivery.driver?.user?.firstName ?? 'Rider');
-      receiverName = isMerchant
-        ? (delivery.driver?.user?.firstName ?? 'Rider')
-        : (delivery.order?.merchant?.businessName ?? 'Merchant');
+      receiverId = isDriver ? (agentUserId ?? merchantUserId as string) : (driverUserId as string);
+      callerName = isDriver ? (delivery.driver?.user?.firstName ?? 'Rider') : (isAgent ? 'Market Agent' : (delivery.order?.merchant?.businessName ?? 'Merchant'));
+      receiverName = isDriver ? (isAgent ? 'Market Agent' : (delivery.order?.merchant?.businessName ?? 'Merchant')) : (delivery.driver?.user?.firstName ?? 'Rider');
     } else {
       const trip = await this.getRideParties(contextId);
 
