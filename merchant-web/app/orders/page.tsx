@@ -138,7 +138,7 @@ export default function OrdersPage() {
                       </p>
                     </div>
                   );
-                })()
+                })()}
 
                 {/* Settlement — only appears once the order has actually delivered */}
                 {o.status === 'DELIVERED' && (() => {
