@@ -376,7 +376,7 @@ export class CallsService {
     const call = await this.prisma.call.findUnique({ where: { id: callId } });
     if (!call) throw new NotFoundException('CALL_NOT_FOUND');
     if (call.callerId !== userId && call.receiverId !== userId) throw new ForbiddenException('INVALID_CALL_PARTICIPANT');
-    if (![CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED].includes(call.status as typeof CallStatus.ACCEPTED)) {
+    if (![CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.CONNECTED].includes(call.status as any)) {
       throw new BadRequestException(`CALL_NOT_ACTIVE (status: ${call.status})`);
     }
     if (call.status !== CallStatus.CONNECTED) {
