@@ -65,6 +65,10 @@ export const UI: Record<string, Record<Lang, string>> = {
   'Picked up': { en: 'Picked up', fr: 'Retiré', rw: 'Byafashwe' },
   'Delivered': { en: 'Delivered', fr: 'Livré', rw: 'Byagejejwe' },
   'Language': { en: 'Language', fr: 'Langue', rw: 'Ururimi' },
+  'Your earned commission is separate from order purchasing funds.': { en: 'Your earned commission is separate from order purchasing funds.', fr: 'Votre commission est séparée des fonds d’achat des commandes.', rw: 'Komisiyo yawe itandukanye n’amafaranga yo kugura ibicuruzwa by’utumijwe.' },
+  'Earned commission released after delivery.': { en: 'Earned commission released after delivery.', fr: 'La commission gagnée est libérée après la livraison.', rw: 'Komisiyo yinjijwe irekurwa nyuma yo kugeza ibyo watumijwe.' },
+  'Pending commission': { en: 'Pending commission', fr: 'Commission en attente', rw: 'Komisiyo itegereje' },
+  'Purchasing funds in active orders': { en: 'Purchasing funds in active orders', fr: 'Fonds d’achat dans les commandes actives', rw: 'Amafaranga yo kugura ari mu byatumijwe' },
 
   'Refresh': { en: 'Refresh', fr: 'Actualiser', rw: 'Ongera usubiremo' },
   'Today’s sales': { en: 'Today’s sales', fr: 'Ventes du jour', rw: 'Ibyagurishijwe uyu munsi' },
