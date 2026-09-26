@@ -114,6 +114,10 @@ export class AdminService {
       }),
     ]);
 
+    const agentIds = (deliveries as any[]).map(d => d.order?.agentId).filter(Boolean);
+    const agents = agentIds.length ? await this.prisma.agent.findMany({ where: { id: { in: agentIds } }, include: { user: { select: { firstName: true, lastName: true, phone: true } } } }) : [];
+    const agentById = new Map(agents.map(a => [a.id, a]));
+
     const freshCutoff = Date.now() - 120000;
     const driverRows = drivers.map(d => ({
       id: d.id, lat: d.lastLat, lng: d.lastLng, status: d.onlineStatus, serviceType: d.serviceType, driverMode: d.driverMode,
@@ -138,8 +142,8 @@ export class AdminService {
           dropoffAddress: d.dropoffAddress, dropoff: { lat: d.dropoffLat, lng: d.dropoffLng },
           receiverName: d.receiverName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || null,
           receiverPhone: d.receiverPhone,
-          pickupContactName: d.order?.market?.pickupContactName || merchantName || d.merchant?.businessName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || 'Pickup contact',
-          pickupPhone: d.order?.market?.pickupPhone || d.merchant?.user?.phone || d.customer?.phone || null,
+          pickupContactName: (d.order?.agentId && agentById.get(d.order.agentId) ? ([agentById.get(d.order.agentId).user.firstName, agentById.get(d.order.agentId).user.lastName].filter(Boolean).join(' ') || 'Market agent') : null) || d.order?.market?.pickupContactName || merchantName || d.merchant?.businessName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || 'Pickup contact',
+          pickupPhone: (d.order?.agentId && agentById.get(d.order.agentId)?.user.phone) || d.order?.market?.pickupPhone || d.merchant?.user?.phone || d.customer?.phone || null,
           driver: d.driver ? { id: d.driver.id, lat: d.driver.lastLat, lng: d.driver.lastLng, plate: d.driver.plate, name: [d.driver.user.firstName,d.driver.user.lastName].filter(Boolean).join(' ') || 'Driver' } : null,
         };
       }),
