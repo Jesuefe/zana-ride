@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { PhoneOff, Mic, MicOff, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { api } from '../lib/api/client';
-import { Room, RoomEvent, createLocalTracks, ConnectionState } from 'livekit-client';
+import { Room, RoomEvent, Track, createLocalTracks, ConnectionState } from 'livekit-client';
 import { io, Socket } from 'socket.io-client';
 import { getToken } from '../lib/api/client';
 
@@ -72,6 +72,9 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
   const timerRef = useRef<any>(null);
   const stopRingRef = useRef<(() => void) | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const localMediaReadyRef = useRef(false);
+  const remoteAudioReadyRef = useRef(false);
+  const mediaConnectedRef = useRef(false);
 
   // Start ringing immediately
   useEffect(() => {
@@ -122,9 +125,42 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
       });
       roomRef.current = room;
 
-      room.on(RoomEvent.ParticipantConnected, () => {
+      const markMediaReady = () => {
+        if (mediaConnectedRef.current || !localMediaReadyRef.current || !remoteAudioReadyRef.current) return;
+        mediaConnectedRef.current = true;
         setCallState('connected');
         if (!timerRef.current) timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+        api.post(`/calls/${callId}/connected`).catch(() => {});
+        console.log('[CALL] Two-way media ready');
+      };
+
+      room.on(RoomEvent.ParticipantConnected, (participant) => {
+        console.log('[CALL] Remote participant connected:', participant.identity);
+      });
+
+      room.on(RoomEvent.TrackSubscribed, async (track, _publication, participant) => {
+        if (track.kind !== Track.Kind.Audio) return;
+        console.log('[CALL] Remote audio subscribed from:', participant.identity);
+        const el = track.attach() as HTMLAudioElement;
+        el.autoplay = true;
+        el.muted = false;
+        el.volume = 1;
+        el.setAttribute('playsinline', '');
+        document.body.appendChild(el);
+        try {
+          await el.play();
+          remoteAudioReadyRef.current = true;
+          markMediaReady();
+          console.log('[CALL] Remote audio playback confirmed');
+        } catch (err) {
+          console.error('[CALL] Remote audio playback blocked:', err);
+          setError('Tap the call audio control to enable sound');
+        }
+      });
+
+      room.on(RoomEvent.TrackSubscriptionFailed, (sid) => {
+        console.error('[CALL] Remote audio subscription failed:', sid);
+        setError('Remote audio connection failed');
       });
 
       room.on(RoomEvent.ParticipantDisconnected, () => {
@@ -153,6 +189,13 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
       for (const track of tracks) {
         await room.localParticipant.publishTrack(track);
       }
+      const micPublication = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+      if (!micPublication?.track || !room.localParticipant.isMicrophoneEnabled) {
+        throw new Error('Microphone was not published');
+      }
+      localMediaReadyRef.current = true;
+      markMediaReady();
+      console.log('[CALL] Microphone published and verified');
 
       // Stay in "ringing" state until other party joins
       setCallState('ringing');
