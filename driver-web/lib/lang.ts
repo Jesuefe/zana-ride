@@ -399,6 +399,7 @@ Object.assign(DRIVER_UI, {
   'Close': { en: 'Close', fr: 'Fermer', rw: 'Funga' },
 });
 
+Object.assign(DRIVER_UI, {
   'GO ONLINE': { en: 'GO ONLINE', fr: 'SE CONNECTER', rw: 'JYA KUMURONGO' },
   'GO OFFLINE': { en: 'GO OFFLINE', fr: 'SE DÉCONNECTER', rw: 'JYA HANZE Y’UMURONGO' },
   'Ready to receive requests': { en: 'Ready to receive requests', fr: 'Prêt à recevoir des demandes', rw: 'Witeguye kwakira ubusabe' },
@@ -418,6 +419,7 @@ Object.assign(DRIVER_UI, {
   'Could not go online. Check your connection.': { en: 'Could not go online. Check your connection.', fr: 'Impossible de se connecter. Vérifiez votre connexion.', rw: 'Ntibyashobotse kujya ku murongo. Reba internet.' },
   "Your account is still pending approval — you can go online once it's reviewed.": { en: "Your account is still pending approval — you can go online once it's reviewed.", fr: 'Votre compte est toujours en attente de validation — vous pourrez vous connecter après sa validation.', rw: 'Konti yawe iracyategereje kwemezwa — uzashobora kujya ku murongo imaze kwemezwa.' },
 });
+
 
 Object.assign(DRIVER_UI, {
   'vehicle problem, customer not reachable…': { en: 'e.g. vehicle problem, customer not reachable…', fr: 'ex. problème du véhicule, client injoignable…', rw: 'urugero: ikibazo cy’ikinyabiziga, umukiriya ntaboneka…' },
