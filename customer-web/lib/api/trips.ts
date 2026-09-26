@@ -27,6 +27,8 @@ export type ApiTrip = {
   destinationLng: number;
   requestedAt: string;
   completedAt?: string | null;
+  groupId?: string | null;
+  groupSeatIndex?: number | null;
   driver?: {
     id: string;
     user: { firstName: string | null; phone?: string | null };
@@ -74,6 +76,29 @@ export async function createRideGroup(
 
 export async function fetchTripGroup(groupId: string) {
   return api.get<(ApiTrip & { groupId: string | null; groupSeatIndex: number | null })[]>(`/rides/group/${groupId}`);
+}
+
+
+export const ACTIVE_RIDE_STATUSES = new Set([
+  'SEARCHING_DRIVER',
+  'DRIVER_ASSIGNED',
+  'DRIVER_EN_ROUTE',
+  'DRIVER_ARRIVED',
+  'RIDE_IN_PROGRESS',
+]);
+
+/**
+ * Recover the customer's server-side ride after an app restart, lost network,
+ * token refresh, or device going offline. The server is authoritative: the
+ * local device never creates a replacement ride during recovery.
+ */
+export async function recoverActiveRide() {
+  const history = await api.get<ApiTrip[]>('/rides/history');
+  const active = Array.isArray(history)
+    ? history.find((ride) => ACTIVE_RIDE_STATUSES.has(ride?.status))
+    : null;
+  if (!active) return null;
+  return active;
 }
 
 export async function fetchTrip(id: string) {
