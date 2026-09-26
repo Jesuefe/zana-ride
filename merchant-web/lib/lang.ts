@@ -66,18 +66,13 @@ export const UI: Record<string, Record<Lang, string>> = {
   'Delivered': { en: 'Delivered', fr: 'Livré', rw: 'Byagejejwe' },
   'Language': { en: 'Language', fr: 'Langue', rw: 'Ururimi' },
 
-};
-
-export function t(key: string, lang: Lang): string {
-  return UI[key]?.[lang] ?? key;
-}
   'Refresh': { en: 'Refresh', fr: 'Actualiser', rw: 'Ongera usubiremo' },
   'Today’s sales': { en: 'Today’s sales', fr: 'Ventes du jour', rw: 'Ibyagurishijwe uyu munsi' },
   'Pending shopping': { en: 'Pending shopping', fr: 'Achats en attente', rw: 'Ibitegereje kugurwa' },
   'Shopping now': { en: 'Shopping now', fr: 'Achats en cours', rw: 'Birimo kugurwa' },
   'Ready for pickup': { en: 'Ready for pickup', fr: 'Prêt à être retiré', rw: 'Biteguye gufatwa' },
   'View all': { en: 'View all', fr: 'Voir tout', rw: 'Reba byose' },
-  'Open any order for the complete receipt and timeline.': { en: 'Open any order for the complete receipt and timeline.', fr: 'Ouvrez une commande pour voir le reçu et la chronologie complète.', rw: 'Fungura icyo wifuza kureba inyemezabuguzi n’amateka yose.' },
+  'Open any order for the complete receipt and timeline.': { en: 'Open any order for the complete receipt and timeline.', fr: 'Ouvrez une commande pour le reçu et la chronologie complète.', rw: 'Fungura icyo wifuza kureba inyemezabuguzi n’amateka yose.' },
   'Item issues': { en: 'Item issues', fr: 'Problèmes d’article', rw: 'Ibibazo by’ibicuruzwa' },
   'Orders today': { en: 'Orders today', fr: 'Commandes du jour', rw: 'Ibyatumijwe uyu munsi' },
   'Shop, resolve unavailable items and prepare packages for pickup.': { en: 'Shop, resolve unavailable items and prepare packages for pickup.', fr: 'Achetez, gérez les articles indisponibles et préparez les colis.', rw: 'Gura, kora ku bicuruzwa bidahari kandi utegure ibyo gutwara.' },
@@ -86,4 +81,8 @@ export function t(key: string, lang: Lang): string {
   'List item': { en: 'List item', fr: 'Ajouter un article', rw: 'Shyiraho igicuruzwa' },
   'Add to today’s list': { en: 'Add to today’s list', fr: 'Ajouter à la liste du jour', rw: 'Ongeraho ku rutonde rw’uyu munsi' },
   'Recent wallet activity': { en: 'Recent wallet activity', fr: 'Activité récente du portefeuille', rw: 'Ibikorwa biheruka ku mufuka' },
+};
 
+export function t(key: string, lang: Lang): string {
+  return UI[key]?.[lang] ?? key;
+}
