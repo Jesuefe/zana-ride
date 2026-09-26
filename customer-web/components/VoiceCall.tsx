@@ -204,8 +204,9 @@ export default function VoiceCall({
 
     room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
       console.log('[CALL] Remote participant connected:', participant.identity);
-      // Do not declare the call connected from signaling alone.
-      // We require both local microphone publication and remote audio subscription.
+      // Re-send our media-ready signal whenever the peer arrives so a
+      // message sent before the peer joined can never strand the handshake.
+      if (localMediaReady) void publishMediaReady();
     });
 
     room.on(RoomEvent.ParticipantDisconnected, () => {
