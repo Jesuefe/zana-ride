@@ -90,7 +90,7 @@ export class AdminService {
 
   async getLiveOperations() {
     const activeStatuses = ['DRIVER_ASSIGNED','DRIVER_EN_ROUTE','DRIVER_ARRIVED','RIDE_IN_PROGRESS'];
-    const [drivers, trips, searching] = await Promise.all([
+    const [drivers, trips, searching, deliveries] = await Promise.all([
       this.prisma.driver.findMany({
         where: { approvalStatus: 'APPROVED', onlineStatus: { in: ['ONLINE','BUSY'] }, lastLat: { not: null }, lastLng: { not: null } },
         select: { id: true, lastLat: true, lastLng: true, lastLocationAt: true, onlineStatus: true, serviceType: true, driverMode: true, plate: true, rating: true, user: { select: { firstName: true, lastName: true, phone: true } } },
@@ -102,6 +102,16 @@ export class AdminService {
         include: { customer: { select: { firstName: true, lastName: true, phone: true, role: true } }, driver: { select: { id: true, lastLat: true, lastLng: true, plate: true, serviceType: true, user: { select: { firstName: true, lastName: true, phone: true } } } } },
       }),
       this.prisma.trip.count({ where: { status: 'SEARCHING_DRIVER' } }),
+      this.prisma.delivery.findMany({
+        where: { status: { in: ['COURIER_ASSIGNED', 'PICKED_UP'] } },
+        orderBy: { createdAt: 'desc' }, take: 200,
+        include: {
+          customer: { select: { firstName: true, lastName: true, phone: true } },
+          driver: { select: { id: true, lastLat: true, lastLng: true, plate: true, user: { select: { firstName: true, lastName: true, phone: true } } } },
+          merchant: { select: { businessName: true, user: { select: { phone: true, firstName: true, lastName: true } } } },
+          order: { include: { market: true } },
+        },
+      }),
     ]);
 
     const freshCutoff = Date.now() - 120000;
@@ -120,6 +130,19 @@ export class AdminService {
         searchingRides: searching,
       },
       drivers: driverRows,
+      deliveries: (deliveries as any[]).map(d => {
+        const merchantName = [d.merchant?.user?.firstName, d.merchant?.user?.lastName].filter(Boolean).join(' ');
+        return {
+          id: d.id, trackingCode: d.trackingCode, status: d.status, itemDescription: d.itemDescription,
+          pickupAddress: d.pickupAddress, pickup: { lat: d.pickupLat, lng: d.pickupLng },
+          dropoffAddress: d.dropoffAddress, dropoff: { lat: d.dropoffLat, lng: d.dropoffLng },
+          receiverName: d.receiverName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || null,
+          receiverPhone: d.receiverPhone,
+          pickupContactName: d.order?.market?.pickupContactName || merchantName || d.merchant?.businessName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || 'Pickup contact',
+          pickupPhone: d.order?.market?.pickupPhone || d.merchant?.user?.phone || d.customer?.phone || null,
+          driver: d.driver ? { id: d.driver.id, lat: d.driver.lastLat, lng: d.driver.lastLng, plate: d.driver.plate, name: [d.driver.user.firstName,d.driver.user.lastName].filter(Boolean).join(' ') || 'Driver' } : null,
+        };
+      }),
       rides: trips.map(t => ({
         id: t.id, status: t.status, serviceType: t.serviceType, fare: t.finalFare ?? t.estimatedFare,
         pickupAddress: t.pickupAddress, destinationAddress: t.destinationAddress,
