@@ -320,8 +320,10 @@ export class MarketsService {
         if (!Number.isFinite(actualPurchasePrice) || !Number.isInteger(actualPurchasePrice) || actualPurchasePrice < 0) {
           throw new BadRequestException('INVALID_PURCHASE_PRICE');
         }
-        const underlying = item.referenceCostAtOrder;
-        if (underlying == null || underlying <= 0) {
+        // Older market orders may predate referenceCostAtOrder. Recover the
+        // purchase reference from the product so legacy orders remain fulfillable.
+        const underlying = Number(item.referenceCostAtOrder ?? (item.product as any)?.referenceCost ?? 0);
+        if (!Number.isFinite(underlying) || underlying <= 0) {
           throw new BadRequestException('MISSING_MARKET_REFERENCE_COST');
         }
         if (actualPurchasePrice > underlying) {
@@ -329,7 +331,10 @@ export class MarketsService {
         }
         await this.prisma.orderItem.update({
           where: { id: item.id },
-          data: { actualPurchasePrice },
+          data: {
+            actualPurchasePrice,
+            referenceCostAtOrder: item.referenceCostAtOrder ?? underlying,
+          } as any,
         });
       }
     }
