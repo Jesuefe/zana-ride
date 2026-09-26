@@ -33,7 +33,16 @@ export class PurchaseFloatService implements OnModuleInit {
         "withdrawnAt" TIMESTAMPTZ,
         "reconciledAt" TIMESTAMPTZ,
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
+      )
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "AgentPurchaseFund_agent_status_idx"
+        ON "AgentPurchaseFund" ("agentId", "status", "createdAt")
+    `);
+    await this.prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "AgentPurchaseFund_order_idx"
+        ON "AgentPurchaseFund" ("orderId")
+    `);
       CREATE INDEX IF NOT EXISTS "AgentPurchaseFund_agent_status_idx"
         ON "AgentPurchaseFund" ("agentId", "status", "createdAt");
       CREATE INDEX IF NOT EXISTS "AgentPurchaseFund_order_idx"
