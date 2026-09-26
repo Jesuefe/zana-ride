@@ -10,10 +10,7 @@ import { MarketsService } from '../markets/markets.service';
 // Public marketplace — no auth needed to browse.
 @Controller('marketplace')
 export class MarketplaceController {
-  constructor(
-    private ordersService: OrdersService,
-    private marketsService: MarketsService,
-  ) {}
+  constructor(private ordersService: OrdersService) {}
 
   @Get()
   browse(
@@ -33,7 +30,10 @@ export class MarketplaceController {
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 export class CustomerOrdersController {
-  constructor(private ordersService: OrdersService) {}
+  constructor(
+    private ordersService: OrdersService,
+    private marketsService: MarketsService,
+  ) {}
 
   @Post()
   create(@CurrentUser() user: JwtPayload, @Body() body: any) {
