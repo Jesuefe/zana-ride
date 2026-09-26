@@ -383,7 +383,8 @@ export class MarketsService {
       if (dropoffLat == null || dropoffLng == null) {
         throw new BadRequestException('ORDER_DROP_OFF_LOCATION_REQUIRED');
       }
-      if (!readyOrder.market || readyOrder.market.lat == null || readyOrder.market.lng == null) {
+      const pickupMarket = readyOrder.market;
+      if (!pickupMarket || pickupMarket.lat == null || pickupMarket.lng == null) {
         throw new BadRequestException('MARKET_PICKUP_LOCATION_REQUIRED');
       }
       if (!readyOrder.paid) {
@@ -429,9 +430,9 @@ export class MarketsService {
             customerId: readyOrder.customerId,
             itemDescription,
             weight: 'UNDER_1KG' as any,
-            pickupAddress: readyOrder.market.name,
-            pickupLat: readyOrder.market.lat,
-            pickupLng: readyOrder.market.lng,
+            pickupAddress: pickupMarket.name,
+            pickupLat: pickupMarket.lat,
+            pickupLng: pickupMarket.lng,
             dropoffAddress: readyOrder.dropoffAddress ?? 'Customer location',
             dropoffLat,
             dropoffLng,
