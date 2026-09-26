@@ -29,9 +29,6 @@ export default function ForgotPassword() {
     try {
       const res = await requestPasswordReset(identifier.trim());
       setHint(res?.phoneHint ?? null);
-      if (/^\+?\d[\d\s]{6,}$/.test(identifier.trim())) {
-        setPhone(identifier.trim().replace(/\s/g, ''));
-      }
     } catch { /* stay silent about whether the account exists */ }
     setStep('reset');
     setBusy(false);
@@ -70,7 +67,7 @@ export default function ForgotPassword() {
           <>
             <h1 className="text-xl font-black text-gray-900">Forgot your password?</h1>
             <p className="text-sm text-gray-500 mt-1.5 mb-6">
-              Enter your email or phone number and we&rsquo;ll send a code by SMS.
+              Enter your email or phone number and we&rsquo;ll send a secure reset code to that contact.
             </p>
 
             <input
