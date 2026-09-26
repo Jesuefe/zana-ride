@@ -59,7 +59,7 @@ export default function WalletPage() {
         <div className="flex items-center justify-between mb-5"><h2 className="font-black text-lg text-gray-900">Withdraw Funds</h2><button onClick={() => { setShowWithdraw(false); setError(''); }}><X size={20} className="text-gray-400" /></button></div>
         <p className="text-xs text-gray-400 mb-4">Available: <strong>{(wallet?.balance ?? 0).toLocaleString()} RWF</strong> · Minimum: 10,000 RWF</p>
         <div className="space-y-3">
-          <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Amount (RWF)</label><input value={amount} onChange={e => setAmount(e.target.value.replace(/D/g,''))} placeholder="e.g. 5000" inputMode="numeric" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-zana-primary/30" /></div>
+          <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">Amount (RWF)</label><input value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g,''))} placeholder="e.g. 5000" inputMode="numeric" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-zana-primary/30" /></div>
           {error && <p className="text-xs text-red-600">{error}</p>}
           <button onClick={handleWithdraw} disabled={withdrawing} className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">{withdrawing ? <><Loader2 size={16} className="animate-spin" /> Processing...</> : 'Withdraw'}</button>
         </div>
