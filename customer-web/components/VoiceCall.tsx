@@ -40,6 +40,7 @@ export default function VoiceCall({
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<any>(null);
   const callIdRef = useRef<string | null>(incomingCallId ?? null);
+  const endedRef = useRef(false);
 
   const [state, setState] = useState<CallState>(incomingCallId ? 'connected' : 'connecting');
   const [muted, setMuted] = useState(false);
@@ -62,6 +63,8 @@ export default function VoiceCall({
 
   // ── End call ───────────────────────────────────────────────────────────────
   const handleEnd = useCallback(async (reason?: string) => {
+    if (endedRef.current) return;
+    endedRef.current = true;
     if (callIdRef.current) {
       await api.post(`/calls/${callIdRef.current}/end`).catch(() => {});
     }
