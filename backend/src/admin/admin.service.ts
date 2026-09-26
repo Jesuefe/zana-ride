@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { DriversService } from '../drivers/drivers.service';
 import { UserRole, UserStatus, DriverApprovalStatus, MerchantStatus, ProductStatus, DriverMode } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { StorageService } from '../deliveries/storage.service';
@@ -10,6 +11,7 @@ import { SmsService } from '../sms/sms.service';
 export class AdminService {
   constructor(
     private prisma: PrismaService,
+    private driversService: DriversService,
     private storage: StorageService,
     private emailService: EmailService,
     private smsService: SmsService,
@@ -407,11 +409,13 @@ export class AdminService {
     });
   }
 
-  async createMarket(data: { name: string; description?: string; address: string; lat: number; lng: number; imageUrl?: string }) {
+  async createMarket(data: { name: string; description?: string; address: string; lat: number; lng: number; pickupContactName?: string; pickupPhone: string; imageUrl?: string }) {
+    if (!data.pickupPhone?.trim()) throw new BadRequestException('PICKUP_PHONE_REQUIRED');
     return this.prisma.market.create({ data });
   }
 
-  async updateMarket(id: string, data: Partial<{ name: string; description: string; address: string; lat: number; lng: number; active: boolean }>) {
+  async updateMarket(id: string, data: Partial<{ name: string; description: string; address: string; lat: number; lng: number; pickupContactName: string; pickupPhone: string; active: boolean }>) {
+    if (data.pickupPhone !== undefined && !data.pickupPhone?.trim()) throw new BadRequestException('PICKUP_PHONE_REQUIRED');
     return this.prisma.market.update({ where: { id }, data });
   }
 
@@ -715,10 +719,10 @@ export class AdminService {
   // by default for every driver — this never affects a real account
   // unless explicitly set here.
   async setDriverTestLocation(driverId: string, lat: number | null, lng: number | null) {
-    return this.prisma.driver.update({
-      where: { id: driverId },
-      data: { testOverrideLat: lat, testOverrideLng: lng },
-    });
+    if ((lat === null) !== (lng === null)) throw new BadRequestException('TEST_LOCATION_LAT_LNG_REQUIRED');
+    const updated = await this.prisma.driver.update({ where: { id: driverId }, data: { testOverrideLat: lat, testOverrideLng: lng } });
+    if (lat !== null && lng !== null) await this.driversService.updateLocation(driverId, lat, lng);
+    return updated;
   }
 
   async listDriverTestLocations() {
