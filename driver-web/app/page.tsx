@@ -541,7 +541,9 @@ export default function DriverHome() {
     if (sosState === 'sending' || sosState === 'sent') return;
     setSosState('sending');
 
-    const activeTripId = activeTrip?.id;
+    // Home no longer keeps an activeTrip state; resolve the current trip
+    // at the moment SOS is sent so the alert can still be linked to a ride.
+    const activeTripId = (await fetchMyActiveTrip().catch(() => null))?.id;
     const send = async (coords?: { lat: number; lng: number }) => {
       try {
         await triggerSOS(activeTripId, coords);
