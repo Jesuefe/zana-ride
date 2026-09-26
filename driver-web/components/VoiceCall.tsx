@@ -71,6 +71,9 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
   const [error, setError] = useState('');
   const [audioBlocked, setAudioBlocked] = useState(false);
   const recoveryTimerRef = useRef<any>(null);
+  const tryPlayRemoteAudioRef = useRef<(() => Promise<boolean>) | null>(null);
+  const markMediaReadyRef = useRef<(() => void) | null>(null);
+
 
   // ── Cleanup ────────────────────────────────────────────────────────────────
   const cleanup = useCallback(() => {
@@ -80,6 +83,8 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
     clearTimeout(recoveryTimerRef.current);
     audioElementsRef.current.forEach(el => { el.pause(); el.srcObject = null; el.remove(); });
     audioElementsRef.current = [];
+    tryPlayRemoteAudioRef.current = null;
+    markMediaReadyRef.current = null;
     roomRef.current?.disconnect();
     roomRef.current = null;
   }, []);
@@ -195,6 +200,9 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
       api.post(`/calls/${callId}/connected`).catch(() => {});
       console.log('[CALL] TWO-WAY AUDIO CONFIRMED — five gates passed');
     };
+
+    markMediaReadyRef.current = markMediaReady;
+    tryPlayRemoteAudioRef.current = tryPlayRemoteAudio;
 
     const startRecoveryWindow = () => {
       clearTimeout(recoveryTimerRef.current);
@@ -472,11 +480,11 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
           {audioBlocked && (
             <div className="flex flex-col items-center gap-2">
               <button onClick={async () => {
-                const played = await tryPlayRemoteAudio();
+                const played = await tryPlayRemoteAudioRef.current?.() ?? false;
                 if (played) {
                   setAudioBlocked(false);
                   setError('');
-                  markMediaReady();
+                  markMediaReadyRef.current?.();
                 }
               }}
                 className="px-4 py-3 rounded-full bg-white text-gray-900 text-xs font-bold">
