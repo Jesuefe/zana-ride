@@ -102,3 +102,5 @@ export default function TestLocationsPage(){
     </div>
   </div></AdminShell>;
 }
+
+// Deployment trigger: Cloudflare Pages root is admin-web.
