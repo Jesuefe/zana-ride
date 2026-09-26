@@ -57,6 +57,21 @@ export class CustomerOrdersController {
     return order;
   }
 
+  @Get(':id/items/:itemId/replacement-options')
+  async replacementOptions(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Param('itemId') itemId: string) {
+    return this.ordersService.getReplacementProducts(user.sub, id, itemId);
+  }
+
+  @Post(':id/items/:itemId/availability-choice')
+  async availabilityChoice(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() body: { action: 'REFUND' | 'REPLACE' | 'REMOVE'; replacementProductId?: string },
+  ) {
+    return this.ordersService.resolveUnavailableItem(user.sub, id, itemId, body.action, body.replacementProductId);
+  }
+
   @Patch(':id/cancel')
   async cancel(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     const order = await this.ordersService.findById(id);
