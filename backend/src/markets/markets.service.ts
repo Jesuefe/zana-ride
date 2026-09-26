@@ -361,6 +361,112 @@ export class MarketsService {
       }
     }
 
+    // READY_FOR_PICKUP is the handoff boundary between the market agent
+    // and the driver network. The order alone is not enough for the driver
+    // pool: riders discover REQUESTED Delivery records. Create that record
+    // atomically with the order transition so an order can never become
+    // "ready" without a corresponding rider job.
+    if (status === 'READY_FOR_PICKUP') {
+      const readyOrder = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          items: { include: { product: true } },
+          customer: { select: { id: true, firstName: true, phone: true } },
+          market: true,
+          delivery: true,
+        },
+      });
+      if (!readyOrder) throw new NotFoundException('Order not found');
+
+      const dropoffLat = readyOrder.dropoffLat;
+      const dropoffLng = readyOrder.dropoffLng;
+      if (dropoffLat == null || dropoffLng == null) {
+        throw new BadRequestException('ORDER_DROP_OFF_LOCATION_REQUIRED');
+      }
+      if (!readyOrder.market || readyOrder.market.lat == null || readyOrder.market.lng == null) {
+        throw new BadRequestException('MARKET_PICKUP_LOCATION_REQUIRED');
+      }
+      if (!readyOrder.paid) {
+        throw new BadRequestException('ORDER_NOT_PAID');
+      }
+
+      const receiverPhone = readyOrder.receiverPhone?.trim() || readyOrder.customer.phone;
+      if (!receiverPhone) {
+        throw new BadRequestException('RECEIVER_PHONE_REQUIRED');
+      }
+
+      const itemDescription = readyOrder.items
+        .filter((item: any) => !['REFUNDED', 'REMOVED'].includes(item.status))
+        .map((item: any) => `${item.product?.name ?? 'Item'} ×${item.quantity}`)
+        .join(', ') || 'Market order';
+
+      const deliveryFee = Number(readyOrder.deliveryFee ?? 0);
+      if (!Number.isInteger(deliveryFee) || deliveryFee < 0) {
+        throw new BadRequestException('INVALID_DELIVERY_FEE');
+      }
+
+      const result = await this.prisma.$transaction(async tx => {
+        const current = await tx.order.findUnique({
+          where: { id: orderId },
+          include: { delivery: true },
+        });
+        if (!current) throw new NotFoundException('Order not found');
+        if (current.status !== 'PREPARING') {
+          throw new BadRequestException('INVALID_AGENT_ORDER_TRANSITION');
+        }
+        if (current.delivery) {
+          throw new BadRequestException('DELIVERY_ALREADY_CREATED');
+        }
+
+        const updatedOrder = await tx.order.update({
+          where: { id: orderId },
+          data: { status: 'READY_FOR_PICKUP', agentId: agent.id } as any,
+        });
+
+        const delivery = await tx.delivery.create({
+          data: {
+            orderId,
+            customerId: readyOrder.customerId,
+            itemDescription,
+            weight: 'UNDER_1KG' as any,
+            pickupAddress: readyOrder.market.name,
+            pickupLat: readyOrder.market.lat,
+            pickupLng: readyOrder.market.lng,
+            dropoffAddress: readyOrder.dropoffAddress ?? 'Customer location',
+            dropoffLat,
+            dropoffLng,
+            receiverName: readyOrder.customer.firstName || 'Customer',
+            receiverPhone,
+            distanceKm: haversineKm(readyOrder.market.lat, readyOrder.market.lng, dropoffLat, dropoffLng),
+            fee: deliveryFee,
+            status: 'REQUESTED' as any,
+            trackingCode: 'ZD' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+            paymentMethod: readyOrder.paymentMethod,
+            paid: readyOrder.paid,
+          } as any,
+        });
+
+        await tx.auditLog.create({
+          data: {
+            actorId: userId,
+            action: 'ORDER_STATUS_CHANGED',
+            entityType: 'ORDER',
+            entityId: orderId,
+            metadataJson: JSON.stringify({
+              from: order.status,
+              to: status,
+              deliveryId: delivery.id,
+              deliveryStatus: 'REQUESTED',
+            }),
+          },
+        });
+
+        return { order: updatedOrder, delivery };
+      }, { isolationLevel: 'Serializable' });
+
+      return result.order;
+    }
+
     const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: status as any, agentId: agent.id } as any,
