@@ -16,7 +16,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PurchaseFloatService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
-  async onModuleInit() {
+  async onModuleInit() { // Order-scoped float: unused money returns to the customer and is recovered from the agent.
     await this.prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "AgentPurchaseFund" (
         "id" TEXT PRIMARY KEY,
