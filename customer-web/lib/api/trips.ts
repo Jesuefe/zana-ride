@@ -176,3 +176,19 @@ export async function createOrder(data: {
 export async function fetchMyOrders() {
   return api.get<any[]>('/orders');
 }
+
+export async function fetchReplacementOptions(orderId: string, itemId: string) {
+  return api.get<any[]>(`/orders/${orderId}/items/${itemId}/replacement-options`);
+}
+
+export async function resolveUnavailableItem(
+  orderId: string,
+  itemId: string,
+  action: 'REFUND' | 'REPLACE' | 'REMOVE',
+  replacementProductId?: string,
+) {
+  return api.post<any>(`/orders/${orderId}/items/${itemId}/availability-choice`, {
+    action,
+    replacementProductId,
+  });
+}
