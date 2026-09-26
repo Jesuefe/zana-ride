@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../deliveries/storage.service';
 import { haversineKm } from '../trips/fare.util';
 import { PushService } from '../push/push.service';
+import { ZanaGateway } from '../gateway/zana.gateway';
 
 // Same shape as the merchant delivery fee so pricing stays consistent
 // across the whole marketplace.
@@ -18,6 +19,7 @@ export class MarketsService {
     private prisma: PrismaService,
     private storage: StorageService,
     private push: PushService,
+    private gateway: ZanaGateway,
   ) {}
 
   // ── Customer-facing ───────────────────────────────────────────────────────
