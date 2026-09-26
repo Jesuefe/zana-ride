@@ -14,6 +14,7 @@ export class DriversService {
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
+    private gateway: ZanaGateway,
   ) {}
 
   // Previously wallet balance and commission debt were two entirely
@@ -96,10 +97,43 @@ export class DriversService {
     // configured for it.
     const finalLat = driver?.testOverrideLat ?? lat;
     const finalLng = driver?.testOverrideLng ?? lng;
-    return this.prisma.driver.update({
+    const updated = await this.prisma.driver.update({
       where: { id: driverId },
       data: { lastLat: finalLat, lastLng: finalLng, lastLocationAt: new Date() },
     });
+
+    // Every accepted driver location update is also a live tracking event.
+    // This is what makes the customer/merchant/admin delivery maps move in
+    // real time, and it also lets the driver's own app reflect the admin
+    // Test Lab override immediately without waiting for physical GPS.
+    const activeDeliveries = await this.prisma.delivery.findMany({
+      where: { driverId, status: { in: ['COURIER_ASSIGNED', 'PICKED_UP'] } },
+      select: { id: true, trackingCode: true, status: true, customerId: true },
+    });
+    for (const delivery of activeDeliveries) {
+      const payload = {
+        deliveryId: delivery.id,
+        trackingCode: delivery.trackingCode,
+        status: delivery.status,
+        lat: finalLat,
+        lng: finalLng,
+        at: new Date().toISOString(),
+      };
+      if (delivery.customerId) this.gateway.sendToUser(delivery.customerId, 'delivery:position', payload);
+    }
+
+    // The driver's own client listens for this too. In particular, an admin
+    // Test Lab move reaches the driver's map even when the real phone GPS is
+    // somewhere else.
+    this.gateway.sendToUser(updated.userId, 'driver:position', {
+      driverId,
+      lat: finalLat,
+      lng: finalLng,
+      testOverride: driver?.testOverrideLat != null && driver?.testOverrideLng != null,
+      at: new Date().toISOString(),
+    });
+
+    return updated;
   }
 
   async findAll(approvalStatus?: string) {
