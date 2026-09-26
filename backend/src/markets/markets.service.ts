@@ -333,7 +333,7 @@ export class MarketsService {
     // Record the actual amount paid at the stall. It can never exceed the
     // immutable underlying reference cost captured when the order was made.
     if (actualPrices) {
-      const items = await this.prisma.orderItem.findMany({ where: { orderId } });
+      const items = await this.prisma.orderItem.findMany({ where: { orderId }, include: { product: true } });
       const itemMap = new Map(items.map(i => [i.id, i]));
       for (const [orderItemId, rawPrice] of Object.entries(actualPrices)) {
         const item = itemMap.get(orderItemId);
@@ -438,7 +438,7 @@ export class MarketsService {
             dropoffLng,
             receiverName: readyOrder.customer.firstName || 'Customer',
             receiverPhone,
-            distanceKm: haversineKm(readyOrder.market.lat, readyOrder.market.lng, dropoffLat, dropoffLng),
+            distanceKm: haversineKm(pickupMarket.lat, pickupMarket.lng, dropoffLat, dropoffLng),
             fee: deliveryFee,
             status: 'REQUESTED' as any,
             trackingCode: 'ZD' + Math.random().toString(36).slice(2, 8).toUpperCase(),
