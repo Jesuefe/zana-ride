@@ -12,9 +12,10 @@ import {
 import { DeliveriesService } from './deliveries.service';
 import { LocationCodeService } from './location-code.service';
 import { StorageService } from './storage.service';
+import { FinanceModule } from '../finance/finance.module';
 
 @Module({
-  imports: [GatewayModule, TripsModule],
+  imports: [GatewayModule, TripsModule, FinanceModule],
   controllers: [
     DeliveriesController,
     MerchantDeliveriesController,
