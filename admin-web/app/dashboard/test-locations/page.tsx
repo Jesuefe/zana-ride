@@ -61,10 +61,10 @@ export default function TestLocationsPage(){
   useEffect(()=>{if(!map.current)return;const l=map.current.addListener('click',addPoint);return()=>l.remove();},[selected?.id]);
 
   function stop(){if(timer.current)clearInterval(timer.current);timer.current=null;setMoving(false);setPaused(false);}
-  function reset(){stop();pathRef.current=[];seg.current=0;progress.current=0;if(routeLine.current)routeLine.current.setMap(null);routeLine.current=null;if(selected&&loc?.lastLat!=null)moveTo({lat:Number(loc.lastLat),lng:Number(loc.lastLng)}).then(()=>setStatus('Reset to last reported location')).catch(()=>{});}
+  function reset(){stop();pathRef.current=[];seg.current=0;progress.current=0;if(routeLine.current)routeLine.current.setMap(null);routeLine.current=null;if(selected&&selected.lastLat!=null)moveTo({lat:Number(selected.lastLat),lng:Number(selected.lastLng)}).then(()=>setStatus('Reset to last reported location')).catch(()=>{});}
   function start(){
     if(!selected)return;
-    const startPoint=loc?.testOverrideLat!=null?{lat:Number(loc.testOverrideLat),lng:Number(loc.testOverrideLng)}:loc?.lastLat!=null?{lat:Number(loc.lastLat),lng:Number(loc.lastLng)}:KIGALI;
+    const startPoint=loc?.testOverrideLat!=null?{lat:Number(loc.testOverrideLat),lng:Number(loc.testOverrideLng)}:selected?.lastLat!=null?{lat:Number(selected.lastLat),lng:Number(selected.lastLng)}:KIGALI;
     if(pathRef.current.length<2)pathRef.current=[startPoint,...(target?[target]:[])];
     if(pathRef.current.length<2){setStatus('Click route points or select a job with a target');return;}
     if(timer.current)clearInterval(timer.current);
