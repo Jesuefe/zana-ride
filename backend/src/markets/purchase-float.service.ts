@@ -71,7 +71,9 @@ export class PurchaseFloatService implements OnModuleInit {
     return (order.items ?? [])
       .filter((item: any) => !['UNAVAILABLE_PENDING', 'REFUNDED', 'REMOVED'].includes(item.status))
       .reduce((sum: number, item: any) => {
-        const cost = Number(item.referenceCostAtOrder);
+        // Support legacy orders that were created before
+        // referenceCostAtOrder was persisted on the order item.
+        const cost = Number(item.referenceCostAtOrder ?? (item as any).product?.referenceCost ?? 0);
         if (!Number.isInteger(cost) || cost <= 0) {
           throw new BadRequestException(`MISSING_MARKET_REFERENCE_COST:${item.id}`);
         }
