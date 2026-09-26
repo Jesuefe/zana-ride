@@ -1,293 +1,221 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Store, Plus, Package, Check, Trash2, Wallet } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Store, Package, ShoppingBag, Wallet, Truck, Clock3, CheckCircle2,
+  AlertTriangle, Phone, MapPin, ChevronRight, Plus, Trash2, X, RefreshCw
+} from 'lucide-react';
 import { api } from '../../lib/api/client';
-import { requestAgentPriceChange } from '../../lib/api/merchant';
+import { requestAgentPriceChange, fetchAgentEarnings } from '../../lib/api/merchant';
+import VoiceCall from '../../components/VoiceCall';
 
-/**
- * Agent view. Agents work inside a physical market: they list what is on
- * the stalls today, then buy and pack whatever customers order.
- */
+const money = (n: any) => Number(n || 0).toLocaleString() + ' RWF';
+const label = (s: string) => (s || '').replace(/_/g, ' ');
+const activeStatuses = ['PENDING','CONFIRMED','PREPARING','READY_FOR_PICKUP'];
+const deliveryStatuses = ['COURIER_ASSIGNED','PICKED_UP','DELIVERED'];
+
 export default function AgentPage() {
+  const [view, setView] = useState('overview');
   const [market, setMarket] = useState<any>(null);
-  const [tab, setTab] = useState<'orders' | 'items'>('orders');
   const [orders, setOrders] = useState<any[]>([]);
+  const [deliveries, setDeliveries] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [wallet, setWallet] = useState<any>(null);
+  const [earnings, setEarnings] = useState<any>(null);
+  const [selected, setSelected] = useState<any>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [call, setCall] = useState<any>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  // New item form
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [editing, setEditing] = useState<any>(null);
   const [editPrice, setEditPrice] = useState('');
   const [editReason, setEditReason] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [purchaseCosts, setPurchaseCosts] = useState<Record<string, string>>({});
-  const [savingPurchaseCosts, setSavingPurchaseCosts] = useState<string | null>(null);
 
-  const load = () => {
-    api.get<any>('/agent/me').then(r => setMarket(r.market)).catch(e => setError(e?.message ?? ''));
-    api.get<any[]>('/agent/orders').then(setOrders).catch(() => {});
-    api.get<any[]>('/agent/products').then(setProducts).catch(() => {});
+  const setRouteView = (next: string) => {
+    setView(next);
+    if (typeof window !== 'undefined') window.history.replaceState(null, '', '/agent?view=' + next);
+  };
+
+  const load = async () => {
+    try { const r = await api.get<any>('/agent/me'); setMarket(r.market); } catch (e: any) { setError(e?.message ?? ''); }
+    await Promise.all([
+      api.get<any[]>('/agent/orders').then(setOrders).catch(() => {}),
+      api.get<any[]>('/agent/products').then(setProducts).catch(() => {}),
+      api.get<any[]>('/agent/deliveries').then(setDeliveries).catch(() => {}),
+      api.get<any>('/agent/wallet').then(setWallet).catch(() => {}),
+      fetchAgentEarnings().then(setEarnings).catch(() => {}),
+    ]);
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const q = new URLSearchParams(window.location.search).get('view');
+      if (q) setView(q);
+    }
     load();
-    setLoading(false);
     const t = setInterval(() => {
       api.get<any[]>('/agent/orders').then(setOrders).catch(() => {});
+      api.get<any[]>('/agent/deliveries').then(setDeliveries).catch(() => {});
     }, 10000);
     return () => clearInterval(t);
   }, []);
 
+  const active = useMemo(() => orders.filter(o => activeStatuses.includes(o.status)), [orders]);
+  const shopping = active.filter(o => o.status === 'PREPARING');
+  const ready = active.filter(o => o.status === 'READY_FOR_PICKUP');
+  const pickedUp = deliveries.filter(d => d.status === 'PICKED_UP');
+  const deliveredToday = deliveries.filter(d => d.status === 'DELIVERED');
+  const pendingIssues = orders.reduce((n, o) => n + (o.items || []).filter((i: any) => i.status === 'UNAVAILABLE').length, 0);
+
+  const openOrder = async (id: string) => {
+    setLoadingDetail(true); setError('');
+    try { setSelected(await api.get<any>('/agent/orders/' + id)); }
+    catch (e: any) { setError(e?.message ?? 'Could not load order'); }
+    finally { setLoadingDetail(false); }
+  };
+
+  const status = async (id: string, next: string) => {
+    setBusy(id);
+    try {
+      const actualPrices: Record<string, number> = {};
+      const o = orders.find(x => x.id === id);
+      if (next === 'READY_FOR_PICKUP' && o) {
+        for (const item of o.items || []) {
+          const raw = window.prompt('Actual purchase cost for ' + (item.product?.name || 'item') + ' (RWF). Cancel to leave reference cost.');
+          if (raw === null || raw === '') continue;
+          const n = Number(raw);
+          if (!Number.isInteger(n) || n < 0) throw new Error('Purchase cost must be a whole number.');
+          actualPrices[item.id] = n;
+        }
+      }
+      await api.patch('/agent/orders/' + id + '/status', { status: next, ...(Object.keys(actualPrices).length ? { actualPrices } : {}) });
+      await load();
+      if (selected?.id === id) await openOrder(id);
+    } catch (e: any) { setError(e?.message ?? 'Could not update order'); }
+    finally { setBusy(null); }
+  };
+
+  const unavailable = async (orderId: string, itemId: string) => {
+    if (!window.confirm('Mark this item unavailable? The item amount will be refunded immediately to the customer Zana Wallet.')) return;
+    setBusy(itemId);
+    try {
+      await api.post('/agent/orders/' + orderId + '/items/' + itemId + '/unavailable', {});
+      await load();
+      await openOrder(orderId);
+    } catch (e: any) { setError(e?.message ?? 'Could not issue refund'); }
+    finally { setBusy(null); }
+  };
+
   const addItem = async () => {
     if (!name.trim() || !price) return;
-    setSaving(true);
+    setBusy('add');
     try {
       await api.post('/agent/products', { name: name.trim(), price: Number(price), referenceCost: Number(price), stock: 99 });
-      setName(''); setPrice(''); setAdding(false);
-      api.get<any[]>('/agent/products').then(setProducts).catch(() => {});
-    } catch (e: any) {
-      setError(e?.message ?? 'Could not add the item');
-    } finally { setSaving(false); }
+      setName(''); setPrice(''); setAdding(false); await load();
+    } catch (e: any) { setError(e?.message ?? 'Could not add item'); }
+    finally { setBusy(null); }
+  };
+
+  const removeItem = async (id: string) => {
+    await api.delete('/agent/products/' + id).catch(() => {});
+    setProducts(p => p.filter(x => x.id !== id));
   };
 
   const requestPrice = async () => {
     if (!editing || !editPrice) return;
     try {
       await requestAgentPriceChange(editing.id, { referenceCost: Number(editPrice), reason: editReason || 'Market price update' });
-      setEditing(null); setEditPrice(''); setEditReason('');
-      api.get<any[]>('/agent/products').then(setProducts).catch(() => {});
+      setEditing(null); setEditPrice(''); setEditReason(''); await load();
     } catch (e: any) { setError(e?.message ?? 'Could not submit price change'); }
   };
 
-  const removeItem = async (id: string) => {
-    await api.delete(`/agent/products/${id}`).catch(() => {});
-    setProducts(p => p.filter(x => x.id !== id));
-  };
+  const statusNext = (s: string) => s === 'PENDING' || s === 'CONFIRMED' ? 'PREPARING' : s === 'PREPARING' ? 'READY_FOR_PICKUP' : null;
+  const statusButton = (s: string) => s === 'PENDING' || s === 'CONFIRMED' ? 'Start shopping' : s === 'PREPARING' ? 'Mark ready for pickup' : null;
 
-  const setStatus = async (id: string, status: string) => {
-    const actualPrices: Record<string, number> = {};
-    if (status === 'READY_FOR_PICKUP') {
-      for (const [itemId, raw] of Object.entries(purchaseCosts)) {
-        if (raw === '') continue;
-        const value = Number(raw);
-        if (!Number.isInteger(value) || value < 0) {
-          setError('Purchase cost must be a whole number in RWF.');
-          return;
-        }
-        actualPrices[itemId] = value;
-      }
-    }
+  const statCards = [
+    ['Orders today', orders.length, ShoppingBag],
+    ['Pending shopping', active.filter(o => ['PENDING','CONFIRMED'].includes(o.status)).length, Clock3],
+    ['Shopping now', shopping.length, Package],
+    ['Ready for pickup', ready.length, CheckCircle2],
+    ['Picked up', pickedUp.length, Truck],
+    ['Delivered', deliveredToday.length, CheckCircle2],
+  ];
 
-    setSavingPurchaseCosts(id);
-    try {
-      await api.patch(`/agent/orders/${id}/status`, {
-        status,
-        ...(Object.keys(actualPrices).length ? { actualPrices } : {}),
-      });
-      setPurchaseCosts(current => {
-        const next = { ...current };
-        Object.keys(actualPrices).forEach(itemId => delete next[itemId]);
-        return next;
-      });
-      await api.get<any[]>('/agent/orders').then(setOrders);
-    } catch (e: any) {
-      setError(e?.message ?? 'Could not update the order');
-    } finally {
-      setSavingPurchaseCosts(null);
-    }
-  };
-
-  // Agents only ever move an order through these three states — the rider
-  // handles everything after Ready for pickup.
-  const nextStep = (status: string) =>
-    status === 'PENDING' ? { label: 'Start shopping', to: 'PREPARING' }
-    : status === 'CONFIRMED' ? { label: 'Start shopping', to: 'PREPARING' }
-    : status === 'PREPARING' ? { label: 'Ready for pickup', to: 'READY_FOR_PICKUP' }
-    : null;
-
-  const active = orders.filter(o =>
-    ['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP'].includes(o.status));
-
-  if (loading) return <div className="p-6">Loading…</div>;
-
-  if (error && !market) {
-    return (
-      <div className="p-6">
-        <p className="text-sm text-red-600">{error}</p>
-        <p className="text-xs text-gray-500 mt-2">
-          This account is not set up as a market agent.
-        </p>
-      </div>
-    );
-  }
+  if (error && !market) return <div className="p-8"><p className="text-sm text-red-600">{error}</p><p className="text-xs text-gray-500 mt-2">This account is not set up as a market agent.</p></div>;
 
   return (
-    <div className="p-4 pb-24">
-      {/* Market header */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-11 h-11 rounded-2xl bg-zana-primary-light flex items-center justify-center">
-          <Store size={20} className="text-zana-primary" />
+    <div className="max-w-7xl mx-auto pb-12">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-zana-primary/10 flex items-center justify-center"><Store size={22} className="text-zana-primary" /></div>
+          <div><p className="text-xs text-gray-500">Market agent</p><h1 className="text-2xl font-black text-gray-900">{market?.name || 'Market'}</h1><p className="text-xs text-gray-500">{market?.address || 'Operational dashboard'}</p></div>
         </div>
-        <div>
-          <p className="text-xs text-gray-500">Agent at</p>
-          <p className="font-black text-gray-900">{market?.name ?? '—'}</p>
+        <div className="flex items-center gap-2">
+          <button onClick={load} className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold flex items-center gap-2"><RefreshCw size={14}/> Refresh</button>
+          <div className="bg-white rounded-xl border border-gray-200 px-3 py-2"><span className="text-[10px] text-gray-400 block">Agent wallet</span><span className="font-black text-sm">{money(wallet?.balance)}</span></div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-4">
-        {([['orders', `Orders${active.length ? ` (${active.length})` : ''}`], ['items', 'Today\'s items']] as const).map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id as any)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 ${
-              tab === id ? 'border-zana-primary bg-zana-primary text-white' : 'border-gray-100 bg-white text-gray-600'
-            }`}>
-            {label}
-          </button>
-        ))}
-      </div>
-      <button onClick={() => window.location.href = '/agent/ride'} className="w-full mb-3 flex items-center gap-3 bg-zana-primary text-white rounded-2xl px-4 py-3 shadow-sm"><div className="flex-1 text-left"><p className="font-black text-sm">Book a ZANA ride</p><p className="text-[11px] opacity-90">Request a moto, Economy or Premium car from the market.</p></div><span className="text-xs font-black">Book →</span></button>
-      <button onClick={() => window.location.href = '/agent/earnings'} className="w-full mb-4 flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm"><Wallet size={17} className="text-zana-primary"/><div className="flex-1 text-left"><p className="font-bold text-sm">Earnings & settlement</p><p className="text-[11px] text-gray-500">See your 40% share of market markup</p></div><span className="text-xs font-bold text-zana-primary">View</span></button>
+      {error && <div className="mb-4 bg-red-50 border border-red-100 text-red-700 rounded-xl px-4 py-3 text-xs font-semibold flex justify-between"><span>{error}</span><button onClick={() => setError('')}><X size={15}/></button></div>}
 
-      {/* Orders */}
-      {tab === 'orders' && (
-        <div className="space-y-3">
-          {active.length === 0 && (
-            <div className="text-center py-12">
-              <Package size={32} className="text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">No orders waiting</p>
-            </div>
-          )}
-
-          {active.map(o => {
-            const step = nextStep(o.status);
-            return (
-              <div key={o.id} className="bg-white rounded-2xl p-4 shadow-sm">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="font-mono text-xs font-bold text-zana-primary">{o.trackingCode ?? o.id.slice(0, 8)}</p>
-                    <p className="text-xs text-gray-500">{o.customer?.firstName ?? 'Customer'}</p>
-                  </div>
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
-                    {o.status.replace(/_/g, ' ')}
-                  </span>
-                </div>
-
-                <div className="space-y-1 py-2 border-y border-gray-50 my-2">
-                  {o.items?.map((i: any) => (
-                    <div key={i.id} className="flex justify-between text-sm">
-                      <span className="text-gray-700">{i.product?.name} ×{i.quantity}</span>
-                      <span className="text-gray-500">{(i.price * i.quantity).toLocaleString()} RWF</span>
-                    </div>
-                  ))}
-                </div>
-
-                {o.status === 'PREPARING' && (
-                  <div className="bg-gray-50 rounded-xl p-3 mb-3">
-                    <p className="text-xs font-bold text-gray-800">Record actual market purchase cost</p>
-                    <p className="text-[11px] text-gray-500 mt-0.5 mb-2">
-                      Optional: enter what you actually paid at the stall. It cannot exceed the underlying market reference price.
-                    </p>
-                    <div className="space-y-2">
-                      {o.items?.map((i: any) => (
-                        <div key={i.id} className="flex items-center gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-gray-700 truncate">{i.product?.name} ×{i.quantity}</p>
-                            <p className="text-[10px] text-gray-400">
-                              Reference: {(i.referenceCostAtOrder ?? i.product?.referenceCost ?? 0).toLocaleString()} RWF each
-                            </p>
-                          </div>
-                          <input
-                            value={purchaseCosts[i.id] ?? ''}
-                            onChange={e => setPurchaseCosts(current => ({ ...current, [i.id]: e.target.value.replace(/\D/g, '') }))}
-                            placeholder={String(i.referenceCostAtOrder ?? i.product?.referenceCost ?? '')}
-                            inputMode="numeric"
-                            className="w-28 border border-gray-200 rounded-lg px-2.5 py-2 text-xs bg-white"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => setStatus(o.id, 'READY_FOR_PICKUP')}
-                      disabled={savingPurchaseCosts === o.id}
-                      className="w-full mt-3 bg-zana-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl disabled:opacity-50"
-                    >
-                      {savingPurchaseCosts === o.id ? 'Saving…' : 'Save costs & mark ready for pickup'}
-                    </button>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center">
-                  <span className="font-black text-gray-900">{o.total?.toLocaleString()} RWF</span>
-                  {step && o.status !== 'PREPARING' && (
-                    <button onClick={() => setStatus(o.id, step.to)}
-                      disabled={savingPurchaseCosts === o.id}
-                      className="bg-zana-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl disabled:opacity-50">
-                      {savingPurchaseCosts === o.id ? 'Saving…' : step.label}
-                    </button>
-                  )}
-                  {o.status === 'READY_FOR_PICKUP' && (
-                    <span className="flex items-center gap-1 text-xs font-bold text-zana-primary">
-                      <Check size={13} /> Rider on the way
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+      {view === 'overview' && <>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+          {statCards.map(([title, value, Icon]: any) => <button key={title} onClick={() => setRouteView(title === 'Orders today' ? 'orders' : title === 'Picked up' || title === 'Delivered' ? 'deliveries' : 'orders')} className="bg-white rounded-2xl p-4 text-left border border-gray-100 shadow-sm hover:border-zana-primary/30"><div className="flex justify-between items-center"><span className="text-xs text-gray-500">{title}</span><Icon size={17} className="text-zana-primary"/></div><p className="text-2xl font-black mt-2">{value}</p></button>)}
         </div>
-      )}
-
-      {/* Items */}
-      {tab === 'items' && (
-        <div>
-          <button onClick={() => setAdding(a => !a)}
-            className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-zana-primary/40 text-zana-primary font-bold py-3 rounded-2xl mb-3">
-            <Plus size={16} /> List an item
-          </button>
-
-          {adding && (
-            <div className="bg-white rounded-2xl p-4 mb-3 space-y-2">
-              <input value={name} onChange={e => setName(e.target.value)}
-                placeholder="Item name, e.g. Tomatoes (1kg)"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
-              <input value={price} onChange={e => setPrice(e.target.value.replace(/\D/g, ''))}
-                placeholder="Market price in RWF" inputMode="numeric"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
-              <p className="text-[11px] text-gray-500">Zana will list it at 20% above the market price. You cannot choose the customer price directly.</p>
-              <button onClick={addItem} disabled={saving || !name.trim() || !price}
-                className="w-full bg-zana-primary text-white font-bold py-3 rounded-xl disabled:opacity-40">
-                {saving ? 'Saving…' : 'Add to today\'s list'}
-              </button>
-            </div>
-          )}
-
-          {editing && <div className="bg-white rounded-2xl p-4 mb-3 shadow-sm"><p className="font-bold text-sm">Request market price change</p><p className="text-[11px] text-gray-500 mt-1">Enter the current underlying market price. Zana will calculate the customer price at +20%.</p><input value={editPrice} onChange={e=>setEditPrice(e.target.value.replace(/\D/g,''))} placeholder="Market price in RWF" inputMode="numeric" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mt-2"/><input value={editReason} onChange={e=>setEditReason(e.target.value)} placeholder="Reason (optional)" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mt-2"/><div className="flex gap-2 mt-2"><button onClick={requestPrice} disabled={!editPrice} className="flex-1 bg-zana-primary text-white font-bold py-2.5 rounded-xl disabled:opacity-40">Submit request</button><button onClick={()=>setEditing(null)} className="px-4 border border-gray-200 rounded-xl text-sm">Cancel</button></div></div>}
-
-          <div className="space-y-2">
-            {products.length === 0 && !adding && (
-              <p className="text-center text-sm text-gray-500 py-10">
-                Nothing listed yet. Add what is on the stalls today.
-              </p>
-            )}
-            {products.map(p => (
-              <div key={p.id} className="bg-white rounded-2xl p-3 flex items-center gap-3">
-                <div className="flex-1">
-                  <p className="font-bold text-sm text-gray-900">{p.name}</p>
-                  <p className="text-sm text-zana-primary font-black">{p.price?.toLocaleString()} RWF customer price</p><p className="text-[11px] text-gray-400">Includes 20% Zana markup</p>
-                </div>
-                <div className="flex gap-2"><button onClick={() => { setEditing(p); setEditPrice(String(Math.round((p.referenceCost ?? p.price) || 0))); }} className="text-xs font-bold text-zana-primary px-2">Price</button><button onClick={() => removeItem(p.id)} className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center">
-                  <Trash2 size={15} className="text-red-500" />
-                </button></div>
-              </div>
-            ))}
-          </div>
+        <div className="grid lg:grid-cols-[1fr_320px] gap-5">
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <div className="flex justify-between items-center mb-4"><div><h2 className="font-black">Today’s orders</h2><p className="text-xs text-gray-500">Open any order for the complete receipt and timeline.</p></div><button onClick={() => setRouteView('orders')} className="text-xs font-bold text-zana-primary">View all</button></div>
+            <div className="space-y-2">{orders.slice(0, 8).map(o => <OrderRow key={o.id} order={o} onOpen={() => openOrder(o.id)} />)}{!orders.length && <Empty text="No market orders yet."/>}</div>
+          </section>
+          <section className="space-y-3">
+            <div className="bg-zana-primary text-white rounded-2xl p-5"><p className="text-xs opacity-80">Agent earnings</p><p className="text-3xl font-black mt-1">{money(earnings?.totalEarning)}</p><p className="text-xs opacity-80 mt-1">{earnings?.settlements?.length || 0} settled orders</p></div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4"><div className="flex gap-3"><AlertTriangle className="text-amber-500" size={18}/><div><p className="font-bold text-sm">Item issues</p><p className="text-xs text-gray-500">{pendingIssues ? pendingIssues + ' unavailable item refund' + (pendingIssues > 1 ? 's' : '') + ' recorded' : 'No item issues today.'}</p></div></div></div>
+          </section>
         </div>
-      )}
+      </>}
+
+      {view === 'orders' && <section>
+        <div className="flex items-end justify-between mb-4"><div><h2 className="text-xl font-black">Orders</h2><p className="text-xs text-gray-500">Shop, resolve unavailable items and prepare packages for pickup.</p></div><span className="text-xs font-bold bg-zana-primary/10 text-zana-primary px-3 py-2 rounded-xl">{active.length} active</span></div>
+        <div className="space-y-3">{orders.map(o => <OrderCard key={o.id} order={o} onOpen={() => openOrder(o.id)} onUnavailable={unavailable} onStatus={status} busy={busy}/>) }{!orders.length && <Empty text="No orders for this market."/>}</div>
+      </section>}
+
+      {view === 'deliveries' && <section>
+        <div className="mb-4"><h2 className="text-xl font-black">Deliveries</h2><p className="text-xs text-gray-500">Packages a Zana rider has been assigned to or has picked up from your market.</p></div>
+        <div className="space-y-3">{deliveries.map(d => <DeliveryCard key={d.id} delivery={d} onCall={() => d.status !== 'DELIVERED' && setCall({ contextId: d.id, name: d.driver?.user?.firstName || 'Rider' })} />)}{!deliveries.length && <Empty text="No packages have been handed to a rider yet."/>}</div>
+      </section>}
+
+      {view === 'items' && <section>
+        <div className="flex justify-between items-end mb-4"><div><h2 className="text-xl font-black">Today’s items</h2><p className="text-xs text-gray-500">What you can physically source at the market today.</p></div><button onClick={() => setAdding(x => !x)} className="bg-zana-primary text-white px-4 py-2.5 rounded-xl text-xs font-bold flex gap-2 items-center"><Plus size={15}/> List item</button></div>
+        {adding && <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4 space-y-2"><input value={name} onChange={e=>setName(e.target.value)} placeholder="Item name, e.g. Tomatoes (1kg)" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm"/><input value={price} onChange={e=>setPrice(e.target.value.replace(/\D/g,''))} placeholder="Market price in RWF" inputMode="numeric" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm"/><p className="text-[11px] text-gray-500">Zana calculates the customer price from the approved market markup.</p><button onClick={addItem} disabled={busy==='add'} className="w-full bg-zana-primary text-white font-bold py-3 rounded-xl text-sm">{busy==='add'?'Saving…':'Add to today’s list'}</button></div>}
+        {editing && <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4 space-y-2"><p className="font-bold text-sm">Request market price change</p><input value={editPrice} onChange={e=>setEditPrice(e.target.value.replace(/\D/g,''))} placeholder="Market price in RWF" inputMode="numeric" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm"/><input value={editReason} onChange={e=>setEditReason(e.target.value)} placeholder="Reason (optional)" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm"/><div className="flex gap-2"><button onClick={requestPrice} className="flex-1 bg-zana-primary text-white font-bold py-2.5 rounded-xl text-sm">Submit request</button><button onClick={()=>setEditing(null)} className="px-4 border rounded-xl text-sm">Cancel</button></div></div>}
+        <div className="grid md:grid-cols-2 gap-3">{products.map(p => <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-3"><div className="flex-1"><p className="font-bold">{p.name}</p><p className="text-sm font-black text-zana-primary">{money(p.price)}</p><p className="text-[11px] text-gray-400">Reference market price: {money(p.referenceCost)}</p><p className="text-[10px] mt-1 text-gray-500">{p.available ? 'Available' : 'Not currently available'} · {p.status}</p></div><div className="flex gap-1"><button onClick={()=>{setEditing(p);setEditPrice(String(p.referenceCost||p.price))}} className="text-xs font-bold text-zana-primary px-2">Price</button><button onClick={()=>removeItem(p.id)} className="w-9 h-9 rounded-full bg-red-50 text-red-500 flex items-center justify-center"><Trash2 size={15}/></button></div></div>)}</div>
+      </section>}
+
+      {view === 'wallet' && <section><div className="mb-4"><h2 className="text-xl font-black">Wallet</h2><p className="text-xs text-gray-500">Your agent earnings and wallet activity.</p></div><div className="grid md:grid-cols-3 gap-3 mb-5"><div className="bg-zana-primary text-white rounded-2xl p-5"><p className="text-xs opacity-80">Available balance</p><p className="text-3xl font-black">{money(wallet?.balance)}</p></div><div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total earnings</p><p className="text-2xl font-black">{money(earnings?.totalEarning)}</p></div><div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total markup</p><p className="text-2xl font-black">{money(earnings?.totalMarkup)}</p></div></div><div className="bg-white rounded-2xl border p-4"><h3 className="font-black mb-3">Recent wallet activity</h3><div className="space-y-2">{(wallet?.transactions||[]).map((t:any)=><div key={t.id} className="flex justify-between py-2 border-b border-gray-50 text-sm"><span>{t.description || t.reference || 'Wallet transaction'}</span><span className={t.amount>=0?'text-zana-primary font-bold':'text-red-500 font-bold'}>{t.amount>=0?'+':''}{money(t.amount)}</span></div>)}</div></div></section>}
+
+      {selected && <OrderDetail order={selected} onClose={()=>setSelected(null)} onUnavailable={unavailable} onCall={(d:any)=>setCall({contextId:d.id,name:d.driver?.user?.firstName||'Rider'})} busy={busy}/>}
+      {loadingDetail && <div className="fixed inset-0 z-40 bg-black/20 flex items-center justify-center"><div className="bg-white rounded-2xl px-5 py-4 text-sm font-bold">Loading order…</div></div>}
+      {call && <VoiceCall context="delivery" contextId={call.contextId} participantLabel={call.name} onClose={()=>setCall(null)}/>}
     </div>
   );
 }
+
+function OrderRow({order,onOpen}:any){return <button onClick={onOpen} className="w-full text-left bg-gray-50 rounded-xl p-3 flex items-center gap-3 hover:bg-gray-100"><div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-zana-primary"><ShoppingBag size={16}/></div><div className="flex-1 min-w-0"><div className="flex justify-between gap-3"><p className="font-mono text-xs font-bold text-zana-primary">{order.trackingCode||order.id.slice(0,8)}</p><span className="text-[10px] font-bold uppercase text-gray-500">{label(order.status)}</span></div><p className="text-xs text-gray-600 truncate">{order.customer?.firstName||'Customer'} · {(order.items||[]).length} items · {money(order.total)}</p></div><ChevronRight size={15} className="text-gray-400"/></button>}
+
+function OrderCard({order,onOpen,onUnavailable,onStatus,busy}:any){
+ const next=order.status==='PENDING'||order.status==='CONFIRMED'?'PREPARING':order.status==='PREPARING'?'READY_FOR_PICKUP':null;
+ return <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4"><div className="flex justify-between gap-3 mb-3"><button onClick={onOpen} className="text-left"><p className="font-mono text-xs font-bold text-zana-primary">{order.trackingCode||order.id.slice(0,8)}</p><p className="font-bold text-sm">{order.customer?.firstName||'Customer'}</p><p className="text-[11px] text-gray-400">{new Date(order.createdAt).toLocaleString()}</p></button><span className="h-fit px-2.5 py-1 rounded-full bg-gray-100 text-[10px] font-bold uppercase">{label(order.status)}</span></div><div className="space-y-2 border-y border-gray-50 py-3">{(order.items||[]).map((i:any)=><div key={i.id} className="flex items-center gap-2"><div className="flex-1"><p className={i.status==='UNAVAILABLE'?'line-through text-gray-400':'text-sm font-medium'}>{i.product?.name} ×{i.quantity}</p><p className="text-[10px] text-gray-400">{money(i.price*i.quantity)}{i.status==='UNAVAILABLE'?' · refunded to wallet':''}</p></div>{i.status!=='UNAVAILABLE'&&['PENDING','CONFIRMED','PREPARING'].includes(order.status)&&<button disabled={busy===i.id} onClick={()=>onUnavailable(order.id,i.id)} className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1.5 rounded-lg">{busy===i.id?'Refunding…':'Unavailable'}</button>}</div>)}</div><div className="flex items-center justify-between mt-3"><p className="font-black">{money(order.total)}</p>{next?<button disabled={busy===order.id} onClick={()=>onStatus(order.id,next)} className="bg-zana-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl">{busy===order.id?'Saving…':next==='PREPARING'?'Start shopping':'Mark ready for pickup'}</button>:order.status==='READY_FOR_PICKUP'?<span className="text-xs font-bold text-zana-primary">Waiting for rider</span>:null}</div></div>
+}
+
+function DeliveryCard({delivery,onCall}:any){const d=delivery.driver?.user;return <div className="bg-white rounded-2xl border border-gray-100 p-4"><div className="flex justify-between gap-3"><div><p className="font-mono text-xs font-bold text-zana-primary">{delivery.order?.trackingCode||delivery.trackingCode}</p><p className="font-bold text-sm">{delivery.order?.customer?.firstName||'Customer'}</p><p className="text-xs text-gray-500">{delivery.dropoffAddress}</p></div><span className="h-fit text-[10px] font-bold uppercase bg-gray-100 px-2.5 py-1 rounded-full">{label(delivery.status)}</span></div><div className="mt-3 flex items-center justify-between bg-gray-50 rounded-xl p-3"><div><p className="text-xs font-bold">{d?.firstName||'Zana rider'}</p><p className="text-[10px] text-gray-500">{delivery.driver?.vehicle||'Vehicle'} {delivery.driver?.plate||''}</p></div>{delivery.status!=='DELIVERED'&&d?.phone&&<div className="flex gap-2"><a href={'tel:'+d.phone} className="w-9 h-9 rounded-full bg-white border flex items-center justify-center text-zana-primary"><Phone size={15}/></a><button onClick={onCall} className="w-9 h-9 rounded-full bg-zana-primary text-white flex items-center justify-center"><Phone size={15}/></button></div>}</div></div>}
+
+function OrderDetail({order,onClose,onUnavailable,onCall,busy}:any){
+ const d=order.delivery; const c=order.customer;
+ return <div className="fixed inset-0 z-50 bg-black/40 flex justify-end"><div className="w-full max-w-2xl bg-gray-50 h-full overflow-y-auto shadow-2xl"><div className="sticky top-0 z-10 bg-white border-b px-5 py-4 flex justify-between items-center"><div><p className="font-mono text-xs text-zana-primary font-bold">{order.trackingCode||order.id}</p><h2 className="font-black text-lg">Order receipt</h2></div><button onClick={onClose} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><X size={18}/></button></div><div className="p-5 space-y-4"><section className="bg-white rounded-2xl p-4 border"><h3 className="font-black mb-3">Customer</h3><p className="font-bold">{c?.firstName||'Customer'} {c?.lastName||''}</p><p className="text-sm text-gray-500">{c?.phone}</p><div className="mt-3 flex gap-2"><a href={'tel:'+c?.phone} className="flex-1 border rounded-xl py-2 text-xs font-bold text-center"><Phone size={13} className="inline mr-1"/> Call customer</a><div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 text-xs"><MapPin size={13} className="inline mr-1"/>{order.dropoffAddress||'Delivery location'}</div></div></section><section className="bg-white rounded-2xl p-4 border"><h3 className="font-black mb-3">Receipt</h3>{(order.items||[]).map((i:any)=><div key={i.id} className="flex items-center gap-2 py-2 border-b border-gray-50"><div className="flex-1"><p className={i.status==='UNAVAILABLE'?'line-through text-gray-400':'font-medium text-sm'}>{i.product?.name} ×{i.quantity}</p><p className="text-[10px] text-gray-400">{i.status==='UNAVAILABLE'?'Refunded to Zana Wallet':money(i.price*i.quantity)}</p></div>{i.status!=='UNAVAILABLE'&&['PENDING','CONFIRMED','PREPARING'].includes(order.status)&&<button disabled={busy===i.id} onClick={()=>onUnavailable(order.id,i.id)} className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1.5 rounded-lg">Unavailable</button>}</div>)}<div className="flex justify-between text-sm mt-3"><span>Delivery</span><span>{money(order.deliveryFee)}</span></div><div className="flex justify-between font-black text-lg mt-1"><span>Total</span><span>{money(order.total)}</span></div></section><section className="bg-white rounded-2xl p-4 border"><h3 className="font-black mb-3">Delivery handoff</h3>{d?<><div className="flex justify-between"><div><p className="font-bold">{d.driver?.user?.firstName||'Rider'}</p><p className="text-xs text-gray-500">{d.driver?.vehicle||''} {d.driver?.plate||''}</p></div><span className="text-[10px] font-bold uppercase bg-gray-100 px-2 py-1 rounded-full">{label(d.status)}</span></div>{d.driver?.user?.phone&&d.status!=='DELIVERED'&&<div className="flex gap-2 mt-3"><a href={'tel:'+d.driver.user.phone} className="flex-1 border rounded-xl py-2 text-xs font-bold text-center">Phone call</a><button onClick={()=>onCall(d)} className="flex-1 bg-zana-primary text-white rounded-xl py-2 text-xs font-bold">Zana call</button></div>}</>:<p className="text-sm text-gray-500">Rider has not been assigned yet.</p>}</section><section className="bg-white rounded-2xl p-4 border"><h3 className="font-black mb-3">Order timeline</h3><div className="space-y-3"><TimelineDot title="Customer placed order" date={order.createdAt}/>{(order.timeline||[]).map((t:any)=><TimelineDot key={t.id} title={t.action.replace(/_/g,' ')} date={t.createdAt} detail={t.metadataJson}/>) }{d?.assignedAt&&<TimelineDot title="Rider assigned" date={d.assignedAt}/>} {d?.pickedUpAt&&<TimelineDot title="Rider picked up package" date={d.pickedUpAt}/>} {d?.deliveredAt&&<TimelineDot title="Delivered" date={d.deliveredAt}/>}</div></section></div></div></div>
+}
+function TimelineDot({title,date,detail}:any){return <div className="flex gap-3"><div className="w-2.5 h-2.5 rounded-full bg-zana-primary mt-1.5 shrink-0"/><div><p className="text-xs font-bold capitalize">{title}</p><p className="text-[10px] text-gray-400">{new Date(date).toLocaleString()}</p>{detail&&<p className="text-[10px] text-gray-500 mt-0.5">{detail}</p>}</div></div>}
+function Empty({text}:{text:string}){return <div className="bg-white rounded-2xl border border-dashed p-10 text-center"><Package size={28} className="mx-auto text-gray-200 mb-2"/><p className="text-sm text-gray-500">{text}</p></div>}
