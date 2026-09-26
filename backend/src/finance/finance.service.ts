@@ -52,7 +52,7 @@ export class FinanceService {
         let underlyingAmount = 0;
         let customerAmount = 0;
         let actualPurchaseCost = 0;
-        for (const item of order.items) {
+        for (const item of order.items.filter((x: any) => x.status !== 'UNAVAILABLE')) {
           const underlying = item.referenceCostAtOrder ?? item.product.referenceCost;
           if (underlying == null || underlying <= 0) throw new BadRequestException(`MISSING_MARKET_REFERENCE_COST:${item.id}`);
           const expectedCustomerPrice = Math.round(underlying * (1 + cfg.markupPercent / 100));
