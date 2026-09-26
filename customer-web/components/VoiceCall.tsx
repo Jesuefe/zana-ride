@@ -105,20 +105,25 @@ export default function VoiceCall({
     // LiveKit's ParticipantConnected event only fires for participants
     // who join AFTER you, never for someone already in the room when
     // you arrive, which is exactly the receiver's situation every time.
-    let markedConnected = false;
-    const markConnected = () => {
-      if (markedConnected) return;
-      markedConnected = true;
+    let localMediaReady = false;
+    let remoteAudioReady = false;
+    let mediaMarkedConnected = false;
+
+    const markMediaReady = () => {
+      if (mediaMarkedConnected || !localMediaReady || !remoteAudioReady) return;
+      mediaMarkedConnected = true;
       if (ringtoneRef.current) { ringtoneRef.current.pause(); ringtoneRef.current = null; }
       setState('connected');
       clearInterval(timerRef.current);
       timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
       api.post(`/calls/${callId}/connected`).catch(() => {});
+      console.log('[CALL] Two-way media ready — microphone published + remote audio subscribed');
     };
 
     room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
       console.log('[CALL] Remote participant connected:', participant.identity);
-      markConnected();
+      // Do not declare the call connected from signaling alone.
+      // We require both local microphone publication and remote audio subscription.
     });
 
     room.on(RoomEvent.ParticipantDisconnected, () => {
@@ -126,17 +131,30 @@ export default function VoiceCall({
       handleEnd();
     });
 
-    room.on(RoomEvent.TrackSubscribed, (track, _pub, _participant) => {
-      if (track.kind === Track.Kind.Audio) {
-        console.log('[CALL] Remote audio subscribed — attaching');
-        const el = track.attach() as HTMLAudioElement;
-        el.autoplay = true;
-        el.setAttribute('playsinline', '');
-        document.body.appendChild(el);
-        audioElementsRef.current.push(el);
-        // Timer already started on ParticipantConnected
-        console.log('[CALL] Audio attached and playing');
+    room.on(RoomEvent.TrackSubscribed, async (track, _pub, participant) => {
+      if (track.kind !== Track.Kind.Audio) return;
+      console.log('[CALL] Remote audio subscribed from:', participant.identity);
+      const el = track.attach() as HTMLAudioElement;
+      el.autoplay = true;
+      el.muted = false;
+      el.volume = 1;
+      el.setAttribute('playsinline', '');
+      document.body.appendChild(el);
+      audioElementsRef.current.push(el);
+      try {
+        await el.play();
+        remoteAudioReady = true;
+        markMediaReady();
+        console.log('[CALL] Remote audio playback confirmed');
+      } catch (err) {
+        console.error('[CALL] Remote audio playback blocked:', err);
+        setError('Tap the call audio control to enable sound');
       }
+    });
+
+    room.on(RoomEvent.TrackSubscriptionFailed, (sid) => {
+      console.error('[CALL] Remote audio subscription failed:', sid);
+      setError('Remote audio connection failed');
     });
 
     room.on(RoomEvent.TrackUnsubscribed, (track) => {
@@ -155,13 +173,17 @@ export default function VoiceCall({
     // other side got here first and is already in the room right now.
     if (room.remoteParticipants.size > 0) {
       console.log('[CALL] Other participant already in room on connect');
-      markConnected();
     }
 
     // Request mic permission and publish
     try {
-      await room.localParticipant.setMicrophoneEnabled(true);
-      console.log('[CALL] Microphone enabled and published');
+      const micPublication = await room.localParticipant.setMicrophoneEnabled(true);
+      if (!micPublication?.track || !room.localParticipant.isMicrophoneEnabled) {
+        throw new Error('Microphone was not published');
+      }
+      localMediaReady = true;
+      markMediaReady();
+      console.log('[CALL] Microphone enabled and published:', micPublication.track.sid ?? 'ok');
     } catch (err: any) {
       console.error('[CALL] Microphone error:', err);
       if (err?.message?.includes('Permission')) {
