@@ -76,14 +76,14 @@ export async function loginWithCode(phone: string, code: string) {
 // ── Forgotten password ──────────────────────────────────────────────────────
 
 export async function requestPasswordReset(identifier: string) {
-  return api.post<{ sent: boolean; phoneHint: string | null }>(
+  return api.post<{ sent: boolean; channel: 'email' | 'sms' | null; phoneHint: string | null; emailHint: string | null }>(
     '/auth/password/forgot', { identifier },
   );
 }
 
-export async function resetPassword(phone: string, code: string, password: string) {
+export async function resetPassword(identifier: string, code: string, password: string) {
   const result = await api.post<AuthResponse>('/auth/password/reset', {
-    phone, code, password,
+    identifier, code, password,
   });
   if (result?.token) setToken(result.token);
   return result;
