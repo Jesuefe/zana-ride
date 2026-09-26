@@ -233,6 +233,7 @@ export class PurchaseFloatService implements OnModuleInit {
           where: { id: agentWallet.id },
           data: { balance: { decrement: remaining } },
         });
+        await tx.order.update({ where: { id: orderId }, data: { total: { decrement: remaining }, updatedAt: new Date() } });
 
         await tx.walletTransaction.create({
           data: {
