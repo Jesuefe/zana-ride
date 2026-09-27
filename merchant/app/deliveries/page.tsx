@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Package, MapPin, Navigation, Phone } from 'lucide-react';
 import { fetchDeliveries, Delivery } from '../../lib/api/merchant';
 import VoiceCall from '../../components/VoiceCall';
-import { useState as useState2 } from 'react';
+import { useLang } from '../../lib/LangContext';
 
 const STATUS_LABEL: Record<string, string> = {
   REQUESTED: 'Finding a courier',
@@ -23,6 +23,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default function DeliveriesPage() {
+  const { t } = useLang();
   const [callingDelivery, setCallingDelivery] = useState<Delivery | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[] | null>(null);
 
@@ -35,15 +36,15 @@ export default function DeliveriesPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Deliveries</h1>
-      <p className="text-sm text-gray-500 mb-5">Every package you&apos;ve sent through Zana.</p>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">{t('Deliveries')}</h1>
+      <p className="text-sm text-gray-500 mb-5">{t("Every package you've sent through Zana.")}</p>
 
-      {deliveries === null && <p className="text-sm text-gray-500">Loading…</p>}
+      {deliveries === null && <p className="text-sm text-gray-500">{t('Loading…')}</p>}
 
       {deliveries?.length === 0 && (
         <div className="flex flex-col items-center justify-center text-center py-16 bg-white rounded-xl">
           <Package size={26} className="text-gray-300 mb-3" />
-          <p className="text-sm text-gray-500">No deliveries yet.</p>
+          <p className="text-sm text-gray-500">{t('No deliveries yet.')}</p>
         </div>
       )}
 
@@ -69,7 +70,7 @@ export default function DeliveriesPage() {
                     </p>
                   </div>
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${STATUS_STYLE[d.status] ?? ''}`}>
-                    {STATUS_LABEL[d.status] ?? d.status}
+                    {t(STATUS_LABEL[d.status] ?? d.status)}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1.5">
@@ -80,7 +81,7 @@ export default function DeliveriesPage() {
                 <button
                   onClick={() => setCallingDelivery(d)}
                   className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0"
-                  aria-label={`Call ${d.driver.user.firstName ?? 'rider'}`}
+                  aria-label={`Call ${d.driver.user.firstName ?? t('Rider')}`}
                 >
                   <Phone size={16} className="text-zana-primary" />
                 </button>
