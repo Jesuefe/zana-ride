@@ -1,4 +1,5 @@
 'use client';
+import { useLang } from '../../lib/LangContext';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -11,6 +12,7 @@ import { requestPasswordReset, resetPassword } from '../../lib/api/client';
  * every account is required to have.
  */
 export default function ForgotPassword() {
+  const { t } = useLang();
   const router = useRouter();
   const [step, setStep] = useState<'identify' | 'reset'>('identify');
   const [identifier, setIdentifier] = useState('');
@@ -65,7 +67,7 @@ export default function ForgotPassword() {
 
         {step === 'identify' ? (
           <>
-            <h1 className="text-xl font-black text-gray-900">Forgot your password?</h1>
+            <h1 className="text-xl font-black text-gray-900">{t("Forgot your password?")}</h1>
             <p className="text-sm text-gray-500 mt-1.5 mb-6">
               Enter your email or phone number and we&rsquo;ll send a secure reset code to that contact.
             </p>
@@ -88,7 +90,7 @@ export default function ForgotPassword() {
           </>
         ) : (
           <>
-            <h1 className="text-xl font-black text-gray-900">Enter your code</h1>
+            <h1 className="text-xl font-black text-gray-900">{t("Enter your code")}</h1>
             <p className="text-sm text-gray-500 mt-1.5 mb-5">
               If that account exists, a code is on its way
               {hint ? ` to ${hint}` : ''} {channel === 'email' ? 'by email' : channel === 'sms' ? 'by SMS' : ''}. Valid for five minutes.

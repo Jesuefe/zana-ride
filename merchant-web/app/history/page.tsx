@@ -1,4 +1,5 @@
 'use client';
+import { useLang } from '../../lib/LangContext';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -13,6 +14,7 @@ type Stats = {
 };
 
 export default function MerchantHistoryPage() {
+  const { t } = useLang();
   const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -60,7 +62,7 @@ export default function MerchantHistoryPage() {
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={18} className="text-gray-700" />
         </button>
-        <h1 className="text-xl font-black text-gray-900">Order history</h1>
+        <h1 className="text-xl font-black text-gray-900">{t("Order history")}</h1>
       </div>
 
       {/* Revenue */}
@@ -95,12 +97,12 @@ export default function MerchantHistoryPage() {
         ))}
       </div>
 
-      {loading && <p className="text-center text-sm text-gray-500 py-10">Loading…</p>}
+      {loading && <p className="text-center text-sm text-gray-500 py-10">{t('Loading…')}</p>}
 
       {!loading && visible.length === 0 && (
         <div className="text-center py-14">
           <Package size={34} className="text-gray-200 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">No completed orders in this period</p>
+          <p className="text-sm text-gray-500">{t("No completed orders in this period")}</p>
         </div>
       )}
 

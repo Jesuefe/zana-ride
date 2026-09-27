@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { Store, Plus, Package, Check, Trash2, ArrowDownLeft, ArrowUpRight, Loader2, X, Wallet as WalletIcon } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 /**
  * Agent view. Agents work inside a physical market: they list what is on
  * the stalls today, then buy and pack whatever customers order.
  */
 export default function AgentPage() {
+  const { t } = useLang();
   const [market, setMarket] = useState<any>(null);
   const [tab, setTab] = useState<'orders' | 'items' | 'wallet'>('orders');
   const [orders, setOrders] = useState<any[]>([]);
@@ -38,9 +40,9 @@ export default function AgentPage() {
 
   const handleWithdraw = async () => {
     const amt = Number(withdrawAmount);
-    if (!amt || amt < 10000) { setWithdrawError('Minimum withdrawal is 10,000 RWF'); return; }
-    if (amt > (wallet?.balance ?? 0)) { setWithdrawError('Insufficient balance'); return; }
-    if (!withdrawPhone.trim()) { setWithdrawError('Enter your MoMo phone number'); return; }
+    if (!amt || amt < 10000) { setWithdrawError(t('Minimum withdrawal is 10,000 RWF')); return; }
+    if (amt > (wallet?.balance ?? 0)) { setWithdrawError(t('Insufficient balance')); return; }
+    if (!withdrawPhone.trim()) { setWithdrawError(t('Enter your MoMo phone number')); return; }
     setWithdrawing(true); setWithdrawError('');
     try {
       await api.post('/agent/wallet/withdraw', { amount: amt, phone: `+250${withdrawPhone.replace(/\D/g, '')}` });
@@ -48,7 +50,7 @@ export default function AgentPage() {
       setWithdrawAmount(''); setWithdrawPhone(''); setShowWithdraw(false);
       loadWallet();
     } catch (e: any) {
-      setWithdrawError(e?.message ?? 'Withdrawal failed');
+      setWithdrawError(e?.message ?? t('Withdrawal failed'));
     } finally { setWithdrawing(false); }
   };
 
@@ -81,7 +83,7 @@ export default function AgentPage() {
       setName(''); setPrice(''); setReferenceCost(''); setAdding(false);
       api.get<any[]>('/agent/products').then(setProducts).catch(() => {});
     } catch (e: any) {
-      setError(e?.message ?? 'Could not add the item');
+      setError(e?.message ?? t('Could not add the item'));
     } finally { setSaving(false); }
   };
 
@@ -120,15 +122,15 @@ export default function AgentPage() {
   // Agents only ever move an order through these three states — the rider
   // handles everything after Ready for pickup.
   const nextStep = (status: string) =>
-    status === 'PENDING' ? { label: 'Start shopping', to: 'PREPARING' }
-    : status === 'CONFIRMED' ? { label: 'Start shopping', to: 'PREPARING' }
-    : status === 'PREPARING' ? { label: 'Ready for pickup', to: 'READY_FOR_PICKUP' }
+    status === 'PENDING' ? { label: t('Start shopping'), to: 'PREPARING' }
+    : status === 'CONFIRMED' ? { label: t('Start shopping'), to: 'PREPARING' }
+    : status === 'PREPARING' ? { label: t('Ready for pickup'), to: 'READY_FOR_PICKUP' }
     : null;
 
   const active = orders.filter(o =>
     ['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP'].includes(o.status));
 
-  if (loading) return <div className="p-6">Loading…</div>;
+  if (loading) return <div className="p-6">{t('Loading…')}</div>;
 
   if (error && !market) {
     return (
@@ -149,14 +151,14 @@ export default function AgentPage() {
           <Store size={20} className="text-zana-primary" />
         </div>
         <div>
-          <p className="text-xs text-gray-500">Agent at</p>
+          <p className="text-xs text-gray-500">{t('Agent at')}</p>
           <p className="font-black text-gray-900">{market?.name ?? '—'}</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4">
-        {([['orders', `Orders${active.length ? ` (${active.length})` : ''}`], ['items', 'Today\'s items'], ['wallet', 'Wallet']] as const).map(([id, label]) => (
+        {([['orders', `Orders${active.length ? ` (${active.length})` : ''}`], ['items', t("Today’s items")], ['wallet', t('Wallet')]] as const).map(([id, label]) => (
           <button key={id} onClick={() => setTab(id as any)}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 ${
               tab === id ? 'border-zana-primary bg-zana-primary text-white' : 'border-gray-100 bg-white text-gray-600'
@@ -172,7 +174,7 @@ export default function AgentPage() {
           {active.length === 0 && (
             <div className="text-center py-12">
               <Package size={32} className="text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">No orders waiting</p>
+              <p className="text-sm text-gray-500">{t('No orders waiting')}</p>
             </div>
           )}
 
@@ -183,7 +185,7 @@ export default function AgentPage() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-mono text-xs font-bold text-zana-primary">{o.trackingCode ?? o.id.slice(0, 8)}</p>
-                    <p className="text-xs text-gray-500">{o.customer?.firstName ?? 'Customer'}</p>
+                    <p className="text-xs text-gray-500">{o.customer?.firstName ?? t('Customer')}</p>
                   </div>
                   <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
                     {o.status.replace(/_/g, ' ')}
@@ -209,14 +211,14 @@ export default function AgentPage() {
                   )}
                   {o.status === 'READY_FOR_PICKUP' && (
                     <span className="flex items-center gap-1 text-xs font-bold text-zana-primary">
-                      <Check size={13} /> Rider on the way
+                      <Check size={13} /> {t('Rider on the way')}
                     </span>
                   )}
                 </div>
 
                 {enteringPricesFor === o.id && (
                   <div className="mt-3 pt-3 border-t border-gray-50 space-y-2">
-                    <p className="text-[11px] text-gray-500">What did you actually pay for each item? Leave blank if it matched the stall price.</p>
+                    <p className="text-[11px] text-gray-500">{t('What did you actually pay for each item? Leave blank if it matched the stall price.')}</p>
                     {o.items?.map((i: any) => (
                       <div key={i.id} className="flex items-center gap-2">
                         <span className="flex-1 text-xs text-gray-700 truncate">{i.product?.name}</span>
@@ -269,7 +271,7 @@ export default function AgentPage() {
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
               <button onClick={addItem} disabled={saving || !name.trim() || !price}
                 className="w-full bg-zana-primary text-white font-bold py-3 rounded-xl disabled:opacity-40">
-                {saving ? 'Saving…' : 'Add to today\'s list'}
+                {saving ? t('Saving…') : t("Add to today’s list")}
               </button>
             </div>
           )}
@@ -332,7 +334,7 @@ export default function AgentPage() {
                         : <ArrowUpRight size={16} className="text-red-500" />}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900">{t.description ?? t.reference ?? (t.amount > 0 ? 'Credit' : 'Withdrawal')}</p>
+                      <p className="text-sm font-semibold text-gray-900">{t.description ?? t.reference ?? (t.amount > 0 ? t('Credit') : t('Withdrawal'))}</p>
                       <p className="text-xs text-gray-400">{new Date(t.createdAt).toLocaleDateString()}</p>
                     </div>
                     <p className={`font-bold text-sm ${t.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
@@ -378,7 +380,7 @@ export default function AgentPage() {
               {withdrawError && <p className="text-xs text-red-600">{withdrawError}</p>}
               <button onClick={handleWithdraw} disabled={withdrawing}
                 className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">
-                {withdrawing ? <><Loader2 size={16} className="animate-spin" /> Processing...</> : 'Withdraw'}
+                {withdrawing ? <><Loader2 size={16} className="animate-spin" /> Processing...</> : t('Withdraw')}
               </button>
             </div>
           </div>

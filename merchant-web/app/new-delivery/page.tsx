@@ -15,7 +15,7 @@ import { ApiError } from '../../lib/api/client';
 
 type Point = { lat: number; lng: number; address: string } | null;
 
-export default function NewDeliveryPage() {
+export default function NewDeliveryPage() { const {t}=useLang();
   const [itemDescription, setItemDescription] = useState('');
   const [weight, setWeight] = useState<PackageWeight>('UNDER_1KG');
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -48,8 +48,8 @@ export default function NewDeliveryPage() {
   const [codeError, setCodeError] = useState<string | null>(null);
   const [resolvingCode, setResolvingCode] = useState(false);
 
-  const [receiverName, setReceiverName] = useState('');
-  const [receiverPhone, setReceiverPhone] = useState('');
+  const [receiverName, set{t("Receiver")}Name] = useState('');
+  const [receiverPhone, set{t("Receiver")}Phone] = useState('');
 
   const [quote, setQuote] = useState<{ fee: number; distanceKm: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -188,8 +188,8 @@ export default function NewDeliveryPage() {
     setImageBase64(null);
     setDropoff(null);
     setCodeInput('');
-    setReceiverName('');
-    setReceiverPhone('');
+    set{t("Receiver")}Name('');
+    set{t("Receiver")}Phone('');
     setQuote(null);
     setSuccess(false);
   };
@@ -200,15 +200,15 @@ export default function NewDeliveryPage() {
         <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
           <Check size={28} className="text-green-600" />
         </div>
-        <h2 className="text-lg font-bold text-gray-900">Delivery requested</h2>
+        <h2 className="text-lg font-bold text-gray-900">{t("Delivery requested")}</h2>
         <p className="text-sm text-gray-500 mt-1">
-          A Zana courier will be assigned shortly. You can track it on the Deliveries page.
+          {t("A Zana courier will be assigned shortly. You can track it on the Deliveries page.")}
         </p>
         <button
           onClick={resetForm}
           className="mt-6 bg-zana-primary text-white font-semibold px-6 py-2.5 rounded-lg text-sm"
         >
-          Create another delivery
+          {t("Create another delivery")}
         </button>
       </div>
     );
@@ -217,12 +217,12 @@ export default function NewDeliveryPage() {
   return (
     <div className="max-w-lg mx-auto space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">New delivery</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Send a package to your customer.</p>
+        <h1 className="text-xl font-bold text-gray-900">{t("New delivery")}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{t("Send a package to your customer.")}</p>
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-gray-900 block mb-1.5">What are you sending?</label>
+        <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t("What are you sending?")}</label>
         <input
           value={itemDescription}
           onChange={(e) => setItemDescription(e.target.value)}
@@ -232,7 +232,7 @@ export default function NewDeliveryPage() {
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-gray-900 block mb-1.5">Approximate weight</label>
+        <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t("Approximate weight")}</label>
         <div className="grid grid-cols-3 gap-2">
           {WEIGHT_OPTIONS.map((w) => (
             <button
@@ -249,7 +249,7 @@ export default function NewDeliveryPage() {
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-gray-900 block mb-1.5">Photo of the item</label>
+        <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t("Photo of the item")}</label>
         {imageBase64 ? (
           <div className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-100">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -264,14 +264,14 @@ export default function NewDeliveryPage() {
         ) : (
           <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-gray-200 rounded-xl py-7 cursor-pointer">
             <Camera size={22} className="text-gray-400" />
-            <span className="text-xs text-gray-500">Upload a photo</span>
+            <span className="text-xs text-gray-500">{t("Upload a photo")}</span>
             <input type="file" accept="image/*" onChange={handleImage} className="hidden" />
           </label>
         )}
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-gray-900 block mb-1.5">Pickup location</label>
+        <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t("Pickup location")}</label>
         {pickup ? (
           <div className="flex items-start gap-2 bg-gray-50 rounded-lg px-3 py-2.5">
             <MapPin size={15} className="text-zana-primary mt-0.5 shrink-0" />
@@ -306,7 +306,7 @@ export default function NewDeliveryPage() {
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-gray-900 block mb-1.5">Delivery location</label>
+        <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t("Delivery location")}</label>
         {dropoff ? (
           <div className="flex items-start gap-2 bg-zana-primary/10 rounded-lg px-3 py-2.5">
             <Navigation size={15} className="text-zana-secondary-dark mt-0.5 shrink-0" />
@@ -363,10 +363,10 @@ export default function NewDeliveryPage() {
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-gray-900 block mb-1.5">Receiver</label>
+        <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t("Receiver")}</label>
         <input
           value={receiverName}
-          onChange={(e) => setReceiverName(e.target.value)}
+          onChange={(e) => set{t("Receiver")}Name(e.target.value)}
           placeholder="Customer's name (optional)"
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
         />
@@ -374,7 +374,7 @@ export default function NewDeliveryPage() {
           <div className="border border-gray-200 rounded-lg px-3 flex items-center text-sm">+250</div>
           <input
             value={receiverPhone}
-            onChange={(e) => setReceiverPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
+            onChange={(e) => set{t("Receiver")}Phone(e.target.value.replace(/\D/g, '').slice(0, 9))}
             placeholder="788 123 456"
             inputMode="numeric"
             className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
@@ -385,7 +385,7 @@ export default function NewDeliveryPage() {
       {quote && (
         <div className="flex items-center justify-between bg-zana-primary rounded-xl px-4 py-3 text-white">
           <div>
-            <p className="text-[11px] text-white/70">Delivery fee</p>
+            <p className="text-[11px] text-white/70">{t("Delivery fee")}</p>
             <p className="text-lg font-bold">{quote.fee.toLocaleString()} RWF</p>
           </div>
           <p className="text-xs text-white/70">{quote.distanceKm} km</p>
@@ -401,11 +401,11 @@ export default function NewDeliveryPage() {
       >
         {submitting ? (
           <>
-            <Loader2 size={16} className="animate-spin" /> Requesting…
+            <Loader2 size={16} className="animate-spin" /> {t("Requesting…")}
           </>
         ) : (
           <>
-            <Package size={16} /> Request Delivery
+            <Package size={16} /> {t("Request Delivery")}
           </>
         )}
       </button>

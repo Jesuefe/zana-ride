@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ZanaMark } from '../components/ZanaLogo';
+import { useLang } from '../lib/LangContext';
+import { ZanaMark } from '../components/Zana{t("Logo")}';
 import Link from 'next/link';
 import { Package, Truck, Wallet, ShoppingBag, Plus, TrendingUp } from 'lucide-react';
 import Topbar from '../components/Topbar';
-import { fetchMyMerchant, fetchDeliveries, fetchWallet, fetchMyOrders, ApiMerchant, ApiDelivery } from '../lib/api/merchant';
+import { fetchMyMerchant, fetchDeliveries, fetchWallet, fetchMy{t("Orders")}, ApiMerchant, ApiDelivery } from '../lib/api/merchant';
 import { ApiError, api } from '../lib/api/client';
 import { useRouter } from 'next/navigation';
 
@@ -15,7 +16,7 @@ export default function OverviewPage() {
   const [brandingNote, setBrandingNote] = useState('');
   const [merchant, setMerchant] = useState<ApiMerchant | null>(null);
   const [deliveries, setDeliveries] = useState<ApiDelivery[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, set{t("Orders")}] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,12 +59,12 @@ export default function OverviewPage() {
           fetchMyMerchant(),
           fetchDeliveries(),
           fetchWallet(),
-          fetchMyOrders().catch(() => []),
+          fetchMy{t("Orders")}().catch(() => []),
         ]);
         setMerchant(m);
         setDeliveries(d);
         setWalletBalance(w.balance);
-        setOrders(o);
+        set{t("Orders")}(o);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
       } finally {
@@ -72,7 +73,7 @@ export default function OverviewPage() {
     })();
   }, []);
 
-  const pendingOrders = orders.filter(o => o.status === 'PENDING').length;
+  const pending{t("Orders")} = orders.filter(o => o.status === 'PENDING').length;
   const activeDeliveries = deliveries.filter(d => ['REQUESTED','COURIER_ASSIGNED','PICKED_UP'].includes(d.status)).length;
 
   // Storefront imagery. Compressed client-side because merchants photograph
@@ -97,7 +98,7 @@ export default function OverviewPage() {
         try {
           await api.patch('/merchant/branding',
             kind === 'logo' ? { logoBase64: base64 } : { coverBase64: base64 });
-          setBrandingNote(kind === 'logo' ? 'Logo updated' : 'Storefront photo updated');
+          setBrandingNote(kind === 'logo' ? '{t("Logo")} updated' : '{t("Storefront photo")} updated');
           fetchMyMerchant().then(setMerchant).catch(() => {});
         } catch {
           setBrandingNote('Upload failed. Try a smaller image.');
@@ -118,7 +119,7 @@ export default function OverviewPage() {
       <div className="flex items-center gap-2 mb-6">
         <ZanaMark size={40} />
         <div>
-          <p className="text-xs text-gray-500">Welcome back</p>
+          <p className="text-xs text-gray-500">{t("Welcome back")}</p>
           <p className="font-bold text-gray-900">{merchant?.businessName ?? '—'}</p>
         </div>
       </div>
@@ -128,18 +129,18 @@ export default function OverviewPage() {
       {/* Storefront branding — what customers see on the shop card */}
       <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
-          Your shop card
+          {t("Your shop card")}
         </p>
 
         <div className="flex gap-3">
           <label className="flex-1 cursor-pointer">
             <div className="border-2 border-dashed border-gray-200 rounded-xl h-24 flex flex-col items-center justify-center gap-1 overflow-hidden">
               {(merchant as any)?.logoUrl ? (
-                <img src={(merchant as any).logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                <img src={(merchant as any).logoUrl} alt="{t("Logo")}" className="w-full h-full object-cover" />
               ) : (
                 <>
                   <Plus size={16} className="text-gray-400" />
-                  <span className="text-[10px] font-bold text-gray-500">Logo</span>
+                  <span className="text-[10px] font-bold text-gray-500">{t("Logo")}</span>
                 </>
               )}
             </div>
@@ -154,7 +155,7 @@ export default function OverviewPage() {
               ) : (
                 <>
                   <Plus size={16} className="text-gray-400" />
-                  <span className="text-[10px] font-bold text-gray-500">Storefront photo</span>
+                  <span className="text-[10px] font-bold text-gray-500">{t("Storefront photo")}</span>
                 </>
               )}
             </div>
@@ -172,7 +173,7 @@ export default function OverviewPage() {
           <p className="text-[11px] text-gray-500 mt-2">{brandingNote}</p>
         )}
         <p className="text-[10px] text-gray-400 mt-2">
-          Shops with a photo get noticeably more orders.
+          {t("Shops with a photo get noticeably more orders.")}
         </p>
       </div>
 
@@ -187,7 +188,7 @@ export default function OverviewPage() {
           </div>
           <span className="text-sm font-bold text-gray-900">Earnings &amp; settlements</span>
         </div>
-        <span className="text-xs font-bold text-zana-primary">View earnings</span>
+        <span className="text-xs font-bold text-zana-primary">{t("View earnings")}</span>
       </button>
 
 
@@ -197,22 +198,22 @@ export default function OverviewPage() {
         <div className="bg-zana-primary-light rounded-xl p-4">
           <Wallet size={18} className="text-zana-primary mb-2" />
           <p className="text-2xl font-bold text-gray-900">{walletBalance?.toLocaleString() ?? '—'}</p>
-          <p className="text-xs text-gray-500">RWF balance</p>
+          <p className="text-xs text-gray-500">{t("RWF balance")}</p>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <ShoppingBag size={18} className="text-amber-500 mb-2" />
-          <p className="text-2xl font-bold text-gray-900">{pendingOrders}</p>
-          <p className="text-xs text-gray-500">Pending orders</p>
+          <p className="text-2xl font-bold text-gray-900">{pending{t("Orders")}}</p>
+          <p className="text-xs text-gray-500">{t("Pending orders")}</p>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <Truck size={18} className="text-blue-500 mb-2" />
           <p className="text-2xl font-bold text-gray-900">{activeDeliveries}</p>
-          <p className="text-xs text-gray-500">Active deliveries</p>
+          <p className="text-xs text-gray-500">{t("Active deliveries")}</p>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <TrendingUp size={18} className="text-green-500 mb-2" />
           <p className="text-2xl font-bold text-gray-900">{deliveries.length}</p>
-          <p className="text-xs text-gray-500">Total deliveries</p>
+          <p className="text-xs text-gray-500">{t("Total deliveries")}</p>
         </div>
       </div>
 
@@ -223,8 +224,8 @@ export default function OverviewPage() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-bold text-amber-800">Set your business location</p>
-              <p className="text-xs text-amber-600 mt-0.5">This lets us calculate delivery fees for your customers accurately.</p>
+              <p className="text-sm font-bold text-amber-800">{t("Set your business location")}</p>
+              <p className="text-xs text-amber-600 mt-0.5">{t("This lets us calculate delivery fees for your customers accurately.")}</p>
               <button onClick={handleSetLocation} disabled={settingLocation}
                 className="mt-2 bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-50">
                 {settingLocation ? 'Locating...' : 'Use my current location'}
@@ -233,31 +234,31 @@ export default function OverviewPage() {
           </div>
         )}
         {/* Quick actions */}
-      <h2 className="font-semibold text-gray-900 mb-3">Quick Actions</h2>
+      <h2 className="font-semibold text-gray-900 mb-3">{t("Quick Actions")}</h2>
       <div className="space-y-2">
         <Link href="/new-delivery" className="flex items-center gap-3 bg-zana-primary text-white rounded-xl px-4 py-3.5">
           <Truck size={18} />
           <div className="flex-1">
-            <p className="font-semibold text-sm">Send a Package</p>
-            <p className="text-xs text-white/70">Request a Zana courier</p>
+            <p className="font-semibold text-sm">{t("Send a Package")}</p>
+            <p className="text-xs text-white/70">{t("Request a Zana courier")}</p>
           </div>
           <Plus size={16} />
         </Link>
         <Link href="/products" className="flex items-center gap-3 bg-white rounded-xl px-4 py-3.5 shadow-sm">
           <Package size={18} className="text-zana-primary" />
           <div className="flex-1">
-            <p className="font-semibold text-sm text-gray-900">My Products</p>
-            <p className="text-xs text-gray-500">Manage your listings</p>
+            <p className="font-semibold text-sm text-gray-900">{t("My Products")}</p>
+            <p className="text-xs text-gray-500">{t("Manage your listings")}</p>
           </div>
         </Link>
         <Link href="/orders" className="flex items-center gap-3 bg-white rounded-xl px-4 py-3.5 shadow-sm">
           <ShoppingBag size={18} className="text-amber-500" />
           <div className="flex-1">
-            <p className="font-semibold text-sm text-gray-900">Orders</p>
-            <p className="text-xs text-gray-500">{pendingOrders > 0 ? `${pendingOrders} pending` : 'View all orders'}</p>
+            <p className="font-semibold text-sm text-gray-900">{t("Orders")}</p>
+            <p className="text-xs text-gray-500">{pending{t("Orders")} > 0 ? `${pending{t("Orders")}} pending` : 'View all orders'}</p>
           </div>
-          {pendingOrders > 0 && (
-            <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center">{pendingOrders}</span>
+          {pending{t("Orders")} > 0 && (
+            <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center">{pending{t("Orders")}}</span>
           )}
         </Link>
       </div>
@@ -265,7 +266,7 @@ export default function OverviewPage() {
       {/* Merchant status */}
       {(merchant as any)?.status === 'PENDING' && (
         <div className="mt-5 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <p className="text-sm font-semibold text-amber-800">Account pending approval</p>
+          <p className="text-sm font-semibold text-amber-800">{t("Account pending approval")}</p>
           <p className="text-xs text-amber-600 mt-1">Your merchant account is under review. Products you add will only appear publicly after admin approval.</p>
         </div>
       )}

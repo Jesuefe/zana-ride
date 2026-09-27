@@ -1,14 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { fetchMyOrders, updateOrderStatus } from '../../lib/api/merchant';
-import { Package, Clock, ChevronRight, Truck } from 'lucide-react';
+import { Package, ChevronRight, Truck } from 'lucide-react';
+import { useLang } from '../../lib/LangContext';
 
 // Merchant only handles: PENDING → CONFIRMED → PREPARING → READY_FOR_PICKUP
 // After READY_FOR_PICKUP, Zana dispatches a driver automatically
 const MERCHANT_NEXT: Record<string, { label: string; next: string }> = {
-  PENDING:     { label: 'Confirm order', next: 'CONFIRMED' },
-  CONFIRMED:   { label: 'Start preparing', next: 'PREPARING' },
-  PREPARING:   { label: 'Ready for pickup', next: 'READY_FOR_PICKUP' },
+  PENDING:     { label: t('Confirm order'), next: 'CONFIRMED' },
+  CONFIRMED:   { label: t('Start preparing'), next: 'PREPARING' },
+  PREPARING:   { label: t('Ready for pickup'), next: 'READY_FOR_PICKUP' },
 };
 
 const STATUS_STYLE: Record<string, string> = {
@@ -32,6 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function OrdersPage() {
+  const { t } = useLang();
   const [orders, setOrders] = useState<any[]>([]);
   const [advancing, setAdvancing] = useState<string | null>(null);
   const [filter, setFilter] = useState('active');
@@ -60,13 +62,13 @@ export default function OrdersPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-xl font-bold text-gray-900">Orders</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t('Orders')}</h1>
         <div className="flex gap-2">
           {[['active','Active'],['done','Done'],['all','All']].map(([val,label]) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`text-xs px-3 py-1.5 rounded-lg font-semibold border transition-colors ${
                 filter === val ? 'bg-zana-primary text-white border-zana-primary' : 'bg-white text-gray-600 border-gray-200'
-              }`}>{label}</button>
+              }`}>{t(label)}</button>
           ))}
         </div>
       </div>
@@ -75,7 +77,7 @@ export default function OrdersPage() {
         {filtered.length === 0 && (
           <div className="bg-white rounded-2xl p-10 text-center shadow-sm">
             <Package size={32} className="text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">No orders here</p>
+            <p className="text-sm text-gray-400">{t('No orders here')}</p>
           </div>
         )}
 
@@ -119,7 +121,7 @@ export default function OrdersPage() {
 
                 {/* Total */}
                 <div className="flex items-center justify-between border-t border-gray-100 pt-2 mb-3">
-                  <span className="text-sm font-bold text-gray-900">Total</span>
+                  <span className="text-sm font-bold text-gray-900">{t('Total')}</span>
                   <span className="font-black text-zana-primary">{o.total?.toLocaleString() ?? '—'} RWF</span>
                 </div>
 
@@ -129,8 +131,8 @@ export default function OrdersPage() {
                     <Truck size={14} className="text-cyan-600 shrink-0" />
                     <p className="text-xs text-cyan-700 font-semibold">
                       {o.status === 'READY_FOR_PICKUP'
-                        ? 'A Zana driver has been dispatched to collect this order.'
-                        : 'Driver is delivering to your customer.'}
+                        ? '{t('A Zana driver has been dispatched to collect this order.')}'
+                        : '{t('Driver is delivering to your customer.')}'}
                     </p>
                   </div>
                 )}
