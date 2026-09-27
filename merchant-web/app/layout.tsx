@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from '../lib/ThemeContext';
+import { LangProvider } from '../lib/LangContext';
 import OrderAlarm from '../components/OrderAlarm';
 import "./globals.css";
 import AuthGuard from "../components/AuthGuard";
@@ -17,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="h-full overflow-x-hidden">
         <AuthGuard>
-          <ThemeProvider>{children}</ThemeProvider><OrderAlarm />
+          <LangProvider><ThemeProvider>{children}</ThemeProvider></LangProvider><OrderAlarm />
         </AuthGuard>
       </body>
     </html>
