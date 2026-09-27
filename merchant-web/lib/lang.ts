@@ -193,6 +193,23 @@ export const UI: Record<string, Record<Lang, string>> = {
   "Mark ready for pickup": { en: "Mark ready for pickup", fr: "Marquer prêt pour le retrait", rw: "Shyira ku mwanya wo gufatwa" },
   "Waiting for rider": { en: "Waiting for rider", fr: "En attente du coursier", rw: "Gutegereza umumotari" },
   "Rider handoff": { en: "Rider handoff", fr: "Remise au coursier", rw: "Guha umumotari" },
+  "Order history": { en: "Order history", fr: "Historique des commandes", rw: "Amateka y’amategeko" },
+  "Goods value only — Zana's delivery fee is not included.": { en: "Goods value only — Zana's delivery fee is not included.", fr: "Valeur des marchandises uniquement — les frais de livraison Zana ne sont pas inclus.", rw: "Ni agaciro k’ibicuruzwa gusa — amafaranga yo kugeza ya Zana ntarimo." },
+  "No completed orders in this period": { en: "No completed orders in this period", fr: "Aucune commande terminée pendant cette période", rw: "Nta mategeko yarangiye muri iki gihe" },
+  "Invalid invite link": { en: "Invalid invite link", fr: "Lien d’invitation invalide", rw: "Link yo gutumira ntabwo ikora" },
+  "Please contact Zana support for a valid invite.": { en: "Please contact Zana support for a valid invite.", fr: "Contactez l’assistance Zana pour obtenir une invitation valide.", rw: "Hamagara ubufasha bwa Zana ubone ubutumire bukora." },
+  "Join Zana Business": { en: "Join Zana Business", fr: "Rejoindre Zana Business", rw: "Injira muri Zana Business" },
+  "Create your merchant account": { en: "Create your merchant account", fr: "Créez votre compte marchand", rw: "Fungura konti yawe y’umucuruzi" },
+  "Category": { en: "Category", fr: "Catégorie", rw: "Icyiciro" },
+  "Food & Restaurants": { en: "Food & Restaurants", fr: "Nourriture et restaurants", rw: "Ibiryo n’amarestora" },
+  "Gifts & Flowers": { en: "Gifts & Flowers", fr: "Cadeaux et fleurs", rw: "Impano n’indabyo" },
+  "Goods & Products": { en: "Goods & Products", fr: "Biens et produits", rw: "Ibicuruzwa" },
+  "Your account will be reviewed before going live.": { en: "Your account will be reviewed before going live.", fr: "Votre compte sera vérifié avant sa mise en ligne.", rw: "Konti yawe izasuzumwa mbere yo gutangira gukora." },
+  "Forgot your password?": { en: "Forgot your password?", fr: "Mot de passe oublié ?", rw: "Wibagiwe ijambobanga?" },
+  "Enter your email or phone number and we’ll send a secure reset code to that contact.": { en: "Enter your email or phone number and we’ll send a secure reset code to that contact.", fr: "Saisissez votre e-mail ou numéro de téléphone et nous enverrons un code de réinitialisation sécurisé à ce contact.", rw: "Andika imeyili cyangwa nimero ya telefoni, twohereze kode yo gusubiramo kuri uwo mubare." },
+  "Enter your code": { en: "Enter your code", fr: "Entrez votre code", rw: "Andika kode yawe" },
+  "Send the code again": { en: "Send the code again", fr: "Renvoyer le code", rw: "Ongera wohereze kode" },
+  "Zana will never ask for your password or code by phone or message.": { en: "Zana will never ask for your password or code by phone or message.", fr: "Zana ne vous demandera jamais votre mot de passe ou votre code par téléphone ou message.", rw: "Zana ntizigera igusaba ijambobanga cyangwa kode kuri telefoni cyangwa ubutumwa." },
 };
 
 export function t(key: string, lang: Lang): string {
