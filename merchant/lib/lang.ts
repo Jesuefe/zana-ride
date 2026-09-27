@@ -95,6 +95,23 @@ export const UI: Record<string, Record<Lang, string>> = {
   "Withdrawal failed": { en: "Withdrawal failed", fr: "Le retrait a échoué", rw: "Gukuramo amafaranga byanze" },
   "Credit": { en: "Credit", fr: "Crédit", rw: "Amafaranga yinjiye" },
   "Withdrawal": { en: "Withdrawal", fr: "Retrait", rw: "Gukuramo amafaranga" },
+  "Agent at": { en: "Agent at", fr: "Agent chez", rw: "Umukozi kuri" },
+  "No orders waiting": { en: "No orders waiting", fr: "Aucune commande en attente", rw: "Nta mategeko ategereje" },
+  "What did you actually pay for each item? Leave blank if it matched the stall price.": { en: "What did you actually pay for each item? Leave blank if it matched the stall price.", fr: "Quel prix avez-vous réellement payé pour chaque article ? Laissez vide s’il correspondait au prix du stand.", rw: "Watanze angahe kuri buri gicuruzwa? Siga ubusa niba ari kimwe n’igiciro cyo ku isoko." },
+  "Could not add the item": { en: "Could not add the item", fr: "Impossible d’ajouter l’article", rw: "Ntibyashobotse kongeraho igicuruzwa" },
+  "Start shopping": { en: "Start shopping", fr: "Commencer les achats", rw: "Tangira guhaha" },
+  "Today’s items": { en: "Today’s items", fr: "Articles du jour", rw: "Ibicuruzwa by’uyu munsi" },
+  "Wallet": { en: "Wallet", fr: "Portefeuille", rw: "Amafaranga" },
+  "Customer": { en: "Customer", fr: "Client", rw: "Umukiriya" },
+  "Item name, e.g. Tomatoes (1kg)": { en: "Item name, e.g. Tomatoes (1kg)", fr: "Nom de l’article, ex. Tomates (1 kg)", rw: "Izina ry’igicuruzwa, urugero Inyanya (1kg)" },
+  "Selling price in RWF": { en: "Selling price in RWF", fr: "Prix de vente en RWF", rw: "Igiciro cyo kugurisha muri RWF" },
+  "Normal stall price (optional — for your margin split)": { en: "Normal stall price (optional — for your margin split)", fr: "Prix normal du stand (facultatif — pour le calcul de votre marge)", rw: "Igiciro gisanzwe ku isoko (si ngombwa — mu kubara inyungu yawe)" },
+  "Saving…": { en: "Saving…", fr: "Enregistrement…", rw: "Birimo kubikwa…" },
+  "Add to today’s list": { en: "Add to today’s list", fr: "Ajouter à la liste du jour", rw: "Ongeraho ku rutonde rw’uyu munsi" },
+  "Confirm ready for pickup": { en: "Confirm ready for pickup", fr: "Confirmer prêt pour le retrait", rw: "Emeza ko biteguye gufatwa" },
+  "Rider on the way": { en: "Rider on the way", fr: "Coursier en route", rw: "Umumotari ari mu nzira" },
+  "List an item": { en: "List an item", fr: "Ajouter un article", rw: "Shyiraho igicuruzwa" },
+  "Nothing listed yet. Add what is on the stalls today.": { en: "Nothing listed yet. Add what is on the stalls today.", fr: "Rien n’est encore listé. Ajoutez ce qui est disponible sur les stands aujourd’hui.", rw: "Nta kintu kirashyirwa ku rutonde. Ongeraho ibiri ku masoko uyu munsi." },
 };
 
 export function t(key: string, lang: Lang): string {
