@@ -5,7 +5,7 @@ import { ZanaWordmark } from './ZanaLogo';
 
 export default function Topbar({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <header className="mb-4 flex items-center justify-between border-b border-zana-border bg-background py-2">
+    <header className="mb-4 flex items-center justify-between border-b border-gray-100 bg-white py-2">
       <div className="min-w-0">
         <ZanaWordmark size={25} color="#00A082" />
         <h1 className="mt-1 truncate text-lg font-bold text-gray-900">{title}</h1>
