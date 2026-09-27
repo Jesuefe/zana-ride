@@ -379,6 +379,22 @@ export const TRIP_UI: Record<string, Record<Lang, string>> = {
   'Payment not confirmed. Ask the customer to check their phone.': { en: 'Payment not confirmed. Ask the customer to check their phone.', fr: 'Paiement non confirmé. Demandez au client de vérifier son téléphone.', rw: 'Ubwishyu ntibwemejwe. Saba umukiriya areba kuri telefoni ye.' },
   'Could not send the payment request': { en: 'Could not send the payment request', fr: 'Impossible d\'envoyer la demande de paiement', rw: 'Ntibyashobotse kohereza icyifuzo cy\'ubwishyu' },
   'Send a Mobile Money request for': { en: 'Send a Mobile Money request for', fr: 'Envoyer une demande Mobile Money pour', rw: 'Ohereza icyifuzo cya Mobile Money kuri' },
+  "You've been logged in on another device, so this one has been taken offline.": { en: "You've been logged in on another device, so this one has been taken offline.", fr: "Vous êtes connecté sur un autre appareil, celui-ci a donc été mis hors ligne.", rw: "Winjiye ku kindi gikoresho, bityo iki cyashyizwe kuri offline." },
+  "Today's Overview": { en: "Today's Overview", fr: "Aperçu d’aujourd’hui", rw: "Incamake y’uyu munsi" },
+  "Could not go online. Check your connection and try again.": { en: "Could not go online. Check your connection and try again.", fr: "Impossible de passer en ligne. Vérifiez votre connexion et réessayez.", rw: "Ntibyashobotse kujya kuri murandasi. Reba umurongo wongere ugerageze." },
+  "Could not go offline. Check your connection and try again.": { en: "Could not go offline. Check your connection and try again.", fr: "Impossible de passer hors ligne. Vérifiez votre connexion et réessayez.", rw: "Ntibyashobotse kuva kuri murandasi. Reba umurongo wongere ugerageze." },
+  "Vehicle": { en: "Vehicle", fr: "Véhicule", rw: "Imodoka" },
+  "Cancel": { en: "Cancel", fr: "Annuler", rw: "Hagarika" },
+  "Pickup contact": { en: "Pickup contact", fr: "Contact de prise en charge", rw: "Uwo kuvugana aho gufatira" },
+  "Pickup person": { en: "Pickup person", fr: "Personne à la prise en charge", rw: "Umuntu wo gufata" },
+  "Call pickup contact": { en: "Call pickup contact", fr: "Appeler le contact de prise en charge", rw: "Hamagara uwo kuvugana aho gufatira" },
+  "Customer / recipient": { en: "Customer / recipient", fr: "Client / destinataire", rw: "Umukiriya / uwakira" },
+  "Recipient": { en: "Recipient", fr: "Destinataire", rw: "Uwakira" },
+  "Call customer": { en: "Call customer", fr: "Appeler le client", rw: "Hamagara umukiriya" },
+  "Payment didn't go through": { en: "Payment didn't go through", fr: "Le paiement n’est pas passé", rw: "Ubwishyu ntabwo bwanyuze" },
+  "No outstanding debt — you're all clear!": { en: "No outstanding debt — you're all clear!", fr: "Aucune dette en attente — tout est réglé !", rw: "Nta mwenda usigaye — byose ni sawa!" },
+  "Safety & Emergency Contact": { en: "Safety & Emergency Contact", fr: "Sécurité et contact d’urgence", rw: "Umutekano n’uwo guhamagara mu gihe cy’amage" },
+  "Manage who receives your SOS alert": { en: "Manage who receives your SOS alert", fr: "Gérez qui reçoit votre alerte SOS", rw: "Hitamo uzakira ubutumwa bwa SOS" },
 };
 
 export function tt(key: string, lang: Lang): string {
