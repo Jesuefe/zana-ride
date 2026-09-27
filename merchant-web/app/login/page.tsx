@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import { useLang } from '../../lib/LangContext';
 import { ZanaMark } from '../../components/ZanaLogo';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { login } from '../../lib/api/merchant';
 import { ApiError } from '../../lib/api/client';
 
-export default function LoginPage() {
+export default function LoginPage() { const {t}=useLang();
   const router = useRouter();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [password, set{t("Password")}] = useState('');
+  const [show{t("Password")}, setShow{t("Password")}] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,19 +51,19 @@ export default function LoginPage() {
         <div className="flex items-center gap-2 mb-8 justify-center">
           <ZanaMark size={40} />
           <div>
-            <p className="font-bold text-gray-900 text-lg leading-tight">Zana Business</p>
-            <p className="text-xs text-gray-500">Merchant Portal</p>
+            <p className="font-bold text-gray-900 text-lg leading-tight">{t("Zana Business")}</p>
+            <p className="text-xs text-gray-500">{t("Merchant Portal")}</p>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h1 className="text-lg font-bold text-gray-900 mb-1">Sign in</h1>
-          <p className="text-sm text-gray-500 mb-6">Sign in as a merchant or market agent</p>
+          <h1 className="text-lg font-bold text-gray-900 mb-1">{t("Sign in")}</h1>
+          <p className="text-sm text-gray-500 mb-6">{t("Sign in")} as a merchant or market agent</p>
 
           <div className="space-y-4">
             {/* Email */}
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1.5">Email address</label>
+              <label className="text-xs font-medium text-gray-600 block mb-1.5">{t("Email address")}</label>
               <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-zana-primary/30 focus-within:border-zana-primary transition-all">
                 <Mail size={16} className="text-gray-400 shrink-0" />
                 <input
@@ -77,22 +78,22 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password */}
+            {/* {t("Password")} */}
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1.5">Password</label>
+              <label className="text-xs font-medium text-gray-600 block mb-1.5">{t("Password")}</label>
               <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-zana-primary/30 focus-within:border-zana-primary transition-all">
                 <Lock size={16} className="text-gray-400 shrink-0" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={show{t("Password")} ? 'text' : 'password'}
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={e => set{t("Password")}(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleLogin()}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   className="flex-1 text-sm outline-none bg-transparent"
                 />
-                <button onClick={() => setShowPassword(v => !v)} className="text-gray-400 hover:text-gray-600">
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                <button onClick={() => setShow{t("Password")}(v => !v)} className="text-gray-400 hover:text-gray-600">
+                  {show{t("Password")} ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
@@ -110,7 +111,7 @@ export default function LoginPage() {
             className="w-full mt-5 bg-zana-primary text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 hover:bg-zana-primary-dark transition-colors"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? 'Signing in…' : '{t("Sign in")}'}
           </button>
 
           <div className="flex flex-col gap-1 mt-3 items-center">
@@ -119,12 +120,12 @@ export default function LoginPage() {
           </button>
         </div>
         <p className="text-xs text-gray-400 text-center mt-4">
-            Don't have an account? Contact <a href="mailto:support@zana.rw" className="text-zana-primary">support@zana.rw</a>
+            {t("Don't have an account? Contact")} <a href="mailto:support@zana.rw" className="text-zana-primary">support@zana.rw</a>
           </p>
         </div>
 
         <p className="text-xs text-gray-400 text-center mt-4">
-          Demo: merchant@zana.rw / merchant123
+          {t("Demo: merchant@zana.rw / merchant123")}
         </p>
       </div>
     </div>
