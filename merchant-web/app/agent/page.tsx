@@ -8,7 +8,8 @@ import {
 import { api } from '../../lib/api/client';
 import { requestAgentPriceChange, fetchAgentEarnings } from '../../lib/api/merchant';
 import VoiceCall from '../../components/VoiceCall';
-import { getStoredLang, setStoredLang, t, type Lang } from '../../lib/lang';
+import { t } from '../../lib/lang';
+import { useLang } from '../../lib/LangContext';
 
 const money = (n: any) => Number(n || 0).toLocaleString() + ' RWF';
 const label = (s: string) => (s || '').replace(/_/g, ' ');
@@ -30,7 +31,7 @@ export default function AgentPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [purchaseFunds, setPurchaseFunds] = useState<any[]>([]);
   const [error, setError] = useState('');
-  const [lang, setLang] = useState<Lang>('en');
+  const { lang } = useLang();
 
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
@@ -57,7 +58,6 @@ export default function AgentPage() {
   };
 
   useEffect(() => {
-    setLang(getStoredLang());
     if (typeof window !== 'undefined') {
       const q = new URLSearchParams(window.location.search).get('view');
       if (q) setView(q);
