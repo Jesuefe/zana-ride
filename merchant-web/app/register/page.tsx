@@ -1,5 +1,5 @@
 'use client';
-import { useLang } from '../lib/LangContext';
+import { useLang } from '../../lib/LangContext';
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
