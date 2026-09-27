@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import Sidebar from './Sidebar';
 import { getToken } from '../lib/api/client';
+import MerchantBottomNav from './MerchantBottomNav';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -20,11 +20,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!checked) return null;
 
   return (
-    <div className="min-h-screen flex overflow-x-hidden">
-      <Sidebar />
-      <main className="flex-1 min-w-0 overflow-auto p-4 md:p-6 bg-gray-50 pt-16 md:pt-6">
+    <div className="min-h-screen w-full overflow-x-hidden bg-background">
+      <main className="mx-auto min-h-screen w-full max-w-[480px] overflow-x-hidden bg-background px-4 pb-[88px] pt-4">
         {children}
       </main>
+      <MerchantBottomNav />
     </div>
   );
 }
