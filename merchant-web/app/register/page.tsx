@@ -1,4 +1,5 @@
 'use client';
+import { useLang } from '../lib/LangContext';
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -17,8 +18,8 @@ function RegisterContent() {
     <div className="min-h-screen flex items-center justify-center p-6 text-center">
       <div>
         <p className="text-2xl mb-2">🔗</p>
-        <p className="font-semibold text-gray-900">Invalid invite link</p>
-        <p className="text-sm text-gray-500 mt-1">Please contact Zana support for a valid invite.</p>
+        <p className="font-semibold text-gray-900">{t("Invalid invite link")}</p>
+        <p className="text-sm text-gray-500 mt-1">{t("Please contact Zana support for a valid invite.")}</p>
       </div>
     </div>
   );
@@ -44,8 +45,8 @@ function RegisterContent() {
             <Store size={20} className="text-white" />
           </div>
           <div>
-            <p className="font-bold text-gray-900 text-lg">Join Zana Business</p>
-            <p className="text-xs text-gray-500">Create your merchant account</p>
+            <p className="font-bold text-gray-900 text-lg">{t("Join Zana Business")}</p>
+            <p className="text-xs text-gray-500">{t("Create your merchant account")}</p>
           </div>
         </div>
 
@@ -65,12 +66,12 @@ function RegisterContent() {
           ))}
 
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1.5">Category</label>
+            <label className="text-xs font-medium text-gray-600 block mb-1.5">{t("Category")}</label>
             <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none bg-white">
-              <option value="FOOD">Food & Restaurants</option>
-              <option value="GIFTS">Gifts & Flowers</option>
-              <option value="GOODS">Goods & Products</option>
+              <option value="FOOD">{t("Food & Restaurants")}</option>
+              <option value="GIFTS">{t("Gifts & Flowers")}</option>
+              <option value="GOODS">{t("Goods & Products")}</option>
             </select>
           </div>
 
@@ -82,7 +83,7 @@ function RegisterContent() {
             {loading ? 'Creating account…' : 'Create merchant account'}
           </button>
 
-          <p className="text-xs text-gray-400 text-center">Your account will be reviewed before going live.</p>
+          <p className="text-xs text-gray-400 text-center">{t("Your account will be reviewed before going live.")}</p>
         </div>
       </div>
     </div>
@@ -90,5 +91,6 @@ function RegisterContent() {
 }
 
 export default function RegisterPage() {
+  const { t } = useLang();
   return <Suspense fallback={null}><RegisterContent /></Suspense>;
 }
