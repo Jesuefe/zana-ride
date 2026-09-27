@@ -1,5 +1,5 @@
 'use client';
-import { useLang } from '../lib/LangContext';
+import { useLang } from '../../lib/LangContext';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
