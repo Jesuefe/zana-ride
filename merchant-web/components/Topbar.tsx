@@ -1,26 +1,23 @@
+'use client';
+
 import { Bell } from 'lucide-react';
+import { ZanaWordmark } from './ZanaLogo';
 
 export default function Topbar({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="flex items-center justify-between px-8 py-5 border-b border-zana-border bg-zana-surface">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-        {subtitle && <p className="text-sm text-zana-muted mt-0.5">{subtitle}</p>}
+    <header className="mb-4 flex items-center justify-between border-b border-zana-border bg-background py-2">
+      <div className="min-w-0">
+        <ZanaWordmark size={25} color="#00A082" />
+        <h1 className="mt-1 truncate text-lg font-bold text-gray-900">{title}</h1>
+        {subtitle && <p className="truncate text-xs text-zana-muted">{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-4">
-        <button className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
-          <Bell size={16} />
-        </button>
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center text-sm font-semibold text-zana-primary-dark">
-            OA
-          </div>
-          <div className="text-sm">
-            <div className="font-medium text-gray-900">Ops Admin</div>
-            
-          </div>
-        </div>
-      </div>
-    </div>
+      <button
+        type="button"
+        aria-label="Notifications"
+        className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zana-primary-light text-zana-primary"
+      >
+        <Bell size={18} />
+      </button>
+    </header>
   );
 }
