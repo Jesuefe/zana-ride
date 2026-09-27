@@ -5,8 +5,10 @@ import { ArrowDownLeft, ArrowUpRight, Loader2, Check, X } from 'lucide-react';
 import Topbar from '../../components/Topbar';
 import { fetchWallet, ApiWallet } from '../../lib/api/merchant';
 import { api } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 export default function WalletPage() {
+  const { t } = useLang();
   const [wallet, setWallet] = useState<ApiWallet | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWithdraw, setShowWithdraw] = useState(false);
@@ -21,9 +23,9 @@ export default function WalletPage() {
 
   const handleWithdraw = async () => {
     const amt = Number(amount);
-    if (!amt || amt < 10000) { setError('Minimum withdrawal is 10,000 RWF'); return; }
-    if (amt > (wallet?.balance ?? 0)) { setError('Insufficient balance'); return; }
-    if (!phone.trim()) { setError('Enter your MoMo phone number'); return; }
+    if (!amt || amt < 10000) { setError('{t('Minimum withdrawal is 10,000 RWF')}'); return; }
+    if (amt > (wallet?.balance ?? 0)) { setError('{t('Insufficient balance')}'); return; }
+    if (!phone.trim()) { setError('{t('Enter your MoMo phone number')}'); return; }
     setWithdrawing(true); setError('');
     try {
       await api.post('/merchant/wallet/withdraw', { amount: amt, phone: `+250${phone.replace(/\D/g,'')}` });
@@ -31,17 +33,17 @@ export default function WalletPage() {
       setAmount(''); setPhone(''); setShowWithdraw(false);
       load();
     } catch (e: any) {
-      setError(e.message ?? 'Withdrawal failed');
+      setError(e.message ?? '{t('Withdrawal failed')}');
     } finally { setWithdrawing(false); }
   };
 
   return (
     <>
-      <Topbar title="Wallet" />
+      <Topbar title={t("Wallet")} />
       <div className="p-6 space-y-5 max-w-2xl">
         {/* Balance card */}
         <div className="bg-zana-primary-dark text-white rounded-2xl p-6">
-          <p className="text-white/60 text-sm">Available balance</p>
+          <p className="text-white/60 text-sm">{t('Available balance')}</p>
           <p className="text-4xl font-black mt-1">{loading ? '…' : (wallet?.balance ?? 0).toLocaleString()} RWF</p>
           <button
             onClick={() => setShowWithdraw(true)}
@@ -61,10 +63,10 @@ export default function WalletPage() {
         {/* Transactions */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">
-            <p className="font-bold text-gray-900">Transaction History</p>
+            <p className="font-bold text-gray-900">{t('Transaction History')}</p>
           </div>
           {!wallet?.transactions?.length ? (
-            <p className="text-sm text-gray-400 text-center py-8">No transactions yet.</p>
+            <p className="text-sm text-gray-400 text-center py-8">{t('No transactions yet.')}</p>
           ) : (
             <div className="divide-y divide-gray-50">
               {wallet.transactions.map((t: any) => (
@@ -93,7 +95,7 @@ export default function WalletPage() {
         <div className="fixed inset-0 z-50 flex items-end bg-black/50">
           <div className="w-full bg-white rounded-t-3xl p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="font-black text-lg text-gray-900">Withdraw Funds</h2>
+              <h2 className="font-black text-lg text-gray-900">{t('Withdraw Funds')}</h2>
               <button onClick={() => { setShowWithdraw(false); setError(''); }}>
                 <X size={20} className="text-gray-400" />
               </button>
@@ -103,13 +105,13 @@ export default function WalletPage() {
             </p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1.5">Amount (RWF)</label>
+                <label className="text-xs font-semibold text-gray-500 block mb-1.5">{t('Amount (RWF)')}</label>
                 <input value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g,''))}
                   placeholder="e.g. 5000" inputMode="numeric"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-zana-primary/30" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1.5">MoMo phone number</label>
+                <label className="text-xs font-semibold text-gray-500 block mb-1.5">{t('MoMo phone number')}</label>
                 <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3">
                   <span className="text-sm text-gray-500">+250</span>
                   <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g,''))}
@@ -120,7 +122,7 @@ export default function WalletPage() {
               {error && <p className="text-xs text-red-600">{error}</p>}
               <button onClick={handleWithdraw} disabled={withdrawing}
                 className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">
-                {withdrawing ? <><Loader2 size={16} className="animate-spin" /> Processing...</> : 'Withdraw'}
+                {withdrawing ? <><Loader2 size={16} className="animate-spin" /> {t('Processing...')}</> : 'Withdraw'}
               </button>
             </div>
           </div>
