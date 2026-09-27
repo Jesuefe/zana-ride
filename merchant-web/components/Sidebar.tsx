@@ -7,6 +7,7 @@ import { LayoutDashboard, PackagePlus, PackageSearch, Wallet, Package, ShoppingB
 import { clearToken } from '../lib/api/client';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../lib/ThemeContext';
+import LanguageSelector from './LanguageSelector';
 
 const merchantNav = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
@@ -57,6 +58,7 @@ export default function Sidebar() {
           );
         })}
       </nav>
+      <div className="px-4 pt-3 pb-1"><LanguageSelector /></div>
       <div className="px-4 pt-3 pb-1 border-t border-gray-800">
         <div className="flex rounded-lg overflow-hidden border border-gray-700">
           {([
