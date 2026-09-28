@@ -35,7 +35,7 @@ export default function AgentPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [purchaseFunds, setPurchaseFunds] = useState<any[]>([]);
   const [error, setError] = useState('');
-  const { lang } = useLang();
+  const { lang, setLang } = useLang();
 
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
@@ -224,7 +224,7 @@ export default function AgentPage() {
           <div><p className="text-xs text-gray-500">Market agent</p><h1 className="text-2xl font-black text-gray-900">{market?.name || 'Market'}</h1><p className="text-xs text-gray-500">{market?.address || 'Operational dashboard'}</p></div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={load} className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold flex items-center gap-2"><RefreshCw size={14}/> {t("Refresh",lang)}</button><select value={lang} onChange={e=>{const v=e.target.value as Lang;setLang(v);setStoredLang(v)}} className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold"><option value="en">English</option><option value="rw">Ikinyarwanda</option><option value="fr">Français</option></select>
+          <button onClick={load} className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold flex items-center gap-2"><RefreshCw size={14}/> {t("Refresh",lang)}</button><select value={lang} onChange={e=>{const v=e.target.value as any;setLang(v)}} className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold"><option value="en">English</option><option value="rw">Ikinyarwanda</option><option value="fr">Français</option></select>
           <div className="bg-white rounded-xl border border-gray-200 px-3 py-2"><span className="text-[10px] text-gray-400 block">{t("Agent wallet",lang)}</span><span className={"font-black text-sm "+(Number(wallet?.balance||0)<0?"text-red-600":"")}>{money(wallet?.balance)}</span></div>
         </div>
       </div>
