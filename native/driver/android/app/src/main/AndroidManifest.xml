@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -46,14 +47,12 @@
          which a browser cannot do. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Background location + foreground service permissions removed for
-         V1 — see lib/location.ts. A deliberate V2 addition, not an
-         oversight; re-adding needs its own Google Play background-location
-         review pass. -->
+    <!-- Explicitly block any library from injecting background/foreground
+         location permissions into the Driver V1 merged manifest. -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" tools:node="remove" />
 
-    <!-- Keeps tracking alive on devices with aggressive battery management -->
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Proof-of-handling photos at pickup and drop-off -->
     <uses-permission android:name="android.permission.CAMERA" />
