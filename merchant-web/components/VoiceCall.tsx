@@ -12,6 +12,10 @@ type CallState = 'ringing' | 'connecting' | 'connected' | 'ended';
 type Props = {
   context: 'trip' | 'delivery';
   contextId: string;
+  incomingCallId?: string;
+  incomingRoom?: string;
+  incomingWsUrl?: string;
+  incomingToken?: string;
   participantLabel: string;
   onClose: () => void;
 };
@@ -62,10 +66,10 @@ function startRingtone(): () => void {
   };
 }
 
-export default function VoiceCall({ context, contextId, participantLabel, onClose }: Props) {
+export default function VoiceCall({ context, contextId, incomingCallId, incomingRoom, incomingWsUrl, incomingToken, participantLabel, onClose }: Props) {
   const roomRef = useRef<Room | null>(null);
   const callIdRef = useRef<string | null>(null);
-  const [callState, setCallState] = useState<CallState>('ringing');
+  const [callState, setCallState] = useState<CallState>(incomingCallId ? 'connecting' : 'ringing');
   const [muted, setMuted] = useState(false);
   const [speakerOff, setSpeakerOff] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -83,9 +87,10 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
 
   // Start ringing immediately
   useEffect(() => {
+    if (incomingCallId) return;
     stopRingRef.current = startRingtone();
     return () => stopRingRef.current?.();
-  }, []);
+  }, [incomingCallId]);
 
   const startCall = useCallback(async () => {
     // Stop ring when connecting
@@ -98,9 +103,11 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
       // party over the socket. The old code skipped this step entirely and
       // called an endpoint that never existed, so the other side was never
       // actually notified a call was coming.
-      const created = await api.post<{
-        callId: string; token: string; roomName: string; wsUrl: string;
-      }>('/calls', { context, contextId });
+      const created = incomingCallId
+        ? { callId: incomingCallId, token: incomingToken!, roomName: incomingRoom!, wsUrl: incomingWsUrl! }
+        : await api.post<{
+            callId: string; token: string; roomName: string; wsUrl: string;
+          }>('/calls', { context, contextId });
 
       const { token, wsUrl, callId, roomName } = created;
       callIdRef.current = callId;
@@ -109,7 +116,7 @@ export default function VoiceCall({ context, contextId, participantLabel, onClos
       // to joining the LiveKit room — joining early just to sit alone in an
       // empty room wastes a connection and looks connected when it is not.
       const authToken = getToken();
-      if (authToken) {
+      if (authToken && !incomingCallId) {
         const socket = io(process.env.NEXT_PUBLIC_API_URL ?? 'https://zana.ajumalink.com', {
           auth: { token: authToken },
           transports: ['websocket'],
