@@ -85,6 +85,36 @@ export default function VoiceCall({ context, contextId, incomingCallId, incoming
   const mediaConnectedRef = useRef(false);
   const remotePeerMediaReadyRef = useRef(false);
 
+  const markMediaReady = useCallback(() => {
+    const callId = callIdRef.current;
+    if (mediaConnectedRef.current || !localMediaReadyRef.current || !remoteAudioReadyRef.current || !remotePeerMediaReadyRef.current) return;
+    mediaConnectedRef.current = true;
+    setCallState('connected');
+    if (!timerRef.current) timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+    if (callId) api.post('/calls/' + callId + '/connected').catch(() => {});
+  }, []);
+
+  const tryPlayRemoteAudio = useCallback(async () => {
+    let played = false;
+    try {
+      roomRef.current?.remoteParticipants.forEach((participant) => {
+        participant.trackPublications.forEach((publication) => {
+          if (publication.kind === Track.Kind.Audio && publication.track) {
+            const el = publication.track.attach() as HTMLAudioElement;
+            el.autoplay = true;
+            el.muted = false;
+            el.volume = 1;
+            el.setAttribute('playsinline', '');
+            if (!document.body.contains(el)) document.body.appendChild(el);
+            void el.play().then(() => setAudioBlocked(false)).catch(() => {});
+            played = true;
+          }
+        });
+      });
+    } catch {}
+    return played;
+  }, []);
+
   // Start ringing immediately
   useEffect(() => {
     if (incomingCallId) return;
