@@ -1,9 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import ZanaSplash from './ZanaSplash';
 
-export default function SplashGate({ role }: { role: 'merchant' | 'agent' }) {
+export default function SplashGate() {
+  const pathname = usePathname();
+  const role = pathname.startsWith('/agent') ? 'agent' : 'merchant';
   const [show, setShow] = useState(false);
 
   useEffect(() => {
