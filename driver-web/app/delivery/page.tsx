@@ -12,6 +12,9 @@ import { watchPosition, Coords } from '../../lib/location';
 import { updateDriverLocation } from '../../lib/api/driver';
 import { Browser } from '@capacitor/browser';
 import { useLang } from '../../lib/LangContext';
+import { io } from 'socket.io-client';
+import { getToken } from '../../lib/api/client';
+import VoiceCall from '../../components/VoiceCall';
 
 // Straight-line distance in meters — same small, self-contained pattern
 // already used in a few other files in this app rather than a shared
@@ -70,6 +73,32 @@ function ActiveDeliveryContent() {
   const [photoNote, setPhotoNote] = useState('');
   const [actionError, setActionError] = useState('');
   const [arrivalRadiusM, setArrivalRadiusM] = useState(DEFAULT_ARRIVAL_RADIUS_M);
+  const [incomingCall, setIncomingCall] = useState<any | null>(null);
+  const [showCall, setShowCall] = useState(false);
+
+  // Delivery voice calls: listen while this delivery is open so an Agent
+  // can reach the driver immediately. The call service authenticates the
+  // socket with the driver's JWT and the backend verifies the delivery
+  // participant before accepting the call.
+  useEffect(() => {
+    const token = getToken();
+    if (!token || !delivery?.id) return;
+    const socket = io(process.env.NEXT_PUBLIC_API_URL ?? 'https://zana.ajumalink.com', {
+      auth: { token },
+      transports: ['websocket'],
+    });
+    socket.on('call:incoming', (data: any) => {
+      if (data?.context !== 'delivery' || data?.contextId !== delivery.id) return;
+      setIncomingCall(data);
+    });
+    socket.on('call:cancelled', (data: any) => {
+      if (data?.callId === incomingCall?.callId) setIncomingCall(null);
+    });
+    socket.on('call:ended', (data: any) => {
+      if (data?.callId === incomingCall?.callId) { setIncomingCall(null); setShowCall(false); }
+    });
+    return () => socket.disconnect();
+  }, [delivery?.id, incomingCall?.callId]);
 
   // Fetched once on load — if this ever fails, the hardcoded default above
   // keeps the safety check working exactly as before, just not tunable
@@ -414,7 +443,10 @@ function ActiveDeliveryContent() {
                 <p className="font-semibold text-gray-900">{delivery.pickupContactName || dt('Pickup person')}</p>
                 <p className="text-xs text-gray-600 mt-0.5">{delivery.pickupPhone}</p>
               </div>
-              <a href={'tel:' + delivery.pickupPhone} className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center" aria-label={dt('Call pickup contact')}><Phone size={16} className="text-green-600" /></a>
+              <div className="flex gap-2">
+                <a href={'tel:' + delivery.pickupPhone} className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center" aria-label={dt('Call pickup contact')}><Phone size={16} className="text-green-600" /></a>
+                <button type="button" onClick={() => setShowCall(true)} className="w-10 h-10 rounded-full bg-zana-primary text-white flex items-center justify-center" aria-label={dt('Call with Zana')}><Phone size={16} /></button>
+              </div>
             </div>
           )}
 
@@ -480,6 +512,31 @@ function ActiveDeliveryContent() {
           )}
         </div>
       </div>
+
+      {incomingCall && !showCall && (
+        <div className="fixed inset-0 z-[80] bg-black/60 flex items-end justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl p-5 shadow-2xl">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Incoming Zana call</p>
+            <p className="text-2xl font-black text-gray-900 mt-1">{incomingCall.callerName || dt('Market Agent')}</p>
+            <p className="text-sm text-gray-500 mt-1">{dt('Calling about this delivery')}</p>
+            <div className="grid grid-cols-2 gap-3 mt-5">
+              <button onClick={async () => { await api.post('/calls/' + incomingCall.callId + '/decline').catch(() => {}); setIncomingCall(null); }} className="py-3.5 rounded-2xl bg-gray-100 text-gray-900 font-bold">{dt('Decline')}</button>
+              <button onClick={async () => { try { const res = await api.post<any>('/calls/' + incomingCall.callId + '/accept'); setIncomingCall((prev:any) => prev ? { ...prev, roomName: res.roomName, wsUrl: res.wsUrl, token: res.token } : null); setShowCall(true); } catch { setIncomingCall(null); } }} className="py-3.5 rounded-2xl bg-zana-primary text-white font-bold">{dt('Answer')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showCall && incomingCall && incomingCall.token && (
+        <VoiceCall
+          incomingCallId={incomingCall.callId}
+          roomName={incomingCall.roomName}
+          wsUrl={incomingCall.wsUrl}
+          token={incomingCall.token}
+          participantLabel={incomingCall.callerName || dt('Market Agent')}
+          onClose={() => { setShowCall(false); setIncomingCall(null); }}
+        />
+      )}
+
       <DriverBottomNav />
     </div>
   );
