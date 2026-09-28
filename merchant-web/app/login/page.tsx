@@ -11,8 +11,8 @@ import { ApiError } from '../../lib/api/client';
 export default function LoginPage() { const {t}=useLang();
   const router = useRouter();
   const [email, setEmail] = useState('');
-  const [password, set{t("Password")}] = useState('');
-  const [show{t("Password")}, setShow{t("Password")}] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,16 +84,16 @@ export default function LoginPage() { const {t}=useLang();
               <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-zana-primary/30 focus-within:border-zana-primary transition-all">
                 <Lock size={16} className="text-gray-400 shrink-0" />
                 <input
-                  type={show{t("Password")} ? 'text' : 'password'}
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={e => set{t("Password")}(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleLogin()}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   className="flex-1 text-sm outline-none bg-transparent"
                 />
-                <button onClick={() => setShow{t("Password")}(v => !v)} className="text-gray-400 hover:text-gray-600">
-                  {show{t("Password")} ? <EyeOff size={15} /> : <Eye size={15} />}
+                <button onClick={() => setShowPassword(v => !v)} className="text-gray-400 hover:text-gray-600">
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
@@ -111,7 +111,7 @@ export default function LoginPage() { const {t}=useLang();
             className="w-full mt-5 bg-zana-primary text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 hover:bg-zana-primary-dark transition-colors"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-            {loading ? 'Signing in…' : '{t("Sign in")}'}
+            {loading ? 'Signing in…' : t("Sign in")}}
           </button>
 
           <div className="flex flex-col gap-1 mt-3 items-center">
