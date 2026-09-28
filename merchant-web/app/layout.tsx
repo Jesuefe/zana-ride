@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </head>
       <body className="h-full overflow-x-hidden">
-        <SplashGate role="merchant" />
+        <SplashGate />
         <AuthGuard>
           <LangProvider><ThemeProvider>{children}</ThemeProvider></LangProvider><OrderAlarm />
         </AuthGuard>
