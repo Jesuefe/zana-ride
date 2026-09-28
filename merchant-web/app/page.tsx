@@ -59,7 +59,7 @@ export default function OverviewPage() {
           fetchMyMerchant(),
           fetchDeliveries(),
           fetchWallet(),
-          fetchMy{t("Orders")}().catch(() => []),
+          fetchMyOrders().catch(() => []),
         ]);
         setMerchant(m);
         setDeliveries(d);
@@ -98,7 +98,7 @@ export default function OverviewPage() {
         try {
           await api.patch('/merchant/branding',
             kind === 'logo' ? { logoBase64: base64 } : { coverBase64: base64 });
-          setBrandingNote(kind === 'logo' ? '{t("Logo")} updated' : '{t("Storefront photo")} updated');
+          setBrandingNote(kind === 'logo' ? t('Logo') + ' updated' : t('Storefront photo') + ' updated');
           fetchMyMerchant().then(setMerchant).catch(() => {});
         } catch {
           setBrandingNote('Upload failed. Try a smaller image.');
@@ -255,10 +255,10 @@ export default function OverviewPage() {
           <ShoppingBag size={18} className="text-amber-500" />
           <div className="flex-1">
             <p className="font-semibold text-sm text-gray-900">{t("Orders")}</p>
-            <p className="text-xs text-gray-500">{pending{t("Orders")} > 0 ? `${pending{t("Orders")}} pending` : 'View all orders'}</p>
+            <p className="text-xs text-gray-500">{pendingOrders > 0 ? `${pendingOrders} pending` : 'View all orders'}</p>
           </div>
-          {pending{t("Orders")} > 0 && (
-            <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center">{pending{t("Orders")}}</span>
+          {pendingOrders > 0 && (
+            <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center">{pendingOrders}</span>
           )}
         </Link>
       </div>
