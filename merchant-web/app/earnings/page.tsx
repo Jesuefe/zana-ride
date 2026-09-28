@@ -2,11 +2,13 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ReceiptText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { fetchMerchant{t("Earnings")}, Merchant{t("Earnings")}, fetchWallet } from '../../lib/api/merchant';
+import { useLang } from '../../lib/LangContext';
+import { fetchMerchantEarnings, MerchantEarnings, fetchWallet } from '../../lib/api/merchant';
 const money = (n: number) => n.toLocaleString() + ' RWF';
-export default function Merchant{t("Earnings")}Page() {
-  const router = useRouter(); const [data,setData]=useState<Merchant{t("Earnings")}|null>(null); const [wallet,setWallet]=useState<number|null>(null); const [loading,setLoading]=useState(true);
-  useEffect(()=>{ Promise.all([fetchMerchant{t("Earnings")}(),fetchWallet()]).then(([e,w])=>{setData(e);setWallet(w.balance);}).finally(()=>setLoading(false)); },[]);
+export default function MerchantEarningsPage() {
+  const { t } = useLang();
+  const router = useRouter(); const [data,setData]=useState<MerchantEarnings|null>(null); const [wallet,setWallet]=useState<number|null>(null); const [loading,setLoading]=useState(true);
+  useEffect(()=>{ Promise.all([fetchMerchantEarnings(),fetchWallet()]).then(([e,w])=>{setData(e);setWallet(w.balance);}).finally(()=>setLoading(false)); },[]);
   return <div className="p-4 pb-24 max-w-2xl mx-auto">
     <div className="flex items-center gap-3 mb-5"><button onClick={()=>router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><ArrowLeft size={18}/></button><div><h1 className="text-xl font-black">{t("Earnings")}</h1><p className="text-xs text-gray-500">{t("Your merchant settlement ledger")}</p></div></div>
     {loading ? <p className="text-center py-10 text-sm text-gray-500">{t("Loading…")}</p> : !data ? <p className="text-center py-10 text-sm text-red-600">{t("Could not load earnings.")}</p> : <><div className="bg-zana-primary rounded-2xl p-5 text-white mb-4"><p className="text-xs text-white/70">{t("Withdrawable wallet balance")}</p><p className="text-3xl font-black mt-1">{money(wallet ?? 0)}</p><div className="grid grid-cols-2 gap-3 mt-4"><div><p className="text-[11px] text-white/60">{t("Settled merchant earnings")}</p><p className="font-bold">{money(data.totalNet)}</p></div><div><p className="text-[11px] text-white/60">{t("Zana commission")}</p><p className="font-bold">{money(data.totalCommission)}</p></div></div></div>
