@@ -91,6 +91,21 @@ jobs:
             -PZANA_KEY_ALIAS='${{ secrets.ANDROID_KEY_ALIAS }}' \
             -PZANA_KEY_PASSWORD='${{ secrets.ANDROID_KEY_PASSWORD }}'
 
+      - name: Verify Driver manifest has no foreground/background location permissions
+        if: matrix.app.dir == 'driver'
+        working-directory: native/driver/android
+        run: |
+          MANIFEST="app/build/intermediates/merged_manifests/release/processReleaseManifest/merged-manifest.xml"
+          if [ ! -f "$MANIFEST" ]; then
+            echo "Merged manifest not found: $MANIFEST"
+            exit 1
+          fi
+          if grep -E -n 'FOREGROUND_SERVICE|ACCESS_BACKGROUND_LOCATION|foregroundServiceType' "$MANIFEST"; then
+            echo "ERROR: Driver release manifest still contains a foreground/background location declaration."
+            exit 1
+          fi
+          echo "OK: Driver release manifest contains no foreground-service or background-location declarations."
+
       - name: Collect
         run: |
           mkdir -p out
