@@ -12,6 +12,7 @@ import {
   resolveLocationCode,
 } from '../../lib/api/merchant';
 import { ApiError } from '../../lib/api/client';
+import { useLang } from '../../lib/LangContext';
 
 type Point = { lat: number; lng: number; address: string } | null;
 
@@ -48,8 +49,8 @@ export default function NewDeliveryPage() { const {t}=useLang();
   const [codeError, setCodeError] = useState<string | null>(null);
   const [resolvingCode, setResolvingCode] = useState(false);
 
-  const [receiverName, set{t("Receiver")}Name] = useState('');
-  const [receiverPhone, set{t("Receiver")}Phone] = useState('');
+  const [receiverName, setReceiverName] = useState('');
+  const [receiverPhone, setReceiverPhone] = useState('');
 
   const [quote, setQuote] = useState<{ fee: number; distanceKm: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -188,8 +189,8 @@ export default function NewDeliveryPage() { const {t}=useLang();
     setImageBase64(null);
     setDropoff(null);
     setCodeInput('');
-    set{t("Receiver")}Name('');
-    set{t("Receiver")}Phone('');
+    setReceiverName('');
+    setReceiverPhone('');
     setQuote(null);
     setSuccess(false);
   };
@@ -366,7 +367,7 @@ export default function NewDeliveryPage() { const {t}=useLang();
         <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t("Receiver")}</label>
         <input
           value={receiverName}
-          onChange={(e) => set{t("Receiver")}Name(e.target.value)}
+          onChange={(e) => setReceiverName(e.target.value)}
           placeholder="Customer's name (optional)"
           className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
         />
@@ -374,7 +375,7 @@ export default function NewDeliveryPage() { const {t}=useLang();
           <div className="border border-gray-200 rounded-lg px-3 flex items-center text-sm">+250</div>
           <input
             value={receiverPhone}
-            onChange={(e) => set{t("Receiver")}Phone(e.target.value.replace(/\D/g, '').slice(0, 9))}
+            onChange={(e) => setReceiverPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
             placeholder="788 123 456"
             inputMode="numeric"
             className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
