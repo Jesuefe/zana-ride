@@ -15,8 +15,6 @@ dependencies {
     implementation project(':capacitor-app')
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-status-bar')
-    implementation project(':capacitor-community-background-geolocation')
-
 }
 
 
