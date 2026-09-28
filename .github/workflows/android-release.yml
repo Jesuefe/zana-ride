@@ -95,17 +95,22 @@ jobs:
         if: matrix.app.dir == 'driver'
         working-directory: native/driver/android
         run: |
-          MANIFEST="app/build/intermediates/merged_manifests/release/processReleaseManifest/merged-manifest.xml"
-          if [ ! -f "$MANIFEST" ]; then
-            echo "Merged manifest not found: $MANIFEST"
+          echo "Locating merged Driver release manifests..."
+          mapfile -t MANIFESTS < <(find app/build/intermediates -type f \( -name 'merged-manifest.xml' -o -name 'AndroidManifest.xml' \) | sort)
+          if [ "${#MANIFESTS[@]}" -eq 0 ]; then
+            echo "ERROR: No merged Android manifest was produced."
+            find app/build/intermediates -maxdepth 5 -type f | head -200 || true
             exit 1
           fi
-          if grep -E -n 'FOREGROUND_SERVICE|ACCESS_BACKGROUND_LOCATION|foregroundServiceType' "$MANIFEST"; then
-            echo "ERROR: Driver release manifest still contains a foreground/background location declaration."
-            exit 1
-          fi
-          echo "OK: Driver release manifest contains no foreground-service or background-location declarations."
-
+          printf 'Found manifests:\n%s\n' "${MANIFESTS[@]}"
+          for MANIFEST in "${MANIFESTS[@]}"; do
+            echo "Checking $MANIFEST"
+            if grep -E -n 'FOREGROUND_SERVICE|ACCESS_BACKGROUND_LOCATION|foregroundServiceType' "$MANIFEST"; then
+              echo "ERROR: Driver release manifest contains a foreground-service or background-location declaration: $MANIFEST"
+              exit 1
+            fi
+          done
+          echo "OK: Driver build manifests contain no foreground-service or background-location declarations."
       - name: Collect
         run: |
           mkdir -p out
