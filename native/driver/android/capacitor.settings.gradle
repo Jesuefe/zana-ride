@@ -19,6 +19,3 @@ project(':capacitor-haptics').projectDir = new File('../node_modules/@capacitor/
 
 include ':capacitor-status-bar'
 project(':capacitor-status-bar').projectDir = new File('../node_modules/@capacitor/status-bar/android')
-
-include ':capacitor-community-background-geolocation'
-project(':capacitor-community-background-geolocation').projectDir = new File('../node_modules/@capacitor-community/background-geolocation/android')
