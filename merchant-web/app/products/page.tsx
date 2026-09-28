@@ -64,7 +64,7 @@ export default function ProductsPage() { const {t}=useLang();
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-900"{t('My Products')}</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('My Products')}</h1>
           <p className="text-sm text-gray-500 mt-0.5">{t("New products go to admin for approval before they're visible.")}</p>
         </div>
         <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm"><Plus size={15} /> Add Product</button>
@@ -72,7 +72,7 @@ export default function ProductsPage() { const {t}=useLang();
 
       {showForm && (
         <div className="bg-white rounded-xl p-5 shadow-sm mb-5">
-          <h2 className="font-semibold text-gray-900 mb-3"{t('New Product')}</h2>
+          <h2 className="font-semibold text-gray-900 mb-3">{t('New Product')}</h2>
           <div className="space-y-3">
             <input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder={t('Product name')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
             <textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))} placeholder={t('Description (optional)')} rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none" />
@@ -91,7 +91,7 @@ export default function ProductsPage() { const {t}=useLang();
             ) : (
               <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl py-5 cursor-pointer">
                 <Camera size={18} className="text-gray-400" />
-                <span className="text-sm text-gray-500"{t('Add product photo')}</span>
+                <span className="text-sm text-gray-500">{t('Add product photo')}</span>
                 <input type="file" accept="image/*" onChange={handleImage} className="hidden" />
               </label>
             )}
@@ -99,7 +99,7 @@ export default function ProductsPage() { const {t}=useLang();
           {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
           <div className="flex gap-2 mt-3">
             <button onClick={handleCreate} disabled={saving || !form.name || !form.price} className="bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-40">{saving ? t('Submitting…') : t('Submit for Review')}</button>
-            <button onClick={() => setShowForm(false)} className="border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm"{t('Cancel')}</button>
+            <button onClick={() => setShowForm(false)} className="border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm">{t('Cancel')}</button>
           </div>
         </div>
       )}
@@ -122,7 +122,7 @@ export default function ProductsPage() { const {t}=useLang();
             </button>
           </div>
         ))}
-        {products.length === 0 && <p className="text-sm text-gray-500 text-center py-10"{t('No products yet. Add your first one!')}</p>}
+        {products.length === 0 && <p className="text-sm text-gray-500 text-center py-10">{t('No products yet. Add your first one!')}</p>}
       </div>
     </div>
   );
