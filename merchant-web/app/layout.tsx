@@ -4,6 +4,7 @@ import { LangProvider } from '../lib/LangContext';
 import OrderAlarm from '../components/OrderAlarm';
 import "./globals.css";
 import AuthGuard from "../components/AuthGuard";
+import SplashGate from "../components/SplashGate";
 
 export const metadata: Metadata = {
   title: "Zana Business",
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </head>
       <body className="h-full overflow-x-hidden">
+        <SplashGate />
         <AuthGuard>
           <LangProvider><ThemeProvider>{children}</ThemeProvider></LangProvider><OrderAlarm />
         </AuthGuard>

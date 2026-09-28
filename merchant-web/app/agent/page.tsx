@@ -8,6 +8,7 @@ import {
 import { api } from '../../lib/api/client';
 import { requestAgentPriceChange, fetchAgentEarnings } from '../../lib/api/merchant';
 import VoiceCall from '../../components/VoiceCall';
+import MerchantBottomNav from '../../components/MerchantBottomNav';
 import { t } from '../../lib/lang';
 import { useLang } from '../../lib/LangContext';
 
@@ -197,7 +198,7 @@ export default function AgentPage() {
   if (error && !market) return <div className="p-8"><p className="text-sm text-red-600">{error}</p><p className="text-xs text-gray-500 mt-2">This account is not set up as a market agent.</p></div>;
 
   return (
-    <div className="max-w-7xl mx-auto pb-12">
+    <div className="max-w-7xl mx-auto pb-28">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-zana-primary/10 flex items-center justify-center"><Store size={22} className="text-zana-primary" /></div>
@@ -253,6 +254,7 @@ export default function AgentPage() {
       {selected && <OrderDetail order={selected} fund={fundFor(selected.id)} onClose={()=>setSelected(null)} onUnavailable={unavailable} onCall={(d:any)=>setCall({contextId:d.id,name:d.driver?.user?.firstName||'Rider'})} onWithdraw={withdraw} busy={busy} lang={lang}/>}
       {loadingDetail && <div className="fixed inset-0 z-40 bg-black/20 flex items-center justify-center"><div className="bg-white rounded-2xl px-5 py-4 text-sm font-bold">Loading order…</div></div>}
       {call && <VoiceCall context="delivery" contextId={call.contextId} participantLabel={call.name} onClose={()=>setCall(null)}/>}
+      <MerchantBottomNav />
     </div>
   );
 }
