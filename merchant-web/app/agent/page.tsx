@@ -8,9 +8,10 @@ import {
 import { api } from '../../lib/api/client';
 import { requestAgentPriceChange, fetchAgentEarnings } from '../../lib/api/merchant';
 import VoiceCall from '../../components/VoiceCall';
-import MerchantBottomNav from '../../components/MerchantBottomNav';
 import { t } from '../../lib/lang';
 import { useLang } from '../../lib/LangContext';
+import { io } from 'socket.io-client';
+import { getToken } from '../../lib/api/client';
 
 const money = (n: any) => Number(n || 0).toLocaleString() + ' RWF';
 const label = (s: string) => (s || '').replace(/_/g, ' ');
@@ -29,6 +30,8 @@ export default function AgentPage() {
   const [selected, setSelected] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [call, setCall] = useState<any>(null);
+  const [incomingCall, setIncomingCall] = useState<any>(null);
+  const [showIncomingCall, setShowIncomingCall] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [purchaseFunds, setPurchaseFunds] = useState<any[]>([]);
   const [error, setError] = useState('');
@@ -70,6 +73,22 @@ export default function AgentPage() {
     }, 10000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    const socket = io(process.env.NEXT_PUBLIC_API_URL ?? 'https://zana.ajumalink.com', { auth: { token }, transports: ['websocket'] });
+    socket.on('call:incoming', (data: any) => {
+      if (data?.context === 'delivery') setIncomingCall(data);
+    });
+    socket.on('call:cancelled', (data: any) => {
+      if (data?.callId === incomingCall?.callId) setIncomingCall(null);
+    });
+    socket.on('call:ended', (data: any) => {
+      if (data?.callId === incomingCall?.callId) { setIncomingCall(null); setShowIncomingCall(false); }
+    });
+    return () => socket.disconnect();
+  }, [incomingCall?.callId]);
 
   const active = useMemo(() => orders.filter(o => activeStatuses.includes(o.status)), [orders]);
   const shopping = active.filter(o => o.status === 'PREPARING');
@@ -198,7 +217,7 @@ export default function AgentPage() {
   if (error && !market) return <div className="p-8"><p className="text-sm text-red-600">{error}</p><p className="text-xs text-gray-500 mt-2">This account is not set up as a market agent.</p></div>;
 
   return (
-    <div className="max-w-7xl mx-auto pb-28">
+    <div className="max-w-7xl mx-auto pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-zana-primary/10 flex items-center justify-center"><Store size={22} className="text-zana-primary" /></div>
@@ -254,7 +273,31 @@ export default function AgentPage() {
       {selected && <OrderDetail order={selected} fund={fundFor(selected.id)} onClose={()=>setSelected(null)} onUnavailable={unavailable} onCall={(d:any)=>setCall({contextId:d.id,name:d.driver?.user?.firstName||'Rider'})} onWithdraw={withdraw} busy={busy} lang={lang}/>}
       {loadingDetail && <div className="fixed inset-0 z-40 bg-black/20 flex items-center justify-center"><div className="bg-white rounded-2xl px-5 py-4 text-sm font-bold">Loading order…</div></div>}
       {call && <VoiceCall context="delivery" contextId={call.contextId} participantLabel={call.name} onClose={()=>setCall(null)}/>}
-      <MerchantBottomNav />
+      {incomingCall && !showIncomingCall && (
+        <div className="fixed inset-0 z-[80] bg-black/60 flex items-end justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl p-5 shadow-2xl">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">{t('Incoming Zana call', lang)}</p>
+            <p className="text-2xl font-black text-gray-900 mt-1">{incomingCall.callerName || t('Zana Driver', lang)}</p>
+            <p className="text-sm text-gray-500 mt-1">{t('Calling about a delivery', lang)}</p>
+            <div className="grid grid-cols-2 gap-3 mt-5">
+              <button onClick={async () => { await api.post('/calls/' + incomingCall.callId + '/decline').catch(() => {}); setIncomingCall(null); }} className="py-3.5 rounded-2xl bg-gray-100 text-gray-900 font-bold">{t('Decline', lang)}</button>
+              <button onClick={async () => { try { const res = await api.post<any>('/calls/' + incomingCall.callId + '/accept'); setIncomingCall((prev:any) => prev ? { ...prev, roomName: res.roomName, wsUrl: res.wsUrl, token: res.token } : null); setShowIncomingCall(true); } catch { setIncomingCall(null); } }} className="py-3.5 rounded-2xl bg-zana-primary text-white font-bold">{t('Answer', lang)}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showIncomingCall && incomingCall?.token && (
+        <VoiceCall
+          context="delivery"
+          contextId={incomingCall.contextId}
+          incomingCallId={incomingCall.callId}
+          incomingRoom={incomingCall.roomName}
+          incomingWsUrl={incomingCall.wsUrl}
+          incomingToken={incomingCall.token}
+          participantLabel={incomingCall.callerName || t('Zana Driver', lang)}
+          onClose={() => { setShowIncomingCall(false); setIncomingCall(null); }}
+        />
+      )}
     </div>
   );
 }
