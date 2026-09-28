@@ -7,6 +7,7 @@ import { Loader2, Store } from 'lucide-react';
 import { api } from '../../lib/api/client';
 
 function RegisterContent() {
+  const { t } = useLang();
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get('token') ?? '';
