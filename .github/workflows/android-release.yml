@@ -15,6 +15,14 @@ name: Build Android release (AAB)
 on:
   workflow_dispatch:
     inputs:
+      app:
+        description: 'Which Android app should be built?'
+        required: true
+        type: choice
+        options:
+          - driver
+          - customer
+        default: driver
       versionName:
         description: 'Version name, e.g. 1.0.0'
         required: true
@@ -27,13 +35,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        app:
-          - { dir: driver,   name: zana-driver }
-          - { dir: customer, name: zana-customer }
 
     steps:
       - uses: actions/checkout@v4
@@ -48,11 +49,11 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        working-directory: native/${{ matrix.app.dir }}
+        working-directory: native/${{ inputs.app }}
         run: npm install
 
       - name: Sync Capacitor
-        working-directory: native/${{ matrix.app.dir }}
+        working-directory: native/${{ inputs.app }}
         run: npx cap sync android
 
       - name: Validate release version
@@ -62,10 +63,10 @@ jobs:
           case "${{ inputs.versionCode }}" in
             ''|*[!0-9]*) echo "versionCode must be a positive integer"; exit 1 ;;
           esac
-          echo "Building versionName=${{ inputs.versionName }} versionCode=${{ inputs.versionCode }}"
+          echo "Building app=${{ inputs.app }} versionName=${{ inputs.versionName }} versionCode=${{ inputs.versionCode }}"
 
       - name: Set version
-        working-directory: native/${{ matrix.app.dir }}/android
+        working-directory: native/${{ inputs.app }}/android
         run: |
           chmod +x gradlew
           ./gradlew help --no-daemon \
@@ -73,14 +74,15 @@ jobs:
             -PZANA_VERSION_NAME='${{ inputs.versionName }}' \
             >/tmp/gradle-version-check.log
           grep -E "versionCode|versionName" app/build.gradle || true
+
       - name: Restore keystore
-        working-directory: native/${{ matrix.app.dir }}/android
+        working-directory: native/${{ inputs.app }}/android
         env:
           KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: echo "$KEYSTORE" | base64 --decode > app/zana.jks
 
       - name: Build signed bundle
-        working-directory: native/${{ matrix.app.dir }}/android
+        working-directory: native/${{ inputs.app }}/android
         run: |
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon \
@@ -92,7 +94,7 @@ jobs:
             -PZANA_KEY_PASSWORD='${{ secrets.ANDROID_KEY_PASSWORD }}'
 
       - name: Verify Driver manifest has no foreground/background location permissions
-        if: matrix.app.dir == 'driver'
+        if: inputs.app == 'driver'
         working-directory: native/driver/android
         run: |
           echo "Locating merged Driver release manifests..."
@@ -111,19 +113,20 @@ jobs:
             fi
           done
           echo "OK: Driver build manifests contain no foreground-service or background-location declarations."
+
       - name: Collect
         run: |
           mkdir -p out
-          cp native/${{ matrix.app.dir }}/android/app/build/outputs/bundle/release/app-release.aab \
-             out/${{ matrix.app.name }}-${{ inputs.versionName }}.aab
+          cp native/${{ inputs.app }}/android/app/build/outputs/bundle/release/app-release.aab \
+             out/zana-${{ inputs.app }}-${{ inputs.versionName }}.aab
 
       - name: Remove keystore
         if: always()
-        run: rm -f native/${{ matrix.app.dir }}/android/app/zana.jks
+        run: rm -f native/${{ inputs.app }}/android/app/zana.jks
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.app.name }}-aab
+          name: zana-${{ inputs.app }}-aab
           path: out/*.aab
           retention-days: 30
