@@ -7,9 +7,9 @@ import { useLang } from '../../lib/LangContext';
 // Merchant only handles: PENDING → CONFIRMED → PREPARING → READY_FOR_PICKUP
 // After READY_FOR_PICKUP, Zana dispatches a driver automatically
 const MERCHANT_NEXT: Record<string, { label: string; next: string }> = {
-  PENDING:     { label: t('Confirm order'), next: 'CONFIRMED' },
-  CONFIRMED:   { label: t('Start preparing'), next: 'PREPARING' },
-  PREPARING:   { label: t('Ready for pickup'), next: 'READY_FOR_PICKUP' },
+  PENDING:     { label: 'Confirm order', next: 'CONFIRMED' },
+  CONFIRMED:   { label: 'Start preparing', next: 'PREPARING' },
+  PREPARING:   { label: 'Ready for pickup', next: 'READY_FOR_PICKUP' },
 };
 
 const STATUS_STYLE: Record<string, string> = {
@@ -65,13 +65,13 @@ export default function OrdersPage() { const {t}=useLang();
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-xl font-bold text-gray-900"{t('Orders')}</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t('Orders')}</h1>
         <div className="flex gap-2">
           {[['active','Active'],['done','Done'],['all','All']].map(([val,label]) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`text-xs px-3 py-1.5 rounded-lg font-semibold border transition-colors ${
                 filter === val ? 'bg-zana-primary text-white border-zana-primary' : 'bg-white text-gray-600 border-gray-200'
-              }`}{t(label)}</button>
+              }`}>{t(label)}</button>
           ))}
         </div>
       </div>
@@ -164,8 +164,8 @@ export default function OrdersPage() { const {t}=useLang();
                     <Truck size={14} className="text-cyan-600 shrink-0" />
                     <p className="text-xs text-cyan-700 font-semibold">
                       {o.status === 'READY_FOR_PICKUP'
-                        ? '{t('A Zana driver has been dispatched to collect this order.')}'
-                        : '{t('Driver is delivering to your customer.')}'}
+                        ? t('A Zana driver has been dispatched to collect this order.')
+                        : t('Driver is delivering to your customer.')}
                     </p>
                   </div>
                 )}
@@ -180,7 +180,7 @@ export default function OrdersPage() { const {t}=useLang();
                     {advancing === o.id ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                      <><ChevronRight size={15} /> {action.label}</>
+                      <><ChevronRight size={15} /> {t(action.label)}</>
                     )}
                   </button>
                 )}
