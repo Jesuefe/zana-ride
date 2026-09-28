@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useLang } from '../lib/LangContext';
-import { ZanaMark } from '../components/Zana{t("Logo")}';
+import { ZanaMark } from '../components/ZanaLogo';
 import Link from 'next/link';
 import { Package, Truck, Wallet, ShoppingBag, Plus, TrendingUp } from 'lucide-react';
 import Topbar from '../components/Topbar';
-import { fetchMyMerchant, fetchDeliveries, fetchWallet, fetchMy{t("Orders")}, ApiMerchant, ApiDelivery } from '../lib/api/merchant';
+import { fetchMyMerchant, fetchDeliveries, fetchWallet, fetchMyOrders, ApiMerchant, ApiDelivery } from '../lib/api/merchant';
 import { ApiError, api } from '../lib/api/client';
 import { useRouter } from 'next/navigation';
 
@@ -16,7 +16,7 @@ export default function OverviewPage() {
   const [brandingNote, setBrandingNote] = useState('');
   const [merchant, setMerchant] = useState<ApiMerchant | null>(null);
   const [deliveries, setDeliveries] = useState<ApiDelivery[]>([]);
-  const [orders, set{t("Orders")}] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +64,7 @@ export default function OverviewPage() {
         setMerchant(m);
         setDeliveries(d);
         setWalletBalance(w.balance);
-        set{t("Orders")}(o);
+        setOrders(o);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
       } finally {
@@ -73,7 +73,7 @@ export default function OverviewPage() {
     })();
   }, []);
 
-  const pending{t("Orders")} = orders.filter(o => o.status === 'PENDING').length;
+  const pendingOrders = orders.filter(o => o.status === 'PENDING').length;
   const activeDeliveries = deliveries.filter(d => ['REQUESTED','COURIER_ASSIGNED','PICKED_UP'].includes(d.status)).length;
 
   // Storefront imagery. Compressed client-side because merchants photograph
@@ -136,7 +136,7 @@ export default function OverviewPage() {
           <label className="flex-1 cursor-pointer">
             <div className="border-2 border-dashed border-gray-200 rounded-xl h-24 flex flex-col items-center justify-center gap-1 overflow-hidden">
               {(merchant as any)?.logoUrl ? (
-                <img src={(merchant as any).logoUrl} alt="{t("Logo")}" className="w-full h-full object-cover" />
+                <img src={(merchant as any).logoUrl} alt="Logo" className="w-full h-full object-cover" />
               ) : (
                 <>
                   <Plus size={16} className="text-gray-400" />
@@ -202,7 +202,7 @@ export default function OverviewPage() {
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <ShoppingBag size={18} className="text-amber-500 mb-2" />
-          <p className="text-2xl font-bold text-gray-900">{pending{t("Orders")}}</p>
+          <p className="text-2xl font-bold text-gray-900">{pendingOrders}</p>
           <p className="text-xs text-gray-500">{t("Pending orders")}</p>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
