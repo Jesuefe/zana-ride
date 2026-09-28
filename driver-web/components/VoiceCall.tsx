@@ -15,6 +15,7 @@ type CallState = 'connecting' | 'ringing' | 'connected' | 'reconnecting' | 'ende
 type Props = {
   // For outgoing calls
   rideId?: string;
+  deliveryId?: string;
   // For incoming calls (driver receiving)
   incomingCallId?: string;
   roomName?: string;
@@ -40,6 +41,7 @@ export type VoiceCallHandle = {
 
 const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
   rideId,
+  deliveryId,
   incomingCallId,
   roomName: incomingRoom,
   wsUrl: incomingWsUrl,
@@ -330,12 +332,15 @@ const VoiceCall = forwardRef<VoiceCallHandle, Props>(function VoiceCall({
           // timer before the caller has even joined the room.
           callIdRef.current = incomingCallId;
           await connectToRoom(incomingWsUrl, incomingToken, incomingCallId);
-        } else if (rideId) {
-          // Outgoing call — create via API
+        } else if (rideId || deliveryId) {
+          // Outgoing call — create via API for a ride or delivery.
+          // Delivery calls use the same authenticated call service so the
+          // backend resolves the other party (Agent/Merchant) from the delivery.
+
           setState('connecting');
           const res = await api.post<{
             callId: string; roomName: string; wsUrl: string; token: string;
-          }>('/calls', { rideId });
+          }>('/calls', deliveryId ? { context: 'delivery', contextId: deliveryId } : { rideId });
 
           if (cancelled) return;
 
