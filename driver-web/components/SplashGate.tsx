@@ -25,7 +25,7 @@ export default function SplashGate({ children }: { children: React.ReactNode }) 
 
   return (
     <>
-      {show && <ZanaSplash onDone={() => setShow(false)} />}
+      {show && <ZanaSplash variant="driver" onDone={() => setShow(false)} />}
       {children}
     </>
   );

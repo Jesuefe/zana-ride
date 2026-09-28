@@ -735,13 +735,15 @@ export default function DriverHome() {
           <p className="text-[10px] text-gray-500 font-semibold tracking-widest -mt-1">— Driver —</p>
         </div>
 
-        <button className="w-11 h-11 rounded-2xl bg-white shadow flex items-center justify-center relative">
-          <Bell size={20} className="text-gray-700" />
-          {notifications > 0 && (
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-              <span className="text-[9px] font-bold text-white">{notifications}</span>
-            </div>
-          )}
+        <button
+          onClick={() => { setSosState('idle'); setShowSOS(true); }}
+          aria-label={dt('Safety SOS')}
+          className="w-11 h-11 rounded-2xl bg-white shadow flex items-center justify-center relative border border-red-100"
+        >
+          <AlertTriangle size={19} className="text-red-600" strokeWidth={2.5} />
+          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full leading-none">
+            SOS
+          </span>
         </button>
       </div>
 
