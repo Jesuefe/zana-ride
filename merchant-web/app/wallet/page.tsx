@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Loader2, Check, X } from 'lucide-react';
+import { useLang } from '../../lib/LangContext';
 import Topbar from '../../components/Topbar';
 import { fetchWallet, ApiWallet, withdrawWallet } from '../../lib/api/merchant';
 
@@ -19,8 +20,8 @@ export default function WalletPage() { const {t}=useLang();
 
   const handleWithdraw = async () => {
     const amt = Number(amount);
-    if (!amt || amt < 10000) { setError('{t('Minimum withdrawal is 10,000 RWF')}'); return; }
-    if (amt > (wallet?.balance ?? 0)) { setError('{t('Insufficient balance')}'); return; }
+    if (!amt || amt < 10000) { setError(t('Minimum withdrawal is 10,000 RWF')); return; }
+    if (amt > (wallet?.balance ?? 0)) { setError(t('Insufficient balance')); return; }
     
     setWithdrawing(true); setError('');
     try {
@@ -29,7 +30,7 @@ export default function WalletPage() { const {t}=useLang();
       setAmount(''); setShowWithdraw(false);
       load();
     } catch (e: any) {
-      setError(e.message ?? '{t('Withdrawal failed')}');
+      setError(e.message ?? t('Withdrawal failed'));
     } finally { setWithdrawing(false); }
   };
 
