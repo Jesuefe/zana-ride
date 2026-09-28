@@ -73,6 +73,33 @@ export default function VoiceCall({
     setTimeout(onClose, 800);
   }, [cleanup, onClose]);
 
+  // Audio recovery helpers are component-scoped because the Enable audio UI
+  // lives outside connectToRoom. The connection-scoped handlers below keep the
+  // full five-gate handshake; these helpers only recover a browser-blocked player.
+  const tryPlayRemoteAudio = useCallback(async () => {
+    let played = false;
+    for (const el of audioElementsRef.current) {
+      try {
+        el.muted = false;
+        el.volume = 1;
+        await el.play();
+        played = true;
+      } catch {}
+    }
+    if (played) setAudioBlocked(false);
+    return played;
+  }, []);
+
+  const markMediaReady = useCallback(() => {
+    if (!roomRef.current || !callIdRef.current) return;
+    if (state === 'connected') return;
+    if (ringtoneRef.current) { ringtoneRef.current.pause(); ringtoneRef.current = null; }
+    setState('connected');
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+    api.post('/calls/' + callIdRef.current + '/connected').catch(() => {});
+  }, [state]);
+
   // ── Connect to LiveKit room ────────────────────────────────────────────────
   const connectToRoom = useCallback(async (wsUrl: string, token: string, callId: string) => {
     console.log('[CALL] Creating LiveKit room');
