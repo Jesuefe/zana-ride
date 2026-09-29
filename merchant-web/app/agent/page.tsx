@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Store, Package, ShoppingBag, Wallet, Truck, Clock3, CheckCircle2,
-  AlertTriangle, MapPin, ChevronRight, Plus, Trash2, X, RefreshCw, MessageCircle
+  AlertTriangle, MapPin, ChevronRight, Plus, Trash2, X, RefreshCw, MessageCircle,
+  ArrowUpRight, Loader2
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { requestAgentPriceChange, fetchAgentEarnings } from '../../lib/api/merchant';
@@ -44,6 +45,10 @@ export default function AgentPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [purchaseFunds, setPurchaseFunds] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const [showWalletWithdraw, setShowWalletWithdraw] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawingWallet, setWithdrawingWallet] = useState(false);
+  const [withdrawSuccess, setWithdrawSuccess] = useState('');
   const { lang, setLang } = useLang();
 
   const [adding, setAdding] = useState(false);
@@ -110,6 +115,34 @@ export default function AgentPage() {
     try { setSelected(await api.get<any>('/agent/orders/' + id)); }
     catch (e: any) { setError(e?.message ?? 'Could not load order'); }
     finally { setLoadingDetail(false); }
+  };
+
+  const withdrawWalletFunds = async () => {
+    const amount = Number(withdrawAmount);
+    if (!Number.isInteger(amount) || amount <= 0) {
+      setError('Enter a valid withdrawal amount.');
+      return;
+    }
+    if (amount > Number(wallet?.balance || 0)) {
+      setError('Insufficient wallet balance.');
+      return;
+    }
+    setWithdrawingWallet(true);
+    setError('');
+    setWithdrawSuccess('');
+    try {
+      const result = await (await import('../../lib/api/merchant')).withdrawWallet(amount);
+      setWithdrawSuccess(result?.ref ? 'Withdrawal submitted. Your payout is being processed.' : 'Withdrawal submitted.');
+      setWithdrawAmount('');
+      setShowWalletWithdraw(false);
+      await load();
+    } catch (e: any) {
+      const message = String(e?.message || 'Withdrawal failed');
+      const match = message.match(/MIN_WITHDRAWAL:(\d+)/);
+      setError(match ? `Minimum withdrawal is ${Number(match[1]).toLocaleString()} RWF.` : message);
+    } finally {
+      setWithdrawingWallet(false);
+    }
   };
 
   const withdraw = async (id: string) => {
@@ -267,7 +300,35 @@ export default function AgentPage() {
         <div className="grid md:grid-cols-2 gap-3">{products.map(p => <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-3"><div className="flex-1"><p className="font-bold">{p.name}</p><p className="text-sm font-black text-zana-primary">{money(p.price)}</p><p className="text-[11px] text-gray-400">Reference market price: {money(p.referenceCost)}</p><p className="text-[10px] mt-1 text-gray-500">{p.available ? 'Available' : 'Not currently available'} · {p.status}</p></div><div className="flex gap-1"><button onClick={()=>{setEditing(p);setEditPrice(String(p.referenceCost||p.price))}} className="text-xs font-bold text-zana-primary px-2">Price</button><button onClick={()=>removeItem(p.id)} className="w-9 h-9 rounded-full bg-red-50 text-red-500 flex items-center justify-center"><Trash2 size={15}/></button></div></div>)}</div>
       </section>}
 
-      {view === 'wallet' && <section><div className="mb-4"><h2 className="text-xl font-black">Wallet</h2><p className="text-xs text-gray-500">Your agent earnings and wallet activity.</p></div><div className="grid md:grid-cols-3 gap-3 mb-5"><div className="bg-zana-primary text-white rounded-2xl p-5"><p className="text-xs opacity-80">Available balance</p><p className="text-3xl font-black">{money(wallet?.balance)}</p></div><div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total earnings</p><p className="text-2xl font-black">{money(earnings?.totalEarning)}</p></div><div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total markup</p><p className="text-2xl font-black">{money(earnings?.totalMarkup)}</p></div></div><div className="bg-white rounded-2xl border p-4"><h3 className="font-black mb-3">{t("Recent wallet activity",lang)}</h3><div className="space-y-2">{(wallet?.transactions||[]).map((t:any)=><div key={t.id} className="flex justify-between py-2 border-b border-gray-50 text-sm"><span>{t.description || t.reference || 'Wallet transaction'}</span><span className={t.amount>=0?'text-zana-primary font-bold':'text-red-500 font-bold'}>{t.amount>=0?'+':''}{money(t.amount)}</span></div>)}</div></div></section>}
+      {view === 'wallet' && <section>
+        <div className="mb-4"><h2 className="text-xl font-black">Wallet</h2><p className="text-xs text-gray-500">Your agent earnings and wallet activity.</p></div>
+        {withdrawSuccess && <div className="mb-4 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl px-4 py-3 text-xs font-semibold">{withdrawSuccess}</div>}
+        <div className="grid md:grid-cols-3 gap-3 mb-5">
+          <div className="bg-zana-primary text-white rounded-2xl p-5">
+            <p className="text-xs opacity-80">Available balance</p>
+            <p className="text-3xl font-black">{money(wallet?.balance)}</p>
+            <button onClick={() => { setError(''); setWithdrawSuccess(''); setShowWalletWithdraw(true); }} disabled={Number(wallet?.balance || 0) <= 0} className="mt-4 w-full bg-zana-secondary text-gray-900 font-black text-sm px-4 py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40">
+              <ArrowUpRight size={16}/> Withdraw funds
+            </button>
+          </div>
+          <div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total earnings</p><p className="text-2xl font-black">{money(earnings?.totalEarning)}</p></div>
+          <div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total markup</p><p className="text-2xl font-black">{money(earnings?.totalMarkup)}</p></div>
+        </div>
+        <div className="bg-white rounded-2xl border p-4"><h3 className="font-black mb-3">{t("Recent wallet activity",lang)}</h3><div className="space-y-2">{(wallet?.transactions||[]).map((t:any)=><div key={t.id} className="flex justify-between py-2 border-b border-gray-50 text-sm"><span>{t.description || t.reference || 'Wallet transaction'}</span><span className={t.amount>=0?'text-zana-primary font-bold':'text-red-500 font-bold'}>{t.amount>=0?'+':''}{money(t.amount)}</span></div>)}</div></div>
+      </section>}
+
+      {showWalletWithdraw && <div className="fixed inset-0 z-[60] bg-black/50 flex items-end justify-center">
+        <div className="w-full max-w-[480px] bg-white rounded-t-3xl p-6">
+          <div className="flex items-center justify-between mb-5"><div><h2 className="font-black text-lg">Withdraw funds</h2><p className="text-xs text-gray-500 mt-1">Paid to your registered MoMo number.</p></div><button onClick={() => setShowWalletWithdraw(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><X size={18}/></button></div>
+          <div className="bg-gray-50 rounded-2xl p-4 mb-4"><p className="text-xs text-gray-500">Available balance</p><p className="text-2xl font-black">{money(wallet?.balance)}</p></div>
+          <label className="text-xs font-bold text-gray-600 block mb-1.5">Amount (RWF)</label>
+          <input value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value.replace(/\D/g,''))} inputMode="numeric" placeholder="e.g. 1000" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm"/>
+          {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+          <button onClick={withdrawWalletFunds} disabled={withdrawingWallet || !withdrawAmount} className="w-full mt-4 bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">
+            {withdrawingWallet ? <><Loader2 size={16} className="animate-spin"/> Processing...</> : 'Confirm withdrawal'}
+          </button>
+        </div>
+      </div>}
 
       {selected && <OrderDetail order={selected} fund={fundFor(selected.id)} onClose={()=>setSelected(null)} onUnavailable={unavailable} onChat={(d:any)=>setChatDeliveryId(d.id)} onWithdraw={withdraw} busy={busy} lang={lang}/>}
       {chatDeliveryId && <DeliveryChatPanel deliveryId={chatDeliveryId} onClose={()=>setChatDeliveryId(null)} />}
