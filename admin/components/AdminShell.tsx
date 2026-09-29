@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Car, Store, Package, MapPin, Crosshair,
   UserCheck, TrendingUp, LogOut, ChevronRight,
   Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
-  Sun, Moon, Smartphone, ClipboardList, Bell } from 'lucide-react';
+  Sun, Moon, Smartphone, ClipboardList, Bell, Settings } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
 import { useTheme } from '../lib/ThemeContext';
 import GlobalSearch from './GlobalSearch';
