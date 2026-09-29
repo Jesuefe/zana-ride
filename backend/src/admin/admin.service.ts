@@ -499,7 +499,7 @@ export class AdminService {
   async disableMarketProduct(marketId: string, productId: string) {
     const product = await this.prisma.product.findFirst({ where: { id: productId, marketId, category: 'GOODS' } });
     if (!product) throw new NotFoundException('Market product not found');
-    return this.prisma.product.update({ where: { id: productId }, data: { available: false, status: 'DISABLED' } as any);
+    return this.prisma.product.update({ where: { id: productId }, data: { available: false, status: 'DISABLED' } as any });
   }
 
   // ─── AGENTS ───────────────────────────────────────────────────────────────
