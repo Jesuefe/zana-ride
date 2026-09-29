@@ -18,7 +18,10 @@ const deliveryStatuses = ['REQUESTED','COURIER_ASSIGNED','PICKED_UP','DELIVERED'
 const validCoordinate = (v: any) => Number.isFinite(Number(v)) && Math.abs(Number(v)) > 0.000001;
 
 export default function AgentPage() {
-  const [view, setView] = useState('overview');
+  const [view, setView] = useState(() => {
+    if (typeof window === 'undefined') return 'overview';
+    return new URLSearchParams(window.location.search).get('view') || 'overview';
+  });
 
   useEffect(() => {
     const syncFromUrl = () => {
