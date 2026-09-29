@@ -34,6 +34,7 @@ const SENIOR_NAV = [
   { label: 'Audit Log', href: '/dashboard/audit-log', icon: ClipboardList },
   { label: 'Test Locations', href: '/dashboard/test-locations', icon: Crosshair },
   { label: 'Notifications', href: '/dashboard/notifications', icon: Bell },
+  { label: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
 const WORKER_NAV = [
