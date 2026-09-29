@@ -7,7 +7,7 @@ import {
   ArrowUpRight, Loader2
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
-import { requestAgentPriceChange, fetchAgentEarnings } from '../../lib/api/merchant';
+import { fetchAgentEarnings } from '../../lib/api/merchant';
 import DeliveryChatPanel from '../../components/DeliveryChatPanel';
 import { t } from '../../lib/lang';
 import { useLang } from '../../lib/LangContext';
@@ -36,7 +36,6 @@ export default function AgentPage() {
   const [market, setMarket] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [deliveries, setDeliveries] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
   const [wallet, setWallet] = useState<any>(null);
   const [earnings, setEarnings] = useState<any>(null);
   const [selected, setSelected] = useState<any>(null);
@@ -51,12 +50,6 @@ export default function AgentPage() {
   const [withdrawSuccess, setWithdrawSuccess] = useState('');
   const { lang, setLang } = useLang();
 
-  const [adding, setAdding] = useState(false);
-  const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
-  const [editing, setEditing] = useState<any>(null);
-  const [editPrice, setEditPrice] = useState('');
-  const [editReason, setEditReason] = useState('');
 
   const setRouteView = (next: string) => {
     setView(next);
@@ -67,7 +60,6 @@ export default function AgentPage() {
     try { const r = await api.get<any>('/agent/me'); setMarket(r.market); } catch (e: any) { setError(e?.message ?? ''); }
     await Promise.all([
       api.get<any[]>('/agent/orders').then(setOrders).catch(() => {}),
-      api.get<any[]>('/agent/products').then(setProducts).catch(() => {}),
       api.get<any[]>('/agent/deliveries').then(setDeliveries).catch(() => {}),
       api.get<any>('/agent/wallet').then(setWallet).catch(() => {}),
       api.get<any[]>('/agent/purchase-funds').then(setPurchaseFunds).catch(() => {}),
@@ -209,29 +201,6 @@ export default function AgentPage() {
     finally { setBusy(null); }
   };
 
-  const addItem = async () => {
-    if (!name.trim() || !price) return;
-    setBusy('add');
-    try {
-      await api.post('/agent/products', { name: name.trim(), price: Number(price), referenceCost: Number(price), stock: 99 });
-      setName(''); setPrice(''); setAdding(false); await load();
-    } catch (e: any) { setError(e?.message ?? 'Could not add item'); }
-    finally { setBusy(null); }
-  };
-
-  const removeItem = async (id: string) => {
-    await api.delete('/agent/products/' + id).catch(() => {});
-    setProducts(p => p.filter(x => x.id !== id));
-  };
-
-  const requestPrice = async () => {
-    if (!editing || !editPrice) return;
-    try {
-      await requestAgentPriceChange(editing.id, { referenceCost: Number(editPrice), reason: editReason || 'Market price update' });
-      setEditing(null); setEditPrice(''); setEditReason(''); await load();
-    } catch (e: any) { setError(e?.message ?? 'Could not submit price change'); }
-  };
-
   const statusNext = (s: string) => s === 'PENDING' || s === 'CONFIRMED' ? 'PREPARING' : s === 'PREPARING' ? 'READY_FOR_PICKUP' : null;
   const statusButton = (s: string) => s === 'PENDING' || s === 'CONFIRMED' ? 'Start shopping' : s === 'PREPARING' ? 'Mark ready for pickup' : null;
   const fundFor = (id: string) => purchaseFunds.find(f => f.orderId === id);
@@ -294,10 +263,13 @@ export default function AgentPage() {
       </section>}
 
       {view === 'items' && <section>
-        <div className="flex justify-between items-end mb-4"><div><h2 className="text-xl font-black">{t("Today’s items",lang)}</h2><p className="text-xs text-gray-500">{t("What you can physically source at the market today.",lang)}</p></div><button onClick={() => setAdding(x => !x)} className="bg-zana-primary text-white px-4 py-2.5 rounded-xl text-xs font-bold flex gap-2 items-center"><Plus size={15}/> List item</button></div>
-        {adding && <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4 space-y-2"><input value={name} onChange={e=>setName(e.target.value)} placeholder="Item name, e.g. Tomatoes (1kg)" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm"/><input value={price} onChange={e=>setPrice(e.target.value.replace(/\D/g,''))} placeholder="Market price in RWF" inputMode="numeric" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm"/><p className="text-[11px] text-gray-500">Zana calculates the customer price from the approved market markup.</p><button onClick={addItem} disabled={busy==='add'} className="w-full bg-zana-primary text-white font-bold py-3 rounded-xl text-sm">{busy==='add'?'Saving…':'Add to today’s list'}</button></div>}
-        {editing && <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4 space-y-2"><p className="font-bold text-sm">Request market price change</p><input value={editPrice} onChange={e=>setEditPrice(e.target.value.replace(/\D/g,''))} placeholder="Market price in RWF" inputMode="numeric" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm"/><input value={editReason} onChange={e=>setEditReason(e.target.value)} placeholder="Reason (optional)" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm"/><div className="flex gap-2"><button onClick={requestPrice} className="flex-1 bg-zana-primary text-white font-bold py-2.5 rounded-xl text-sm">Submit request</button><button onClick={()=>setEditing(null)} className="px-4 border rounded-xl text-sm">Cancel</button></div></div>}
-        <div className="grid md:grid-cols-2 gap-3">{products.map(p => <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-3"><div className="flex-1"><p className="font-bold">{p.name}</p><p className="text-sm font-black text-zana-primary">{money(p.price)}</p><p className="text-[11px] text-gray-400">Reference market price: {money(p.referenceCost)}</p><p className="text-[10px] mt-1 text-gray-500">{p.available ? 'Available' : 'Not currently available'} · {p.status}</p></div><div className="flex gap-1"><button onClick={()=>{setEditing(p);setEditPrice(String(p.referenceCost||p.price))}} className="text-xs font-bold text-zana-primary px-2">Price</button><button onClick={()=>removeItem(p.id)} className="w-9 h-9 rounded-full bg-red-50 text-red-500 flex items-center justify-center"><Trash2 size={15}/></button></div></div>)}</div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-start gap-3"><Store size={21} className="text-zana-primary mt-0.5"/>
+            <div><h2 className="text-xl font-black text-gray-900">Market inventory is managed by ZANA Admin</h2>
+              <p className="text-xs text-gray-500 mt-1">You no longer add, remove, or change market goods. Focus on customer orders, unavailable-item reporting, shopping and fulfillment.</p>
+            </div>
+          </div>
+        </div>
       </section>}
 
       {view === 'wallet' && <section>
