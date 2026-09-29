@@ -6,7 +6,6 @@ import {
   AlertTriangle, MapPin, ChevronRight, Plus, Trash2, X, RefreshCw, MessageCircle
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
-import { useRouter } from 'next/navigation';
 import { requestAgentPriceChange, fetchAgentEarnings } from '../../lib/api/merchant';
 import DeliveryChatPanel from '../../components/DeliveryChatPanel';
 import { t } from '../../lib/lang';
@@ -19,7 +18,6 @@ const deliveryStatuses = ['REQUESTED','COURIER_ASSIGNED','PICKED_UP','DELIVERED'
 const validCoordinate = (v: any) => Number.isFinite(Number(v)) && Math.abs(Number(v)) > 0.000001;
 
 export default function AgentPage() {
-  const router = useRouter();
   const [view, setView] = useState('overview');
 
   useEffect(() => {
