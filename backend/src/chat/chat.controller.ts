@@ -36,7 +36,7 @@ export class ChatController {
     @Param('id') id: string,
     @Query('lang') lang: Lang = 'en',
   ) {
-    return this.chatService.getMessages(context, id, lang);
+    return this.chatService.getMessages(context, id, lang, false, user.sub);
   }
 
   // Returns the full nav phrase dictionary for the requested language —
