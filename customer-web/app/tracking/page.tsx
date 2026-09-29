@@ -420,6 +420,16 @@ function TrackingContent() {
             }
             vehicleType={mapSource.serviceType === 'BIKE' ? 'BIKE' : 'ECONOMY'}
             onRouteInfo={setRouteInfo}
+            navigationStart={
+              primaryTrip?.driver?.lastLat != null && primaryTrip?.driver?.lastLng != null
+                ? { lat: primaryTrip.driver.lastLat, lng: primaryTrip.driver.lastLng }
+                : null
+            }
+            navigationDestination={
+              status === 'DRIVER_ASSIGNED' || status === 'DRIVER_EN_ROUTE'
+                ? { lat: mapSource.pickupLat, lng: mapSource.pickupLng }
+                : { lat: mapSource.destinationLat, lng: mapSource.destinationLng }
+            }
             height={224}
           />
         ) : (

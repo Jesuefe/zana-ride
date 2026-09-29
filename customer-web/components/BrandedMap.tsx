@@ -15,6 +15,8 @@ export default function BrandedMap({
   draggablePickup,
   onPickupChange,
   onRouteInfo,
+  navigationStart,
+  navigationDestination,
 }: {
   origin?: LatLng;
   destination?: LatLng;
@@ -25,6 +27,8 @@ export default function BrandedMap({
   draggablePickup?: boolean;
   onPickupChange?: (coords: LatLng) => void;
   onRouteInfo?: (info: { distanceText: string; durationText: string } | null) => void;
+  navigationStart?: LatLng | null;
+  navigationDestination?: LatLng | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -40,9 +44,13 @@ export default function BrandedMap({
   const driverRef = useRef(driverPosition);
   const originRef = useRef(origin);
   const destRef = useRef(destination);
+  const navigationStartRef = useRef(navigationStart);
+  const navigationDestinationRef = useRef(navigationDestination);
   driverRef.current = driverPosition;
   originRef.current = origin;
   destRef.current = destination;
+  navigationStartRef.current = navigationStart;
+  navigationDestinationRef.current = navigationDestination;
 
   const makeMarker = (G: any, map: any, pos: LatLng, color: string, size = 14) => {
     const div = document.createElement('div');
@@ -56,12 +64,16 @@ export default function BrandedMap({
     const map = mapRef.current;
     const org = originRef.current;
     const dst = destRef.current;
-    if (!G || !map || !org || !dst) return;
+    const navStart = navigationStartRef.current;
+    const navDst = navigationDestinationRef.current;
+    const routeOrigin = navStart ?? org;
+    const routeDestination = navDst ?? dst;
+    if (!G || !map || !routeOrigin || !routeDestination) return;
 
     const svc = new G.DirectionsService();
     svc.route({
-      origin: new G.LatLng(org.lat, org.lng),
-      destination: new G.LatLng(dst.lat, dst.lng),
+      origin: new G.LatLng(routeOrigin.lat, routeOrigin.lng),
+      destination: new G.LatLng(routeDestination.lat, routeDestination.lng),
       travelMode: G.TravelMode.DRIVING,
     }, (result: any, status: any) => {
       if (status === 'OK') {
@@ -73,14 +85,14 @@ export default function BrandedMap({
         // Fit all points in view
         const drv = driverRef.current;
         const bounds = new G.LatLngBounds();
-        bounds.extend(new G.LatLng(org.lat, org.lng));
-        bounds.extend(new G.LatLng(dst.lat, dst.lng));
+        bounds.extend(new G.LatLng(routeOrigin.lat, routeOrigin.lng));
+        bounds.extend(new G.LatLng(routeDestination.lat, routeDestination.lng));
         if (drv) bounds.extend(new G.LatLng(drv.lat, drv.lng));
         map.fitBounds(bounds, { top: 60, bottom: 60, left: 30, right: 30 });
       } else {
         // Fallback straight line
         new G.Polyline({
-          path: [org, dst],
+          path: [routeOrigin, routeDestination],
           strokeColor: '#00A082', strokeOpacity: 0.5, strokeWeight: 3, map,
         });
         if (onRouteInfo) onRouteInfo(null);
@@ -192,12 +204,20 @@ export default function BrandedMap({
     });
   }, [nearbyDrivers]);
 
-  // Re-fetch route when origin/destination change
+  // Re-fetch the Google route whenever the trip endpoints or live navigation start changes.
   useEffect(() => {
     if (!initDone.current) return;
     clearTimeout(routeTimerRef.current);
     routeTimerRef.current = setTimeout(fetchRoute, 300);
-  }, [origin?.lat, origin?.lng, destination?.lat, destination?.lng, fetchRoute]);
+  }, [origin?.lat, origin?.lng, destination?.lat, destination?.lng, navigationStart?.lat, navigationStart?.lng, navigationDestination?.lat, navigationDestination?.lng, fetchRoute]);
+
+  // During an active trip, keep the customer's route aligned to the driver's latest
+  // GPS position so the customer can compare the vehicle with Google's recommended route.
+  useEffect(() => {
+    if (!navigationStart || !navigationDestination || !initDone.current) return;
+    const timer = setInterval(fetchRoute, 15000);
+    return () => clearInterval(timer);
+  }, [navigationStart?.lat, navigationStart?.lng, navigationDestination?.lat, navigationDestination?.lng, fetchRoute]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height }}>
