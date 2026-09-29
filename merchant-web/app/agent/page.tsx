@@ -21,7 +21,11 @@ const validCoordinate = (v: any) => Number.isFinite(Number(v)) && Math.abs(Numbe
 export default function AgentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const view = searchParams.get('view') || 'overview';
+  const [view, setView] = useState(searchParams.get('view') || 'overview');
+
+  useEffect(() => {
+    setView(searchParams.get('view') || 'overview');
+  }, [searchParams]);
   const [market, setMarket] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [deliveries, setDeliveries] = useState<any[]>([]);
@@ -44,6 +48,7 @@ export default function AgentPage() {
   const [editReason, setEditReason] = useState('');
 
   const setRouteView = (next: string) => {
+    setView(next);
     router.push('/agent?view=' + encodeURIComponent(next));
   };
 
