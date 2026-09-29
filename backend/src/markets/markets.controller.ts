@@ -51,33 +51,6 @@ export class AgentController {
     return this.walletService.withdraw(user.sub, body.amount);
   }
 
-  @Get('products')
-  products(@CurrentUser() user: JwtPayload) {
-    return this.marketsService.getMyProducts(user.sub);
-  }
-
-  @Post('products')
-  addProduct(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: { name: string; description?: string; price: number; referenceCost?: number; imageBase64?: string; stock?: number },
-  ) {
-    return this.marketsService.addProduct(user.sub, body);
-  }
-
-  @Patch('products/:id')
-  updateProduct(
-    @CurrentUser() user: JwtPayload,
-    @Param('id') id: string,
-    @Body() body: any,
-  ) {
-    return this.marketsService.updateProduct(user.sub, id, body);
-  }
-
-  @Delete('products/:id')
-  deleteProduct(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return this.marketsService.deleteProduct(user.sub, id);
-  }
-
   @Get('orders')
   orders(@CurrentUser() user: JwtPayload) {
     return this.marketsService.getMyOrders(user.sub);
