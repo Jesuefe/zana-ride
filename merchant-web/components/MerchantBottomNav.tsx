@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Home, ShoppingBag, Truck, Wallet } from 'lucide-react';
 import { useLang } from '../lib/LangContext';
@@ -52,7 +51,7 @@ export default function MerchantBottomNav() {
           >
             <Icon size={20} strokeWidth={active ? 2.4 : 2} />
             <span className="text-[11px]">{t(item.label)}</span>
-          </Link>
+          </a>
         );
       })}
     </nav>
