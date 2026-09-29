@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { GatewayModule } from '../gateway/gateway.module';
-import { PaypackService } from '../wallet/paypack.service';
+import { EversendService } from '../wallet/eversend.service';
 import { WalletModule } from '../wallet/wallet.module';
 import { MerchantController, PublicProductsController } from './merchant.controller';
 import { MarketplaceController, CustomerOrdersController, MerchantOrdersController } from './orders.controller';
@@ -21,7 +21,7 @@ import { MarketsModule } from '../markets/markets.module';
     CustomerOrdersController,
     MerchantOrdersController,
   ],
-  providers: [MerchantService, StorageService, OrdersService, PaypackService],
+  providers: [MerchantService, StorageService, OrdersService, EversendService],
   exports: [MerchantService, OrdersService],
 })
 export class MerchantModule {}
