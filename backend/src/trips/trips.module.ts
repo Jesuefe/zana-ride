@@ -4,7 +4,7 @@ import { TripsController, RatingsController, DriverTripsController, AdminTripsCo
 import { TripsService } from './trips.service';
 import { RatingsService } from './ratings.service';
 import { CommissionDebtService } from './commission-debt.service';
-import { PaypackService } from '../wallet/paypack.service';
+import { EversendService } from '../wallet/eversend.service';
 import { PointsService } from './points.service';
 import { ScheduledRideService } from './scheduled.service';
 import { CancellationService } from './cancellation.service';
@@ -24,7 +24,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     ScheduledRidesController,
     CustomerReportsController,
   ],
-  providers: [TripsService, RatingsService, CommissionDebtService, PaypackService, PointsService, ScheduledRideService, CancellationService, FareService],
+  providers: [TripsService, RatingsService, CommissionDebtService, EversendService, PointsService, ScheduledRideService, CancellationService, FareService],
   exports: [FareService, CommissionDebtService],
 })
 export class TripsModule {}
