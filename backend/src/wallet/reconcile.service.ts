@@ -3,7 +3,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EversendService } from './eversend.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
-import { PesapalService } from './pesapal.service';
 
 /**
  * Money reconciliation without webhooks.
@@ -23,7 +22,6 @@ export class ReconcileService {
   constructor(
     private prisma: PrismaService,
     private eversend: EversendService,
-    private pesapal: PesapalService,
     private gateway: ZanaGateway,
   ) {}
 
