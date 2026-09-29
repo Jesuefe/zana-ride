@@ -77,7 +77,7 @@ export class WalletService {
     const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
     if (!account) throw new NotFoundException('Account not found');
 
-    const cashin = await this.eversend.collectMobileMoney(account.phone, amountRwf);
+    const cashin = await this.eversend.collectMobileMoney(account.phone, amountRwf, `ZANA-TOPUP-${userId}-${Date.now()}`);
 
     await this.prisma.walletTransaction.create({
       data: {
@@ -170,7 +170,7 @@ export class WalletService {
     const amount = unpaidDebts.reduce((s, d) => s + d.amount, 0);
     if (amount <= 0) throw new BadRequestException('No outstanding balance to settle');
 
-    const cashin = await this.eversend.collectMobileMoney(phoneNumber, amount);
+    const cashin = await this.eversend.collectMobileMoney(phoneNumber, amount, `ZANA-DEBT-${driver.id}-${Date.now()}`);
 
     await this.prisma.debtSettlement.create({
       data: { driverId: driver.id, amount, providerRef: cashin.ref, status: 'PENDING' },
