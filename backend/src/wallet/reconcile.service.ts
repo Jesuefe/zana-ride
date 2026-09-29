@@ -1,17 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaypackService } from './paypack.service';
+import { EversendService } from './eversend.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
-import { MomoDisbursementService } from './momo-disbursement.service';
 import { PesapalService } from './pesapal.service';
 
 /**
  * Money reconciliation without webhooks.
  *
- * Paypack settles asynchronously, so anything paid or withdrawn sits in a
+ * Eversend settles asynchronously, so anything paid or withdrawn sits in a
  * pending state until we confirm it. This sweeps every minute and asks
- * Paypack directly what happened, then settles the record either way.
+ * Eversend directly what happened, then settles the record either way.
  *
  * It is deliberately independent of the request that created the payment —
  * a customer closing their app, or a driver losing signal, must not leave
@@ -23,13 +22,12 @@ export class ReconcileService {
 
   constructor(
     private prisma: PrismaService,
-    private paypack: PaypackService,
-    private momo: MomoDisbursementService,
+    private eversend: EversendService,
     private pesapal: PesapalService,
     private gateway: ZanaGateway,
   ) {}
 
-  // A sweep can outlive its minute if Paypack is slow, so guard against a
+  // A sweep can outlive its minute if Eversend is slow, so guard against a
   // second one starting and settling the same record twice.
   private running = false;
 
@@ -72,18 +70,8 @@ export class ReconcileService {
 
     for (const txn of pending) {
       try {
-        // Withdrawals may have gone out over either rail. MTN references are
-        // UUIDs we generated; ask MTN first and fall back to Paypack.
-        let status = '';
-        if (this.momo.isConfigured) {
-          const m = await this.momo.getTransferStatus(txn.providerRef!);
-          if (m.status === 'SUCCESSFUL') status = 'successful';
-          else if (m.status === 'FAILED') status = 'failed';
-        }
-        if (!status) {
-          const res = await this.paypack.findTransaction(txn.providerRef!);
-          status = (res?.status ?? '').toLowerCase();
-        }
+        const res = await this.eversend.getPayoutStatus(txn.providerRef!);
+        const status = res.status;
         if (!this.isFinal(status)) continue;
 
         if (status === 'successful') {
@@ -103,7 +91,7 @@ export class ReconcileService {
           });
           this.logger.log(`Withdrawal ${txn.providerRef} completed`);
         } else {
-          // Never left Paypack — give the money back. The claim step is
+          // Never left Eversend — give the money back. The claim step is
           // what actually prevents a double refund; the credit itself uses
           // an atomic increment so it can never be decided from a stale
           // balance read.
@@ -123,7 +111,7 @@ export class ReconcileService {
           this.logger.warn(`Withdrawal ${txn.providerRef} failed — balance restored`);
         }
       } catch {
-        // Paypack unreachable — leave it pending and try again next sweep.
+        // Eversend unreachable — leave it pending and try again next sweep.
       }
     }
   }
@@ -143,18 +131,8 @@ export class ReconcileService {
 
     for (const txn of pending) {
       try {
-        // Withdrawals may have gone out over either rail. MTN references are
-        // UUIDs we generated; ask MTN first and fall back to Paypack.
-        let status = '';
-        if (this.momo.isConfigured) {
-          const m = await this.momo.getTransferStatus(txn.providerRef!);
-          if (m.status === 'SUCCESSFUL') status = 'successful';
-          else if (m.status === 'FAILED') status = 'failed';
-        }
-        if (!status) {
-          const res = await this.paypack.findTransaction(txn.providerRef!);
-          status = (res?.status ?? '').toLowerCase();
-        }
+        const res = await this.eversend.getCollectionStatus(txn.providerRef!);
+        const status = res.status;
         if (!this.isFinal(status)) continue;
 
         if (status === 'successful') {
@@ -207,7 +185,7 @@ export class ReconcileService {
 
     for (const order of pending) {
       try {
-        const res = await this.paypack.findTransaction((order as any).momoRef);
+        const res = await this.eversend.getCollectionStatus((order as any).momoRef);
         if ((res?.status ?? '').toLowerCase() !== 'successful') continue;
 
         await this.prisma.order.update({
@@ -234,7 +212,7 @@ export class ReconcileService {
 
     for (const d of pending) {
       try {
-        const res = await this.paypack.findTransaction((d as any).momoRef);
+        const res = await this.eversend.getCollectionStatus((d as any).momoRef);
         if ((res?.status ?? '').toLowerCase() !== 'successful') continue;
 
         await this.prisma.delivery.update({
