@@ -11,6 +11,7 @@ import { ApiError, api } from '../lib/api/client';
 import { useRouter } from 'next/navigation';
 
 export default function OverviewPage() {
+  const { t } = useLang();
   const router = useRouter();
   const [brandingBusy, setBrandingBusy] = useState<'logo' | 'cover' | null>(null);
   const [brandingNote, setBrandingNote] = useState('');
