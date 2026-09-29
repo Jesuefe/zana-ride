@@ -238,6 +238,36 @@ export class AdminController {
     return this.adminService.toggleAgent(id, body.active);
   }
 
+  // Centralised policy settings used by the admin Settings page.
+  @Get('settings/marketplace')
+  async getMarketplaceSettings() {
+    const config = await this.prisma.marketPriceConfig.findFirst();
+    return config ?? this.prisma.marketPriceConfig.create({ data: {} });
+  }
+
+  @Patch('settings/marketplace')
+  async updateMarketplaceSettings(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { autoApprovePercent?: number; hardRejectPercent?: number; markupPercent?: number; agentEarningRate?: number; zanaMarkupShare?: number; agentMarkupShare?: number },
+  ) {
+    const current = await this.prisma.marketPriceConfig.findFirst() ?? await this.prisma.marketPriceConfig.create({ data: {} });
+    const next = {
+      autoApprovePercent: body.autoApprovePercent ?? current.autoApprovePercent,
+      hardRejectPercent: body.hardRejectPercent ?? current.hardRejectPercent,
+      markupPercent: body.markupPercent ?? current.markupPercent,
+      agentEarningRate: body.agentEarningRate ?? current.agentEarningRate,
+      agentMarkupShare: body.agentMarkupShare ?? current.agentMarkupShare,
+      zanaMarkupShare: body.zanaMarkupShare ?? current.zanaMarkupShare,
+    };
+    for (const [key, value] of Object.entries(next)) {
+      if (!Number.isFinite(Number(value)) || Number(value) < 0 || Number(value) > 100) throw new BadRequestException('INVALID_MARKETPLACE_SETTING:' + key);
+    }
+    if (Math.abs(Number(next.agentMarkupShare) + Number(next.zanaMarkupShare) - 100) > 0.001) throw new BadRequestException('MARKUP_SPLIT_MUST_EQUAL_100');
+    const updated = await this.prisma.marketPriceConfig.update({ where: { id: current.id }, data: next });
+    await this.prisma.auditLog.create({ data: { actorId: user.sub, action: 'MARKETPLACE_SETTINGS_UPDATED', entityType: 'MarketPriceConfig', entityId: updated.id, beforeJson: JSON.stringify(current), afterJson: JSON.stringify(updated) } });
+    return updated;
+  }
+
   // Fares
   @Get('fares')
   getFares() { return this.adminService.getFares(); }
