@@ -390,7 +390,7 @@ export class AdminService {
 
   async getProducts(status?: ProductStatus) {
     return this.prisma.product.findMany({
-      where: status ? { status } : {},
+      where: status ? { status, merchantId: { not: null } } : { merchantId: { not: null } },
       include: { merchant: { include: { user: true } } },
       orderBy: { createdAt: 'desc' },
       take: 100,
