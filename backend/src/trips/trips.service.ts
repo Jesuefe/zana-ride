@@ -6,7 +6,7 @@ import { CommissionDebtService } from './commission-debt.service';
 import { PointsService } from './points.service';
 import { CancellationService } from './cancellation.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
-import { PaypackService } from '../wallet/paypack.service';
+import { EversendService } from '../wallet/eversend.service';
 import { DriversService } from '../drivers/drivers.service';
 import { ServiceType, TripStatus, DriverOnlineStatus } from '@prisma/client';
 import { estimateDurationMinutes, haversineKm } from './fare.util';
@@ -24,7 +24,7 @@ export class TripsService {
     private driversService: DriversService,
     private fareService: FareService,
     private commissionDebtService: CommissionDebtService,
-    private paypackService: PaypackService,
+    private eversendService: EversendService,
     private pointsService: PointsService,
     private cancellationService: CancellationService,
     private gateway: ZanaGateway,
@@ -826,7 +826,7 @@ export class TripsService {
     if (!phone) throw new BadRequestException('NO_PHONE_NUMBER');
 
     try {
-      const res = await this.paypackService.cashin(phone, fare);
+      const res = await this.eversendService.collectMobileMoney(phone, fare, `ZANA-RIDE-${tripId}`);
       console.log(`[MOMO] Prompt sent to ${phone} | ${fare} RWF | ref: ${res.ref}`);
 
       // Store ref on trip so we can poll status
@@ -894,7 +894,7 @@ export class TripsService {
     if (!ref) return { status: 'NOT_STARTED' };
 
     try {
-      const res = await this.paypackService.findTransaction(ref);
+      const res = await this.eversendService.getCollectionStatus(ref);
       const done = res.status === 'successful';
 
       if (done) {
