@@ -29,7 +29,6 @@ const SENIOR_NAV = [
   { label: 'Rides', href: '/dashboard/rides', icon: TrendingUp },
   { label: 'Markets', href: '/dashboard/markets', icon: MapPin },
   { label: 'Agents', href: '/dashboard/agents', icon: UserCheck },
-  { label: 'Fares', href: '/dashboard/fares', icon: BarChart2 },
   { label: 'Merchant Invites', href: '/dashboard/invites', icon: ShieldCheck },
   { label: 'Expenses', href: '/dashboard/expenses', icon: DollarSign },
   { label: 'Settings', href: '/dashboard/settings', icon: Settings },
