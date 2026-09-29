@@ -5,14 +5,14 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Home, ShoppingBag, Truck, Wallet } from 'lucide-react';
 import { useLang } from '../lib/LangContext';
 
-const merchantTabs = [
+const merchantItems = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/deliveries', label: 'Deliveries', icon: Truck },
   { href: '/wallet', label: 'Wallet', icon: Wallet },
 ];
 
-const agentTabs = [
+const agentItems = [
   { href: '/agent?view=overview', label: 'Home', icon: Home },
   { href: '/agent?view=orders', label: 'Orders', icon: ShoppingBag },
   { href: '/agent?view=deliveries', label: 'Deliveries', icon: Truck },
@@ -23,39 +23,32 @@ export default function MerchantBottomNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { t } = useLang();
-  const agent = pathname.startsWith('/agent');
-  const tabs = agent ? agentTabs : merchantTabs;
-  const currentAgentView = searchParams.get('view') || 'overview';
+
+  const isAgent = pathname === '/agent' || pathname.startsWith('/agent/');
+  const items = isAgent ? agentItems : merchantItems;
+  const currentView = searchParams.get('view') || 'overview';
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-100 bg-white safe-area-pb">
-      <div className="mx-auto flex w-full max-w-[480px]">
-        {tabs.map(({ href, label, icon: Icon }) => {
-          const view = href.includes('=') ? href.split('=')[1] : '';
-          const active = agent
-            ? currentAgentView === view
-            : href === '/' ? pathname === '/' : pathname.startsWith(href);
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] md:max-w-[640px] lg:max-w-[760px] bg-white border-t border-zana-border flex items-center justify-around py-2 z-30">
+      {items.map((item) => {
+        const Icon = item.icon;
+        const view = item.href.includes('?view=') ? item.href.split('?view=')[1] : null;
+        const active = isAgent
+          ? currentView === (view || 'overview')
+          : pathname === item.href;
 
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={active ? 'page' : undefined}
-              className="relative flex min-h-[64px] flex-1 flex-col items-center justify-center gap-1 px-1 py-2.5 transition-colors"
-            >
-              {active && <span className="absolute top-0 h-0.5 w-10 rounded-full bg-zana-primary" />}
-              <Icon
-                size={21}
-                strokeWidth={active ? 2.5 : 1.8}
-                className={active ? 'text-zana-primary' : 'text-gray-400'}
-              />
-              <span className={active ? 'text-[10px] font-medium text-zana-primary' : 'text-[10px] font-semibold text-gray-400'}>
-                {t(label)}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={active ? 'page' : undefined}
+            className={`flex flex-col items-center gap-1 px-3 py-1 ${active ? 'text-zana-primary' : 'text-zana-muted'}`}
+          >
+            <Icon size={20} strokeWidth={active ? 2.4 : 2} />
+            <span className="text-[11px]">{t(item.label)}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }
