@@ -456,73 +456,50 @@ export class AdminService {
   // Previously the only way to list a market item at all was through an
   // agent's own app — admin had no upload path of their own for market
   // inventory, despite already having one for merchant products.
-  async addMarketProduct(marketId: string, data: { name: string; description?: string; price: number; referenceCost?: number; imageBase64?: string; stock?: number }) {
+  async addMarketProduct(marketId: string, data: { name: string; description?: string; referenceCost: number; imageBase64?: string; stock?: number; available?: boolean }) {
+    const market = await this.prisma.market.findUnique({ where: { id: marketId } });
+    if (!market) throw new NotFoundException('Market not found');
     const config = await this.prisma.marketPriceConfig.findFirst();
     const markupPercent = config?.markupPercent ?? 20;
-    const referenceCost = Number(data.referenceCost ?? data.price);
-    if (!Number.isInteger(referenceCost) || referenceCost <= 0) {
-      throw new BadRequestException('INVALID_MARKET_REFERENCE_COST');
-    }
+    const referenceCost = Number(data.referenceCost);
+    if (!Number.isInteger(referenceCost) || referenceCost <= 0) throw new BadRequestException('INVALID_MARKET_REFERENCE_COST');
     const expectedPrice = Math.round(referenceCost * (1 + markupPercent / 100));
-    if (data.price !== expectedPrice) {
-      throw new BadRequestException('PRICE_MUST_MATCH_MARKUP');
-    }
-
     let imageUrl: string | undefined;
     if (data.imageBase64) {
-      try {
-        const uploaded = await this.storage.uploadImage(data.imageBase64, 'market-products');
-        if (uploaded) imageUrl = uploaded;
-      } catch (e: any) {
-        console.error('[ADMIN] Market product image upload failed:', e?.message);
-      }
+      try { const uploaded = await this.storage.uploadImage(data.imageBase64, 'market-products'); if (uploaded) imageUrl = uploaded; }
+      catch (e: any) { console.error('[ADMIN] Market product image upload failed:', e?.message); }
     }
     return this.prisma.product.create({
-      data: {
-        marketId,
-        name: data.name,
-        description: data.description,
-        price: expectedPrice,
-        referenceCost,
-        category: 'GOODS',
-        imageUrl,
-        stock: data.stock ?? 0,
-        status: 'APPROVED',
-      } as any,
+      data: { marketId, name: data.name.trim(), description: data.description?.trim(), price: expectedPrice, referenceCost, category: 'GOODS', imageUrl, stock: data.stock ?? 0, status: 'APPROVED', available: data.available ?? true } as any,
     });
   }
 
-  // Edit and delete for market products didn't exist for admin at all —
-  // a listing could only ever be created, never corrected or removed,
-  // once it existed.
-  async updateMarketProduct(productId: string, data: { name?: string; description?: string; price?: number; referenceCost?: number; imageBase64?: string; stock?: number }) {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
-    if (!product || !product.marketId) throw new NotFoundException('Market product not found');
-
+  async updateMarketProduct(marketId: string, productId: string, data: { name?: string; description?: string; referenceCost?: number; imageBase64?: string; stock?: number; available?: boolean }) {
+    const product = await this.prisma.product.findFirst({ where: { id: productId, marketId, category: 'GOODS' } });
+    if (!product) throw new NotFoundException('Market product not found');
     const config = await this.prisma.marketPriceConfig.findFirst();
     const markupPercent = config?.markupPercent ?? 20;
     const nextReference = data.referenceCost ?? product.referenceCost;
-    if (!nextReference || !Number.isInteger(nextReference) || nextReference <= 0) {
-      throw new BadRequestException('INVALID_MARKET_REFERENCE_COST');
+    if (!Number.isInteger(Number(nextReference)) || Number(nextReference) <= 0) throw new BadRequestException('INVALID_MARKET_REFERENCE_COST');
+    const update: any = { referenceCost: Number(nextReference), price: Math.round(Number(nextReference) * (1 + markupPercent / 100)) };
+    if (data.name !== undefined) update.name = data.name.trim();
+    if (data.description !== undefined) update.description = data.description.trim();
+    if (data.stock !== undefined) {
+      if (!Number.isInteger(Number(data.stock)) || Number(data.stock) < 0) throw new BadRequestException('INVALID_STOCK');
+      update.stock = Number(data.stock);
     }
-    const expectedPrice = Math.round(nextReference * (1 + markupPercent / 100));
-    if (data.price != null && data.price !== expectedPrice) {
-      throw new BadRequestException('PRICE_MUST_MATCH_MARKUP');
-    }
-
-    const update: any = { price: expectedPrice, referenceCost: nextReference };
-    if (data.name !== undefined) update.name = data.name;
-    if (data.description !== undefined) update.description = data.description;
-    if (data.stock !== undefined) update.stock = data.stock;
+    if (data.available !== undefined) update.available = Boolean(data.available);
     if (data.imageBase64) {
-      try {
-        const uploaded = await this.storage.uploadImage(data.imageBase64, 'market-products');
-        if (uploaded) update.imageUrl = uploaded;
-      } catch (e: any) {
-        console.error('[ADMIN] Market product image upload failed:', e?.message);
-      }
+      try { const uploaded = await this.storage.uploadImage(data.imageBase64, 'market-products'); if (uploaded) update.imageUrl = uploaded; }
+      catch (e: any) { console.error('[ADMIN] Market product image upload failed:', e?.message); }
     }
     return this.prisma.product.update({ where: { id: productId }, data: update });
+  }
+
+  async disableMarketProduct(marketId: string, productId: string) {
+    const product = await this.prisma.product.findFirst({ where: { id: productId, marketId, category: 'GOODS' } });
+    if (!product) throw new NotFoundException('Market product not found');
+    return this.prisma.product.update({ where: { id: productId }, data: { available: false, status: 'DISABLED' } as any);
   }
 
   // ─── AGENTS ───────────────────────────────────────────────────────────────
