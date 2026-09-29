@@ -77,7 +77,7 @@ export class WalletService {
     const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
     if (!account) throw new NotFoundException('Account not found');
 
-    const cashin = await this.eversend.cashin(account.phone, amountRwf);
+    const cashin = await this.eversend.collectMobileMoney(account.phone, amountRwf);
 
     await this.prisma.walletTransaction.create({
       data: {
@@ -102,7 +102,7 @@ export class WalletService {
       return { status: pending.status.toLowerCase() };
     }
 
-    const remote = await this.eversend.findTransaction(ref);
+    const remote = await this.eversend.getCollectionStatus(ref);
     const remoteStatus = remote.status?.toLowerCase();
 
     const isFailed = remoteStatus === 'failed' || remoteStatus === 'cancelled' || remoteStatus === 'canceled';
@@ -170,7 +170,7 @@ export class WalletService {
     const amount = unpaidDebts.reduce((s, d) => s + d.amount, 0);
     if (amount <= 0) throw new BadRequestException('No outstanding balance to settle');
 
-    const cashin = await this.eversend.cashin(phoneNumber, amount);
+    const cashin = await this.eversend.collectMobileMoney(phoneNumber, amount);
 
     await this.prisma.debtSettlement.create({
       data: { driverId: driver.id, amount, providerRef: cashin.ref, status: 'PENDING' },
@@ -190,7 +190,7 @@ export class WalletService {
       return { status: pending.status.toLowerCase() };
     }
 
-    const remote = await this.eversend.findTransaction(ref);
+    const remote = await this.eversend.getCollectionStatus(ref);
     const remoteStatus = remote.status?.toLowerCase();
     const isFailed = remoteStatus === 'failed' || remoteStatus === 'cancelled' || remoteStatus === 'canceled';
     const isStillPending = remoteStatus === 'pending';
@@ -297,7 +297,7 @@ export class WalletService {
       });
 
       console.log(
-        `[WITHDRAW] ${amount} RWF to ${phone} via ${useMomo ? 'MTN' : 'Eversend'} | ref ${result?.ref}`,
+        `[WITHDRAW] ${amount} RWF to ${phone} via Eversend | ref ${result?.ref}`,
       );
       return {
         success: true,
