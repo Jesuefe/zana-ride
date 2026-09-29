@@ -617,6 +617,7 @@ model Order {
   marketId    String?
   market      Market?     @relation(fields: [marketId], references: [id])
   agentId     String?
+  agent       Agent?     @relation(fields: [agentId], references: [id])
   delivery    Delivery?
   items       OrderItem[]
   total       Int
