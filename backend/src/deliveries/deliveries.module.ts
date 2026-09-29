@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PaypackService } from '../wallet/paypack.service';
+import { EversendService } from '../wallet/eversend.service';
 import { GatewayModule } from '../gateway/gateway.module';
 import { TripsModule } from '../trips/trips.module';
 import {
@@ -23,7 +23,7 @@ import { FinanceModule } from '../finance/finance.module';
     LocationCodesController,
     DriverDeliveriesController,
   ],
-  providers: [PaypackService, DeliveriesService, LocationCodeService, StorageService],
+  providers: [EversendService, DeliveriesService, LocationCodeService, StorageService],
   exports: [DeliveriesService, LocationCodeService],
 })
 export class DeliveriesModule {}
