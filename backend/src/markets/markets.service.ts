@@ -181,8 +181,30 @@ export class MarketsService {
     const agent = await this.requireAgent(userId);
     const order = await this.prisma.order.findFirst({ where: { id: orderId, marketId: agent.marketId! }, include: { items: { include: { product: true } }, customer: { select: { id: true, firstName: true, lastName: true, phone: true } }, market: true, delivery: { include: { driver: { include: { user: { select: { id: true, firstName: true, lastName: true, phone: true } } } } } } } });
     if (!order) throw new NotFoundException('Order not found in your market');
+
+    // Reconcile a delivered legacy order if the delivery completed before
+    // the finance settlement hook existed or if that hook previously failed.
+    // This is idempotent: FinanceService will not create a second settlement
+    // for an order that has already been credited.
+    if ((order as any).status === 'DELIVERED') {
+      try {
+        await this.finance.settleOrder(orderId);
+      } catch (e: any) {
+        console.error('[MARKET] Delivered order settlement retry failed:', e?.message);
+      }
+    }
+
     const timeline = await this.prisma.auditLog.findMany({ where: { entityType: { in: ['ORDER','ORDER_ITEM'] }, entityId: orderId }, orderBy: { createdAt: 'asc' }, take: 100 });
-    return { ...order, timeline };
+    const refreshed = await this.prisma.order.findFirst({
+      where: { id: orderId, marketId: agent.marketId! },
+      include: {
+        items: { include: { product: true } },
+        customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
+        market: true,
+        delivery: { include: { driver: { include: { user: { select: { id: true, firstName: true, lastName: true, phone: true } } } } } },
+      },
+    });
+    return { ...(refreshed ?? order), timeline };
   }
 
   async getMyDeliveries(userId: string) {
