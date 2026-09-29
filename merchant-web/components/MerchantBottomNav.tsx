@@ -42,6 +42,13 @@ export default function MerchantBottomNav() {
             key={item.href}
             href={item.href}
             aria-current={active ? 'page' : undefined}
+            onClick={(e) => {
+              if (isAgent && view) {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent('zana-agent-view', { detail: view }));
+                window.history.pushState(null, '', item.href);
+              }
+            }}
             className={`flex flex-col items-center gap-1 px-3 py-1 ${active ? 'text-zana-primary' : 'text-zana-muted'}`}
           >
             <Icon size={20} strokeWidth={active ? 2.4 : 2} />
