@@ -119,8 +119,8 @@ export default function AgentPage() {
 
   const withdrawWalletFunds = async () => {
     const amount = Number(withdrawAmount);
-    if (!Number.isInteger(amount) || amount <= 0) {
-      setError('Enter a valid withdrawal amount.');
+    if (!Number.isInteger(amount) || amount < 1000) {
+      setError('Minimum withdrawal is 1,000 RWF.');
       return;
     }
     if (amount > Number(wallet?.balance || 0)) {
@@ -305,11 +305,9 @@ export default function AgentPage() {
         {withdrawSuccess && <div className="mb-4 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl px-4 py-3 text-xs font-semibold">{withdrawSuccess}</div>}
         <div className="grid md:grid-cols-3 gap-3 mb-5">
           <div className="bg-zana-primary text-white rounded-2xl p-5">
-            <p className="text-xs opacity-80">Available balance</p>
-            <p className="text-3xl font-black">{money(wallet?.balance)}</p>
-            <button onClick={() => { setError(''); setWithdrawSuccess(''); setShowWalletWithdraw(true); }} disabled={Number(wallet?.balance || 0) <= 0} className="mt-4 w-full bg-zana-secondary text-gray-900 font-black text-sm px-4 py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40">
-              <ArrowUpRight size={16}/> Withdraw funds
-            </button>
+            <div className="flex items-start justify-between gap-3"><div><p className="text-xs opacity-80">Available balance</p><p className="text-3xl font-black mt-1">{money(wallet?.balance)}</p></div><div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center"><Wallet size={19}/></div></div>
+            <button onClick={() => { setError(''); setWithdrawSuccess(''); setWithdrawAmount(''); setShowWalletWithdraw(true); }} disabled={Number(wallet?.balance || 0) < 1000} className="mt-4 w-full bg-zana-secondary text-gray-900 font-black text-sm px-4 py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40"><ArrowUpRight size={16}/> Withdraw funds</button>
+            <p className="text-[10px] opacity-75 mt-2 text-center">Minimum withdrawal: 1,000 RWF</p>
           </div>
           <div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total earnings</p><p className="text-2xl font-black">{money(earnings?.totalEarning)}</p></div>
           <div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total markup</p><p className="text-2xl font-black">{money(earnings?.totalMarkup)}</p></div>
@@ -317,16 +315,17 @@ export default function AgentPage() {
         <div className="bg-white rounded-2xl border p-4"><h3 className="font-black mb-3">{t("Recent wallet activity",lang)}</h3><div className="space-y-2">{(wallet?.transactions||[]).map((t:any)=><div key={t.id} className="flex justify-between py-2 border-b border-gray-50 text-sm"><span>{t.description || t.reference || 'Wallet transaction'}</span><span className={t.amount>=0?'text-zana-primary font-bold':'text-red-500 font-bold'}>{t.amount>=0?'+':''}{money(t.amount)}</span></div>)}</div></div>
       </section>}
 
-      {showWalletWithdraw && <div className="fixed inset-0 z-[60] bg-black/50 flex items-end justify-center">
-        <div className="w-full max-w-[480px] bg-white rounded-t-3xl p-6">
-          <div className="flex items-center justify-between mb-5"><div><h2 className="font-black text-lg">Withdraw funds</h2><p className="text-xs text-gray-500 mt-1">Paid to your registered MoMo number.</p></div><button onClick={() => setShowWalletWithdraw(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><X size={18}/></button></div>
-          <div className="bg-gray-50 rounded-2xl p-4 mb-4"><p className="text-xs text-gray-500">Available balance</p><p className="text-2xl font-black">{money(wallet?.balance)}</p></div>
-          <label className="text-xs font-bold text-gray-600 block mb-1.5">Amount (RWF)</label>
-          <input value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value.replace(/\D/g,''))} inputMode="numeric" placeholder="e.g. 1000" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm"/>
-          {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
-          <button onClick={withdrawWalletFunds} disabled={withdrawingWallet || !withdrawAmount} className="w-full mt-4 bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">
-            {withdrawingWallet ? <><Loader2 size={16} className="animate-spin"/> Processing...</> : 'Confirm withdrawal'}
-          </button>
+      {showWalletWithdraw && <div className="fixed inset-0 z-[60] bg-black/55 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="w-full max-w-[480px] bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl">
+          <div className="flex items-start justify-between mb-5"><div><div className="flex items-center gap-2"><div className="w-9 h-9 rounded-xl bg-zana-primary/10 flex items-center justify-center"><Wallet size={17} className="text-zana-primary"/></div><h2 className="font-black text-lg">Withdraw earnings</h2></div><p className="text-xs text-gray-500 mt-2">Send your available agent earnings through Eversend.</p></div><button onClick={() => setShowWalletWithdraw(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><X size={18}/></button></div>
+          <div className="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-100"><div className="flex justify-between items-center"><span className="text-xs text-gray-500">Available balance</span><span className="text-xs font-bold text-zana-primary">Eversend payout</span></div><p className="text-2xl font-black mt-1">{money(wallet?.balance)}</p></div>
+          <label className="text-xs font-bold text-gray-600 block mb-1.5">Withdrawal amount</label>
+          <div className="relative"><input value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value.replace(/\D/g,''))} inputMode="numeric" min={1000} max={Number(wallet?.balance || 0)} placeholder="Minimum 1,000 RWF" className="w-full border border-gray-200 rounded-xl px-4 py-3.5 pr-16 text-base font-bold outline-none focus:border-zana-primary"/><span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">RWF</span></div>
+          <div className="flex justify-between mt-2 text-[11px] text-gray-500"><span>Minimum: 1,000 RWF</span><button onClick={() => setWithdrawAmount(String(Math.floor(Number(wallet?.balance || 0))))} className="font-bold text-zana-primary">Use full balance</button></div>
+          {withdrawAmount && Number(withdrawAmount) >= 1000 && <div className="mt-4 rounded-2xl border border-gray-100 divide-y divide-gray-100"><div className="px-4 py-3 flex justify-between text-xs"><span className="text-gray-500">Withdrawal</span><span className="font-bold">{money(Number(withdrawAmount))}</span></div><div className="px-4 py-3 flex justify-between text-xs"><span className="text-gray-500">Payout provider</span><span className="font-bold">Eversend</span></div></div>}
+          {error && <p className="text-xs text-red-600 mt-3">{error}</p>}
+          <button onClick={withdrawWalletFunds} disabled={withdrawingWallet || Number(withdrawAmount) < 1000 || Number(withdrawAmount) > Number(wallet?.balance || 0)} className="w-full mt-4 bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2">{withdrawingWallet ? <><Loader2 size={16} className="animate-spin"/> Processing...</> : <><ArrowUpRight size={17}/> Confirm withdrawal</>}</button>
+          <p className="text-[10px] text-gray-400 text-center mt-3">Your payout is sent using the payout details configured for your agent account.</p>
         </div>
       </div>}
 
