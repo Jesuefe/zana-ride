@@ -149,11 +149,16 @@ export class TripsService {
   }
 
   async findByGroupId(groupId: string) {
-    return this.prisma.trip.findMany({
+    const trips = await this.prisma.trip.findMany({
       where: { groupId },
       include: { driver: { include: { user: true } } },
       orderBy: { groupSeatIndex: 'asc' },
     });
+    return trips.map((trip) => ({
+      ...trip,
+      waitingPolicy: this.fareService.getRates(trip.serviceType),
+      serverNow: new Date().toISOString(),
+    }));
   }
 
   async findById(id: string) {
@@ -162,7 +167,11 @@ export class TripsService {
       include: { driver: { include: { user: true } }, customer: true },
     });
     if (!trip) throw new NotFoundException('Trip not found');
-    return trip;
+    return {
+      ...trip,
+      waitingPolicy: this.fareService.getRates(trip.serviceType),
+      serverNow: new Date().toISOString(),
+    };
   }
 
   async assignDriver(tripId: string, driverId: string) {

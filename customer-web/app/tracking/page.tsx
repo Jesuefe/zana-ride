@@ -29,6 +29,12 @@ const STATUS_COPY: Record<string, string> = {
 
 const ACTIVE_STATUSES = ['DRIVER_ASSIGNED', 'DRIVER_EN_ROUTE', 'DRIVER_ARRIVED', 'RIDE_IN_PROGRESS'];
 
+function formatElapsed(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+  return minutes + ':' + seconds;
+}
+
 type GroupTrip = ApiTrip & { groupSeatIndex: number | null };
 
 function DriverCard({ trip, seatLabel, onChat, onCall, hasUnreadMessage }: { trip: ApiTrip; seatLabel?: string; onChat?: () => void; onCall?: () => void; hasUnreadMessage?: boolean }) {
@@ -125,6 +131,8 @@ function TrackingContent() {
   const [receiptShown, setReceiptShown] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
   const [driverEta, setDriverEta] = useState<{ durationText: string; distanceText: string } | null>(null);
+  const [waitingSeconds, setWaitingSeconds] = useState(0);
+  const [serverOffsetMs, setServerOffsetMs] = useState(0);
   const [cancelNotice, setCancelNotice] = useState<string | null>(null);
   const motionRequested = useRef(false);
   const previousRideStatusRef = useRef<string | null>(null);
@@ -156,10 +164,17 @@ function TrackingContent() {
       try {
         if (groupId) {
           const trips = await fetchTripGroup(groupId);
-          if (!cancelled) setGroupTrips(trips);
+          if (!cancelled) {
+            setGroupTrips(trips);
+            const serverNow = trips[0]?.serverNow;
+            if (serverNow) setServerOffsetMs(new Date(serverNow).getTime() - Date.now());
+          }
         } else if (tripId) {
           const t = await fetchTrip(tripId);
-          if (!cancelled) setTrip(t);
+          if (!cancelled) {
+            setTrip(t);
+            if (t.serverNow) setServerOffsetMs(new Date(t.serverNow).getTime() - Date.now());
+          }
         }
       } catch {
         // retry on next tick
@@ -333,6 +348,25 @@ function TrackingContent() {
 
   const rideInProgress = status === 'RIDE_IN_PROGRESS';
 
+  useEffect(() => {
+    const arrivedAt = primaryTrip?.arrivedAt;
+    if (status !== 'DRIVER_ARRIVED' || !arrivedAt) {
+      setWaitingSeconds(0);
+      return;
+    }
+
+    const tick = () => {
+      const now = Date.now() + serverOffsetMs;
+      const startedAt = primaryTrip?.startedAt ? new Date(primaryTrip.startedAt).getTime() : null;
+      const end = startedAt ?? now;
+      setWaitingSeconds(Math.max(0, Math.floor((end - new Date(arrivedAt).getTime()) / 1000)));
+    };
+
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [status, primaryTrip?.arrivedAt, primaryTrip?.startedAt, serverOffsetMs]);
+
   const handleCancel = async () => {
     // Once a ride is actually under way it can't just be undone — the
     // button routes to reporting a problem instead (see the render below).
@@ -436,6 +470,35 @@ function TrackingContent() {
         {rideIsActive && (
           <p className="text-xs text-zana-muted mt-1">{t('Shake your phone anytime to report a safety concern.')}</p>
         )}
+
+        {status === 'DRIVER_ARRIVED' && primaryTrip?.arrivedAt && (() => {
+          const freeSeconds = Math.max(0, (primaryTrip.waitingPolicy?.freeWaitingMinutes ?? 10) * 60);
+          const paidSeconds = Math.max(0, waitingSeconds - freeSeconds);
+          const paidMinutes = Math.ceil(paidSeconds / 60);
+          return (
+            <div className="mt-3 rounded-2xl border border-zana-primary/20 bg-zana-primary-light p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-zana-muted">{t('Waiting time')}</p>
+                  <p className="text-3xl font-black text-zana-primary tabular-nums">{formatElapsed(waitingSeconds)}</p>
+                </div>
+                <div className="text-right">
+                  {waitingSeconds < freeSeconds ? (
+                    <>
+                      <p className="text-xs font-semibold text-zana-primary">{t('Free waiting')}</p>
+                      <p className="text-sm font-bold text-gray-900">{formatElapsed(freeSeconds - waitingSeconds)} {t('remaining')}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs font-semibold text-zana-error">{t('Paid waiting')}</p>
+                      <p className="text-sm font-bold text-gray-900">{paidMinutes} {paidMinutes === 1 ? t('min') : t('mins')}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {isGroup
           ? groupTrips.map((t) => (

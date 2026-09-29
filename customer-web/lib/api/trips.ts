@@ -26,7 +26,14 @@ export type ApiTrip = {
   destinationLat: number;
   destinationLng: number;
   requestedAt: string;
+  arrivedAt?: string | null;
+  startedAt?: string | null;
   completedAt?: string | null;
+  serverNow?: string;
+  waitingPolicy?: {
+    freeWaitingMinutes: number;
+    waitingPerMinute: number;
+  };
   groupId?: string | null;
   groupSeatIndex?: number | null;
   driver?: {
