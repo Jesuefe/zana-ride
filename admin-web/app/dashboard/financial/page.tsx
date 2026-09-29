@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, DollarSign, Users, Plus, Trash2, RefreshCw, Check, X } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
-import { getFinancial, getCommissionSummary, getExpenses, createExpense, deleteExpense, getMarketPriceConfig, getMarketPriceReviews, reviewMarketPrice, getFinanceAudit, updateMarketAgentRate, getAccountingLedger } from '../../../lib/api/admin';
+import { getFinancial, getCommissionSummary, getExpenses, createExpense, deleteExpense, getMarketPriceConfig, getMarketPriceReviews, reviewMarketPrice, getFinanceAudit, getAccountingLedger } from '../../../lib/api/admin';
 
 function Card({ label, value, sub, color = 'green' }: any) {
   const colors: Record<string, string> = { green: 'bg-green-50 text-green-700', red: 'bg-red-50 text-red-700', blue: 'bg-blue-50 text-blue-700', amber: 'bg-amber-50 text-amber-700' };
@@ -24,7 +24,6 @@ export default function FinancialPage() {
   const [marketConfig, setMarketConfig] = useState<any>(null);
   const [priceReviews, setPriceReviews] = useState<any[]>([]);
   const [audit, setAudit] = useState<any[]>([]);
-  const [agentRate, setAgentRate] = useState('');
   const [ledger, setLedger] = useState<any>(null);
   const CATEGORIES = ['Office', 'Fuel', 'Marketing', 'Software', 'Salaries', 'Equipment', 'Other'];
 
@@ -33,7 +32,7 @@ export default function FinancialPage() {
     getAccountingLedger(500).then(setLedger).catch(() => {});
     getCommissionSummary().then(setCommissions).catch(() => {});
     getExpenses().then(setExpenses).catch(() => {});
-    Promise.all([getMarketPriceConfig(), getMarketPriceReviews(), getFinanceAudit(100)]).then(([cfg, reviews, logs]) => { setMarketConfig(cfg); setPriceReviews(reviews); setAudit(logs); setAgentRate(String(cfg.agentMarkupShare ?? 40)); }).catch(() => {});
+    Promise.all([getMarketPriceConfig(), getMarketPriceReviews(), getFinanceAudit(100)]).then(([cfg, reviews, logs]) => { setMarketConfig(cfg); setPriceReviews(reviews); setAudit(logs); }).catch(() => {});
   };
   useEffect(() => { load(); }, []);
 
@@ -80,10 +79,7 @@ export default function FinancialPage() {
               <div className="bg-gray-50 rounded-lg p-3"><span className="text-gray-500 text-xs">Hard reject</span><p className="font-bold">{marketConfig?.hardRejectPercent ?? 100}%</p></div>
               <div className="bg-gray-50 rounded-lg p-3"><span className="text-gray-500 text-xs">Zana share</span><p className="font-bold">{marketConfig?.zanaMarkupShare ?? 60}%</p></div>
             </div>
-            <div className="flex gap-2 mt-4">
-              <input value={agentRate} onChange={e=>setAgentRate(e.target.value)} type="number" min="0" max="100" className="w-28 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              <button onClick={async()=>{const n=Number(agentRate);if(n>=0&&n<=100){await updateMarketAgentRate(n);load();}}} className="bg-zana-primary text-white font-semibold px-3 py-2 rounded-lg text-xs">Save agent share</button>
-            </div>
+            <div className="mt-4 text-xs text-gray-500">Policy changes are managed centrally in <a href="/dashboard/settings" className="font-semibold text-zana-primary hover:underline">Settings</a>. This dashboard remains read-only for financial monitoring.</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-100"><h2 className="font-semibold text-gray-900">Pending market price reviews</h2><p className="text-xs text-gray-500 mt-1">Approve or reject agent price changes.</p></div>
