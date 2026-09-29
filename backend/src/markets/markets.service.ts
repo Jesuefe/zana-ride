@@ -4,6 +4,7 @@ import { StorageService } from '../deliveries/storage.service';
 import { haversineKm } from '../trips/fare.util';
 import { PushService } from '../push/push.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
+import { FinanceService } from '../finance/finance.service';
 
 // Same shape as the merchant delivery fee so pricing stays consistent
 // across the whole marketplace.
@@ -20,6 +21,7 @@ export class MarketsService {
     private storage: StorageService,
     private push: PushService,
     private gateway: ZanaGateway,
+    private finance: FinanceService,
   ) {}
 
   // ── Customer-facing ───────────────────────────────────────────────────────
