@@ -6,9 +6,10 @@ import { StorageService } from '../deliveries/storage.service';
 import { GatewayModule } from '../gateway/gateway.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { PushModule } from '../push/push.module';
+import { FinanceModule } from '../finance/finance.module';
 
 @Module({
-  imports: [PrismaModule, GatewayModule, WalletModule, PushModule],
+  imports: [PrismaModule, GatewayModule, WalletModule, PushModule, FinanceModule],
   controllers: [MarketsController, AgentController],
   providers: [MarketsService, StorageService],
   exports: [MarketsService],
