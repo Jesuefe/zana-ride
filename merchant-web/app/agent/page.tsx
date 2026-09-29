@@ -285,7 +285,7 @@ function DeliveryCard({delivery,onChat}:any){
   </div>
   <div className="mt-3 bg-gray-50 rounded-xl p-3">
    {state==='REQUESTED' ? <><p className="text-sm font-bold">Waiting for a rider to accept</p><p className="text-[11px] text-gray-500 mt-1">The delivery is in the Zana rider pool. Once a rider accepts it, their contact details will appear here.</p></> :
-    <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold">{d?.firstName||'Zana rider'}</p><p className="text-[10px] text-gray-500">{delivery.driver?.vehicle||'Vehicle'} {delivery.driver?.plate||''}</p></div>{state!=='DELIVERED'&&<button onClick={onChat} className="w-9 h-9 rounded-full bg-zana-primary text-white flex items-center justify-center" aria-label={t('Message rider',lang)}><MessageCircle size={15}/></button>}</div>}
+    <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold">{d?.firstName||'Zana rider'}</p><p className="text-[10px] text-gray-500">{delivery.driver?.vehicle||'Vehicle'} {delivery.driver?.plate||''}</p></div>{state!=='DELIVERED'&&<button onClick={onChat} className="w-9 h-9 rounded-full bg-zana-primary text-white flex items-center justify-center" aria-label="Message rider"><MessageCircle size={15}/></button>}</div>}
   </div>
  </div>
 }
