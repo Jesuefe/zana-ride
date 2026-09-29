@@ -10,8 +10,6 @@ import { requestAgentPriceChange, fetchAgentEarnings } from '../../lib/api/merch
 import DeliveryChatPanel from '../../components/DeliveryChatPanel';
 import { t } from '../../lib/lang';
 import { useLang } from '../../lib/LangContext';
-import { io } from 'socket.io-client';
-import { getToken } from '../../lib/api/client';
 
 const money = (n: any) => Number(n || 0).toLocaleString() + ' RWF';
 const label = (s: string) => (s || '').replace(/_/g, ' ');
@@ -72,21 +70,6 @@ export default function AgentPage() {
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    const token = getToken();
-    if (!token) return;
-    const socket = io(process.env.NEXT_PUBLIC_API_URL ?? 'https://zana.ajumalink.com', { auth: { token }, transports: ['websocket'] });
-    socket.on('call:incoming', (data: any) => {
-      if (data?.context === 'delivery') setIncomingCall(data);
-    });
-    socket.on('call:cancelled', (data: any) => {
-      if (data?.callId === incomingCall?.callId) setIncomingCall(null);
-    });
-    socket.on('call:ended', (data: any) => {
-      if (data?.callId === incomingCall?.callId) { setIncomingCall(null); setShowIncomingCall(false); }
-    });
-    return () => socket.disconnect();
-  }, [incomingCall?.callId]);
 
   const active = useMemo(() => orders.filter(o => activeStatuses.includes(o.status)), [orders]);
   const shopping = active.filter(o => o.status === 'PREPARING');
