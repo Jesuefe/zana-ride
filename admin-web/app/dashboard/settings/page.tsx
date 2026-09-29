@@ -3,193 +3,40 @@
 import { useEffect, useState } from 'react';
 import AdminShell from '../../../components/AdminShell';
 import { api } from '../../../lib/api/client';
-import { CheckCircle2, CreditCard, Eye, EyeOff, RefreshCw, Save, ShieldCheck, Wifi } from 'lucide-react';
+import { CheckCircle2, CreditCard, Eye, EyeOff, RefreshCw, Save, ShieldCheck, Wifi, Bike, CarFront, Store } from 'lucide-react';
 
-type Settings = {
-  enabled: boolean;
-  environment: 'sandbox' | 'production';
-  baseUrl: string;
-  rail: 'mtn_momo' | 'airtel_money';
-  minWithdrawal: number;
-  configured: boolean;
-  apiKeyHint?: string | null;
-  webhookConfigured?: boolean;
-};
+type PaymentSettings = { enabled:boolean; environment:'sandbox'|'production'; baseUrl:string; rail:'mtn_momo'|'airtel_money'; minWithdrawal:number; configured:boolean; apiKeyHint?:string|null; webhookConfigured?:boolean };
+type Fare = { serviceType:'BIKE'|'ECONOMY'|'COMFORT'; base:number; perKm:number; perMin:number; bookingFee:number; minimum:number; commissionRate:number; freeWaitingMinutes:number; waitingPerMinute:number };
+type MarketConfig = { id?:string; autoApprovePercent:number; hardRejectPercent:number; markupPercent:number; agentEarningRate:number; zanaMarkupShare:number; agentMarkupShare:number };
+const fareLabels:any={BIKE:{name:'Moto / Bike',icon:Bike},ECONOMY:{name:'Economy Car',icon:CarFront},COMFORT:{name:'Premium Car',icon:CarFront}};
+const fareFields:any=[['base','Base fare','RWF'],['perKm','Per kilometer','RWF / km'],['perMin','Time rate','RWF / min'],['bookingFee','Booking fee','RWF'],['minimum','Minimum fare','RWF'],['commissionRate','ZANA commission','%'],['freeWaitingMinutes','Free waiting','minutes'],['waitingPerMinute','Waiting charge','RWF / min']];
+const defaultMarket:MarketConfig={autoApprovePercent:15,hardRejectPercent:100,markupPercent:20,agentEarningRate:40,zanaMarkupShare:60,agentMarkupShare:40};
 
-export default function SettingsPage() {
-  const [settings, setSettings] = useState<Settings>({
-    enabled: false,
-    environment: 'sandbox',
-    baseUrl: 'https://api.eversend.co/v1',
-    rail: 'mtn_momo',
-    minWithdrawal: 1000,
-    configured: false,
-  });
-  const [apiKey, setApiKey] = useState('');
-  const [webhookSecret, setWebhookSecret] = useState('');
-  const [showKey, setShowKey] = useState(false);
-  const [showWebhook, setShowWebhook] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.get<Settings>('/admin/settings/payments/eversend')
-      .then(setSettings)
-      .catch((e: any) => setError(e?.message ?? 'Could not load payment settings.'));
-  }, []);
-
-  const save = async () => {
-    setSaving(true); setMessage(null); setError(null);
-    try {
-      const next = await api.patch<Settings & { saved: boolean }>('/admin/settings/payments/eversend', {
-        enabled: settings.enabled,
-        environment: settings.environment,
-        apiKey: apiKey.trim() || undefined,
-        webhookSecret: webhookSecret.trim() || undefined,
-        baseUrl: settings.baseUrl,
-        rail: settings.rail,
-        minWithdrawal: settings.minWithdrawal,
-      });
-      setSettings(next);
-      setApiKey('');
-      setWebhookSecret('');
-      setMessage('Eversend settings saved securely.');
-    } catch (e: any) {
-      setError(e?.message ?? 'Could not save settings.');
-    } finally { setSaving(false); }
-  };
-
-  const test = async () => {
-    setTesting(true); setMessage(null); setError(null);
-    try {
-      const res: any = await api.post('/admin/settings/payments/eversend/test');
-      setMessage('Connection successful — Eversend is reachable.');
-    } catch (e: any) {
-      setError(e?.message ?? 'Eversend connection test failed.');
-    } finally { setTesting(false); }
-  };
-
-  return (
-    <AdminShell>
-      <div className="max-w-3xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-sm text-gray-500 mt-1">Configure Zana's external payment rail without editing the server environment.</p>
-        </div>
-
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-zana-primary/10 flex items-center justify-center text-zana-primary"><CreditCard size={20} /></div>
-              <div>
-                <h2 className="font-bold text-gray-900">Eversend</h2>
-                <p className="text-xs text-gray-500">Collections and payouts for Zana</p>
-              </div>
-            </div>
-            <div className={`text-xs font-semibold px-2.5 py-1 rounded-full ${settings.configured ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-              {settings.configured ? 'Configured' : 'Not configured'}
-            </div>
-          </div>
-
-          <div className="p-5 space-y-5">
-            <label className="flex items-center justify-between gap-4 p-3 rounded-xl bg-gray-50">
-              <div>
-                <div className="text-sm font-semibold text-gray-900">Enable Eversend</div>
-                <div className="text-xs text-gray-500">Use Eversend for digital collections and payouts.</div>
-              </div>
-              <button onClick={() => setSettings(s => ({ ...s, enabled: !s.enabled }))}
-                className={`relative w-11 h-6 rounded-full transition ${settings.enabled ? 'bg-zana-primary' : 'bg-gray-300'}`} aria-label="Enable Eversend">
-                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition ${settings.enabled ? 'left-6' : 'left-1'}`} />
-              </button>
-            </label>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1.5">Environment</label>
-                <select value={settings.environment} onChange={e => setSettings(s => ({ ...s, environment: e.target.value as Settings['environment'] }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white">
-                  <option value="sandbox">Sandbox</option>
-                  <option value="production">Production</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1.5">Rwanda payout rail</label>
-                <select value={settings.rail} onChange={e => setSettings(s => ({ ...s, rail: e.target.value as Settings['rail'] }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white">
-                  <option value="mtn_momo">MTN MoMo</option>
-                  <option value="airtel_money">Airtel Money</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-gray-600 block mb-1.5">Eversend API key</label>
-              <div className="relative">
-                <input value={apiKey} onChange={e => setApiKey(e.target.value)} type={showKey ? 'text' : 'password'}
-                  placeholder={settings.apiKeyHint ? `Saved: ${settings.apiKeyHint} — leave blank to keep it` : 'sk_test_… or sk_live_…'}
-                  autoComplete="new-password"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 pr-10 text-sm font-mono" />
-                <button type="button" onClick={() => setShowKey(v => !v)} className="absolute right-3 top-2.5 text-gray-400">
-                  {showKey ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-gray-600 block mb-1.5">Webhook secret <span className="font-normal text-gray-400">(optional for now)</span></label>
-              <div className="relative">
-                <input value={webhookSecret} onChange={e => setWebhookSecret(e.target.value)} type={showWebhook ? 'text' : 'password'}
-                  placeholder={settings.webhookConfigured ? 'Saved — leave blank to keep it' : 'Webhook signing secret'}
-                  autoComplete="new-password"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 pr-10 text-sm font-mono" />
-                <button type="button" onClick={() => setShowWebhook(v => !v)} className="absolute right-3 top-2.5 text-gray-400">
-                  {showWebhook ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1.5">API base URL</label>
-                <input value={settings.baseUrl} onChange={e => setSettings(s => ({ ...s, baseUrl: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1.5">Minimum withdrawal (RWF)</label>
-                <input type="number" min={1000} step={100} value={settings.minWithdrawal}
-                  onChange={e => setSettings(s => ({ ...s, minWithdrawal: Math.max(1000, Number(e.target.value) || 1000) }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm" />
-              </div>
-            </div>
-
-            {(message || error) && (
-              <div className={`rounded-lg p-3 text-sm ${error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-                {error || message}
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              <button onClick={save} disabled={saving}
-                className="flex items-center gap-2 bg-zana-primary text-white font-semibold px-4 py-2.5 rounded-lg disabled:opacity-50">
-                <Save size={16} /> {saving ? 'Saving…' : 'Save settings'}
-              </button>
-              <button onClick={test} disabled={testing || !settings.configured}
-                className="flex items-center gap-2 border border-gray-200 text-gray-700 font-semibold px-4 py-2.5 rounded-lg disabled:opacity-40">
-                {testing ? <RefreshCw size={16} className="animate-spin" /> : <Wifi size={16} />}
-                {testing ? 'Testing…' : 'Test connection'}
-              </button>
-            </div>
-
-            <div className="pt-3 border-t border-gray-100 grid md:grid-cols-3 gap-3 text-xs text-gray-500">
-              <div className="flex gap-2"><ShieldCheck size={15} className="text-zana-primary shrink-0" /> Credentials are encrypted at rest.</div>
-              <div className="flex gap-2"><EyeOff size={15} className="text-zana-primary shrink-0" /> Full secrets are never returned to the browser.</div>
-              <div className="flex gap-2"><CheckCircle2 size={15} className="text-zana-primary shrink-0" /> Sandbox first, then production.</div>
-            </div>
-          </div>
-        </section>
-      </div>
-    </AdminShell>
-  );
+export default function SettingsPage(){
+ const [payment,setPayment]=useState<PaymentSettings>({enabled:false,environment:'sandbox',baseUrl:'https://api.eversend.co/v1',rail:'mtn_momo',minWithdrawal:1000,configured:false});
+ const [fares,setFares]=useState<Fare[]>([]); const [fareEdits,setFareEdits]=useState<Record<string,Partial<Fare>>>({});
+ const [market,setMarket]=useState<MarketConfig>(defaultMarket); const [apiKey,setApiKey]=useState(''); const [webhookSecret,setWebhookSecret]=useState('');
+ const [showKey,setShowKey]=useState(false); const [showWebhook,setShowWebhook]=useState(false); const [saving,setSaving]=useState<string|null>(null); const [testing,setTesting]=useState(false); const [message,setMessage]=useState<string|null>(null); const [error,setError]=useState<string|null>(null);
+ const load=async()=>{try{const [p,f,m]=await Promise.all([api.get<PaymentSettings>('/admin/settings/payments/eversend'),api.get<Fare[]>('/admin/fares'),api.get<MarketConfig>('/admin/settings/marketplace')]);setPayment(p);setFares(f);setMarket({...defaultMarket,...m});}catch(e:any){setError(e?.message??'Could not load settings.');}};
+ useEffect(()=>{load();},[]);
+ const savePayment=async()=>{setSaving('payment');setMessage(null);setError(null);try{const n=await api.patch<any>('/admin/settings/payments/eversend',{enabled:payment.enabled,environment:payment.environment,apiKey:apiKey.trim()||undefined,webhookSecret:webhookSecret.trim()||undefined,baseUrl:payment.baseUrl,rail:payment.rail,minWithdrawal:payment.minWithdrawal});setPayment(n);setApiKey('');setWebhookSecret('');setMessage('Eversend settings saved securely.');}catch(e:any){setError(e?.message??'Could not save payment settings.');}finally{setSaving(null);}};
+ const testPayment=async()=>{setTesting(true);setMessage(null);setError(null);try{await api.post('/admin/settings/payments/eversend/test');setMessage('Eversend connection test succeeded.');}catch(e:any){setError(e?.message??'Eversend connection test failed.');}finally{setTesting(false);}};
+ const saveFare=async(f:Fare)=>{const edits=fareEdits[f.serviceType];if(!edits||!Object.keys(edits).length)return;setSaving('fare:'+f.serviceType);setMessage(null);setError(null);try{await api.patch('/admin/fares/'+f.serviceType,edits);setFareEdits(v=>({...v,[f.serviceType]:{}}));setFares(await api.get<Fare[]>('/admin/fares'));setMessage(fareLabels[f.serviceType].name+' pricing policy is now live.');}catch(e:any){setError(e?.message??'Could not save fare policy.');}finally{setSaving(null);}};
+ const saveMarket=async()=>{if(Math.abs(Number(market.agentMarkupShare)+Number(market.zanaMarkupShare)-100)>0.001){setError('Agent markup share and Zana markup share must equal 100%.');return;}setSaving('market');setMessage(null);setError(null);try{const n=await api.patch<MarketConfig>('/admin/settings/marketplace',market);setMarket({...defaultMarket,...n});setMessage('Marketplace pricing policy is now live.');}catch(e:any){setError(e?.message??'Could not save marketplace settings.');}finally{setSaving(null);}};
+ const setFare=(serviceType:string,key:string,raw:string)=>{const n=Number(raw);setFareEdits(v=>({...v,[serviceType]:{...(v[serviceType]??{}),[key]:Number.isFinite(n)?n:0}}));};
+ return <AdminShell><div className="space-y-6 max-w-6xl">
+  <div><h1 className="text-2xl font-bold text-gray-900">Settings</h1><p className="text-sm text-gray-500 mt-1">All Zana policies and external payment configuration are controlled here. Operational records stay in their respective sections.</p></div>
+  {(message||error)&&<div className={`rounded-xl border p-3 text-sm ${error?'bg-red-50 border-red-100 text-red-700':'bg-green-50 border-green-100 text-green-700'}`}>{error||message}</div>}
+  <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"><div className="p-5 border-b border-gray-100"><div className="flex items-center gap-3"><Store size={20} className="text-zana-primary"/><div><h2 className="font-bold text-gray-900">Marketplace pricing</h2><p className="text-xs text-gray-500">Customer markup and the split between market agents and Zana.</p></div></div></div><div className="p-5"><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{[['markupPercent','Customer markup'],['autoApprovePercent','Auto-approve price change'],['hardRejectPercent','Hard-reject price change'],['agentMarkupShare','Agent markup share'],['zanaMarkupShare','Zana markup share'],['agentEarningRate','Agent earning rate']].map(([k,l])=><label key={k} className="block"><span className="text-xs font-semibold text-gray-600">{l} (%)</span><input type="number" min="0" max="100" step="0.1" value={(market as any)[k]??0} onChange={e=>setMarket(v=>({...v,[k]:Number(e.target.value)||0}))} className="mt-1.5 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-semibold"/></label>)}</div><p className="text-xs text-gray-500 mt-3">Existing paid orders keep their locked pricing. These values apply to future marketplace activity.</p><button onClick={saveMarket} disabled={saving==='market'} className="mt-4 inline-flex items-center gap-2 bg-zana-primary text-white font-semibold px-4 py-2.5 rounded-lg text-sm disabled:opacity-50"><Save size={15}/>{saving==='market'?'Saving…':'Save marketplace settings'}</button></div></section>
+  <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"><div className="p-5 border-b border-gray-100"><div className="flex items-center gap-3"><ShieldCheck size={20} className="text-zana-primary"/><div><h2 className="font-bold text-gray-900">Ride pricing & commission</h2><p className="text-xs text-gray-500">Live fare cards for every ride class.</p></div></div></div><div className="p-5 grid xl:grid-cols-3 gap-4">{fares.map(f=>{const meta=fareLabels[f.serviceType]||{name:f.serviceType,icon:CarFront};const Icon=meta.icon;const edits=fareEdits[f.serviceType]||{};const dirty=Object.keys(edits).length>0;return <div key={f.serviceType} className="border border-gray-200 rounded-xl overflow-hidden"><div className="p-4 border-b border-gray-100 flex items-center gap-3"><Icon size={18} className="text-zana-primary"/><h3 className="font-bold text-gray-900">{meta.name}</h3></div><div className="p-4 space-y-3">{fareFields.map(([k,l,u]:any)=><label key={k} className="block"><div className="flex justify-between"><span className="text-xs font-semibold text-gray-600">{l}</span><span className="text-[10px] text-gray-400">{u}</span></div><input type="number" min="0" step={k==='commissionRate'?'0.1':'1'} value={(edits as any)[k]??(f as any)[k]} onChange={e=>setFare(f.serviceType,k,e.target.value)} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"/></label>)}<button onClick={()=>saveFare(f)} disabled={!dirty||saving==='fare:'+f.serviceType} className="w-full inline-flex justify-center items-center gap-2 bg-zana-primary text-white font-bold py-2.5 rounded-lg text-sm disabled:opacity-40"><Save size={14}/>{saving==='fare:'+f.serviceType?'Saving…':dirty?'Apply live fare policy':'No pending changes'}</button></div></div>})}</div></section>
+  <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"><div className="p-5 border-b border-gray-100 flex items-center justify-between"><div className="flex items-center gap-3"><CreditCard size={20} className="text-zana-primary"/><div><h2 className="font-bold text-gray-900">Eversend payments</h2><p className="text-xs text-gray-500">Collections, payouts, refunds and withdrawals.</p></div></div><span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${payment.configured?'bg-green-50 text-green-700':'bg-gray-100 text-gray-500'}`}>{payment.configured?'Configured':'Not configured'}</span></div><div className="p-5 space-y-5">
+   <label className="flex items-center justify-between gap-4 p-3 rounded-xl bg-gray-50"><div><div className="text-sm font-semibold text-gray-900">Enable Eversend</div><div className="text-xs text-gray-500">Use Eversend for digital collections and payouts.</div></div><button onClick={()=>setPayment(s=>({...s,enabled:!s.enabled}))} className={`relative w-11 h-6 rounded-full ${payment.enabled?'bg-zana-primary':'bg-gray-300'}`}><span className={`absolute top-1 w-4 h-4 bg-white rounded-full ${payment.enabled?'left-6':'left-1'}`}/></button></label>
+   <div className="grid md:grid-cols-2 gap-4"><label><span className="text-xs font-semibold text-gray-600 block mb-1.5">Environment</span><select value={payment.environment} onChange={e=>setPayment(s=>({...s,environment:e.target.value as any}))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white"><option value="sandbox">Sandbox</option><option value="production">Production</option></select></label><label><span className="text-xs font-semibold text-gray-600 block mb-1.5">Rwanda payout rail</span><select value={payment.rail} onChange={e=>setPayment(s=>({...s,rail:e.target.value as any}))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white"><option value="mtn_momo">MTN MoMo</option><option value="airtel_money">Airtel Money</option></select></label></div>
+   <label className="block"><span className="text-xs font-semibold text-gray-600 block mb-1.5">Eversend API key</span><div className="relative"><input value={apiKey} onChange={e=>setApiKey(e.target.value)} type={showKey?'text':'password'} placeholder={payment.apiKeyHint?`Saved: ${payment.apiKeyHint} — leave blank to keep it`:'sk_test_… or sk_live_…'} autoComplete="new-password" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 pr-10 text-sm font-mono"/><button type="button" onClick={()=>setShowKey(v=>!v)} className="absolute right-3 top-2.5 text-gray-400">{showKey?<EyeOff size={17}/>:<Eye size={17}/>}</button></div></label>
+   <label className="block"><span className="text-xs font-semibold text-gray-600 block mb-1.5">Webhook secret <span className="font-normal text-gray-400">(optional for now)</span></span><div className="relative"><input value={webhookSecret} onChange={e=>setWebhookSecret(e.target.value)} type={showWebhook?'text':'password'} placeholder={payment.webhookConfigured?'Saved — leave blank to keep it':'Webhook signing secret'} autoComplete="new-password" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 pr-10 text-sm font-mono"/><button type="button" onClick={()=>setShowWebhook(v=>!v)} className="absolute right-3 top-2.5 text-gray-400">{showWebhook?<EyeOff size={17}/>:<Eye size={17}/>}</button></div></label>
+   <div className="grid md:grid-cols-2 gap-4"><label><span className="text-xs font-semibold text-gray-600 block mb-1.5">API base URL</span><input value={payment.baseUrl} onChange={e=>setPayment(s=>({...s,baseUrl:e.target.value}))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono"/></label><label><span className="text-xs font-semibold text-gray-600 block mb-1.5">Minimum withdrawal (RWF)</span><input type="number" min={1000} step={100} value={payment.minWithdrawal} onChange={e=>setPayment(s=>({...s,minWithdrawal:Math.max(1000,Number(e.target.value)||1000)}))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"/></label></div>
+   <div className="flex flex-wrap gap-2"><button onClick={savePayment} disabled={saving==='payment'} className="flex items-center gap-2 bg-zana-primary text-white font-semibold px-4 py-2.5 rounded-lg disabled:opacity-50"><Save size={16}/>{saving==='payment'?'Saving…':'Save payment settings'}</button><button onClick={testPayment} disabled={testing||!payment.configured} className="flex items-center gap-2 border border-gray-200 text-gray-700 font-semibold px-4 py-2.5 rounded-lg disabled:opacity-40">{testing?<RefreshCw size={16} className="animate-spin"/>:<Wifi size={16}/>} {testing?'Testing…':'Test connection'}</button></div>
+   <div className="pt-3 border-t border-gray-100 grid md:grid-cols-3 gap-3 text-xs text-gray-500"><div className="flex gap-2"><ShieldCheck size={15} className="text-zana-primary shrink-0"/>Credentials are encrypted at rest.</div><div className="flex gap-2"><EyeOff size={15} className="text-zana-primary shrink-0"/>Full secrets are never returned to the browser.</div><div className="flex gap-2"><CheckCircle2 size={15} className="text-zana-primary shrink-0"/>Sandbox first, then production.</div></div>
+  </div></section>
+ </div></AdminShell>;
 }
