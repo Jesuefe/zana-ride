@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import ZanaSplash from './ZanaSplash';
 
-export default function SplashGate() {
+export default function SplashGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const role = pathname.startsWith('/agent') ? 'agent' : 'merchant';
   const [show, setShow] = useState(false);
@@ -25,6 +25,10 @@ export default function SplashGate() {
     setShow(false);
   }, []);
 
-  if (!show) return null;
-  return <ZanaSplash role={role} onDone={done} />;
+  return (
+    <>
+      {children}
+      {show && <ZanaSplash role={role} onDone={done} />}
+    </>
+  );
 }
