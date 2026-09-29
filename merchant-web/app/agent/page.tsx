@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Store, Package, ShoppingBag, Wallet, Truck, Clock3, CheckCircle2,
-  AlertTriangle, Phone, MapPin, ChevronRight, Plus, Trash2, X, RefreshCw
+  AlertTriangle, MapPin, ChevronRight, Plus, Trash2, X, RefreshCw, MessageCircle
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { requestAgentPriceChange, fetchAgentEarnings } from '../../lib/api/merchant';
-import VoiceCall from '../../components/VoiceCall';
+import DeliveryChatPanel from '../../components/DeliveryChatPanel';
 import { t } from '../../lib/lang';
 import { useLang } from '../../lib/LangContext';
 import { io } from 'socket.io-client';
@@ -29,9 +29,7 @@ export default function AgentPage() {
   const [earnings, setEarnings] = useState<any>(null);
   const [selected, setSelected] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [call, setCall] = useState<any>(null);
-  const [incomingCall, setIncomingCall] = useState<any>(null);
-  const [showIncomingCall, setShowIncomingCall] = useState(false);
+  const [chatDeliveryId, setChatDeliveryId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [purchaseFunds, setPurchaseFunds] = useState<any[]>([]);
   const [error, setError] = useState('');
@@ -270,34 +268,10 @@ export default function AgentPage() {
 
       {view === 'wallet' && <section><div className="mb-4"><h2 className="text-xl font-black">Wallet</h2><p className="text-xs text-gray-500">Your agent earnings and wallet activity.</p></div><div className="grid md:grid-cols-3 gap-3 mb-5"><div className="bg-zana-primary text-white rounded-2xl p-5"><p className="text-xs opacity-80">Available balance</p><p className="text-3xl font-black">{money(wallet?.balance)}</p></div><div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total earnings</p><p className="text-2xl font-black">{money(earnings?.totalEarning)}</p></div><div className="bg-white rounded-2xl border p-5"><p className="text-xs text-gray-500">Total markup</p><p className="text-2xl font-black">{money(earnings?.totalMarkup)}</p></div></div><div className="bg-white rounded-2xl border p-4"><h3 className="font-black mb-3">{t("Recent wallet activity",lang)}</h3><div className="space-y-2">{(wallet?.transactions||[]).map((t:any)=><div key={t.id} className="flex justify-between py-2 border-b border-gray-50 text-sm"><span>{t.description || t.reference || 'Wallet transaction'}</span><span className={t.amount>=0?'text-zana-primary font-bold':'text-red-500 font-bold'}>{t.amount>=0?'+':''}{money(t.amount)}</span></div>)}</div></div></section>}
 
-      {selected && <OrderDetail order={selected} fund={fundFor(selected.id)} onClose={()=>setSelected(null)} onUnavailable={unavailable} onCall={(d:any)=>setCall({contextId:d.id,name:d.driver?.user?.firstName||'Rider'})} onWithdraw={withdraw} busy={busy} lang={lang}/>}
+      {selected && <OrderDetail order={selected} fund={fundFor(selected.id)} onClose={()=>setSelected(null)} onUnavailable={unavailable} onChat={(d:any)=>setChatDeliveryId(d.id)} onWithdraw={withdraw} busy={busy} lang={lang}/>}
+      {chatDeliveryId && <DeliveryChatPanel deliveryId={chatDeliveryId} onClose={()=>setChatDeliveryId(null)} />}
       {loadingDetail && <div className="fixed inset-0 z-40 bg-black/20 flex items-center justify-center"><div className="bg-white rounded-2xl px-5 py-4 text-sm font-bold">Loading order…</div></div>}
-      {call && <VoiceCall context="delivery" contextId={call.contextId} participantLabel={call.name} onClose={()=>setCall(null)}/>}
-      {incomingCall && !showIncomingCall && (
-        <div className="fixed inset-0 z-[80] bg-black/60 flex items-end justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-5 shadow-2xl">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">{t('Incoming Zana call', lang)}</p>
-            <p className="text-2xl font-black text-gray-900 mt-1">{incomingCall.callerName || t('Zana Driver', lang)}</p>
-            <p className="text-sm text-gray-500 mt-1">{t('Calling about a delivery', lang)}</p>
-            <div className="grid grid-cols-2 gap-3 mt-5">
-              <button onClick={async () => { await api.post('/calls/' + incomingCall.callId + '/decline').catch(() => {}); setIncomingCall(null); }} className="py-3.5 rounded-2xl bg-gray-100 text-gray-900 font-bold">{t('Decline', lang)}</button>
-              <button onClick={async () => { try { const res = await api.post<any>('/calls/' + incomingCall.callId + '/accept'); setIncomingCall((prev:any) => prev ? { ...prev, roomName: res.roomName, wsUrl: res.wsUrl, token: res.token } : null); setShowIncomingCall(true); } catch { setIncomingCall(null); } }} className="py-3.5 rounded-2xl bg-zana-primary text-white font-bold">{t('Answer', lang)}</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showIncomingCall && incomingCall?.token && (
-        <VoiceCall
-          context="delivery"
-          contextId={incomingCall.contextId}
-          incomingCallId={incomingCall.callId}
-          incomingRoom={incomingCall.roomName}
-          incomingWsUrl={incomingCall.wsUrl}
-          incomingToken={incomingCall.token}
-          participantLabel={incomingCall.callerName || t('Zana Driver', lang)}
-          onClose={() => { setShowIncomingCall(false); setIncomingCall(null); }}
-        />
-      )}
+      
     </div>
   );
 }
@@ -333,7 +307,7 @@ function DeliveryCard({delivery,onCall}:any){
  </div>
 }
 
-function OrderDetail({order,fund,onClose,onUnavailable,onCall,onWithdraw,busy,lang}:any){
+function OrderDetail({order,fund,onClose,onUnavailable,onChat,onWithdraw,busy,lang}:any){
  const d=order.delivery; const customer=order.customer; const loc=d||order;
  const lat=loc?.dropoffLat??order.dropoffLat??loc?.lat;
  const lng=loc?.dropoffLng??order.dropoffLng??loc?.lng;
@@ -345,7 +319,22 @@ function OrderDetail({order,fund,onClose,onUnavailable,onCall,onWithdraw,busy,la
    <section className="bg-white rounded-2xl p-4 border"><h3 className="font-black mb-3">{t('Customer',lang)}</h3><p className="font-bold">{customer?.firstName||'Customer'} {customer?.lastName||''}</p><p className="text-sm text-gray-500">{customer?.phone}</p><div className="mt-3 space-y-2">{(loc?.dropoffAddress||order.dropoffAddress)&&<div className="text-sm bg-gray-50 rounded-xl p-3"><MapPin size={13} className="inline mr-1"/>{loc?.dropoffAddress||order.dropoffAddress}</div>}{hasLocation?<div className="flex items-center justify-between gap-2 text-xs bg-gray-50 rounded-xl p-3"><span><b>{t('Latitude / Longitude',lang)}</b>: {lat}, {lng}</span>{maps&&<a href={maps} target="_blank" rel="noreferrer" className="font-bold text-zana-primary">{t('Open in Maps',lang)}</a>}</div>:<div className="text-xs bg-amber-50 text-amber-800 rounded-xl p-3">Customer location coordinates are not available for this order.</div>}</div><div className="mt-3"><a href={'tel:'+customer?.phone} className="block border rounded-xl py-2 text-xs font-bold text-center"><Phone size={13} className="inline mr-1"/> Call customer</a></div></section>
    {fund&&<section className="bg-white rounded-2xl p-4 border"><h3 className="font-black mb-3">{t('Purchasing funds',lang)}</h3><div className="grid grid-cols-2 gap-3"><div><p className="text-xs text-gray-500">{t('Authorized',lang)}</p><p className="text-xl font-black">{money(fund.authorizedAmount)}</p></div><div><p className="text-xs text-gray-500">{t('Withdrawn',lang)}</p><p className="text-xl font-black">{money(fund.withdrawnAmount)}</p></div><div><p className="text-xs text-gray-500">{t('Actual spend',lang)}</p><p className="text-xl font-black">{fund.actualSpend==null?'—':money(fund.actualSpend)}</p></div><div><p className="text-xs text-gray-500">{t('Customer refund',lang)}</p><p className="text-xl font-black">{fund.remainingAmount==null?'—':money(fund.remainingAmount)}</p></div></div>{fund.status==='AVAILABLE'&&<button onClick={()=>onWithdraw(order.id)} disabled={busy==='withdraw:'+order.id} className="w-full mt-4 bg-zana-primary text-white rounded-xl py-3 text-sm font-bold">{busy==='withdraw:'+order.id?'Processing…':t('Withdraw',lang)+' '+money(fund.authorizedAmount)}</button>}{fund.destinationPhone&&<p className="text-xs text-gray-500 mt-3">{t('Registered number',lang)}: <b>{fund.destinationPhone}</b></p>}{fund.remainingAmount>0&&<div className="mt-3 rounded-xl bg-red-50 p-3 text-xs text-red-700">{t('Customer refund',lang)} {money(fund.remainingAmount)} · {t('Recovered from agent',lang)}</div>}</section>}
    <section className="bg-white rounded-2xl p-4 border"><h3 className="font-black mb-3">Receipt</h3>{(order.items||[]).map((i:any)=><div key={i.id} className="flex items-center gap-2 py-2 border-b border-gray-50"><div className="flex-1"><p className={i.status==='UNAVAILABLE'?'line-through text-gray-400':'font-medium text-sm'}>{i.product?.name} ×{i.quantity}</p><p className="text-[10px] text-gray-400">{i.status==='UNAVAILABLE_PENDING'?'Waiting for customer choice':i.status==='REFUNDED'?t('Refunded to customer',lang):i.status==='REMOVED'?'Removed · refunded to wallet':i.status==='REPLACED'?'Replaced with this item':money(i.price*i.quantity)}</p></div>{i.status==='AVAILABLE'&&['PENDING','CONFIRMED','PREPARING'].includes(order.status)&&<button disabled={busy===i.id} onClick={()=>onUnavailable(order.id,i.id)} className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1.5 rounded-lg">Unavailable</button>}</div>)}<div className="flex justify-between text-sm mt-3"><span>Delivery</span><span>{money(order.deliveryFee)}</span></div><div className="flex justify-between font-black text-lg mt-1"><span>Total</span><span>{money(order.total)}</span></div></section>
-   <section className="bg-white rounded-2xl p-4 border"><h3 className="font-black mb-3">{t('Rider handoff',lang)}</h3>{d ? (d.status==='REQUESTED' ? <div className="rounded-xl bg-amber-50 p-3"><p className="text-sm font-bold text-amber-900">Finding a rider</p><p className="text-xs text-amber-800 mt-1">This order is ready and the delivery is visible to nearby Zana riders. A rider must accept it before pickup contact details appear.</p></div> : <><div className="flex justify-between"><div><p className="font-bold">{d.driver?.user?.firstName||'Rider'}</p><p className="text-xs text-gray-500">{d.driver?.vehicle||''} {d.driver?.plate||''}</p></div><span className="text-[10px] font-bold uppercase bg-gray-100 px-2 py-1 rounded-full">{label(d.status)}</span></div>{d.driver?.user?.phone&&d.status!=='DELIVERED'&&<div className="flex gap-2 mt-3"><a href={'tel:'+d.driver.user.phone} className="flex-1 border rounded-xl py-2 text-xs font-bold text-center">Phone call</a><button onClick={()=>onCall(d)} className="flex-1 bg-zana-primary text-white rounded-xl py-2 text-xs font-bold">Zana call</button></div>}</>) : <p className="text-sm text-gray-500">No delivery record has been created for this order yet.</p>}</section>
+   <section className="bg-white rounded-2xl p-4 border">
+    <h3 className="font-black mb-3">{t('Rider handoff',lang)}</h3>
+    {d ? (d.status==='REQUESTED' ? <div className="rounded-xl bg-amber-50 p-3"><p className="text-sm font-bold text-amber-900">Finding a rider</p><p className="text-xs text-amber-800 mt-1">This order is ready and visible to nearby Zana riders.</p></div> : <>
+      <div className="flex justify-between">
+        <div><p className="font-bold">{d.driver?.user?.firstName||'Rider'}</p><p className="text-xs text-gray-500">{d.driver?.vehicle||''} {d.driver?.plate||''}</p></div>
+        <span className="text-[10px] font-bold uppercase bg-gray-100 px-2 py-1 rounded-full">{label(d.status)}</span>
+      </div>
+      {d.status==='PICKED_UP' && <div className="mt-3 rounded-xl bg-amber-50 border border-amber-100 p-3">
+        <p className="text-sm font-black text-amber-900">Rider picked up</p>
+        <p className="text-xs text-amber-800 mt-1">Your agent earnings are still pending and will be released after the delivery is completed.</p>
+      </div>}
+      {d.status!=='DELIVERED' && <button onClick={()=>onChat(d)} className="w-full mt-3 bg-zana-primary text-white rounded-xl py-3 text-xs font-bold flex items-center justify-center gap-2">
+        <MessageCircle size={15}/> {t('Message rider',lang)}
+      </button>}
+    </>) : <p className="text-sm text-gray-500">No delivery record has been created for this order yet.</p>}
+   </section>
    <section className="bg-white rounded-2xl p-4 border"><h3 className="font-black mb-3">Order timeline</h3><div className="space-y-3"><TimelineDot title="Customer placed order" date={order.createdAt}/>{(order.timeline||[]).map((x:any)=><TimelineDot key={x.id} title={x.action.replace(/_/g,' ')} date={x.createdAt} detail={x.metadataJson}/>)}{d?.assignedAt&&<TimelineDot title="Rider assigned" date={d.assignedAt}/>} {d?.pickedUpAt&&<TimelineDot title="Picked up" date={d.pickedUpAt}/>} {d?.deliveredAt&&<TimelineDot title="Delivered" date={d.deliveredAt}/>}</div></section>
   </div></div></div>
 }
