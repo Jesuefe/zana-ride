@@ -205,18 +205,28 @@ export class AdminController {
   @Post('markets/:id/products')
   addMarketProduct(
     @Param('id') id: string,
-    @Body() body: { name: string; description?: string; price: number; referenceCost?: number; imageBase64?: string; stock?: number },
+    @Body() body: { name: string; description?: string; referenceCost: number; imageBase64?: string; stock?: number; available?: boolean },
   ) {
     return this.adminService.addMarketProduct(id, body);
   }
 
-  @Patch('products/:id')
+  @Patch('markets/:marketId/products/:productId')
   updateMarketProduct(
-    @Param('id') id: string,
-    @Body() body: { name?: string; description?: string; price?: number; referenceCost?: number; imageBase64?: string; stock?: number },
+    @Param('marketId') marketId: string,
+    @Param('productId') productId: string,
+    @Body() body: { name?: string; description?: string; referenceCost?: number; imageBase64?: string; stock?: number; available?: boolean },
   ) {
-    return this.adminService.updateMarketProduct(id, body);
+    return this.adminService.updateMarketProduct(marketId, productId, body);
   }
+
+  @Delete('markets/:marketId/products/:productId')
+  disableMarketProduct(
+    @Param('marketId') marketId: string,
+    @Param('productId') productId: string,
+  ) {
+    return this.adminService.disableMarketProduct(marketId, productId);
+  }
+
 
   // Agents
   @Get('agents')
