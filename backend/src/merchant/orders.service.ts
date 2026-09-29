@@ -362,6 +362,10 @@ export class OrdersService {
             status: 'REQUESTED',
             trackingCode: 'ZD' + Math.random().toString(36).slice(2, 8).toUpperCase(),
             paid: true, // the customer already paid for the order up front
+            // The delivery fee is part of the already-paid marketplace
+            // order. Preserve the order's payment method for the delivery
+            // commission ledger; do not charge the customer again.
+            paymentMethod: order.paymentMethod,
             pickupAddress,
             pickupLat,
             pickupLng,
