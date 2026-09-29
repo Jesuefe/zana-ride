@@ -827,15 +827,6 @@ export default function DriverHome() {
             </button>
           </div>
 
-          {/* Driver SOS */}
-          <button
-            onClick={() => { setSosState('idle'); setShowSOS(true); }}
-            className="w-full mb-3 h-12 rounded-2xl border-2 border-red-200 bg-red-50 text-red-700 flex items-center justify-center gap-2 font-black text-sm active:scale-[0.99] transition-transform"
-          >
-            <AlertTriangle size={17} />
-            {dt('SOS EMERGENCY')}
-          </button>
-
           {/* ZANA online/offline control */}
           {online ? (
             <button
