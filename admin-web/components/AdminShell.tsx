@@ -7,7 +7,7 @@ import Link from 'next/link';
 import {
   LayoutDashboard, Users, Car, Store, Package, MapPin,
   UserCheck, TrendingUp, LogOut, ChevronRight,
-  Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
+  Truck, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
   Sun, Moon, Smartphone, Settings } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
 import { useTheme } from '../lib/ThemeContext';
