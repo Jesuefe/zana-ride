@@ -244,6 +244,7 @@ model Agent {
   active     Boolean   @default(true)
   createdAt  DateTime  @default(now())
   settlements AgentSettlement[]
+  orders      Order[]
 }
 
 enum TripStatus {
