@@ -111,7 +111,7 @@ export default function LoginPage() { const {t}=useLang();
             className="w-full mt-5 bg-zana-primary text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 hover:bg-zana-primary-dark transition-colors"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-            {loading ? 'Signing in…' : t("Sign in")}}
+            {loading ? 'Signing in…' : t("Sign in")}
           </button>
 
           <div className="flex flex-col gap-1 mt-3 items-center">
