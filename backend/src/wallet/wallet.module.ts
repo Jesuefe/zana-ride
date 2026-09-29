@@ -4,13 +4,11 @@ import { WalletController } from './wallet.controller';
 import { WalletService } from './wallet.service';
 import { EversendService } from './eversend.service';
 import { ReconcileService } from './reconcile.service';
-import { PesapalService } from './pesapal.service';
-import { PesapalController } from './pesapal.controller';
 
 @Module({
   imports: [GatewayModule],
-  controllers: [WalletController, PesapalController],
-  providers: [WalletService, EversendService, ReconcileService, PesapalService],
-  exports: [WalletService, MomoDisbursementService, PesapalService],
+  controllers: [WalletController],
+  providers: [WalletService, EversendService, ReconcileService],
+  exports: [WalletService, EversendService],
 })
 export class WalletModule {}
