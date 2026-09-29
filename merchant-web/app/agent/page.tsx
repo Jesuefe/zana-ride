@@ -73,6 +73,15 @@ export default function AgentPage() {
     return () => clearInterval(t);
   }, []);
 
+  useEffect(() => {
+    const onAgentView = (event: Event) => {
+      const next = (event as CustomEvent<string>).detail;
+      if (next) setView(next);
+    };
+    window.addEventListener('zana-agent-view', onAgentView);
+    return () => window.removeEventListener('zana-agent-view', onAgentView);
+  }, []);
+
 
   const active = useMemo(() => orders.filter(o => activeStatuses.includes(o.status)), [orders]);
   const shopping = active.filter(o => o.status === 'PREPARING');
