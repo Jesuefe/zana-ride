@@ -5,7 +5,7 @@ import { X, Send, MessageCircle, Loader2 } from 'lucide-react';
 import { useLang } from '../lib/LangContext';
 import { getStoredLang, Lang } from '../lib/lang';
 import { getToken } from '../lib/api/client';
-import { getDeliveryMessages, sendDeliveryMessage, ChatMessage } from '../lib/api/chat';
+import { getMessages, sendMessage, ChatMessage } from '../lib/api/chat';
 
 function getUserIdFromToken(): string | null {
   try {
@@ -25,7 +25,7 @@ export default function DeliveryChatPanel({ deliveryId, onClose }: { deliveryId:
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const load = () => getDeliveryMessages(deliveryId, lang).then(setMessages).catch(() => {});
+  const load = () => getMessages('delivery', deliveryId, lang).then(setMessages).catch(() => {});
   useEffect(() => { load(); const timer=setInterval(load,2000); return ()=>clearInterval(timer); }, [deliveryId,lang]);
   useEffect(() => { bottomRef.current?.scrollIntoView({behavior:'smooth'}); }, [messages]);
 
@@ -33,7 +33,7 @@ export default function DeliveryChatPanel({ deliveryId, onClose }: { deliveryId:
     const text=input.trim();
     if(!text||sending)return;
     setSending(true); setInput('');
-    try { await sendDeliveryMessage(deliveryId,text,lang); await load(); }
+    try { await sendMessage('delivery', deliveryId, text, lang); await load(); }
     catch { setInput(text); }
     finally { setSending(false); }
   };
