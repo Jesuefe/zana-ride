@@ -1,95 +1,40 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Plus, MapPin, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, MapPin, ToggleLeft, ToggleRight, Pencil, Trash2, Package, X, Save } from 'lucide-react';
 import { loadGoogleMaps } from '../../../lib/mapsLoader';
 import AdminShell from '../../../components/AdminShell';
 import { getMarkets, createMarket, updateMarket } from '../../../lib/api/admin';
+import { api } from '../../../lib/api/client';
 
-export default function MarketsPage() {
-  const [markets, setMarkets] = useState<any[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', address: '', pickupContactName: '', pickupPhone: '', lat: '', lng: '' });
-  const mapRef = useRef<HTMLDivElement>(null);
-  const map = useRef<any>(null);
-  const marker = useRef<any>(null);
-  const [saving, setSaving] = useState(false);
+type Product = { id:string; name:string; description?:string; price:number; referenceCost:number; stock:number; imageUrl?:string|null; available:boolean; status:string };
+type Market = { id:string; name:string; description?:string; address:string; pickupContactName?:string; pickupPhone:string; lat:number; lng:number; active:boolean; agents?:any[]; products?:Product[] };
 
-  const load = () => getMarkets().then(setMarkets).catch(() => {});
-  useEffect(() => { load(); }, []);
+const emptyMarket={name:'',description:'',address:'',pickupContactName:'',pickupPhone:'',lat:'',lng:''};
+const emptyProduct={name:'',description:'',referenceCost:'',stock:'0',imageBase64:'',imageUrl:''};
 
-  useEffect(() => {
-    if (!showForm) return;
-    loadGoogleMaps().then(() => {
-      if (!mapRef.current) return;
-      const G = (window as any).google.maps;
-      const center = { lat: -1.9536, lng: 30.0605 };
-      map.current = new G.Map(mapRef.current, { center, zoom: 12.5, streetViewControl: false, mapTypeControl: false, fullscreenControl: true });
-      const place = (lat: number, lng: number) => {
-        if (marker.current) marker.current.setMap(null);
-        marker.current = new G.Marker({ map: map.current, position: { lat, lng }, draggable: true });
-        setForm(f => ({ ...f, lat: lat.toFixed(6), lng: lng.toFixed(6) }));
-        marker.current.addListener('dragend', (e: any) => setForm(f => ({ ...f, lat: e.latLng.lat().toFixed(6), lng: e.latLng.lng().toFixed(6) })));
-      };
-      map.current.addListener('click', (e: any) => place(e.latLng.lat(), e.latLng.lng()));
-    }).catch(() => {});
-    return () => { if (marker.current) marker.current.setMap(null); marker.current = null; map.current = null; };
-  }, [showForm]);
+export default function MarketsPage(){
+ const [markets,setMarkets]=useState<Market[]>([]); const [showForm,setShowForm]=useState(false); const [form,setForm]=useState(emptyMarket);
+ const [selected,setSelected]=useState<Market|null>(null); const [productForm,setProductForm]=useState<any>(emptyProduct); const [editing,setEditing]=useState<string|null>(null);
+ const [saving,setSaving]=useState(false); const [productSaving,setProductSaving]=useState(false); const mapRef=useRef<HTMLDivElement>(null); const map=useRef<any>(null); const marker=useRef<any>(null);
 
-  const handleCreate = async () => {
-    setSaving(true);
-    await createMarket({ ...form, lat: Number(form.lat), lng: Number(form.lng) });
-    setShowForm(false);
-    setForm({ name: '', description: '', address: '', pickupContactName: '', pickupPhone: '', lat: '', lng: '' });
-    load();
-    setSaving(false);
-  };
+ const load=async()=>{try{const data=await getMarkets();setMarkets(data);if(selected){const fresh=data.find((m:any)=>m.id===selected.id);if(fresh)setSelected(fresh);}}catch{}};
+ useEffect(()=>{load()},[]);
+ useEffect(()=>{if(!showForm)return;loadGoogleMaps().then(()=>{if(!mapRef.current)return;const G=(window as any).google.maps;map.current=new G.Map(mapRef.current,{center:{lat:-1.9536,lng:30.0605},zoom:12.5,streetViewControl:false,mapTypeControl:false,fullscreenControl:true});const place=(lat:number,lng:number)=>{if(marker.current)marker.current.setMap(null);marker.current=new G.Marker({map:map.current,position:{lat,lng},draggable:true});setForm(f=>({...f,lat:lat.toFixed(6),lng:lng.toFixed(6)}));marker.current.addListener('dragend',(e:any)=>setForm(f=>({...f,lat:e.latLng.lat().toFixed(6),lng:e.latLng.lng().toFixed(6)})))};map.current.addListener('click',(e:any)=>place(e.latLng.lat(),e.latLng.lng()));}).catch(()=>{});return()=>{if(marker.current)marker.current.setMap(null);marker.current=null;map.current=null}},[showForm]);
 
-  return (
-    <AdminShell>
-      <div>
-        <div className="flex items-center justify-between mb-5">
-          <h1 className="text-2xl font-bold text-gray-900">Markets</h1>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm"><Plus size={15} /> Add Market</button>
-        </div>
+ const handleCreate=async()=>{setSaving(true);try{await createMarket({...form,lat:Number(form.lat),lng:Number(form.lng)});setShowForm(false);setForm(emptyMarket);await load()}finally{setSaving(false)}};
+ const openAdd=()=>{setEditing(null);setProductForm(emptyProduct)};
+ const editProduct=(p:Product)=>{setEditing(p.id);setProductForm({name:p.name,description:p.description||'',referenceCost:String(p.referenceCost),stock:String(p.stock??0),imageBase64:'',imageUrl:p.imageUrl||''})};
+ const image=(e:any)=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>setProductForm((v:any)=>({...v,imageBase64:String(reader.result)}));reader.readAsDataURL(file)};
+ const saveProduct=async()=>{if(!selected)return;setProductSaving(true);try{const body:any={name:productForm.name,description:productForm.description,referenceCost:Number(productForm.referenceCost),stock:Number(productForm.stock)};if(productForm.imageBase64)body.imageBase64=productForm.imageBase64;if(editing){await api.patch('/admin/markets/'+selected.id+'/products/'+editing,body)}else{await api.post('/admin/markets/'+selected.id+'/products',body)}setProductForm(emptyProduct);setEditing(null);await load()}finally{setProductSaving(false)}};
+ const disableProduct=async(id:string)=>{if(!selected||!confirm('Disable this market good?'))return;await api.delete('/admin/markets/'+selected.id+'/products/'+id);await load()};
+ return <AdminShell><div>
+  <div className="flex items-center justify-between mb-5"><div><h1 className="text-2xl font-bold text-gray-900">Markets</h1><p className="text-sm text-gray-500 mt-1">Markets and all market goods are managed here by Admin.</p></div><button onClick={()=>setShowForm(true)} className="flex items-center gap-1.5 bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm"><Plus size={15}/> Add Market</button></div>
+  {showForm&&<div className="bg-white rounded-xl p-5 shadow-sm mb-5"><h2 className="font-semibold text-gray-900 mb-3">New Market</h2><div className="grid grid-cols-2 gap-3">{[['name','Market name'],['description','Description'],['address','Address'],['pickupContactName','Pickup contact name'],['pickupPhone','Pickup phone']].map(([k,p])=><input key={k} value={(form as any)[k]} onChange={e=>setForm(v=>({...v,[k]:e.target.value}))} placeholder={p} className="border border-gray-200 rounded-lg px-3 py-2 text-sm"/>)}</div><div className="mt-4"><div className="flex items-center justify-between mb-2"><p className="text-xs font-bold text-gray-700">Pickup location</p><span className="text-[10px] text-gray-400">{form.lat&&form.lng?form.lat+', '+form.lng:'Click map to place pin'}</span></div><div ref={mapRef} className="h-64 rounded-xl border border-gray-200 overflow-hidden bg-gray-100"/></div><div className="flex gap-2 mt-3"><button onClick={handleCreate} disabled={saving||!form.name||!form.address||!form.pickupPhone||!form.lat||!form.lng} className="bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-40">{saving?'Saving…':'Save Market'}</button><button onClick={()=>setShowForm(false)} className="border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm">Cancel</button></div></div>}
+  <div className="grid gap-3 md:grid-cols-2">{markets.map(m=><div key={m.id} className="bg-white rounded-xl p-4 shadow-sm"><div className="flex items-start justify-between"><button onClick={()=>{setSelected(m);openAdd()}} className="text-left flex-1"><p className="font-semibold text-gray-900">{m.name}</p><p className="text-xs text-gray-500 flex items-center gap-1 mt-1"><MapPin size={11}/>{m.address}</p>{m.description&&<p className="text-xs text-gray-500 mt-1">{m.description}</p>}<p className="text-xs text-gray-500 mt-2"><Package size={11} className="inline mr-1"/>{m.products?.length??0} goods · {m.agents?.length??0} agents</p></button><button onClick={()=>updateMarket(m.id,{active:!m.active}).then(load)} className={m.active?'text-green-600':'text-gray-400'}>{m.active?<ToggleRight size={22}/>:<ToggleLeft size={22}/>}</button></div><button onClick={()=>{setSelected(m);openAdd()}} className="mt-3 w-full border border-gray-200 rounded-lg py-2 text-sm font-semibold text-gray-700">Manage goods</button></div>)}</div>
 
-        {showForm && (
-          <div className="bg-white rounded-xl p-5 shadow-sm mb-5">
-            <h2 className="font-semibold text-gray-900 mb-3">New Market</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {[['name','Market name'],['description','Description'],['address','Address'],['pickupContactName','Pickup contact name'],['pickupPhone','Pickup phone']].map(([k,p]) => (
-                <input key={k} value={(form as any)[k]} onChange={e => setForm(f => ({...f, [k]: e.target.value}))} placeholder={p} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              ))}
-            </div>
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2"><p className="text-xs font-bold text-gray-700">Pickup location</p><span className="text-[10px] text-gray-400">{form.lat && form.lng ? form.lat + ', ' + form.lng : 'Click map to place pin'}</span></div>
-              <div ref={mapRef} className="h-64 rounded-xl border border-gray-200 overflow-hidden bg-gray-100" />
-            </div>
-            <div className="flex gap-2 mt-3">
-              <button onClick={handleCreate} disabled={saving || !form.name || !form.address || !form.pickupPhone || !form.lat || !form.lng} className="bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-40">Save</button>
-              <button onClick={() => setShowForm(false)} className="border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm">Cancel</button>
-            </div>
-          </div>
-        )}
-
-        <div className="grid gap-3 md:grid-cols-2">
-          {markets.map(m => (
-            <div key={m.id} className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-semibold text-gray-900">{m.name}</p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1 mt-1"><MapPin size={11} />{m.address}</p>
-                  {m.description && <p className="text-xs text-gray-500 mt-1">{m.description}</p>}
-                  {m.pickupPhone && <p className="text-xs text-gray-500 mt-1">Pickup: {m.pickupContactName || 'Contact'} · {m.pickupPhone}</p>}
-                  <p className="text-xs text-gray-500 mt-2">{m.agents?.length ?? 0} agent{m.agents?.length !== 1 ? 's' : ''} assigned</p>
-                </div>
-                <button onClick={() => updateMarket(m.id, { active: !m.active }).then(load)} className={`${m.active ? 'text-green-600' : 'text-gray-400'}`}>
-                  {m.active ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </AdminShell>
-  );
+  {selected&&<div className="fixed inset-0 z-50 bg-black/40 p-4 md:p-8 overflow-auto"><div className="max-w-6xl mx-auto bg-gray-50 rounded-2xl min-h-full shadow-xl"><div className="bg-white rounded-t-2xl p-5 flex items-center justify-between sticky top-0 z-10"><div><h2 className="text-xl font-bold text-gray-900">{selected.name}</h2><p className="text-xs text-gray-500">{selected.address} · {selected.products?.length??0} goods</p></div><button onClick={()=>setSelected(null)} className="p-2 text-gray-500"><X/></button></div>
+   <div className="p-5 grid lg:grid-cols-3 gap-5"><div className="lg:col-span-1 bg-white rounded-xl p-4 h-fit"><h3 className="font-bold text-gray-900 mb-4">{editing?'Edit good':'Add good'}</h3><div className="space-y-3"><input value={productForm.name} onChange={e=>setProductForm((v:any)=>({...v,name:e.target.value}))} placeholder="Good name" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"/><textarea value={productForm.description} onChange={e=>setProductForm((v:any)=>({...v,description:e.target.value}))} placeholder="Description" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm min-h-20"/><label className="block"><span className="text-xs font-semibold text-gray-600">Reference cost (RWF)</span><input type="number" min="1" value={productForm.referenceCost} onChange={e=>setProductForm((v:any)=>({...v,referenceCost:e.target.value}))} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"/></label><label className="block"><span className="text-xs font-semibold text-gray-600">Stock</span><input type="number" min="0" value={productForm.stock} onChange={e=>setProductForm((v:any)=>({...v,stock:e.target.value}))} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"/></label><label className="block"><span className="text-xs font-semibold text-gray-600">Image</span><input type="file" accept="image/*" onChange={image} className="mt-1 w-full text-xs"/>{productForm.imageUrl&&<img src={productForm.imageUrl} className="mt-2 h-24 w-full object-cover rounded-lg" alt=""/></label><div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600">Customer price is calculated automatically from the markup configured in Settings.</div><div className="flex gap-2"><button onClick={saveProduct} disabled={productSaving||!productForm.name||Number(productForm.referenceCost)<=0} className="flex-1 inline-flex justify-center items-center gap-2 bg-zana-primary text-white font-semibold px-3 py-2.5 rounded-lg disabled:opacity-40"><Save size={15}/>{productSaving?'Saving…':editing?'Save changes':'Add good'}</button>{editing&&<button onClick={()=>{setEditing(null);setProductForm(emptyProduct)}} className="border border-gray-200 rounded-lg px-3"><X size={15}/></button>}</div></div></div>
+   <div className="lg:col-span-2"><div className="flex items-center justify-between mb-3"><h3 className="font-bold text-gray-900">Market goods</h3><span className="text-xs text-gray-500">Price follows Settings markup</span></div><div className="grid sm:grid-cols-2 gap-3">{(selected.products||[]).map(p=><div key={p.id} className="bg-white rounded-xl p-4 border border-gray-100"><div className="flex gap-3">{p.imageUrl?<img src={p.imageUrl} className="w-20 h-20 rounded-lg object-cover" alt=""/>:<div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center"><Package size={22} className="text-gray-400"/></div>}<div className="min-w-0 flex-1"><p className="font-semibold text-gray-900 truncate">{p.name}</p><p className="text-xs text-gray-500 mt-1">Cost: {Number(p.referenceCost).toLocaleString()} RWF</p><p className="text-sm font-bold text-zana-primary mt-1">Customer: {Number(p.price).toLocaleString()} RWF</p><p className="text-xs text-gray-500 mt-1">Stock: {p.stock} · {p.available?'Available':'Unavailable'}</p></div></div><div className="flex gap-2 mt-3"><button onClick={()=>editProduct(p)} className="flex-1 border border-gray-200 rounded-lg py-2 text-xs font-semibold flex items-center justify-center gap-1"><Pencil size={13}/> Edit</button><button onClick={()=>disableProduct(p.id)} className="border border-red-100 text-red-600 rounded-lg px-3 py-2 text-xs font-semibold"><Trash2 size={13}/></button></div></div>)}</div>{!(selected.products||[]).length&&<div className="bg-white rounded-xl p-10 text-center text-sm text-gray-500">No goods in this market yet. Add the first good from the form.</div>}</div></div>
+  </div></div>}
+ </div></AdminShell>;
 }
