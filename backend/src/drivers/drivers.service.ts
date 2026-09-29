@@ -189,7 +189,7 @@ export class DriversService {
       include: { user: { include: { wallet: true } } },
     });
 
-    const [todayTrips, weekTrips, allTimeTrips, allTimeDeliveries, todayCashTrips, unpaidDebts] = await Promise.all([
+    const [todayTrips, weekTrips, allTimeTrips, todayDeliveries, weekDeliveries, allTimeDeliveries, todayCashTrips, todayCashDeliveries, unpaidDebts] = await Promise.all([
       this.prisma.trip.findMany({
         where: { driverId, status: 'RIDE_COMPLETED', completedAt: { gte: startOfToday } },
         select: { finalFare: true, estimatedFare: true },
@@ -202,17 +202,39 @@ export class DriversService {
         where: { driverId, status: 'RIDE_COMPLETED' },
         select: { finalFare: true, estimatedFare: true },
       }),
-      this.prisma.delivery.count({ where: { driverId, status: 'DELIVERED' } }),
-      // Cash collected specifically — this was never surfaced anywhere
-      // before. A driver could not previously see how much cash they were
-      // actually holding on Zana's behalf, only a single wallet number
-      // that mixed everything together.
+      // Marketplace/merchant delivery fees are already included in the
+      // customer's paid order total. They are NOT charged again here.
+      // Once the delivery is completed, CommissionDebtService credits the
+      // driver 85% of this fee and records Zana's 15% commission.
+      this.prisma.delivery.findMany({
+        where: { driverId, status: 'DELIVERED', deliveredAt: { gte: startOfToday } },
+        select: { fee: true },
+      }),
+      this.prisma.delivery.findMany({
+        where: { driverId, status: 'DELIVERED', deliveredAt: { gte: startOfWeek } },
+        select: { fee: true },
+      }),
+      this.prisma.delivery.findMany({
+        where: { driverId, status: 'DELIVERED' },
+        select: { fee: true },
+      }),
+      // Cash collected specifically — include cash deliveries as well as
+      // cash rides. Digital marketplace deliveries were already paid in
+      // the customer's order and therefore are not cash collected by the
+      // rider.
       this.prisma.trip.findMany({
         where: {
           driverId, status: 'RIDE_COMPLETED', paymentMethod: 'CASH',
           completedAt: { gte: startOfToday },
         },
         select: { finalFare: true, estimatedFare: true },
+      }),
+      this.prisma.delivery.findMany({
+        where: {
+          driverId, status: 'DELIVERED', paymentMethod: 'CASH',
+          deliveredAt: { gte: startOfToday },
+        },
+        select: { fee: true },
       }),
       // The debt itself was already tracked correctly on every cash ride —
       // it just had nowhere to actually show up for the driver to see.
@@ -226,16 +248,20 @@ export class DriversService {
     const sum = (trips: { finalFare: number | null; estimatedFare: number }[]) =>
       trips.reduce((total, t) => total + (t.finalFare ?? t.estimatedFare), 0);
 
-    const totalEarnings = sum(allTimeTrips) * 0.85; // after 15% commission
+    const totalTripGross = sum(allTimeTrips);
+    const todayGross = sum(todayTrips) + todayDeliveries.reduce((s, d) => s + d.fee, 0);
+    const weekGross = sum(weekTrips) + weekDeliveries.reduce((s, d) => s + d.fee, 0);
+    const totalGross = totalTripGross + allTimeDeliveries.reduce((s, d) => s + d.fee, 0);
+    const totalEarnings = totalGross * 0.85; // rides + deliveries, after 15% commission
 
     return {
-      todayEarnings: Math.round(sum(todayTrips) * 0.85),
-      weekEarnings: Math.round(sum(weekTrips) * 0.85),
+      todayEarnings: Math.round(todayGross * 0.85),
+      weekEarnings: Math.round(weekGross * 0.85),
       totalEarnings: Math.round(totalEarnings),
       totalTrips: allTimeTrips.length,
       totalDeliveries: allTimeDeliveries,
       walletBalance: driver?.user?.wallet?.balance ?? 0,
-      cashCollectedToday: Math.round(sum(todayCashTrips)),
+      cashCollectedToday: Math.round(sum(todayCashTrips) + todayCashDeliveries.reduce((s, d) => s + d.fee, 0)),
       zanaDue: unpaidDebts.reduce((s, d) => s + d.amount, 0),
       // Previously wallet balance and debt were shown as two separate,
       // seemingly contradictory numbers — a driver could see a
