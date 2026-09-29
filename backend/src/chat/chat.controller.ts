@@ -32,6 +32,7 @@ export class ChatController {
 
   @Get(':context/:id')
   async getMessages(
+    @CurrentUser() user: JwtPayload,
     @Param('context') context: 'trip' | 'delivery',
     @Param('id') id: string,
     @Query('lang') lang: Lang = 'en',
