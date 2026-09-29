@@ -5,6 +5,25 @@ import { loadGoogleMaps } from '../lib/mapsLoader';
 
 type LatLng = { lat: number; lng: number };
 
+function distanceToRouteMeters(point: LatLng, path: any[]) {
+  if (path.length < 2) return null;
+  const latScale = 111320;
+  const lngScale = Math.cos((point.lat * Math.PI) / 180) * 111320;
+  const px = point.lng * lngScale, py = point.lat * latScale;
+  let minDistance = Number.POSITIVE_INFINITY;
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1], b = path[i];
+    const ax = a.lng() * lngScale, ay = a.lat() * latScale;
+    const bx = b.lng() * lngScale, by = b.lat() * latScale;
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    const t = len2 > 0 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2)) : 0;
+    const cx = ax + t * dx, cy = ay + t * dy;
+    minDistance = Math.min(minDistance, Math.hypot(px - cx, py - cy));
+  }
+  return Math.round(minDistance);
+}
+
 export default function BrandedMap({
   origin,
   destination,
@@ -17,6 +36,7 @@ export default function BrandedMap({
   onRouteInfo,
   navigationStart,
   navigationDestination,
+  onRouteDeviation,
 }: {
   origin?: LatLng;
   destination?: LatLng;
@@ -29,6 +49,7 @@ export default function BrandedMap({
   onRouteInfo?: (info: { distanceText: string; durationText: string } | null) => void;
   navigationStart?: LatLng | null;
   navigationDestination?: LatLng | null;
+  onRouteDeviation?: (info: { offRoute: boolean; distanceMeters: number } | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -39,6 +60,8 @@ export default function BrandedMap({
   const nearbyMarkersRef = useRef<any[]>([]);
   const initDone = useRef(false);
   const routeTimerRef = useRef<any>(null);
+  const routePathRef = useRef<any[]>([]);
+  const offRouteCountRef = useRef(0);
 
   // Keep live references so callbacks see current values
   const driverRef = useRef(driverPosition);
@@ -78,6 +101,7 @@ export default function BrandedMap({
     }, (result: any, status: any) => {
       if (status === 'OK') {
         rendererRef.current?.setDirections(result);
+        routePathRef.current = result.routes[0]?.overview_path ?? [];
         const leg = result.routes[0]?.legs[0];
         if (leg && onRouteInfo) {
           onRouteInfo({ distanceText: leg.distance.text, durationText: leg.duration.text });
@@ -90,6 +114,9 @@ export default function BrandedMap({
         if (drv) bounds.extend(new G.LatLng(drv.lat, drv.lng));
         map.fitBounds(bounds, { top: 60, bottom: 60, left: 30, right: 30 });
       } else {
+        routePathRef.current = [];
+        offRouteCountRef.current = 0;
+        onRouteDeviation?.(null);
         // Fallback straight line
         new G.Polyline({
           path: [routeOrigin, routeDestination],
@@ -175,6 +202,15 @@ export default function BrandedMap({
 
     const pos = { lat: driverPosition.lat, lng: driverPosition.lng };
 
+    if (onRouteDeviation && routePathRef.current.length > 1) {
+      const distanceMeters = distanceToRouteMeters(pos, routePathRef.current);
+      if (distanceMeters != null) {
+        const isFar = distanceMeters > 150;
+        offRouteCountRef.current = isFar ? offRouteCountRef.current + 1 : 0;
+        onRouteDeviation({ offRoute: offRouteCountRef.current >= 2, distanceMeters });
+      }
+    }
+
     if (!driverMarkerRef.current) {
       const div = document.createElement('div');
       div.id = 'cust-driver-dot';
@@ -188,7 +224,7 @@ export default function BrandedMap({
       try { driverMarkerRef.current.position = pos; }
       catch { driverMarkerRef.current.setPosition(pos); }
     }
-  }, [driverPosition?.lat, driverPosition?.lng]);
+  }, [driverPosition?.lat, driverPosition?.lng, onRouteDeviation]);
 
   // Nearby driver markers (search screen)
   useEffect(() => {
@@ -209,7 +245,7 @@ export default function BrandedMap({
     if (!initDone.current) return;
     clearTimeout(routeTimerRef.current);
     routeTimerRef.current = setTimeout(fetchRoute, 300);
-  }, [origin?.lat, origin?.lng, destination?.lat, destination?.lng, navigationStart?.lat, navigationStart?.lng, navigationDestination?.lat, navigationDestination?.lng, fetchRoute]);
+  }, [origin?.lat, origin?.lng, destination?.lat, destination?.lng, navigationDestination?.lat, navigationDestination?.lng, fetchRoute]);
 
   // During an active trip, keep the customer's route aligned to the driver's latest
   // GPS position so the customer can compare the vehicle with Google's recommended route.

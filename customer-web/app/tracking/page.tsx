@@ -130,6 +130,7 @@ function TrackingContent() {
   // [call polling moved below primaryTrip declaration]
   const [receiptShown, setReceiptShown] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
+  const [routeDeviation, setRouteDeviation] = useState<{ offRoute: boolean; distanceMeters: number } | null>(null);
   const [driverEta, setDriverEta] = useState<{ durationText: string; distanceText: string } | null>(null);
   const [waitingSeconds, setWaitingSeconds] = useState(0);
   const [serverOffsetMs, setServerOffsetMs] = useState(0);
@@ -420,6 +421,7 @@ function TrackingContent() {
             }
             vehicleType={mapSource.serviceType === 'BIKE' ? 'BIKE' : 'ECONOMY'}
             onRouteInfo={setRouteInfo}
+            onRouteDeviation={setRouteDeviation}
             navigationStart={
               primaryTrip?.driver?.lastLat != null && primaryTrip?.driver?.lastLng != null
                 ? { lat: primaryTrip.driver.lastLat, lng: primaryTrip.driver.lastLng }
@@ -437,9 +439,9 @@ function TrackingContent() {
         )}
 
         {showRouteBanner && (
-          <div className="absolute top-4 left-4 right-24 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full text-xs text-gray-900 shadow animate-fade-slide-up">
-            <Navigation size={13} className="text-zana-primary shrink-0" />
-            <span className="truncate">{t('Driver is following the recommended route')}</span>
+          <div className={"absolute top-4 left-4 right-24 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs shadow animate-fade-slide-up " + (routeDeviation?.offRoute ? 'bg-red-50 text-red-800' : 'bg-white text-gray-900')}>
+            <Navigation size={13} className={routeDeviation?.offRoute ? 'text-red-600 shrink-0' : 'text-zana-primary shrink-0'} />
+            <span className="truncate">{routeDeviation?.offRoute ? t('Driver appears to be off the recommended route') : t('Driver is following the recommended route')}</span>
           </div>
         )}
 
