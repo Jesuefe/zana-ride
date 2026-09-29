@@ -45,8 +45,7 @@ export default function MerchantBottomNav() {
             onClick={(e) => {
               if (isAgent && view) {
                 e.preventDefault();
-                window.history.pushState(null, '', item.href);
-                window.dispatchEvent(new CustomEvent('zana-agent-view', { detail: view }));
+                window.location.href = item.href;
               }
             }}
             className={`flex flex-col items-center gap-1 px-3 py-1 ${active ? 'text-zana-primary' : 'text-zana-muted'}`}
