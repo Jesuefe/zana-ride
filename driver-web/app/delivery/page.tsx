@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState, useRef } from 'react';
 import { capturePhoto, stampPhoto } from '../../lib/photoCapture';
 import { fetchMyDriverProfile } from '../../lib/api/driver';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MapPin, Navigation, Phone, Package, ChevronRight, Check, X } from 'lucide-react';
+import { MapPin, Navigation, Package, ChevronRight, Check, X, MessageCircle } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import DriverBottomNav from '../../components/DriverBottomNav';
 import DriverMap from '../../components/DriverMap';
@@ -14,7 +14,7 @@ import { Browser } from '@capacitor/browser';
 import { useLang } from '../../lib/LangContext';
 import { io } from 'socket.io-client';
 import { getToken } from '../../lib/api/client';
-import VoiceCall from '../../components/VoiceCall';
+import DeliveryChatPanel from '../../components/DeliveryChatPanel';
 
 // Straight-line distance in meters — same small, self-contained pattern
 // already used in a few other files in this app rather than a shared
@@ -73,32 +73,7 @@ function ActiveDeliveryContent() {
   const [photoNote, setPhotoNote] = useState('');
   const [actionError, setActionError] = useState('');
   const [arrivalRadiusM, setArrivalRadiusM] = useState(DEFAULT_ARRIVAL_RADIUS_M);
-  const [incomingCall, setIncomingCall] = useState<any | null>(null);
-  const [showCall, setShowCall] = useState(false);
-
-  // Delivery voice calls: listen while this delivery is open so an Agent
-  // can reach the driver immediately. The call service authenticates the
-  // socket with the driver's JWT and the backend verifies the delivery
-  // participant before accepting the call.
-  useEffect(() => {
-    const token = getToken();
-    if (!token || !delivery?.id) return;
-    const socket = io(process.env.NEXT_PUBLIC_API_URL ?? 'https://zana.ajumalink.com', {
-      auth: { token },
-      transports: ['websocket'],
-    });
-    socket.on('call:incoming', (data: any) => {
-      if (data?.context !== 'delivery' || data?.contextId !== delivery.id) return;
-      setIncomingCall(data);
-    });
-    socket.on('call:cancelled', (data: any) => {
-      if (data?.callId === incomingCall?.callId) setIncomingCall(null);
-    });
-    socket.on('call:ended', (data: any) => {
-      if (data?.callId === incomingCall?.callId) { setIncomingCall(null); setShowCall(false); }
-    });
-    return () => socket.disconnect();
-  }, [delivery?.id, incomingCall?.callId]);
+  const [showChat, setShowChat] = useState(false);
 
   // Fetched once on load — if this ever fails, the hardcoded default above
   // keeps the safety check working exactly as before, just not tunable
@@ -414,51 +389,62 @@ function ActiveDeliveryContent() {
             )}
           </div>
 
-          {/* Route */}
+          {/* Route — after pickup, only the customer's dropoff remains visible. */}
           <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
             <div className="flex items-start gap-3">
               <div className="flex flex-col items-center gap-1 mt-1 shrink-0">
                 <div className="w-2.5 h-2.5 rounded-full bg-zana-primary" />
-                <div className="w-0.5 h-8 bg-gray-200" />
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                {!isPickup && <div className="w-0.5 h-8 bg-gray-200" />}
+                {!isPickup && <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />}
               </div>
-              <div className="flex-1 space-y-3">
-                <div>
-                  <p className="text-[10px] text-gray-400 uppercase">{dt('Pickup')}</p>
-                  <p className="text-sm text-gray-800">{delivery.pickupAddress}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 uppercase">{dt('Dropoff')}</p>
-                  <p className="text-sm text-gray-800">{delivery.dropoffAddress}</p>
-                </div>
+              <div className="flex-1">
+                {isPickup ? (
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase">{dt('Pickup')}</p>
+                    <p className="text-sm text-gray-800">{delivery.pickupAddress}</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase">{dt('Deliver to')}</p>
+                    <p className="text-sm text-gray-800">{delivery.dropoffAddress}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Pickup contact — the rider sees the market agent/person and phone */}
-          {delivery.pickupPhone && (
+          {/* Contact privacy:
+              before pickup the rider needs the market handoff contact;
+              after pickup those details disappear. The customer's phone
+              is never exposed here — the Zana chat is the communication
+              channel instead. */}
+          {isPickup && delivery.pickupPhone && (
             <div className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
               <div>
                 <p className="text-xs text-amber-700">{dt('Pickup contact')}</p>
                 <p className="font-semibold text-gray-900">{delivery.pickupContactName || dt('Pickup person')}</p>
                 <p className="text-xs text-gray-600 mt-0.5">{delivery.pickupPhone}</p>
               </div>
-              <div className="flex gap-2">
-                <a href={'tel:' + delivery.pickupPhone} className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center" aria-label={dt('Call pickup contact')}><Phone size={16} className="text-green-600" /></a>
-                <button type="button" onClick={() => setShowCall(true)} className="w-10 h-10 rounded-full bg-zana-primary text-white flex items-center justify-center" aria-label={dt('Call with Zana')}><Phone size={16} /></button>
-              </div>
             </div>
           )}
 
-          {/* Recipient/customer contact */}
-          <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl px-4 py-3">
-            <div>
-              <p className="text-xs text-gray-400">{dt('Customer / recipient')}</p>
-              <p className="font-semibold text-gray-900">{delivery.recipientName || (delivery.customer ? [delivery.customer.firstName, delivery.customer.lastName].filter(Boolean).join(' ') : dt('Recipient'))}</p>
-              <p className="text-xs text-gray-600 mt-0.5">{delivery.recipientPhone || delivery.customer?.phone}</p>
+          {!isPickup && (
+            <div className="bg-zana-primary-light border border-zana-primary/10 rounded-2xl px-4 py-3">
+              <p className="text-xs font-bold text-zana-primary">{dt('Pickup confirmed')}</p>
+              <p className="text-xs text-gray-600 mt-0.5">{dt('Market contact details are now hidden. Use Zana chat if you need to speak with the agent.')}</p>
             </div>
-            {(delivery.recipientPhone || delivery.customer?.phone) && <a href={'tel:' + (delivery.recipientPhone || delivery.customer?.phone)} className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center" aria-label={dt('Call customer')}><Phone size={16} className="text-green-600" /></a>}
-          </div>
+          )}
+
+          {!isPickup && (
+            <button
+              type="button"
+              onClick={() => setShowChat(true)}
+              className="w-full bg-white border-2 border-zana-primary text-zana-primary font-black py-3.5 rounded-2xl flex items-center justify-center gap-2"
+            >
+              <MessageCircle size={18} />
+              {dt('Message market agent')}
+            </button>
+          )}
 
           {/* Earnings */}
           <div className="flex items-center justify-between">
@@ -513,29 +499,7 @@ function ActiveDeliveryContent() {
         </div>
       </div>
 
-      {incomingCall && !showCall && (
-        <div className="fixed inset-0 z-[80] bg-black/60 flex items-end justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-5 shadow-2xl">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Incoming Zana call</p>
-            <p className="text-2xl font-black text-gray-900 mt-1">{incomingCall.callerName || dt('Market Agent')}</p>
-            <p className="text-sm text-gray-500 mt-1">{dt('Calling about this delivery')}</p>
-            <div className="grid grid-cols-2 gap-3 mt-5">
-              <button onClick={async () => { await api.post('/calls/' + incomingCall.callId + '/decline').catch(() => {}); setIncomingCall(null); }} className="py-3.5 rounded-2xl bg-gray-100 text-gray-900 font-bold">{dt('Decline')}</button>
-              <button onClick={async () => { try { const res = await api.post<any>('/calls/' + incomingCall.callId + '/accept'); setIncomingCall((prev:any) => prev ? { ...prev, roomName: res.roomName, wsUrl: res.wsUrl, token: res.token } : null); setShowCall(true); } catch { setIncomingCall(null); } }} className="py-3.5 rounded-2xl bg-zana-primary text-white font-bold">{dt('Answer')}</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showCall && incomingCall && incomingCall.token && (
-        <VoiceCall
-          incomingCallId={incomingCall.callId}
-          roomName={incomingCall.roomName}
-          wsUrl={incomingCall.wsUrl}
-          token={incomingCall.token}
-          participantLabel={incomingCall.callerName || dt('Market Agent')}
-          onClose={() => { setShowCall(false); setIncomingCall(null); }}
-        />
-      )}
+      {showChat && <DeliveryChatPanel deliveryId={delivery.id} onClose={() => setShowChat(false)} />}
 
       <DriverBottomNav />
     </div>
