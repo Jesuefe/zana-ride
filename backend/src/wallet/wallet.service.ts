@@ -1,20 +1,15 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaypackService } from './paypack.service';
-import { MomoDisbursementService } from './momo-disbursement.service';
+import { EversendService } from './eversend.service';
 import { WalletTransactionStatus } from '@prisma/client';
 
 @Injectable()
 export class WalletService {
-  // Paypack refuses anything smaller; MTN has no such floor.
-  static readonly PAYPACK_MIN_WITHDRAWAL = 10000;
-  // A sane lower bound whichever rail is used.
-  static readonly ABSOLUTE_MIN = 100;
+  static readonly EVERSEND_MIN_WITHDRAWAL = 1000;
 
   constructor(
     private prisma: PrismaService,
-    private paypack: PaypackService,
-    private momo: MomoDisbursementService,
+    private eversend: EversendService,
   ) {}
 
   async findByUserId(userId: string) {
@@ -67,11 +62,11 @@ export class WalletService {
     });
   }
 
-  // Kicks off a real mobile money top-up via Paypack. The customer approves
+  // Kicks off a real mobile money top-up via Eversend. The customer approves
   // on their phone; the balance is NOT credited yet — that only happens once
   // confirmTopUp() sees a successful status (the frontend polls for this,
   // same pattern as ride tracking, since we don't have a stable public URL
-  // for Paypack's webhook yet).
+  // for Eversend's webhook yet).
   async initiateTopUp(userId: string, amountRwf: number) {
     const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
     if (!wallet) throw new NotFoundException('Wallet not found');
@@ -82,7 +77,7 @@ export class WalletService {
     const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
     if (!account) throw new NotFoundException('Account not found');
 
-    const cashin = await this.paypack.cashin(account.phone, amountRwf);
+    const cashin = await this.eversend.cashin(account.phone, amountRwf);
 
     await this.prisma.walletTransaction.create({
       data: {
@@ -107,13 +102,13 @@ export class WalletService {
       return { status: pending.status.toLowerCase() };
     }
 
-    const remote = await this.paypack.findTransaction(ref);
+    const remote = await this.eversend.findTransaction(ref);
     const remoteStatus = remote.status?.toLowerCase();
 
     const isFailed = remoteStatus === 'failed' || remoteStatus === 'cancelled' || remoteStatus === 'canceled';
     const isStillPending = remoteStatus === 'pending';
 
-    // Paypack drops the "status" field entirely once a transaction settles —
+    // Eversend drops the "status" field entirely once a transaction settles —
     // only PENDING and FAILED transactions carry an explicit status. A
     // response with no status (and a real fee charged) means it succeeded.
     if (!isFailed && !isStillPending) {
@@ -161,7 +156,7 @@ export class WalletService {
   }
 
   // Mirrors initiateTopUp/checkTopUpStatus closely on purpose — same real
-  // Paypack cashin + poll + atomic-claim pattern already proven safe
+  // Eversend cashin + poll + atomic-claim pattern already proven safe
   // against double-crediting there. The amount is computed here from the
   // driver's actual unpaid debt, never taken from the client, so there's
   // no way to request settling more or less than what's genuinely owed.
@@ -175,7 +170,7 @@ export class WalletService {
     const amount = unpaidDebts.reduce((s, d) => s + d.amount, 0);
     if (amount <= 0) throw new BadRequestException('No outstanding balance to settle');
 
-    const cashin = await this.paypack.cashin(phoneNumber, amount);
+    const cashin = await this.eversend.cashin(phoneNumber, amount);
 
     await this.prisma.debtSettlement.create({
       data: { driverId: driver.id, amount, providerRef: cashin.ref, status: 'PENDING' },
@@ -195,7 +190,7 @@ export class WalletService {
       return { status: pending.status.toLowerCase() };
     }
 
-    const remote = await this.paypack.findTransaction(ref);
+    const remote = await this.eversend.findTransaction(ref);
     const remoteStatus = remote.status?.toLowerCase();
     const isFailed = remoteStatus === 'failed' || remoteStatus === 'cancelled' || remoteStatus === 'canceled';
     const isStillPending = remoteStatus === 'pending';
@@ -261,24 +256,10 @@ export class WalletService {
     // conditional decrement further down is what actually guards that,
     // because this read can be stale by the time we act on it.
 
-    // MTN disbursements have no floor, so if that rail is configured a rider
-    // can take any amount instantly. Paypack is the fallback and refuses
-    // anything under 10,000 RWF.
-    const useMomo = this.momo.isConfigured;
-
-    if (!useMomo && amount < WalletService.PAYPACK_MIN_WITHDRAWAL) {
+    if (amount < WalletService.EVERSEND_MIN_WITHDRAWAL) {
       throw new BadRequestException(
-        `MIN_WITHDRAWAL:${WalletService.PAYPACK_MIN_WITHDRAWAL}`,
+        `MIN_WITHDRAWAL:${WalletService.EVERSEND_MIN_WITHDRAWAL}`,
       );
-    }
-    if (amount < WalletService.ABSOLUTE_MIN) {
-      throw new BadRequestException(`MIN_WITHDRAWAL:${WalletService.ABSOLUTE_MIN}`);
-    }
-
-    // A wrong number costs a failed transfer and a support ticket, so check.
-    if (useMomo) {
-      const active = await this.momo.isAccountActive(phone);
-      if (!active) throw new BadRequestException('INACTIVE_MOMO_NUMBER');
     }
 
     const balanceBefore = wallet.balance;
@@ -299,9 +280,7 @@ export class WalletService {
     const balanceAfter = afterWallet!.balance;
 
     try {
-      const result = useMomo
-        ? await this.momo.transfer(phone, amount, 'Zana payout')
-        : await this.paypack.cashout(phone, amount);
+      const result = await this.eversend.payout(phone, amount, `ZANA-WITHDRAW-${userId}-${Date.now()}`);
 
       // Both rails settle asynchronously — the reconciler confirms it.
       await this.prisma.walletTransaction.create({
@@ -313,18 +292,18 @@ export class WalletService {
           status: WalletTransactionStatus.PENDING,
           reference: `Withdrawal to ${phone}`,
           providerRef: result?.ref ?? undefined,
-          description: `Withdrawal to ${phone}${useMomo ? '' : ' (Paypack)'}`,
+          description: `Withdrawal to ${phone} (Eversend)`,
         } as any,
       });
 
       console.log(
-        `[WITHDRAW] ${amount} RWF to ${phone} via ${useMomo ? 'MTN' : 'Paypack'} | ref ${result?.ref}`,
+        `[WITHDRAW] ${amount} RWF to ${phone} via ${useMomo ? 'MTN' : 'Eversend'} | ref ${result?.ref}`,
       );
       return {
         success: true,
         ref: result?.ref,
         status: 'PENDING',
-        rail: useMomo ? 'MTN' : 'PAYPACK',
+        rail: 'EVERSEND',
       };
     } catch (err: any) {
       // Nothing left Zana — put it back. Adding the exact amount back atomically
