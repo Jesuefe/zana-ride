@@ -74,18 +74,40 @@ export class ChatService {
     if (data.deliveryId) {
       const delivery = await this.prisma.delivery.findUnique({
         where: { id: data.deliveryId },
-        select: { customerId: true, driver: { select: { userId: true } } },
+        select: {
+          customerId: true,
+          driver: { select: { userId: true } },
+          order: { select: { agent: { select: { userId: true } } } },
+        },
       });
       if (!delivery) return null;
-      return delivery.customerId === data.senderId ? (delivery.driver?.userId ?? null) : delivery.customerId;
+
+      // Market deliveries are a private operational conversation between
+      // the market agent and the rider. Do not route those messages to the
+      // customer or expose the customer's delivery details to the rider.
+      const agentId = delivery.order?.agent?.userId ?? null;
+      if (agentId) {
+        return data.senderId === agentId
+          ? (delivery.driver?.userId ?? null)
+          : data.senderId === delivery.driver?.userId
+            ? agentId
+            : null;
+      }
+
+      return data.senderId === delivery.customerId ? (delivery.driver?.userId ?? null) : delivery.customerId;
     }
     return null;
   }
 
-  async getMessages(context: 'trip' | 'delivery', contextId: string, lang: Lang = 'en', adminView = false) {
+  async getMessages(context: 'trip' | 'delivery', contextId: string, lang: Lang = 'en', adminView = false, userId?: string) {
     const where = context === 'trip'
       ? { tripId: contextId }
       : { deliveryId: contextId };
+
+    if (!adminView && userId) {
+      const allowed = await this.isParticipant(context, contextId, userId);
+      if (!allowed) throw new ForbiddenException('You are not a participant in this chat');
+    }
 
     const messages = await this.prisma.chatMessage.findMany({
       where: adminView ? where : { ...where, hiddenFromUsers: false },
@@ -104,6 +126,32 @@ export class ChatService {
       originalLang: m.originalLang,
       createdAt: m.createdAt,
     }));
+  }
+
+  private async isParticipant(context: 'trip' | 'delivery', contextId: string, userId: string): Promise<boolean> {
+    if (context === 'trip') {
+      const trip = await this.prisma.trip.findUnique({
+        where: { id: contextId },
+        select: { customerId: true, driver: { select: { userId: true } } },
+      });
+      return !!trip && (trip.customerId === userId || trip.driver?.userId === userId);
+    }
+
+    const delivery = await this.prisma.delivery.findUnique({
+      where: { id: contextId },
+      select: {
+        customerId: true,
+        driver: { select: { userId: true } },
+        order: { select: { agent: { select: { userId: true } } } },
+      },
+    });
+    if (!delivery) return false;
+
+    const agentId = delivery.order?.agent?.userId ?? null;
+    if (agentId) {
+      return delivery.driver?.userId === userId || agentId === userId;
+    }
+    return delivery.customerId === userId || delivery.driver?.userId === userId;
   }
 
   private getTranslation(message: any, lang: Lang): string {
