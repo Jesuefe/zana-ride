@@ -55,10 +55,11 @@ export class FinanceService {
         for (const item of order.items.filter((x: any) => !['UNAVAILABLE_PENDING','REFUNDED','REMOVED'].includes(x.status))) {
           const underlying = item.referenceCostAtOrder ?? item.product.referenceCost;
           if (underlying == null || underlying <= 0) throw new BadRequestException(`MISSING_MARKET_REFERENCE_COST:${item.id}`);
-          const expectedCustomerPrice = Math.round(underlying * (1 + cfg.markupPercent / 100));
-          if (item.price !== expectedCustomerPrice) {
-            throw new BadRequestException(`INVALID_MARKET_MARKUP:${item.id}`);
-          }
+          // The order stores the customer price at checkout. Do not
+          // re-validate it against today's global markup setting: an admin
+          // changing the markup later must never invalidate an already-paid
+          // order. The locked reference cost + locked customer price define
+          // the markup that is settled for this order.
           const actual = item.actualPurchasePrice ?? underlying;
           if (!Number.isInteger(actual) || actual < 0 || actual > underlying) {
             throw new BadRequestException(`INVALID_PURCHASE_COST:${item.id}`);
