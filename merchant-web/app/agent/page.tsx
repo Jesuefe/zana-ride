@@ -6,7 +6,7 @@ import {
   AlertTriangle, MapPin, ChevronRight, Plus, Trash2, X, RefreshCw, MessageCircle
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { requestAgentPriceChange, fetchAgentEarnings } from '../../lib/api/merchant';
 import DeliveryChatPanel from '../../components/DeliveryChatPanel';
 import { t } from '../../lib/lang';
@@ -20,12 +20,17 @@ const validCoordinate = (v: any) => Number.isFinite(Number(v)) && Math.abs(Numbe
 
 export default function AgentPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [view, setView] = useState(searchParams.get('view') || 'overview');
+  const [view, setView] = useState('overview');
 
   useEffect(() => {
-    setView(searchParams.get('view') || 'overview');
-  }, [searchParams]);
+    const syncFromUrl = () => {
+      const next = new URLSearchParams(window.location.search).get('view') || 'overview';
+      setView(next);
+    };
+    syncFromUrl();
+    window.addEventListener('popstate', syncFromUrl);
+    return () => window.removeEventListener('popstate', syncFromUrl);
+  }, []);
   const [market, setMarket] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [deliveries, setDeliveries] = useState<any[]>([]);
@@ -49,7 +54,7 @@ export default function AgentPage() {
 
   const setRouteView = (next: string) => {
     setView(next);
-    router.push('/agent?view=' + encodeURIComponent(next));
+    window.history.pushState(null, '', '/agent?view=' + encodeURIComponent(next));
   };
 
   const load = async () => {
