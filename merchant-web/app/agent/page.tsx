@@ -239,7 +239,7 @@ export default function AgentPage() {
 
       {view === 'deliveries' && <section>
         <div className="mb-4"><h2 className="text-xl font-black">{t("Deliveries",lang)}</h2><p className="text-xs text-gray-500">{t("Packages a Zana rider has been assigned to or has picked up from your market.",lang)}</p></div>
-        <div className="space-y-3">{deliveries.map(d => <DeliveryCard key={d.id} delivery={d} onCall={() => d.status !== 'DELIVERED' && setCall({ contextId: d.id, name: d.driver?.user?.firstName || 'Rider' })} />)}{!deliveries.length && <Empty text="No packages have been handed to a rider yet."/>}</div>
+        <div className="space-y-3">{deliveries.map(d => <DeliveryCard key={d.id} delivery={d} onChat={() => d.status !== 'DELIVERED' && setChatDeliveryId(d.id)} />)}{!deliveries.length && <Empty text="No packages have been handed to a rider yet."/>}</div>
       </section>}
 
       {view === 'items' && <section>
@@ -274,7 +274,7 @@ function OrderCard({order,fund,onOpen,onUnavailable,onStatus,onWithdraw,busy,lan
   <div className="mt-3 flex items-center gap-2"><div className="flex-1"><p className="font-black">{money(order.total)}</p>{hasLocation&&<p className="text-[10px] text-gray-500">{t('Latitude / Longitude',lang)}: {lat}, {lng}</p>}</div>{maps&&<a href={maps} target="_blank" rel="noreferrer" className="text-[10px] font-bold border rounded-xl px-3 py-2">{t('Open in Maps',lang)}</a>}{next?<button disabled={busy===order.id} onClick={()=>onStatus(order.id,next)} className="bg-zana-primary text-white text-xs font-bold px-4 py-2.5 rounded-xl">{busy===order.id?'Saving…':next==='PREPARING'?t('Start shopping',lang):t('Mark ready for pickup',lang)}</button>:order.status==='READY_FOR_PICKUP'?<span className="text-xs font-bold text-zana-primary">{t('Waiting for rider',lang)}</span>:null}</div>
  </div>
 }
-function DeliveryCard({delivery,onCall}:any){
+function DeliveryCard({delivery,onChat}:any){
  const d=delivery.driver?.user;
  const state=delivery.status;
  const stateText=state==='REQUESTED'?'Finding a rider':state==='COURIER_ASSIGNED'?'Rider assigned':state==='PICKED_UP'?'Picked up':'Delivered';
@@ -285,7 +285,7 @@ function DeliveryCard({delivery,onCall}:any){
   </div>
   <div className="mt-3 bg-gray-50 rounded-xl p-3">
    {state==='REQUESTED' ? <><p className="text-sm font-bold">Waiting for a rider to accept</p><p className="text-[11px] text-gray-500 mt-1">The delivery is in the Zana rider pool. Once a rider accepts it, their contact details will appear here.</p></> :
-    <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold">{d?.firstName||'Zana rider'}</p><p className="text-[10px] text-gray-500">{delivery.driver?.vehicle||'Vehicle'} {delivery.driver?.plate||''}</p></div>{state!=='DELIVERED'&&d?.phone&&<div className="flex gap-2"><a href={'tel:'+d.phone} className="w-9 h-9 rounded-full bg-white border flex items-center justify-center text-zana-primary"><Phone size={15}/></a><button onClick={onCall} className="w-9 h-9 rounded-full bg-zana-primary text-white flex items-center justify-center"><Phone size={15}/></button></div>}</div>}
+    <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold">{d?.firstName||'Zana rider'}</p><p className="text-[10px] text-gray-500">{delivery.driver?.vehicle||'Vehicle'} {delivery.driver?.plate||''}</p></div>{state!=='DELIVERED'&&<button onClick={onChat} className="w-9 h-9 rounded-full bg-zana-primary text-white flex items-center justify-center" aria-label={t('Message rider',lang)}><MessageCircle size={15}/></button>}</div>}
   </div>
  </div>
 }
