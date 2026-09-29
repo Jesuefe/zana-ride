@@ -370,7 +370,7 @@ export class AdminController {
     await this.prisma.auditLog.create({
       data: { actorId: user.sub, action: 'EVERSEND_SETTINGS_UPDATED', entityType: 'PAYMENT_SETTINGS', entityId: 'EVERSEND', afterJson: JSON.stringify(record) },
     });
-    return { saved: true, enabled: record.enabled, environment: record.environment, rail: record.rail, minWithdrawal: record.minWithdrawal, configured: Boolean(record.apiKeyEncrypted), apiKeyHint: record.apiKeyHint, webhookConfigured: Boolean(record.webhookSecretEncrypted) };
+    return { saved: true, enabled: record.enabled, environment: record.environment, baseUrl: record.baseUrl, rail: record.rail, minWithdrawal: record.minWithdrawal, configured: Boolean(record.apiKeyEncrypted), apiKeyHint: record.apiKeyHint, webhookConfigured: Boolean(record.webhookSecretEncrypted) };
   }
 
   @Post('settings/payments/eversend/test')
