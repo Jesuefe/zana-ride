@@ -1,7 +1,7 @@
 import { Injectable, BadGatewayException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { createHash, createCipheriv, randomBytes, createDecipheriv } from 'crypto';
+import { createHash, createDecipheriv } from 'crypto';
 
 type EversendResponse = Record<string, any>;
 
@@ -44,7 +44,7 @@ export class EversendService {
     };
   }
 
-  async getPublicSettings() {
+  async getMinimumWithdrawal() {\n    const s = await this.settings();\n    return s.minWithdrawal;\n  }\n\n  async getPublicSettings() {
     const s = await this.settings();
     return { enabled: s.enabled, environment: s.environment, baseUrl: s.baseUrl, rail: s.rail, minWithdrawal: s.minWithdrawal, configured: Boolean(s.apiKey), apiKeyHint: s.apiKey ? s.apiKey.slice(0, 8) + '…' + s.apiKey.slice(-4) : null, webhookConfigured: Boolean(s.webhookSecret) };
   }
