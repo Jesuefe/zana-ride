@@ -27,8 +27,6 @@ export const UI: Record<string, Record<Lang, string>> = {
   'Top Up': { en: 'Top Up', fr: 'Recharger', rw: 'Shyiramo amafaranga' },
   'Send My Location': { en: 'Send My Location', fr: 'Envoyer ma localisation', rw: 'Ohereza aho ndi' },
   'Share a code instead of explaining your address': { en: 'Share a code instead of explaining your address', fr: 'Partagez un code au lieu d\'expliquer votre adresse', rw: 'Ohereza kode aho gusobanura aho uri' },
-  'Orders': { en: 'Orders', fr: 'Commandes', rw: 'Ibyagurijwe' },
-  'Wallet': { en: 'Wallet', fr: 'Portefeuille', rw: 'Amafaranga' },
   'Profile': { en: 'Profile', fr: 'Profil', rw: 'Umwirondoro' },
   'Home': { en: 'Home', fr: 'Accueil', rw: 'Ahabanza' },
   'Chat': { en: 'Chat', fr: 'Discussion', rw: 'Ganira' },
