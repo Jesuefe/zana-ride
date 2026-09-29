@@ -14,7 +14,7 @@ function calcDeliveryFee(distKm: number): number {
 
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaypackService } from '../wallet/paypack.service';
+import { EversendService } from '../wallet/eversend.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
 import { OrderStatus } from '@prisma/client';
 import { DeliveriesService } from '../deliveries/deliveries.service';
@@ -25,7 +25,7 @@ export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private deliveriesService: DeliveriesService,
-    private paypack: PaypackService,
+    private eversend: EversendService,
     private gateway: ZanaGateway,
     private finance: FinanceService,
   ) {}
@@ -186,7 +186,7 @@ export class OrdersService {
       });
       if (customer?.phone) {
         try {
-          const res = await this.paypack.cashin(customer.phone, grandTotal);
+          const res = await this.eversend.collectMobileMoney(customer.phone, grandTotal, `ZANA-ORDER-${order.id}`);
           await this.prisma.order.update({
             where: { id: order.id }, data: { momoRef: res.ref } as any,
           });
@@ -268,7 +268,7 @@ export class OrdersService {
     console.log(`[WALLET] Order ${orderId} | -${amount} RWF | ${before} → ${after}`);
   }
 
-  // Poll Paypack for a MoMo order and mark it paid once it settles.
+  // Poll Eversend for a MoMo order and mark it paid once it settles.
   async checkOrderPayment(orderId: string) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Order not found');
@@ -277,7 +277,7 @@ export class OrdersService {
     if (!ref) return { paid: false, status: 'NOT_STARTED' };
 
     try {
-      const res = await this.paypack.findTransaction(ref);
+      const res = await this.eversend.getCollectionStatus(ref);
       if (res.status === 'successful') {
         await this.prisma.order.update({
           where: { id: orderId }, data: { paid: true } as any,
