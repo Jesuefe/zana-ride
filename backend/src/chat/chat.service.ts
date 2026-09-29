@@ -82,19 +82,16 @@ export class ChatService {
       });
       if (!delivery) return null;
 
-      // Market deliveries are a private operational conversation between
-      // the market agent and the rider. Do not route those messages to the
-      // customer or expose the customer's delivery details to the rider.
       const agentId = delivery.order?.agent?.userId ?? null;
+      const driverId = delivery.driver?.userId ?? null;
+      // Market delivery has two private conversations around the same delivery:
+      // customer ↔ rider and market agent ↔ rider. The rider can participate
+      // in both; customer and agent never receive each other's messages.
       if (agentId) {
-        return data.senderId === agentId
-          ? (delivery.driver?.userId ?? null)
-          : data.senderId === delivery.driver?.userId
-            ? agentId
-            : null;
+        if (data.senderId === agentId || data.senderId === delivery.customerId) return driverId;
+        if (data.senderId === driverId) return null; // driver notifications are sent to both sides below
       }
-
-      return data.senderId === delivery.customerId ? (delivery.driver?.userId ?? null) : delivery.customerId;
+      return data.senderId === delivery.customerId ? driverId : delivery.customerId;
     }
     return null;
   }
@@ -109,11 +106,37 @@ export class ChatService {
       if (!allowed) throw new ForbiddenException('You are not a participant in this chat');
     }
 
-    const messages = await this.prisma.chatMessage.findMany({
+    let messages = await this.prisma.chatMessage.findMany({
       where: adminView ? where : { ...where, hiddenFromUsers: false },
       include: { sender: { select: { id: true, firstName: true, role: true } } },
       orderBy: { createdAt: 'asc' },
     });
+
+    // Market delivery chats are pair-scoped without exposing a new phone
+    // number or a second chat ID: customer sees customer↔rider, agent sees
+    // agent↔rider, and rider sees both operational conversations.
+    if (!adminView && context === 'delivery' && userId) {
+      const delivery = await this.prisma.delivery.findUnique({
+        where: { id: contextId },
+        select: {
+          customerId: true,
+          driver: { select: { userId: true } },
+          order: { select: { agent: { select: { userId: true } } } },
+        },
+      });
+      const agentId = delivery?.order?.agent?.userId ?? null;
+      const driverId = delivery?.driver?.userId ?? null;
+      if (agentId && driverId && delivery) {
+        const pair = userId === agentId
+          ? new Set([agentId, driverId])
+          : userId === delivery.customerId
+            ? new Set([delivery.customerId, driverId])
+            : userId === driverId
+              ? new Set([agentId, driverId, delivery.customerId])
+              : new Set<string>();
+        messages = messages.filter(m => pair.has(m.senderId));
+      }
+    }
 
     // Return the translation matching the requesting user's language.
     return messages.map(m => ({
@@ -149,7 +172,7 @@ export class ChatService {
 
     const agentId = delivery.order?.agent?.userId ?? null;
     if (agentId) {
-      return delivery.driver?.userId === userId || agentId === userId;
+      return delivery.customerId === userId || delivery.driver?.userId === userId || agentId === userId;
     }
     return delivery.customerId === userId || delivery.driver?.userId === userId;
   }
