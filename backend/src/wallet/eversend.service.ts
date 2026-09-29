@@ -44,7 +44,12 @@ export class EversendService {
     };
   }
 
-  async getMinimumWithdrawal() {\n    const s = await this.settings();\n    return s.minWithdrawal;\n  }\n\n  async getPublicSettings() {
+  async getMinimumWithdrawal() {
+    const s = await this.settings();
+    return s.minWithdrawal;
+  }
+
+  async getPublicSettings() {
     const s = await this.settings();
     return { enabled: s.enabled, environment: s.environment, baseUrl: s.baseUrl, rail: s.rail, minWithdrawal: s.minWithdrawal, configured: Boolean(s.apiKey), apiKeyHint: s.apiKey ? s.apiKey.slice(0, 8) + '…' + s.apiKey.slice(-4) : null, webhookConfigured: Boolean(s.webhookSecret) };
   }
