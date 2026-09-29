@@ -14,7 +14,7 @@ export class WalletController {
     return this.walletService.findByUserId(user.sub);
   }
 
-  // Real mobile money top-up via Paypack.
+  // Real mobile money top-up via Eversend.
   @Post('top-up/momo')
   initiateMomoTopUp(@CurrentUser() user: JwtPayload, @Body() body: { amount: number }) {
     // Previously accepted a phone number directly from the request body
@@ -29,7 +29,7 @@ export class WalletController {
     return this.walletService.checkTopUpStatus(user.sub, ref);
   }
 
-  // Same real Paypack flow as the top-up above, just clearing commission
+  // Same real Eversend flow as the top-up above, just clearing commission
   // debt directly instead of crediting the wallet. The amount is computed
   // server-side from the driver's actual unpaid debt — never accepted
   // from the client, so there's no way to request settling an arbitrary
