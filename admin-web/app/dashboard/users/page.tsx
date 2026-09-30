@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Search, Shield, ShieldOff, UserCheck } from 'lucide-react';
+import { Search, Shield, ShieldOff, UserCheck, KeyRound, X } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
-import { getUsers, updateUserStatus } from '../../../lib/api/admin';
+import { getUsers, updateUserStatus, resetUserPassword } from '../../../lib/api/admin';
 
 const ROLE_BADGE: Record<string, string> = {
   CUSTOMER: 'bg-blue-100 text-blue-700',
@@ -17,6 +17,10 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [loading, setLoading] = useState(true);
+  const [resetUser, setResetUser] = useState<any | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetError, setResetError] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -30,10 +34,62 @@ export default function UsersPage() {
     load();
   };
 
+  const handleReset = async () => {
+    if (!resetUser || newPassword.length < 6) return;
+    setResetBusy(true);
+    setResetError('');
+    try {
+      await resetUserPassword(resetUser.id, newPassword);
+      setResetUser(null);
+      setNewPassword('');
+    } catch (e: any) {
+      setResetError(e?.message || 'Could not reset this password.');
+    } finally {
+      setResetBusy(false);
+    }
+  };
+
   return (
     <AdminShell>
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-5">Users</h1>
+        <div className="flex items-center justify-between mb-5 gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Users</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage account access and sensitive recovery actions.</p>
+          </div>
+        </div>
+
+        {resetUser && (
+          <div className="mb-5 rounded-xl border-2 border-red-200 bg-red-50 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-red-700">Sensitive action</p>
+                <h2 className="font-bold text-red-900 mt-1">Reset another user&apos;s password</h2>
+                <p className="text-sm text-red-800 mt-1">
+                  This changes the password immediately for {resetUser.firstName || ''} {resetUser.lastName || ''} ({resetUser.role}). The action is recorded in the admin audit log.
+                </p>
+              </div>
+              <button onClick={() => { setResetUser(null); setNewPassword(''); setResetError(''); }} className="p-1 text-red-700"><X size={18} /></button>
+            </div>
+            <div className="mt-4 flex flex-col sm:flex-row gap-2">
+              <input
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Temporary/new password (6+ characters)"
+                className="flex-1 border border-red-200 rounded-lg px-3 py-2 text-sm bg-white"
+              />
+              <button
+                onClick={handleReset}
+                disabled={resetBusy || newPassword.length < 6}
+                className="bg-red-700 text-white font-bold px-4 py-2 rounded-lg text-sm disabled:opacity-40"
+              >
+                {resetBusy ? 'Resetting…' : 'Confirm password reset'}
+              </button>
+            </div>
+            {resetError && <p className="text-xs text-red-700 mt-2">{resetError}</p>}
+          </div>
+        )}
         <div className="flex gap-2 mb-4 flex-wrap">
           <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 flex-1 min-w-48">
             <Search size={15} className="text-gray-400" />
@@ -62,6 +118,7 @@ export default function UsersPage() {
                     <div className="flex gap-1">
                       {u.status !== 'ACTIVE' && <button onClick={() => handleStatus(u.id, 'ACTIVE')} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100"><UserCheck size={13} /></button>}
                       {u.status === 'ACTIVE' && <button onClick={() => handleStatus(u.id, 'SUSPENDED')} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"><ShieldOff size={13} /></button>}
+                      {u.role !== 'ADMIN' && <button onClick={() => { setResetUser(u); setNewPassword(''); setResetError(''); }} title="Reset password" className="p-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100"><KeyRound size={13} /></button>}
                     </div>
                   </td>
                 </tr>
