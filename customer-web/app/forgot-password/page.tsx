@@ -4,7 +4,7 @@ import { useState } from 'react';
 import PasswordField from '../../components/PasswordField';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
-import { requestPasswordReset, resetPassword } from '../../lib/api/auth';
+import { lookupPasswordReset, requestPasswordReset, resetPassword } from '../../lib/api/auth';
 import { useLang } from '../../lib/LangContext';
 import { ApiError } from '../../lib/api/client';
 
@@ -21,6 +21,7 @@ export default function ForgotPassword() {
   const [identifier, setIdentifier] = useState('');
   const [channel, setChannel] = useState<'email' | 'sms' | null>(null);
   const [hint, setHint] = useState<string | null>(null);
+  const [accountFound, setAccountFound] = useState(false);
 
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -29,22 +30,27 @@ export default function ForgotPassword() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const send = async () => {
+  const findAccount = async () => {
     const id = identifier.trim();
     if (!id) return;
-    setBusy(true);
-    setError('');
+    setBusy(true); setError(''); setAccountFound(false); setHint(null);
     try {
-      const res = await requestPasswordReset(id);
-      setHint(res?.emailHint ?? null);
-      setChannel('email');
-      setStep('reset');
-    } catch {
-      // Deliberately vague: we never confirm whether an account exists.
-      setStep('reset');
-    } finally {
-      setBusy(false);
-    }
+      const res = await lookupPasswordReset(id);
+      if (!res?.exists) { setError('No Zana account was found with that email or phone number.'); return; }
+      setHint(res.emailHint ?? null);
+      setAccountFound(true);
+    } catch { setError('Could not check the account. Try again.'); }
+    finally { setBusy(false); }
+  };
+
+  const send = async () => {
+    if (!accountFound) return findAccount();
+    setBusy(true); setError('');
+    try {
+      await requestPasswordReset(identifier.trim());
+      setChannel('email'); setStep('reset');
+    } catch { setError('Could not send the reset code. Try again.'); }
+    finally { setBusy(false); }
   };
 
   const submit = async () => {
@@ -101,14 +107,20 @@ export default function ForgotPassword() {
             disabled={busy || !identifier.trim()}
             className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl mt-6 disabled:opacity-40"
           >
-            {busy ? 'Sending…' : 'Send code'}
+            {busy ? 'Checking…' : accountFound ? 'Send code to this email' : 'Find my account'}
           </button>
+          {accountFound && hint && (
+            <div className="mt-4 rounded-2xl bg-gray-50 border border-gray-100 p-4">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Account found</p>
+              <p className="text-sm text-gray-800 mt-1">Reset code will be sent to <strong>{hint}</strong></p>
+            </div>
+          )}
         </>
       ) : (
         <>
           <h1 className="text-2xl font-black text-gray-900">{t('Enter your code')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-6">
-            If that account exists, a code was sent to {hint ?? 'your email address'}. It is valid for five minutes.
+            A reset code was sent to {hint ?? 'your email address'}. It is valid for five minutes.
           </p>
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">

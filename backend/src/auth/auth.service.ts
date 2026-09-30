@@ -427,6 +427,23 @@ export class AuthService {
    * Start a reset. Same silence as above: the response is identical whether
    * or not the account exists.
    */
+  async lookupPasswordReset(identifier: string) {
+    const raw = identifier.trim();
+    const normalizedEmail = raw.toLowerCase();
+    const normalizedPhone = raw.replace(/\D/g, '');
+    const phone = normalizedPhone.startsWith('250') ? `+${normalizedPhone}` : normalizedPhone ? `+250${normalizedPhone.replace(/^0+/, '')}` : raw;
+
+    const user = await this.prisma.user.findFirst({
+      where: { OR: [{ email: normalizedEmail }, { phone }, { phone: raw }] },
+    });
+
+    if (!user?.email || !user.phone) {
+      return { exists: false, emailHint: null };
+    }
+
+    return { exists: true, emailHint: this.maskEmail(user.email) };
+  }
+
   async requestPasswordReset(identifier: string) {
     const raw = identifier.trim();
     const normalizedEmail = raw.toLowerCase();
