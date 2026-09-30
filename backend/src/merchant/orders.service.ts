@@ -401,7 +401,26 @@ export class OrdersService {
   }
 
   async cancelOrder(id: string) {
-    return this.updateStatus(id, OrderStatus.CANCELLED);
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (!['PENDING', 'CONFIRMED'].includes(order.status)) {
+      throw new BadRequestException('ORDER_CAN_NO_LONGER_BE_CANCELLED');
+    }
+    const result = await this.prisma.$transaction(async tx => {
+      if ((order as any).paid && order.paymentMethod === 'WALLET') {
+        const wallet = await tx.wallet.findUnique({ where: { userId: order.customerId } });
+        if (!wallet) throw new BadRequestException('WALLET_NOT_FOUND');
+        const updatedWallet = await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: order.total } } });
+        await tx.walletTransaction.create({ data: { walletId: wallet.id, amount: order.total, balanceBefore: wallet.balance, balanceAfter: updatedWallet.balance, reference: 'ORDER_CANCEL:' + order.id, description: 'Refund — cancelled order', status: 'COMPLETED' } as any });
+      }
+      return tx.order.update({ where: { id: order.id }, data: { status: OrderStatus.CANCELLED, paid: false, updatedAt: new Date() } as any, include: { items: { include: { product: true } }, customer: true, market: true, merchant: true } });
+    });
+    await this.notifyAdmins('order:status', { orderId: id, status: OrderStatus.CANCELLED });
+    if (order.marketId) {
+      const agents = await this.prisma.agent.findMany({ where: { marketId: order.marketId, active: true }, select: { userId: true } });
+      for (const a of agents) this.gateway.sendToUser(a.userId, 'order:cancelled', { orderId: id });
+    }
+    return result;
   }
 
   // Fetches approved products grouped by merchant for the marketplace.

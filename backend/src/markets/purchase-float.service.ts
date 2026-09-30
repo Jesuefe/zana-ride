@@ -318,7 +318,6 @@ export class PurchaseFloatService implements OnModuleInit {
       withdrawnAmount: Number(row.withdrawnAmount),
       actualSpend: row.actualSpend == null ? null : Number(row.actualSpend),
       remainingAmount: row.remainingAmount == null ? null : Number(row.remainingAmount),
-      destinationPhone: row.destinationPhone,
       status: row.status,
       createdAt: row.createdAt,
       withdrawnAt: row.withdrawnAt,

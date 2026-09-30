@@ -375,7 +375,7 @@ function OrdersContent() {
               {selectedOrder.note && <p className="text-xs text-gray-500">{t('Note:')} {selectedOrder.note}</p>}
             </div>
 
-            {selectedOrder.status === 'PENDING' && (
+            {['PENDING', 'CONFIRMED'].includes(selectedOrder.status) && (
               <button
                 type="button"
                 disabled={cancelling === selectedOrder.id}
@@ -386,6 +386,8 @@ function OrdersContent() {
                     const fresh = await fetchMyOrders();
                     setOrders(fresh);
                     setSelectedOrder(fresh.find((x: any) => x.id === selectedOrder.id) ?? { ...selectedOrder, status: 'CANCELLED' });
+                  } catch (e: any) {
+                    window.alert(e?.message === 'ORDER_CAN_NO_LONGER_BE_CANCELLED' ? 'This order can no longer be cancelled because shopping has started.' : (e?.message || 'Could not cancel this order.'));
                   } finally { setCancelling(null); }
                 }}
                 className="w-full py-3 rounded-xl border border-red-200 text-red-600 font-bold disabled:opacity-50"

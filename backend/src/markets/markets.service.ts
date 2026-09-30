@@ -84,75 +84,83 @@ export class MarketsService {
     return { agent, market: agent.market };
   }
 
-  // The agent's queue — everything customers have ordered from this market.
+  // Agent-safe view: only operational information needed to shop and hand
+  // the package to Zana. Customer contact details, exact coordinates,
+  // internal timeline metadata and payment/delivery internals stay private.
+  private agentSafeOrder(order: any) {
+    const shoppingTotal = (order.items ?? []).reduce((sum: number, item: any) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
+    return {
+      id: order.id,
+      trackingCode: order.trackingCode,
+      status: order.status,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      shoppingTotal,
+      items: (order.items ?? []).map((item: any) => ({
+        id: item.id,
+        quantity: item.quantity,
+        price: item.price,
+        status: item.status,
+        product: item.product ? { id: item.product.id, name: item.product.name } : null,
+      })),
+      delivery: order.delivery ? {
+        id: order.delivery.id,
+        status: order.delivery.status,
+        trackingCode: order.delivery.trackingCode,
+        driver: order.delivery.driver ? {
+          vehicle: order.delivery.driver.vehicle,
+          plate: order.delivery.driver.plate,
+          user: order.delivery.driver.user ? {
+            firstName: order.delivery.driver.user.firstName,
+            lastName: order.delivery.driver.user.lastName,
+          } : null,
+        } : null,
+      } : null,
+    };
+  }
+
+  // The agent's queue — everything needed to fulfill this market's orders,
+  // without exposing customer PII or exact destination data.
   async getMyOrders(userId: string) {
     const agent = await this.requireAgent(userId);
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where: { marketId: agent.marketId! },
-      include: {
-        items: { include: { product: true } },
-        customer: { select: { firstName: true, phone: true } },
-      },
+      include: { items: { include: { product: true } }, delivery: { include: { driver: { include: { user: true } } } } },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
+    return orders.map(o => this.agentSafeOrder(o));
   }
 
   async getMyOrderDetail(userId: string, orderId: string) {
     const agent = await this.requireAgent(userId);
-    const order = await this.prisma.order.findFirst({ where: { id: orderId, marketId: agent.marketId! }, include: { items: { include: { product: true } }, customer: { select: { id: true, firstName: true, lastName: true, phone: true } }, market: true, delivery: { include: { driver: { include: { user: { select: { id: true, firstName: true, lastName: true, phone: true } } } } } } } });
-    if (!order) throw new NotFoundException('Order not found in your market');
-
-    // Reconcile a delivered legacy order if the delivery completed before
-    // the finance settlement hook existed or if that hook previously failed.
-    // This is idempotent: FinanceService will not create a second settlement
-    // for an order that has already been credited.
-    if ((order as any).status === 'DELIVERED') {
-      try {
-        await this.finance.settleOrder(orderId);
-      } catch (e: any) {
-        console.error('[MARKET] Delivered order settlement retry failed:', e?.message);
-      }
-    }
-
-    const timeline = await this.prisma.auditLog.findMany({ where: { entityType: { in: ['ORDER','ORDER_ITEM'] }, entityId: orderId }, orderBy: { createdAt: 'asc' }, take: 100 });
-    const refreshed = await this.prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: { id: orderId, marketId: agent.marketId! },
-      include: {
-        items: { include: { product: true } },
-        customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-        market: true,
-        delivery: { include: { driver: { include: { user: { select: { id: true, firstName: true, lastName: true, phone: true } } } } } },
-      },
+      include: { items: { include: { product: true } }, delivery: { include: { driver: { include: { user: true } } } } },
     });
-    return { ...(refreshed ?? order), timeline };
+    if (!order) throw new NotFoundException('Order not found in your market');
+    return this.agentSafeOrder(order);
   }
 
   async getMyDeliveries(userId: string) {
     const agent = await this.requireAgent(userId);
-    return this.prisma.delivery.findMany({
-      where: {
-        order: { marketId: agent.marketId! },
-        status: { in: ['REQUESTED','COURIER_ASSIGNED','PICKED_UP','DELIVERED'] },
-      },
-      include: {
-        order: {
-          select: {
-            id: true,
-            trackingCode: true,
-            total: true,
-            customer: { select: { firstName: true, lastName: true, phone: true } },
-          },
-        },
-        driver: {
-          include: {
-            user: { select: { id: true, firstName: true, lastName: true, phone: true } },
-          },
-        },
-      },
+    const rows = await this.prisma.delivery.findMany({
+      where: { order: { marketId: agent.marketId! }, status: { in: ['REQUESTED','COURIER_ASSIGNED','PICKED_UP','DELIVERED'] } },
+      include: { driver: { include: { user: true } }, order: { select: { trackingCode: true } } },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
+    return rows.map(d => ({
+      id: d.id,
+      trackingCode: d.trackingCode,
+      status: d.status,
+      driver: d.driver ? {
+        vehicle: d.driver.vehicle,
+        plate: d.driver.plate,
+        user: d.driver.user ? { firstName: d.driver.user.firstName, lastName: d.driver.user.lastName } : null,
+      } : null,
+      order: d.order,
+    }));
   }
 
   async markItemUnavailable(userId: string, orderId: string, itemId: string) {
