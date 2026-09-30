@@ -1,5 +1,3 @@
-[Reading 535 lines from start (total: 535 lines, 0 remaining)]
-
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { timingSafeEqual } from 'crypto';
 import { ConfigService } from '@nestjs/config';
@@ -552,5 +550,3 @@ export class AuthService {
   }
 
 }
-
-[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
