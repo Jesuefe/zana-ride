@@ -19,6 +19,10 @@ export async function updateUserStatus(id: string, status: string) {
   return api.patch(`/admin/users/${id}/status`, { status });
 }
 
+export async function resetUserPassword(id: string, newPassword: string) {
+  return api.post(`/admin/users/${id}/reset-password`, { newPassword });
+}
+
 export async function getDrivers(status?: string) {
   return api.get<any[]>(`/admin/drivers${status ? `?status=${status}` : ''}`);
 }
