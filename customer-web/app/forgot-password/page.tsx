@@ -36,7 +36,8 @@ export default function ForgotPassword() {
     setError('');
     try {
       const res = await requestPasswordReset(id);
-      setHint(res?.phoneHint ?? null);
+      setHint(res?.emailHint ?? null);
+      setChannel('email');
       setStep('reset');
     } catch {
       // Deliberately vague: we never confirm whether an account exists.
@@ -49,7 +50,7 @@ export default function ForgotPassword() {
   const submit = async () => {
     if (password !== confirm) { setError('Those passwords do not match.'); return; }
     if (password.length < 6) { setError('Use at least 6 characters.'); return; }
-    if (!identifier.trim()) { setError('Enter the email or phone number you used above.'); return; }
+    if (!identifier.trim()) { setError('Enter the email address you used above.'); return; }
 
     setBusy(true);
     setError('');
@@ -80,19 +81,18 @@ export default function ForgotPassword() {
         <>
           <h1 className="text-2xl font-black text-gray-900">{t('Forgot your password?')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-7">
-            Enter the email or phone number on your account and we&rsquo;ll send a
-            secure reset code to that contact.
+            Enter the email address on your account and we&rsquo;ll send a secure reset code to it.
           </p>
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-            Phone or email
+            Email address
           </label>
           <input
             value={identifier}
             onChange={e => setIdentifier(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && send()}
-            placeholder="+250 7xx xxx xxx"
-            autoComplete="username"
+            placeholder="you@example.com"
+            autoComplete="email" type="email"
             className="w-full border-2 border-gray-100 rounded-2xl px-4 py-3.5 mt-2 text-sm focus:border-zana-primary focus:outline-none"
           />
 
@@ -108,8 +108,7 @@ export default function ForgotPassword() {
         <>
           <h1 className="text-2xl font-black text-gray-900">{t('Enter your code')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-6">
-            If that account exists, a code is on its way
-            {hint ? ` to ${hint}` : ''} {channel === 'email' ? 'by email' : channel === 'sms' ? 'by SMS' : ''}. It is valid for five minutes.
+            If that account exists, a code was sent to {hint ?? 'your email address'}. It is valid for five minutes.
           </p>
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">

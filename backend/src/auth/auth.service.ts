@@ -426,30 +426,38 @@ export class AuthService {
    * or not the account exists.
    */
   async requestPasswordReset(identifier: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { OR: [{ phone: identifier }, { email: identifier }] },
-    });
+    const normalized = identifier.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({ where: { email: normalized } });
 
-    if (!user?.phone) {
-      console.log(`[RESET] no account for ${identifier} — nothing sent`);
+    // Always return the same response so the endpoint cannot be used to
+    // discover which email addresses have Zana accounts.
+    if (!user?.email || !user.phone) {
+      console.log(`[RESET] no account for ${normalized} — nothing sent`);
       return { sent: true, channel: null, phoneHint: null, emailHint: null };
     }
 
-    // Phone recovery sends by SMS; email recovery sends the same one-time
-    // code to the account email. The code remains bound to the account phone.
-    const isEmail = !!user.email && identifier.trim().toLowerCase() === user.email.toLowerCase();
-    if (isEmail) {
-      await this.requestOtp(user.phone, user.email ?? undefined);
-      const e = user.email!;
-      const at = e.indexOf('@');
-      const emailHint = at > 1 ? `${e.slice(0, 2)}•••${e.slice(at - 1)}${e.slice(at)}` : null;
-      return { sent: true, channel: 'email', phoneHint: null, emailHint };
+    // Password recovery is email-only. Never fall back to SMS here.
+    const sent = await this.emailService.sendPasswordResetCode(user.email, await this.issuePasswordResetCode(user.phone));
+    if (!sent) {
+      console.error(`[RESET] email delivery failed for ${user.email}`);
+      return { sent: true, channel: 'email', phoneHint: null, emailHint: this.maskEmail(user.email) };
     }
 
-    await this.requestOtp(user.phone);
-    const p = user.phone;
-    const phoneHint = p.length > 4 ? `${p.slice(0, 4)}•••${p.slice(-3)}` : null;
-    return { sent: true, channel: 'sms', phoneHint, emailHint: null };
+    return { sent: true, channel: 'email', phoneHint: null, emailHint: this.maskEmail(user.email) };
+  }
+
+  private async issuePasswordResetCode(phone: string): Promise<string> {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + OTP_TTL_SECONDS * 1000;
+    await this.saveOtp(phone, { code, expiresAt });
+    return code;
+  }
+
+  private maskEmail(email: string): string {
+    const [local, domain] = email.split('@');
+    if (!local || !domain) return 'your email';
+    const visible = local.length <= 2 ? local[0] : local.slice(0, 2);
+    return `${visible}${'•'.repeat(Math.max(1, Math.min(3, local.length - visible.length)))}${local.length > 1 ? local.slice(-1) : ''}@${domain}`;
   }
 
   /** Verify the code and set the new password in one step. */

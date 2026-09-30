@@ -35,7 +35,8 @@ export default function ForgotPassword() {
     setError('');
     try {
       const res = await requestPasswordReset(id);
-      setHint(res?.phoneHint ?? null);
+      setHint(res?.emailHint ?? null);
+      setChannel('email');
       setStep('reset');
     } catch {
       // Deliberately vague: we never confirm whether an account exists.
@@ -78,18 +79,18 @@ export default function ForgotPassword() {
         <>
           <h1 className="text-2xl font-black text-gray-900">{dt('Forgot your password?')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-7">
-            {dt("Enter the phone number or email on your account and we'll send a secure reset code to that contact.")}
+            {dt("Enter the email address on your account and we'll send a secure reset code to it.")}
           </p>
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-            {dt('Phone or email')}
+            {dt('Email address')}
           </label>
           <input
             value={identifier}
             onChange={e => setIdentifier(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && send()}
-            placeholder="+250 7xx xxx xxx"
-            autoComplete="username"
+            placeholder="you@example.com"
+            autoComplete="email" type="email"
             className="w-full border-2 border-gray-100 rounded-2xl px-4 py-3.5 mt-2 text-sm focus:border-zana-primary focus:outline-none"
           />
 
@@ -105,8 +106,7 @@ export default function ForgotPassword() {
         <>
           <h1 className="text-2xl font-black text-gray-900">{dt('Enter your code')}</h1>
           <p className="text-sm text-gray-500 mt-1.5 mb-6">
-            {dt('If that account exists, a code is on its way')}
-            {hint ? ` ${dt('to')} ${hint}` : ''}{dt('. It is valid for five minutes.')}
+            {dt('A code was sent to')} {hint ?? dt('your email address')}. {dt('It is valid for five minutes.')}
           </p>
 
           <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">

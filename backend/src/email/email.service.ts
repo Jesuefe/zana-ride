@@ -81,6 +81,19 @@ export class EmailService {
     }
   }
 
+  async sendPasswordResetCode(to: string, code: string): Promise<boolean> {
+    return this.send(
+      to,
+      'Reset your Zana Ride password',
+      this.letterhead(`
+        <h2 style="margin: 0 0 16px;">Reset your password</h2>
+        <p>Use this verification code to reset your Zana Ride password:</p>
+        <p style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #00A082;">${code}</p>
+        <p style="color: #6B7280; font-size: 13px;">This code expires in 5 minutes. If you did not request a password reset, you can safely ignore this email.</p>
+      `),
+    );
+  }
+
   async sendVerificationCode(to: string, code: string): Promise<boolean> {
     return this.send(
       to,

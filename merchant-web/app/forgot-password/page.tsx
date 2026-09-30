@@ -30,7 +30,8 @@ export default function ForgotPassword() {
     setError('');
     try {
       const res = await requestPasswordReset(identifier.trim());
-      setHint(res?.phoneHint ?? null);
+      setHint(res?.emailHint ?? null);
+      setChannel('email');
     } catch { /* stay silent about whether the account exists */ }
     setStep('reset');
     setBusy(false);
@@ -69,14 +70,14 @@ export default function ForgotPassword() {
           <>
             <h1 className="text-xl font-black text-gray-900">{t("Forgot your password?")}</h1>
             <p className="text-sm text-gray-500 mt-1.5 mb-6">
-              Enter your email or phone number and we&rsquo;ll send a secure reset code to that contact.
+              Enter the email address on your account and we&rsquo;ll send a secure reset code to it.
             </p>
 
             <input
               value={identifier}
               onChange={e => setIdentifier(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && send()}
-              placeholder="Email or phone number"
+              placeholder="Email address"
               className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 text-sm focus:border-zana-primary focus:outline-none"
             />
 
@@ -92,8 +93,7 @@ export default function ForgotPassword() {
           <>
             <h1 className="text-xl font-black text-gray-900">{t("Enter your code")}</h1>
             <p className="text-sm text-gray-500 mt-1.5 mb-5">
-              If that account exists, a code is on its way
-              {hint ? ` to ${hint}` : ''} {channel === 'email' ? 'by email' : channel === 'sms' ? 'by SMS' : ''}. Valid for five minutes.
+              If that account exists, a code was sent to {hint ?? 'your email address'}. Valid for five minutes.
             </p>
 
             <input
