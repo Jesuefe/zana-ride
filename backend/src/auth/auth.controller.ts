@@ -76,8 +76,11 @@ export class AuthController {
 
   // ── Forgotten password ────────────────────────────────────────────────────
 
-  @Post('password/forgot')
-  forgotPassword(@Body() body: { identifier: string }) {
+  @Post(['password/forgot', 'password/lookup'])
+  forgotPassword(@Body() body: { identifier: string; lookupOnly?: boolean }) {
+    if (body.lookupOnly) {
+      return this.authService.lookupPasswordReset(body.identifier);
+    }
     return this.authService.requestPasswordReset(body.identifier);
   }
 
