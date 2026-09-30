@@ -120,6 +120,24 @@ function ActiveDeliveryContent() {
     return () => clearInterval(interval);
   }, []);
 
+  // The Test Lab can override the driver's backend GPS without changing the
+  // physical phone GPS. Listen for that authoritative server-side position
+  // so the delivery screen uses the same coordinates as the real tracking
+  // pipeline. The normal phone GPS watcher remains as the fallback/live feed.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    const socket = io(process.env.NEXT_PUBLIC_API_URL ?? 'https://zana.ajumalink.com', {
+      auth: { token },
+      transports: ['websocket'],
+    });
+    socket.on('driver:position', (data: { lat?: number; lng?: number }) => {
+      if (typeof data?.lat !== 'number' || typeof data?.lng !== 'number') return;
+      setCoords({ lat: data.lat, lng: data.lng });
+    });
+    return () => { socket.disconnect(); };
+  }, []);
+
   useEffect(() => {
     const stop = watchPosition(c => {
       if (c) {
