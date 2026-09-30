@@ -29,11 +29,18 @@ export default function ProductsPage() { const {t}=useLang();
   const load = () => fetchMyProducts().then(setProducts).catch(() => {});
   useEffect(() => { load(); }, []);
 
-  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const setImageFile = async (file?: File) => {
+    if (!file || !file.type.startsWith('image/')) return;
     const compressed = await compressImage(file);
     setForm(f => ({ ...f, imageBase64: compressed }));
+  };
+
+  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => { await setImageFile(e.target.files?.[0]); };
+  const handlePasteImage = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const image = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'));
+    if (!image) return;
+    e.preventDefault();
+    await setImageFile(image.getAsFile() ?? undefined);
   };
 
   const handleCreate = async () => {
@@ -71,7 +78,7 @@ export default function ProductsPage() { const {t}=useLang();
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-xl p-5 shadow-sm mb-5">
+        <div className="bg-white rounded-xl p-5 shadow-sm mb-5" onPaste={handlePasteImage}>
           <h2 className="font-semibold text-gray-900 mb-3">{t('New Product')}</h2>
           <div className="space-y-3">
             <input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder={t('Product name')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />

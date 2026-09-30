@@ -30,7 +30,8 @@ export default function ChatPanel({
   onClose: () => void;
 }) {
   const { t } = useLang();
-  const lang = getStoredLang() as Lang;
+  const appLang = getStoredLang() as Lang;
+  const [lang, setLang] = useState<Lang>(appLang);
   const myId = getUserIdFromToken();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -74,11 +75,16 @@ export default function ChatPanel({
         <div className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center">
           <MessageCircle size={16} className="text-zana-primary" />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900">
             {context === 'trip' ? t('Chat with driver') : t('Chat with courier')}
           </p>
-          <p className="text-[10px] text-zana-muted">{t('Messages auto-translate · History clears after ride')}</p>
+          <p className="text-[10px] text-zana-muted">{t('Messages are translated into your selected language')}</p>
+        </div>
+        <div className="flex rounded-lg overflow-hidden border border-gray-200 shrink-0">
+          {(['en', 'fr', 'rw'] as Lang[]).map(code => (
+            <button key={code} onClick={() => setLang(code)} className={`px-2 py-1 text-[9px] font-bold ${lang === code ? 'bg-zana-primary text-white' : 'bg-white text-gray-500'}`}>{code.toUpperCase()}</button>
+          ))}
         </div>
         <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
           <X size={15} />

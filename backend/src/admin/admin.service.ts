@@ -410,6 +410,33 @@ export class AdminService {
 
   // ─── PRODUCTS ─────────────────────────────────────────────────────────────
 
+  async getMediaLibrary() {
+    const [products, markets, merchants, deliveries, documents] = await Promise.all([
+      this.prisma.product.findMany({ where: { imageUrl: { not: null } }, select: { id: true, name: true, imageUrl: true, createdAt: true, merchant: { select: { businessName: true } } }, orderBy: { createdAt: 'desc' }, take: 300 }),
+      this.prisma.market.findMany({ where: { OR: [{ imageUrl: { not: null } }, { coverUrl: { not: null } }] }, select: { id: true, name: true, imageUrl: true, coverUrl: true, createdAt: true }, orderBy: { createdAt: 'desc' }, take: 200 }),
+      this.prisma.merchant.findMany({ where: { OR: [{ logoUrl: { not: null } }, { coverUrl: { not: null } }] }, select: { id: true, businessName: true, logoUrl: true, coverUrl: true, createdAt: true }, orderBy: { createdAt: 'desc' }, take: 200 }),
+      this.prisma.delivery.findMany({ where: { OR: [{ imageUrl: { not: null } }, { pickupPhotoUrl: { not: null } }, { dropoffPhotoUrl: { not: null } }] }, select: { id: true, itemDescription: true, imageUrl: true, pickupPhotoUrl: true, dropoffPhotoUrl: true, createdAt: true }, orderBy: { createdAt: 'desc' }, take: 300 }),
+      this.prisma.driverDocument.findMany({ where: { fileUrl: { not: null } }, select: { id: true, label: true, fileUrl: true, createdAt: true, driver: { select: { user: { select: { firstName: true, lastName: true, phone: true } } } } }, orderBy: { createdAt: 'desc' }, take: 300 }),
+    ]);
+    const media: any[] = [];
+    for (const p of products) if (p.imageUrl) media.push({ id: 'product:' + p.id, url: p.imageUrl, type: 'product', title: p.name, owner: p.merchant?.businessName ?? 'Product', createdAt: p.createdAt });
+    for (const m of markets) {
+      if (m.imageUrl) media.push({ id: 'market:' + m.id + ':image', url: m.imageUrl, type: 'market', title: m.name, owner: 'Market', createdAt: m.createdAt });
+      if (m.coverUrl) media.push({ id: 'market:' + m.id + ':cover', url: m.coverUrl, type: 'market-cover', title: m.name, owner: 'Market', createdAt: m.createdAt });
+    }
+    for (const m of merchants) {
+      if (m.logoUrl) media.push({ id: 'merchant:' + m.id + ':logo', url: m.logoUrl, type: 'merchant-logo', title: m.businessName, owner: 'Merchant', createdAt: m.createdAt });
+      if (m.coverUrl) media.push({ id: 'merchant:' + m.id + ':cover', url: m.coverUrl, type: 'merchant-cover', title: m.businessName, owner: 'Merchant', createdAt: m.createdAt });
+    }
+    for (const d of deliveries) {
+      if (d.imageUrl) media.push({ id: 'delivery:' + d.id + ':package', url: d.imageUrl, type: 'delivery-package', title: d.itemDescription, owner: 'Delivery', createdAt: d.createdAt });
+      if (d.pickupPhotoUrl) media.push({ id: 'delivery:' + d.id + ':pickup', url: d.pickupPhotoUrl, type: 'delivery-pickup', title: d.itemDescription, owner: 'Delivery', createdAt: d.createdAt });
+      if (d.dropoffPhotoUrl) media.push({ id: 'delivery:' + d.id + ':dropoff', url: d.dropoffPhotoUrl, type: 'delivery-dropoff', title: d.itemDescription, owner: 'Delivery', createdAt: d.createdAt });
+    }
+    for (const d of documents) if (d.fileUrl) media.push({ id: 'document:' + d.id, url: d.fileUrl, type: 'driver-document', title: d.label, owner: [d.driver.user.firstName, d.driver.user.lastName].filter(Boolean).join(' ') || d.driver.user.phone, createdAt: d.createdAt });
+    return media.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
   async getProducts(status?: ProductStatus) {
     return this.prisma.product.findMany({
       where: status ? { status, merchantId: { not: null } } : { merchantId: { not: null } },

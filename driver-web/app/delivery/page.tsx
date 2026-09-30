@@ -184,7 +184,11 @@ function ActiveDeliveryContent() {
     setActionError('');
     try {
       const shot = await capturePhoto();
-      if (!shot) { setUploading(false); return; }
+      if (!shot) {
+        setPhotoNote(dt('Upload failed. A photo is required before you can continue.'));
+        setUploading(false);
+        return;
+      }
 
       const me = await fetchMyDriverProfile().catch(() => null);
       const name = (me as any)?.user?.firstName ? `${(me as any).user.firstName}` : 'Zana rider';
@@ -193,14 +197,16 @@ function ActiveDeliveryContent() {
 
       await api.post(`/deliveries/${delivery.id}/photo/${stage}`, { imageBase64: stamped });
     } catch {
-      // Upload failed — record it but let the delivery continue. A rider
-      // should never be stuck at a door because a photo did not send.
-      setPhotoNote(dt('Photo could not upload. Continuing without it.'));
-    } finally {
+      // Proof photo is mandatory for advancing the delivery. The driver must
+      // retry until the upload succeeds; cancellation and network failure
+      // never silently advance the delivery state.
+      setPhotoNote(dt('Upload failed. A photo is required before you can continue.'));
       setUploading(false);
-      if (stage === 'pickup') await doPickup();
-      else await doComplete();
+      return;
     }
+    setUploading(false);
+    if (stage === 'pickup') await doPickup();
+    else await doComplete();
   };
 
   const doPickup = async () => {

@@ -18,7 +18,7 @@ function getUserIdFromToken(): string | null {
 
 export default function DeliveryChatPanel({ deliveryId, onClose }: { deliveryId: string; onClose: () => void }) {
   const { dt } = useLang();
-  const lang = getStoredLang() as Lang;
+  const [lang, setLang] = useState<Lang>(getStoredLang() as Lang);
   const myId = getUserIdFromToken();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -42,7 +42,8 @@ export default function DeliveryChatPanel({ deliveryId, onClose }: { deliveryId:
     <div className="fixed inset-0 z-[100] flex flex-col bg-white">
       <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
         <div className="w-10 h-10 rounded-full bg-zana-primary-light flex items-center justify-center"><MessageCircle size={18} className="text-zana-primary"/></div>
-        <div className="flex-1"><p className="font-black text-gray-900">{dt('Chat with market agent')}</p><p className="text-[10px] text-gray-400">{dt('Zana chat · auto-translated')}</p></div>
+        <div className="flex-1 min-w-0"><p className="font-black text-gray-900">{dt('Chat with market agent')}</p><p className="text-[10px] text-gray-400">{dt('Messages are translated into your selected language')}</p></div>
+        <div className="flex rounded-lg overflow-hidden border border-gray-200 shrink-0">{(['en','fr','rw'] as Lang[]).map(code => <button key={code} onClick={() => setLang(code)} className={`px-2 py-1 text-[9px] font-bold ${lang === code ? 'bg-zana-primary text-white' : 'bg-white text-gray-500'}`}>{code.toUpperCase()}</button>)}</div>
         <button onClick={onClose} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><X size={16}/></button>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">

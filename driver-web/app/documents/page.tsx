@@ -46,7 +46,10 @@ export default function Documents() {
     setNote('');
     try {
       const captured = await capturePhoto();
-      if (!captured) { setUploading(null); return; } // cancelled, not an error
+      if (!captured) {
+        setNote(dt('Upload failed. The document was not uploaded. Please try again.'));
+        return;
+      }
 
       // Downscale before sending — document photos are large and riders/
       // drivers are often on a weak connection. No name/timestamp/location

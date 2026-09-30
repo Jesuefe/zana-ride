@@ -58,9 +58,9 @@ export const api = {
 
 // ── Password recovery ───────────────────────────────────────────────────────
 
-export async function lookupPasswordReset(identifier: string) { return api.post<{ exists: boolean; emailHint: string | null }>("/auth/password/lookup", { identifier }); }
+export async function lookupPasswordReset(identifier: string) { return api.post<{ exists: boolean; emailHint: string | null }>('/auth/password/forgot?lookup=true', { identifier }); }
 
-async function requestPasswordReset(identifier: string) {
+export async function requestPasswordReset(identifier: string) {
   return api.post<{ sent: boolean; channel: 'email' | 'sms' | null; phoneHint: string | null; emailHint: string | null }>(
     '/auth/password/forgot?lookup=true', { identifier },
   );

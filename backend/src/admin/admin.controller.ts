@@ -162,6 +162,10 @@ export class AdminController {
   @Patch('merchants/:id/suspend')
   suspendMerchant(@Param('id') id: string) { return this.adminService.suspendMerchant(id); }
 
+  // Media library — all currently referenced images uploaded through Zana storage.
+  @Get('media')
+  getMediaLibrary() { return this.adminService.getMediaLibrary(); }
+
   // Products
   @Get('products')
   getProducts(@Query('status') status?: ProductStatus) {

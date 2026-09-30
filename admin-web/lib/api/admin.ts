@@ -37,6 +37,8 @@ export async function getMerchants(status?: string) {
 export async function approveMerchant(id: string) { return api.patch(`/admin/merchants/${id}/approve`); }
 export async function suspendMerchant(id: string) { return api.patch(`/admin/merchants/${id}/suspend`); }
 
+export async function getMediaLibrary() { return api.get<any[]>('/admin/media'); }
+
 export async function getProducts(status?: string) {
   return api.get<any[]>(`/admin/products${status ? `?status=${status}` : ''}`);
 }

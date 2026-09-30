@@ -38,28 +38,8 @@ function TripContent() {
     const socket = io(BASE, { auth: { token }, transports: ['websocket'] });
     socketRef.current = socket;
 
-    socket.on('call:incoming', async (data: { callId: string; callerName: string; rideId: string; expiresAt: string }) => {
-      // Play ringtone
-      try {
-        const audio = new Audio('/ringtone.mp3');
-        audio.loop = true;
-        audio.volume = 1.0;
-        audio.play().catch(() => {});
-        (window as any).__zanaRingtone = audio;
-      } catch {}
-
-      // Store call info for manual accept/decline
-      setIncomingCall({
-        callId: data.callId,
-        callerName: data.callerName,
-        rideId: data.rideId,
-        roomName: '',
-        wsUrl: '',
-        token: '',
-      });
-    });
-
-    socket.on('call:cancelled', () => { try { (window as any).__zanaRingtone?.pause(); } catch {} setIncomingCall(null); });
+    // Incoming calls are handled globally by DriverShell so the driver
+    // sees them from every page, not only while the trip screen is open.
 
     // Customer cancelled the ride — close everything and go home
     socket.on('trip:cancelled', (data: { message: string }) => {

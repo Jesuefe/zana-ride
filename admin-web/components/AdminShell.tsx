@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Car, Store, Package, MapPin,
   UserCheck, TrendingUp, LogOut, ChevronRight,
   Truck, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
-  Sun, Moon, Smartphone, Settings } from 'lucide-react';
+  Sun, Moon, Smartphone, Settings, Image as ImageIcon } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
 import { useTheme } from '../lib/ThemeContext';
 
@@ -24,6 +24,7 @@ const SENIOR_NAV = [
   { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
   { label: 'Test Lab', href: '/dashboard/test-locations', icon: Smartphone },
   { label: 'Products', href: '/dashboard/products', icon: Package },
+  { label: 'Media Library', href: '/dashboard/media', icon: ImageIcon },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
   { label: 'Deliveries', href: '/dashboard/deliveries', icon: Truck },
   { label: 'Rides', href: '/dashboard/rides', icon: TrendingUp },
