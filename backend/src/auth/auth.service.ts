@@ -1,3 +1,5 @@
+[Reading 535 lines from start (total: 535 lines, 0 remaining)]
+
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { timingSafeEqual } from 'crypto';
 import { ConfigService } from '@nestjs/config';
@@ -426,24 +428,43 @@ export class AuthService {
    * or not the account exists.
    */
   async requestPasswordReset(identifier: string) {
-    const normalized = identifier.trim().toLowerCase();
-    const user = await this.prisma.user.findUnique({ where: { email: normalized } });
+    const raw = identifier.trim();
+    const normalizedEmail = raw.toLowerCase();
+    const normalizedPhone = raw.replace(/\D/g, '');
+    const phone = normalizedPhone.startsWith('250') ? `+${normalizedPhone}` : normalizedPhone ? `+250${normalizedPhone.replace(/^0+/, '')}` : raw;
 
-    // Always return the same response so the endpoint cannot be used to
-    // discover which email addresses have Zana accounts.
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: normalizedEmail },
+          { phone: phone },
+          { phone: raw },
+        ],
+      },
+    });
+
+    // Recovery is intentionally email-only. If the person supplied a phone
+    // number, resolve the account first and send the code to its email.
+    // Keep the response generic so this endpoint cannot enumerate accounts.
     if (!user?.email || !user.phone) {
-      console.log(`[RESET] no account for ${normalized} — nothing sent`);
+      console.log(`[RESET] no recoverable account for identifier`);
       return { sent: true, channel: null, phoneHint: null, emailHint: null };
     }
 
-    // Password recovery is email-only. Never fall back to SMS here.
-    const sent = await this.emailService.sendPasswordResetCode(user.email, await this.issuePasswordResetCode(user.phone));
+    const sent = await this.emailService.sendPasswordResetCode(
+      user.email,
+      await this.issuePasswordResetCode(user.phone),
+    );
     if (!sent) {
-      console.error(`[RESET] email delivery failed for ${user.email}`);
-      return { sent: true, channel: 'email', phoneHint: null, emailHint: this.maskEmail(user.email) };
+      console.error(`[RESET] email delivery failed for account`);
     }
 
-    return { sent: true, channel: 'email', phoneHint: null, emailHint: this.maskEmail(user.email) };
+    return {
+      sent: true,
+      channel: 'email',
+      phoneHint: null,
+      emailHint: this.maskEmail(user.email),
+    };
   }
 
   private async issuePasswordResetCode(phone: string): Promise<string> {
@@ -466,8 +487,12 @@ export class AuthService {
       throw new BadRequestException('PASSWORD_TOO_SHORT');
     }
 
+    const raw = identifier.trim();
+    const normalizedEmail = raw.toLowerCase();
+    const digits = raw.replace(/\D/g, '');
+    const normalizedPhone = digits.startsWith('250') ? `+${digits}` : digits ? `+250${digits.replace(/^0+/, '')}` : raw;
     const user = await this.prisma.user.findFirst({
-      where: { OR: [{ phone: identifier }, { email: identifier }] },
+      where: { OR: [{ phone: normalizedPhone }, { phone: raw }, { email: normalizedEmail }] },
     });
     if (!user?.phone) throw new UnauthorizedException('INVALID_CODE');
 
@@ -510,3 +535,5 @@ export class AuthService {
   }
 
 }
+
+[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
