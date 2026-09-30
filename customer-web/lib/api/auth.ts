@@ -81,7 +81,7 @@ export async function lookupPasswordReset(identifier: string) {
 
 export async function requestPasswordReset(identifier: string) {
   return api.post<{ sent: boolean; channel: 'email' | 'sms' | null; phoneHint: string | null; emailHint: string | null }>(
-    '/auth/password/forgot?lookup=true', { identifier },
+    '/auth-password-recovery/lookup', { identifier },
   );
 }
 
