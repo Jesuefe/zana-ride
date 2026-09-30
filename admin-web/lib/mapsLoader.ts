@@ -16,7 +16,7 @@ export function loadGoogleMaps(): Promise<void> {
       return;
     }
     const script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyD4o-fXIpmGozrClaP1niC407cgRCrzSTI&libraries=geometry&loading=async&callback=' + callbackName + '&v=3';
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyD4o-fXIpmGozrClaP1niC407cgRCrzSTI&libraries=geometry,places&loading=async&callback=' + callbackName + '&v=3';
     script.async = true; script.defer = true;
     script.onerror = () => { loadPromise = null; reject(new Error('Failed to load Google Maps')); };
     document.head.appendChild(script);

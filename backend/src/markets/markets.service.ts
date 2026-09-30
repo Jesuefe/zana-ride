@@ -6,12 +6,10 @@ import { PushService } from '../push/push.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
 import { FinanceService } from '../finance/finance.service';
 
-// Same shape as the merchant delivery fee so pricing stays consistent
-// across the whole marketplace.
+// Market orders use the exact same delivery pricing engine as normal
+// marketplace deliveries: 500 RWF base + 150 RWF/km, min 500, max 3000.
 function calcDeliveryFee(distKm: number): number {
-  const base = 700;
-  const perKm = 250;
-  return Math.max(700, Math.round((base + distKm * perKm) / 50) * 50);
+  return Math.min(3000, Math.max(500, Math.round(500 + distKm * 150)));
 }
 
 @Injectable()

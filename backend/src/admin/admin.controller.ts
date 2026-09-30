@@ -187,6 +187,9 @@ export class AdminController {
   @Get('markets')
   getMarkets() { return this.adminService.getMarkets(); }
 
+  @Get('markets/:id/dashboard')
+  marketDashboard(@Param('id') id: string) { return this.adminService.getMarketDashboard(id); }
+
   @Post('markets')
   createMarket(@Body() body: { name: string; description?: string; address: string; lat: number; lng: number; pickupContactName?: string; pickupPhone: string }) {
     return this.adminService.createMarket(body);

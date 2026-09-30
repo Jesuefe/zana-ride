@@ -44,6 +44,7 @@ export async function getTrips() { return api.get<any[]>('/admin/trips'); }
 export async function getDeliveries() { return api.get<any[]>('/admin/deliveries'); }
 
 export async function getMarkets() { return api.get<any[]>('/admin/markets'); }
+export async function getMarketDashboard(id: string) { return api.get<any>(`/admin/markets/${id}/dashboard`); }
 export async function createMarket(data: any) { return api.post('/admin/markets', data); }
 export async function updateMarket(id: string, data: any) { return api.patch(`/admin/markets/${id}`, data); }
 

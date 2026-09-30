@@ -437,6 +437,49 @@ export class AdminService {
     });
   }
 
+  async getMarketDashboard(marketId: string) {
+    const market = await this.prisma.market.findUnique({
+      where: { id: marketId },
+      include: {
+        agents: { include: { user: { select: { id: true, firstName: true, lastName: true, phone: true } } } },
+        _count: { select: { products: true, orders: true } },
+      },
+    });
+    if (!market) throw new NotFoundException('Market not found');
+    const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+    const orders = await this.prisma.order.findMany({
+      where: { marketId },
+      select: { id: true, agentId: true, status: true, total: true, deliveryFee: true, createdAt: true, items: { select: { quantity: true, status: true } } },
+      orderBy: { createdAt: 'desc' }, take: 500,
+    });
+    const activeStatuses = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY'];
+    const processingStatuses = ['CONFIRMED', 'PREPARING'];
+    const activeOrders = orders.filter(o => activeStatuses.includes(o.status));
+    const processingOrders = orders.filter(o => processingStatuses.includes(o.status));
+    const deliveredToday = orders.filter(o => o.status === 'DELIVERED' && new Date(o.createdAt) >= startOfDay);
+    const cancelledToday = orders.filter(o => o.status === 'CANCELLED' && new Date(o.createdAt) >= startOfDay);
+    const todayOrders = orders.filter(o => new Date(o.createdAt) >= startOfDay);
+    const activeAgentIds = new Set(activeOrders.map(o => o.agentId).filter(Boolean) as string[]);
+    const shoppingAgentIds = new Set(processingOrders.map(o => o.agentId).filter(Boolean) as string[]);
+    const totalItems = orders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0);
+    const processingItems = processingOrders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0);
+    return {
+      market: { id: market.id, name: market.name, description: market.description, address: market.address, lat: market.lat, lng: market.lng, pickupContactName: market.pickupContactName, pickupPhone: market.pickupPhone, prepMinutes: market.prepMinutes, active: market.active },
+      metrics: {
+        totalAgents: market.agents.length, activeAgents: market.agents.filter(a => a.active).length,
+        agentsWithActiveOrders: activeAgentIds.size, agentsShopping: shoppingAgentIds.size,
+        totalProducts: market._count.products, totalOrders: market._count.orders, ordersToday: todayOrders.length,
+        activeOrders: activeOrders.length, processingOrders: processingOrders.length,
+        readyForPickup: orders.filter(o => o.status === 'READY_FOR_PICKUP').length,
+        outForDelivery: orders.filter(o => o.status === 'OUT_FOR_DELIVERY').length,
+        deliveredToday: deliveredToday.length, cancelledToday: cancelledToday.length,
+        totalItems, processingItems,
+      },
+      agents: market.agents.map(a => ({ id: a.id, userId: a.userId, firstName: a.user.firstName, lastName: a.user.lastName, phone: a.user.phone, active: a.active, working: activeAgentIds.has(a.id), shopping: shoppingAgentIds.has(a.id) })),
+      recentOrders: orders.slice(0, 25),
+    };
+  }
+
   async createMarket(data: { name: string; description?: string; address: string; lat: number; lng: number; pickupContactName?: string; pickupPhone: string; imageUrl?: string }) {
     if (!data.pickupPhone?.trim()) throw new BadRequestException('PICKUP_PHONE_REQUIRED');
     return this.prisma.market.create({ data });
