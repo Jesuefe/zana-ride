@@ -312,6 +312,28 @@ export class AdminService {
     return this.prisma.user.update({ where: { id: userId }, data: { status } });
   }
 
+  async adminResetUserPassword(actorId: string, userId: string, newPassword: string) {
+    if (!newPassword || newPassword.length < 6) throw new BadRequestException('PASSWORD_TOO_SHORT');
+    const target = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, phone: true, email: true, firstName: true, lastName: true, role: true },
+    });
+    if (!target) throw new NotFoundException('User not found');
+    if (target.id === actorId) throw new BadRequestException('USE_ACCOUNT_PASSWORD_CHANGE');
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        action: 'ADMIN_USER_PASSWORD_RESET',
+        entityType: 'User',
+        entityId: userId,
+        metadataJson: JSON.stringify({ targetRole: target.role, targetPhone: target.phone, targetEmail: target.email }),
+      },
+    });
+    return { reset: true, user: { id: target.id, firstName: target.firstName, lastName: target.lastName, phone: target.phone, email: target.email, role: target.role } };
+  }
+
   // Same drill-down gap as drivers — a customer's join date and ride
   // history had no view at all beyond the flat list.
   async getUserDetail(userId: string) {
