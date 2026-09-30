@@ -47,7 +47,7 @@ export default function EarningsPage() {
         weekEarnings: earnings.weekEarnings ?? 0,
         totalEarnings: earnings.totalEarnings ?? 0,
         totalTrips: earnings.totalTrips ?? 0,
-        totalDeliveries: earnings.totalDeliveries ?? 0,
+        totalDeliveries: Array.isArray(earnings.totalDeliveries) ? earnings.totalDeliveries.length : Number(earnings.totalDeliveries ?? 0),
         walletBalance: wallet.balance ?? 0,
         zanaCommission: Math.round((earnings.totalEarnings ?? 0) * 0.15 / 0.85),
         cashCollectedToday: earnings.cashCollectedToday ?? 0,

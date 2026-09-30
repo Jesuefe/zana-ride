@@ -249,9 +249,12 @@ export class DriversService {
       trips.reduce((total, t) => total + (t.finalFare ?? t.estimatedFare), 0);
 
     const totalTripGross = sum(allTimeTrips);
-    const todayGross = sum(todayTrips) + todayDeliveries.reduce((s, d) => s + d.fee, 0);
-    const weekGross = sum(weekTrips) + weekDeliveries.reduce((s, d) => s + d.fee, 0);
-    const totalGross = totalTripGross + allTimeDeliveries.reduce((s, d) => s + d.fee, 0);
+    const todayDeliveryGross = todayDeliveries.reduce((s, d) => s + Number(d.fee), 0);
+    const weekDeliveryGross = weekDeliveries.reduce((s, d) => s + Number(d.fee), 0);
+    const totalDeliveryGross = allTimeDeliveries.reduce((s, d) => s + Number(d.fee), 0);
+    const todayGross = sum(todayTrips) + todayDeliveryGross;
+    const weekGross = sum(weekTrips) + weekDeliveryGross;
+    const totalGross = totalTripGross + totalDeliveryGross;
     const totalEarnings = totalGross * 0.85; // rides + deliveries, after 15% commission
 
     return {
@@ -259,9 +262,9 @@ export class DriversService {
       weekEarnings: Math.round(weekGross * 0.85),
       totalEarnings: Math.round(totalEarnings),
       totalTrips: allTimeTrips.length,
-      totalDeliveries: allTimeDeliveries,
+      totalDeliveries: allTimeDeliveries.length,
       walletBalance: driver?.user?.wallet?.balance ?? 0,
-      cashCollectedToday: Math.round(sum(todayCashTrips) + todayCashDeliveries.reduce((s, d) => s + d.fee, 0)),
+      cashCollectedToday: Math.round(sum(todayCashTrips) + todayCashDeliveries.reduce((s, d) => s + Number(d.fee), 0)),
       zanaDue: unpaidDebts.reduce((s, d) => s + d.amount, 0),
       // Previously wallet balance and debt were shown as two separate,
       // seemingly contradictory numbers — a driver could see a
