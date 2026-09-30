@@ -78,7 +78,7 @@ export class AuthController {
 
   @Post('password/forgot')
   forgotPassword(@Body() body: { identifier: string }, @Req() req: any) {
-    if (typeof req.url === 'string' && req.url.includes('lookup=true')) {
+    if (String(req.url || req.raw?.url || '').includes('lookup=true') || req.query?.lookup === 'true' || req.raw?.query?.lookup === 'true') {
       return this.authService.lookupPasswordReset(body.identifier);
     }
     return this.authService.requestPasswordReset(body.identifier);
