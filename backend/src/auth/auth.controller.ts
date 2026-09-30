@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RequestOtpDto, VerifyOtpDto } from './dto/otp.dto';
 import { RecoverAdminDto } from './dto/password-auth.dto';
@@ -77,7 +77,10 @@ export class AuthController {
   // ── Forgotten password ────────────────────────────────────────────────────
 
   @Post('password/forgot')
-  forgotPassword(@Body() body: { identifier: string }) {
+  forgotPassword(@Body() body: { identifier: string }, @Req() req: any) {
+    if (req.query?.lookup === 'true') {
+      return this.authService.lookupPasswordReset(body.identifier);
+    }
     return this.authService.requestPasswordReset(body.identifier);
   }
 
