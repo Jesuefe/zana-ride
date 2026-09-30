@@ -95,11 +95,11 @@ export class MarketsService {
       status: order.status,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
-      shoppingTotal,
+      purchaseBudget: shoppingTotal,
       items: (order.items ?? []).map((item: any) => ({
         id: item.id,
         quantity: item.quantity,
-        price: item.price,
+        purchaseCost: Number(item.referenceCostAtOrder ?? item.product?.referenceCost ?? 0),
         status: item.status,
         product: item.product ? { id: item.product.id, name: item.product.name } : null,
       })),
