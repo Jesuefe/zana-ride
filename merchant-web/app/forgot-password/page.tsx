@@ -70,14 +70,14 @@ export default function ForgotPassword() {
           <>
             <h1 className="text-xl font-black text-gray-900">{t("Forgot your password?")}</h1>
             <p className="text-sm text-gray-500 mt-1.5 mb-6">
-              Enter the email address on your account and we&rsquo;ll send a secure reset code to it.
+              Enter the email address or phone number on your account. If you use a phone number, the code will be sent to the email associated with that account.
             </p>
 
             <input
               value={identifier}
               onChange={e => setIdentifier(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && send()}
-              placeholder="Email address"
+              placeholder="Email or phone number"
               className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 text-sm focus:border-zana-primary focus:outline-none"
             />
 
