@@ -192,15 +192,15 @@ export class DriversService {
     const [todayTrips, weekTrips, allTimeTrips, todayDeliveries, weekDeliveries, allTimeDeliveries, todayCashTrips, todayCashDeliveries, unpaidDebts] = await Promise.all([
       this.prisma.trip.findMany({
         where: { driverId, status: 'RIDE_COMPLETED', completedAt: { gte: startOfToday } },
-        select: { finalFare: true, estimatedFare: true },
+        select: { id: true, finalFare: true, estimatedFare: true },
       }),
       this.prisma.trip.findMany({
         where: { driverId, status: 'RIDE_COMPLETED', completedAt: { gte: startOfWeek } },
-        select: { finalFare: true, estimatedFare: true },
+        select: { id: true, finalFare: true, estimatedFare: true },
       }),
       this.prisma.trip.findMany({
         where: { driverId, status: 'RIDE_COMPLETED' },
-        select: { finalFare: true, estimatedFare: true },
+        select: { id: true, finalFare: true, estimatedFare: true },
       }),
       // Marketplace/merchant delivery fees are already included in the
       // customer's paid order total. They are NOT charged again here.
@@ -208,15 +208,15 @@ export class DriversService {
       // driver 85% of this fee and records Zana's 15% commission.
       this.prisma.delivery.findMany({
         where: { driverId, status: 'DELIVERED', deliveredAt: { gte: startOfToday } },
-        select: { fee: true },
+        select: { id: true, fee: true },
       }),
       this.prisma.delivery.findMany({
         where: { driverId, status: 'DELIVERED', deliveredAt: { gte: startOfWeek } },
-        select: { fee: true },
+        select: { id: true, fee: true },
       }),
       this.prisma.delivery.findMany({
         where: { driverId, status: 'DELIVERED' },
-        select: { fee: true },
+        select: { id: true, fee: true },
       }),
       // Cash collected specifically — include cash deliveries as well as
       // cash rides. Digital marketplace deliveries were already paid in
@@ -248,31 +248,63 @@ export class DriversService {
     const sum = (trips: { finalFare: number | null; estimatedFare: number }[]) =>
       trips.reduce((total, t) => total + (t.finalFare ?? t.estimatedFare), 0);
 
-    const totalTripGross = sum(allTimeTrips);
-    const todayDeliveryGross = todayDeliveries.reduce((s, d) => s + Number(d.fee), 0);
-    const weekDeliveryGross = weekDeliveries.reduce((s, d) => s + Number(d.fee), 0);
-    const totalDeliveryGross = allTimeDeliveries.reduce((s, d) => s + Number(d.fee), 0);
-    const todayGross = sum(todayTrips) + todayDeliveryGross;
-    const weekGross = sum(weekTrips) + weekDeliveryGross;
-    const totalGross = totalTripGross + totalDeliveryGross;
-    const totalEarnings = totalGross * 0.85; // rides + deliveries, after 15% commission
+    // Earnings are sourced from the actual Commission ledger, not a second
+    // 85% reconstruction. This matters for cash rides/deliveries because
+    // their commission may have been partly covered from the wallet and the
+    // remainder recorded as debt. The driver earned gross - recorded
+    // commission; the wallet is a separate, real balance.
+    const completedTripIds = allTimeTrips.map(t => (t as any).id).filter(Boolean);
+    const completedDeliveryIds = allTimeDeliveries.map(d => (d as any).id).filter(Boolean);
+    const commissionRows = await this.prisma.commission.findMany({
+      where: {
+        OR: [
+          ...(completedTripIds.length ? [{ tripId: { in: completedTripIds } }] : []),
+          ...(completedDeliveryIds.length ? [{ deliveryId: { in: completedDeliveryIds } }] : []),
+        ],
+      },
+      select: { tripId: true, deliveryId: true, amount: true },
+    });
+
+    const commissionByTrip = new Map(commissionRows.filter(c => c.tripId).map(c => [c.tripId!, c.amount]));
+    const commissionByDelivery = new Map(commissionRows.filter(c => c.deliveryId).map(c => [c.deliveryId!, c.amount]));
+    const tripNet = (trips: { id?: string; finalFare: number | null; estimatedFare: number }[]) =>
+      trips.reduce((total, t) => {
+        const gross = t.finalFare ?? t.estimatedFare;
+        return total + gross - (t.id ? (commissionByTrip.get(t.id) ?? Math.round(gross * 0.15)) : Math.round(gross * 0.15));
+      }, 0);
+    const deliveryNet = (deliveries: { id?: string; fee: number }[]) =>
+      deliveries.reduce((total, d) => {
+        const gross = Number(d.fee);
+        return total + gross - (d.id ? (commissionByDelivery.get(d.id) ?? Math.round(gross * 0.15)) : Math.round(gross * 0.15));
+      }, 0);
+
+    const todayNet = tripNet(todayTrips as any) + deliveryNet(todayDeliveries as any);
+    const weekNet = tripNet(weekTrips as any) + deliveryNet(weekDeliveries as any);
+    const totalGross = sum(allTimeTrips) + allTimeDeliveries.reduce((s, d) => s + Number(d.fee), 0);
+    const totalNet = tripNet(allTimeTrips as any) + deliveryNet(allTimeDeliveries as any);
+    // Includes the exact recorded commission where available, with the
+    // existing 15% rate only as a compatibility fallback for any legacy
+    // completed transaction that predates its Commission row.
+    const totalEarnings = totalNet;
+    const totalCommission = totalGross - totalEarnings;
+    const walletBalance = driver?.user?.wallet?.balance ?? 0;
+    const zanaDue = unpaidDebts.reduce((s, d) => s + d.amount, 0);
 
     return {
-      todayEarnings: Math.round(todayGross * 0.85),
-      weekEarnings: Math.round(weekGross * 0.85),
+      todayEarnings: Math.round(todayNet),
+      weekEarnings: Math.round(weekNet),
       totalEarnings: Math.round(totalEarnings),
       totalTrips: allTimeTrips.length,
       totalDeliveries: allTimeDeliveries.length,
-      walletBalance: driver?.user?.wallet?.balance ?? 0,
+      walletBalance,
+      zanaCommission: totalCommission,
       cashCollectedToday: Math.round(sum(todayCashTrips) + todayCashDeliveries.reduce((s, d) => s + Number(d.fee), 0)),
-      zanaDue: unpaidDebts.reduce((s, d) => s + d.amount, 0),
-      // Previously wallet balance and debt were shown as two separate,
-      // seemingly contradictory numbers — a driver could see a
-      // positive "available to withdraw" balance right next to a much
-      // larger amount owed, which doesn't reflect their actual net
-      // financial position. One real number, matching how Uber
-      // represents this: what they'd have if debt were settled now.
-      netBalance: (driver?.user?.wallet?.balance ?? 0) - unpaidDebts.reduce((s, d) => s + d.amount, 0),
+      zanaDue,
+      // This is the actual wallet balance. Commission/debt accounting has
+      // already happened when each transaction was settled; subtracting
+      // zanaDue here would model the same debt a second time and would make
+      // this number disagree with the withdrawal endpoint.
+      netBalance: walletBalance,
       recentDebts: unpaidDebts.map(d => ({
         id: d.id, amount: d.amount, createdAt: d.createdAt,
       })),

@@ -49,10 +49,13 @@ export default function EarningsPage() {
         totalTrips: earnings.totalTrips ?? 0,
         totalDeliveries: Array.isArray(earnings.totalDeliveries) ? earnings.totalDeliveries.length : Number(earnings.totalDeliveries ?? 0),
         walletBalance: wallet.balance ?? 0,
-        zanaCommission: Math.round((earnings.totalEarnings ?? 0) * 0.15 / 0.85),
+        zanaCommission: earnings.zanaCommission ?? 0,
         cashCollectedToday: earnings.cashCollectedToday ?? 0,
         zanaDue: earnings.zanaDue ?? 0,
-        netBalance: earnings.netBalance ?? (wallet.balance ?? 0) - (earnings.zanaDue ?? 0),
+        // The wallet is the withdrawal source of truth. Commission/debt
+        // settlement has already changed this balance; do not subtract the
+        // same debt again for the display.
+        netBalance: earnings.netBalance ?? (wallet.balance ?? 0),
         recentDebts: earnings.recentDebts ?? [],
       });
     }).catch(() => {});
@@ -135,24 +138,23 @@ export default function EarningsPage() {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Net balance — previously shown as two separate, seemingly
-            contradictory numbers: a positive "available to withdraw"
-            balance right next to a much larger amount owed. One real
-            number now, matching how Uber represents this: what a
-            driver would actually have if debt were settled right now. */}
+        {/* Available to withdraw is the actual wallet balance. Commission
+            and debt settlement are already reflected by the financial
+            ledger, so the debt must never be subtracted a second time here. */}
         <div className={`rounded-2xl p-5 text-white ${data && data.netBalance < 0 ? 'bg-amber-600' : 'bg-zana-primary'}`}>
           <div className="flex items-center gap-2 mb-1">
-            {data && data.netBalance < 0 ? <AlertCircle size={16} className="text-white/70" /> : <Wallet size={16} className="text-white/70" />}
-            <p className="text-white/70 text-xs">{data && data.netBalance < 0 ? dt('Balance owed to Zana') : dt('Available to withdraw')}</p>
+            <Wallet size={16} className="text-white/70" />
+            <p className="text-white/70 text-xs">{dt('Available to withdraw')}</p>
           </div>
-          <p className="text-3xl font-bold">{data ? fmt(Math.abs(data.netBalance)) : '…'}{data && data.netBalance < 0 ? ' owed' : ''}</p>
-          {data && data.zanaDue > 0 && (
+          <p className="text-3xl font-bold">{data ? fmt(data.netBalance) : '…'}</p>
+          {data && data.zanaDue > 0 ? (
             <p className="text-white/70 text-xs mt-1">
-              {fmt(data.walletBalance)} in wallet · {fmt(data.zanaDue)} owed from cash rides
+              {fmt(data.zanaDue)} {dt('commission due from cash transactions')}
             </p>
+          ) : (
+            <p className="text-white/60 text-xs mt-1">{dt('Actual wallet balance after recorded settlements')}</p>
           )}
-          {!data?.zanaDue && <p className="text-white/60 text-xs mt-1">{dt("After 15% Zana commission deducted")}</p>}
-          {data && data.netBalance < 0 && (
+          {data && data.zanaDue > 0 && (
             <button
               onClick={() => setShowSettle(true)}
               className="w-full mt-3 bg-white text-amber-700 font-semibold py-2.5 rounded-xl text-sm"
