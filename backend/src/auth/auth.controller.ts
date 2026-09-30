@@ -77,7 +77,7 @@ export class AuthController {
   // ── Forgotten password ────────────────────────────────────────────────────
 
   @Post('password/lookup')
-  lookupPassword(@Body() body: { identifier: string }) {
+  findPasswordAccount(@Body() body: { identifier: string }) {
     return this.authService.lookupPasswordReset(body.identifier);
   }
 
