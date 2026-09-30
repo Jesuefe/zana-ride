@@ -134,7 +134,7 @@ export default function EarningsPage() {
       <div className="bg-zana-primary-dark px-4 pt-12 pb-6">
         <button onClick={() => router.back()} className="text-white/70 text-sm mb-4">{dt("← Back")}</button>
         <h1 className="text-white text-xl font-bold">{dt("Earnings & Wallet")}</h1>
-        <p className="text-white/60 text-xs mt-1">{dt("15% platform commission applies to all earnings")}</p>
+        <p className="text-white/60 text-xs mt-1">{dt("Zana commission is recorded on each completed transaction")}</p>
       </div>
 
       <div className="p-4 space-y-4">
@@ -165,10 +165,10 @@ export default function EarningsPage() {
         {/* Earnings grid */}
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: dt("Today's earnings"), value: data?.todayEarnings, icon: TrendingUp, color: 'text-green-600' },
+            { label: dt("Today's net earnings"), value: data?.todayEarnings, icon: TrendingUp, color: 'text-green-600' },
             { label: dt('Cash collected today'), value: data?.cashCollectedToday, icon: Banknote, color: 'text-amber-600' },
-            { label: dt('This week'), value: data?.weekEarnings, icon: TrendingUp, color: 'text-blue-600' },
-            { label: dt('Total earned'), value: data?.totalEarnings, icon: TrendingUp, color: 'text-zana-primary' },
+            { label: dt('This week net earnings'), value: data?.weekEarnings, icon: TrendingUp, color: 'text-blue-600' },
+            { label: dt('Lifetime net earnings'), value: data?.totalEarnings, icon: TrendingUp, color: 'text-zana-primary' },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="bg-white rounded-xl p-4 shadow-sm">
               <Icon size={16} className={`${color} mb-2`} />
@@ -178,9 +178,8 @@ export default function EarningsPage() {
           ))}
         </div>
 
-        {/* Recent Zana-due activity — a real, direct view into the same
-            ledger the backend has always kept, not a new number invented
-            just for this screen. */}
+        {/* Commission/debt activity — this is separate from the driver's
+            wallet balance and is never deducted a second time here. */}
         {data && data.recentDebts.length > 0 && (
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <p className="font-semibold text-gray-900 mb-3">{dt("Recent Zana due")}</p>
