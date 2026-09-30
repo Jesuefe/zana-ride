@@ -126,6 +126,15 @@ export class AdminController {
     return this.adminService.updateUserStatus(id, body.status);
   }
 
+  @Post('users/:id/reset-password')
+  resetUserPassword(
+    @CurrentUser() admin: JwtPayload,
+    @Param('id') id: string,
+    @Body() body: { newPassword: string },
+  ) {
+    return this.adminService.adminResetUserPassword(admin.sub, id, body.newPassword);
+  }
+
   @Get('users/:id/detail')
   userDetail(@Param('id') id: string) {
     return this.adminService.getUserDetail(id);
