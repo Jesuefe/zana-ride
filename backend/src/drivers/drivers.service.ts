@@ -5,6 +5,8 @@ import { StorageService } from '../deliveries/storage.service';
 import { DriverApprovalStatus, DriverOnlineStatus, ServiceType } from '@prisma/client';
 import { ZanaGateway } from '../gateway/zana.gateway';
 
+const DRIVER_ONLINE_IDLE_TIMEOUT_MS = 60 * 60 * 1000;
+
 // Matches Uber's own "cash ride limit" concept — a line of credit for
 // commissions owed, not an unlimited one. This exact number is a
 // genuine business call, not something to treat as settled just
@@ -66,22 +68,41 @@ export class DriversService {
   }
 
   async setOnlineStatus(driverId: string, status: DriverOnlineStatus, sessionId?: string) {
-    if (status === DriverOnlineStatus.OFFLINE && sessionId) {
-      const current = await this.prisma.driver.findUnique({ where: { id: driverId }, select: { activeSessionId: true } });
-      if (current?.activeSessionId && current.activeSessionId !== sessionId) {
-        throw new ForbiddenException('SESSION_SUPERSEDED');
-      }
+    if (status === DriverOnlineStatus.OFFLINE) {
+      // OFFLINE is an explicit driver action and must take effect immediately.
+      // Do not let an old session, stale GPS, or a missing session id block it.
+      return this.prisma.driver.update({
+        where: { id: driverId },
+        data: { onlineStatus: DriverOnlineStatus.OFFLINE, activeSessionId: null },
+      });
     }
+
     return this.prisma.driver.update({
       where: { id: driverId },
       data: {
         onlineStatus: status,
-        // Only ever set going online — going offline leaves whatever
-        // session was active alone, since a driver going offline on
-        // one device shouldn't silently invalidate a different device
-        // that's genuinely the current active one.
-        ...(sessionId ? { activeSessionId: sessionId, lastLocationAt: new Date() } : {}),
+        ...(status === DriverOnlineStatus.ONLINE ? { lastLocationAt: new Date() } : {}),
+        ...(sessionId ? { activeSessionId: sessionId } : {}),
       },
+    });
+  }
+
+  // Online status is intentionally not tied to a short GPS freshness window.
+  // A driver can temporarily lose GPS/network and remain online. We only
+  // expire an online driver after 60 minutes without any accepted location
+  // activity, which gives normal connectivity/GPS interruptions plenty of room.
+  @Interval(60_000)
+  async expireIdleOnlineDrivers() {
+    const cutoff = new Date(Date.now() - DRIVER_ONLINE_IDLE_TIMEOUT_MS);
+    await this.prisma.driver.updateMany({
+      where: {
+        onlineStatus: DriverOnlineStatus.ONLINE,
+        OR: [
+          { lastLocationAt: null },
+          { lastLocationAt: { lt: cutoff } },
+        ],
+      },
+      data: { onlineStatus: DriverOnlineStatus.OFFLINE, activeSessionId: null },
     });
   }
 

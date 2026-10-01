@@ -39,7 +39,10 @@ export async function goOnline() {
 }
 
 export async function goOffline() {
-  return api.patch<DriverProfile>('/driver/go-offline');
+  const sessionId = (() => { try { return localStorage.getItem('zana_driver_session_id'); } catch { return null; } })();
+  const result = await api.patch<DriverProfile>('/driver/go-offline', { sessionId });
+  try { localStorage.removeItem('zana_driver_session_id'); } catch {}
+  return result;
 }
 
 export async function triggerSOS(tripId?: string, coords?: { lat: number; lng: number }) {
