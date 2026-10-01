@@ -8,6 +8,7 @@ import { FinancialService } from './financial.service';
 import { createCipheriv, createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { EversendService } from '../wallet/eversend.service';
+import { ZanaAiService } from '../zana-ai/zana-ai.service';
 import { UserRole, UserStatus, DriverApprovalStatus, MerchantStatus, ProductStatus } from '@prisma/client';
 
 @Controller('admin')
@@ -20,6 +21,7 @@ export class AdminController {
     private financialService: FinancialService,
     private prisma: PrismaService,
     private eversendService: EversendService,
+    private zanaAiService: ZanaAiService,
   ) {}
 
   @Get('overview')
@@ -428,6 +430,113 @@ export class AdminController {
     });
     return { saved: true, enabled: record.enabled, environment: record.environment, baseUrl: record.baseUrl, rail: record.rail, minWithdrawal: record.minWithdrawal, configured: Boolean(record.apiKeyEncrypted), apiKeyHint: record.apiKeyHint, webhookConfigured: Boolean(record.webhookSecretEncrypted) };
   }
+
+  @Get('settings/ai')
+  async getAiSettings() {
+    const row = await this.prisma.auditLog.findFirst({
+      where: { entityType: 'AI_SETTINGS', entityId: 'GEMINI', action: 'ZANA_AI_SETTINGS_UPDATED' },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!row?.afterJson) {
+      return {
+        enabled: false,
+        provider: 'gemini',
+        model: 'gemini-3.8-flash',
+        configured: false,
+        apiKeyHint: null,
+        features: { customerChat: true, rideBooking: true, foodOrdering: true, marketShopping: true, deliveryBooking: true, placeDiscovery: true },
+        updatedAt: null,
+      };
+    }
+    const data = JSON.parse(row.afterJson);
+    return {
+      enabled: Boolean(data.enabled),
+      provider: 'gemini',
+      model: data.model || 'gemini-3.8-flash',
+      configured: Boolean(data.apiKeyEncrypted),
+      apiKeyHint: data.apiKeyHint || null,
+      features: data.features || {},
+      updatedAt: row.createdAt,
+    };
+  }
+
+  @Patch('settings/ai')
+  async saveAiSettings(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: {
+      enabled?: boolean;
+      model?: string;
+      apiKey?: string;
+      clearApiKey?: boolean;
+      features?: Record<string, boolean>;
+    },
+  ) {
+    const master = process.env.SETTINGS_ENCRYPTION_KEY || process.env.JWT_SECRET;
+    if (!master) throw new BadRequestException('SETTINGS_ENCRYPTION_KEY_NOT_CONFIGURED');
+    const key = createHash('sha256').update(master).digest();
+    const encrypt = (value: string) => {
+      const iv = randomBytes(12);
+      const cipher = createCipheriv('aes-256-gcm', key, iv);
+      const ciphertext = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
+      return iv.toString('hex') + ':' + cipher.getAuthTag().toString('hex') + ':' + ciphertext.toString('hex');
+    };
+
+    const previous = await this.prisma.auditLog.findFirst({
+      where: { entityType: 'AI_SETTINGS', entityId: 'GEMINI', action: 'ZANA_AI_SETTINGS_UPDATED' },
+      orderBy: { createdAt: 'desc' },
+    });
+    const old = previous?.afterJson ? JSON.parse(previous.afterJson) : {};
+    const keyChanged = Boolean(body.apiKey?.trim());
+    const defaultFeatures = { customerChat: true, rideBooking: true, foodOrdering: true, marketShopping: true, deliveryBooking: true, placeDiscovery: true };
+    const features = { ...defaultFeatures, ...(old.features || {}), ...(body.features || {}) };
+    const record = {
+      enabled: body.enabled ?? old.enabled ?? false,
+      provider: 'gemini',
+      model: String(body.model || old.model || 'gemini-3.8-flash').trim(),
+      apiKeyEncrypted: body.clearApiKey ? null : (keyChanged ? encrypt(body.apiKey!.trim()) : old.apiKeyEncrypted || null),
+      apiKeyHint: body.clearApiKey ? null : (keyChanged ? body.apiKey!.trim().slice(0, 8) + '…' + body.apiKey!.trim().slice(-4) : old.apiKeyHint || null),
+      features,
+    };
+
+    if (!record.model || !/^gemini-[a-z0-9.-]+$/i.test(record.model)) throw new BadRequestException('INVALID_GEMINI_MODEL');
+
+    const updated = await this.prisma.auditLog.create({
+      data: {
+        actorId: user.sub,
+        action: 'ZANA_AI_SETTINGS_UPDATED',
+        entityType: 'AI_SETTINGS',
+        entityId: 'GEMINI',
+        afterJson: JSON.stringify(record),
+      },
+    });
+
+    return {
+      saved: true,
+      enabled: record.enabled,
+      provider: record.provider,
+      model: record.model,
+      configured: Boolean(record.apiKeyEncrypted),
+      apiKeyHint: record.apiKeyHint,
+      features: record.features,
+      updatedAt: updated.createdAt,
+    };
+  }
+
+  @Post('settings/ai/test')
+  async testAiConnection(@CurrentUser() user: JwtPayload) {
+    const result = await this.zanaAiService.testConnection();
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: user.sub,
+        action: 'ZANA_AI_CONNECTION_TESTED',
+        entityType: 'AI_SETTINGS',
+        entityId: 'GEMINI',
+        afterJson: JSON.stringify({ ok: true, model: result.model, at: new Date().toISOString() }),
+      },
+    });
+    return result;
+  }
+
 
   @Post('settings/payments/eversend/test')
   async testEversend(@CurrentUser() user: JwtPayload) {
