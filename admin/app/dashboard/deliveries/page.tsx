@@ -98,3 +98,5 @@ export default function DeliveriesPage() {
     </AdminShell>
   );
 }
+
+// Keep Pages production build synchronized with the admin delivery review UI.
