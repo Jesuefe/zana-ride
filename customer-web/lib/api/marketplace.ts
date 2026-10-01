@@ -71,6 +71,7 @@ export async function quoteMarketOrder(data: {
   return api.post<{
     market: { id: string; name: string; address: string; lat: number; lng: number };
     distanceKm: number;
+    items: { productId: string; name: string; quantity: number; unitPrice: number; lineTotal: number }[];
     itemsSubtotal: number;
     deliveryFee: number;
     total: number;
