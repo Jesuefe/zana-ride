@@ -20,7 +20,7 @@ export default function WalletPage() { const {t}=useLang();
 
   const handleWithdraw = async () => {
     const amt = Number(amount);
-    if (!amt || amt < 10000) { setError(t('Minimum withdrawal is 10,000 RWF')); return; }
+    if (!amt || amt < 1000) { setError(t('Minimum withdrawal is 1,000 RWF')); return; }
     if (amt > (wallet?.balance ?? 0)) { setError(t('Insufficient balance')); return; }
     
     setWithdrawing(true); setError('');
@@ -58,7 +58,7 @@ export default function WalletPage() { const {t}=useLang();
       </div>
       {showWithdraw && <div className="fixed inset-0 z-50 flex items-end bg-black/50"><div className="w-full bg-white rounded-t-3xl p-6">
         <div className="flex items-center justify-between mb-5"><h2 className="font-black text-lg text-gray-900">{t('Withdraw Funds')}</h2><button onClick={() => { setShowWithdraw(false); setError(''); }}><X size={20} className="text-gray-400" /></button></div>
-        <p className="text-xs text-gray-400 mb-4">Available: <strong>{(wallet?.balance ?? 0).toLocaleString()} RWF</strong> · Minimum: 10,000 RWF</p>
+        <p className="text-xs text-gray-400 mb-4">Available: <strong>{(wallet?.balance ?? 0).toLocaleString()} RWF</strong> · Minimum: 1,000 RWF</p>
         <div className="space-y-3">
           <div><label className="text-xs font-semibold text-gray-500 block mb-1.5">{t('Amount (RWF)')}</label><input value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g,''))} placeholder="e.g. 5000" inputMode="numeric" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-zana-primary/30" /></div>
           {error && <p className="text-xs text-red-600">{error}</p>}

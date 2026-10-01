@@ -87,7 +87,8 @@ export class MerchantService {
     if (product.merchantId !== merchantId) throw new ForbiddenException('Not your product');
 
     // Editing an approved product re-queues it for admin review.
-    const status = product.status === ProductStatus.APPROVED ? ProductStatus.PENDING : product.status;
+    const requiresReview = ['name', 'description', 'price', 'stock'].some((key) => Object.prototype.hasOwnProperty.call(data, key));
+    const status = requiresReview && product.status === ProductStatus.APPROVED ? ProductStatus.PENDING : product.status;
     return this.prisma.product.update({ where: { id: productId }, data: { ...data, status } });
   }
 

@@ -110,11 +110,13 @@ export class DeliveriesService {
 
     // ── Take payment before the delivery exists ───────────────────────────
     // A courier should never be dispatched for an unpaid job.
-    const paymentMethod = (input as any).paymentMethod ?? 'WALLET';
+    const paymentMethod = owner.merchantId ? 'WALLET' : ((input as any).paymentMethod ?? 'WALLET');
     const payerId = owner.customerId;
+    const merchantPayerId = owner.merchantId ? (await this.prisma.merchant.findUnique({ where: { id: owner.merchantId }, select: { userId: true } }))?.userId : undefined;
+    const chargeUserId = payerId ?? merchantPayerId;
 
-    if (paymentMethod === 'WALLET' && payerId) {
-      const wallet = await this.prisma.wallet.findUnique({ where: { userId: payerId } });
+    if (paymentMethod === 'WALLET' && chargeUserId) {
+      const wallet = await this.prisma.wallet.findUnique({ where: { userId: chargeUserId } });
       const balance = wallet?.balance ?? 0;
       if (!wallet || balance < fee) {
         throw new BadRequestException(`INSUFFICIENT_WALLET_BALANCE:${balance}:${fee}`);
@@ -145,9 +147,9 @@ export class DeliveriesService {
     });
 
     // ── Settle the fee ────────────────────────────────────────────────────
-    if (payerId && fee > 0) {
+    if (chargeUserId && fee > 0) {
       if (paymentMethod === 'WALLET') {
-        await this.debitWallet(payerId, fee, delivery.id);
+        await this.debitWallet(chargeUserId, fee, delivery.id);
         await this.prisma.delivery.update({
           where: { id: delivery.id }, data: { paid: true } as any,
         });

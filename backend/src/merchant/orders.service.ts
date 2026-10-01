@@ -198,8 +198,8 @@ export class OrdersService {
       }
     }
 
-    // Ring the merchant — a new paid order is waiting
-    try {
+    // Ring recipients only after wallet payment is confirmed.
+    if (paymentMethod === 'WALLET') try {
       const payload = {
         orderId: order.id,
         trackingCode,

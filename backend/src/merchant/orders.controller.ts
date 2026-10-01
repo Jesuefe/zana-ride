@@ -125,6 +125,9 @@ export class MerchantOrdersController {
     if (order.merchantId !== merchant.id) {
       throw new ForbiddenException('Not your order');
     }
+    const allowed: Record<string, string[]> = { PENDING: ['CONFIRMED', 'CANCELLED'], CONFIRMED: ['PREPARING'], PREPARING: ['READY_FOR_PICKUP'] };
+    if (!allowed[order.status]?.includes(body.status)) throw new ForbiddenException('INVALID_MERCHANT_STATUS_TRANSITION');
+    if (!order.paid) throw new ForbiddenException('PAYMENT_NOT_CONFIRMED');
     return this.ordersService.updateStatus(id, body.status);
   }
 

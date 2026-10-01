@@ -37,6 +37,7 @@ export default function OrdersPage() { const {t}=useLang();
   const [advancing, setAdvancing] = useState<string | null>(null);
   const [filter, setFilter] = useState('active');
   const [earnings, setEarnings] = useState<MerchantEarnings | null>(null);
+  const [error, setError] = useState('');
 
   const load = () => {
     fetchMyOrders().then(setOrders).catch(() => {});
@@ -50,10 +51,10 @@ export default function OrdersPage() { const {t}=useLang();
   }, []);
 
   const advance = async (id: string, next: string) => {
-    setAdvancing(id);
-    await updateOrderStatus(id, next).catch(() => {});
-    await load();
-    setAdvancing(null);
+    setAdvancing(id); setError('');
+    try { await updateOrderStatus(id, next); await load(); }
+    catch (e: any) { setError(e?.message ?? 'Could not update the order.'); }
+    finally { setAdvancing(null); }
   };
 
   const filtered = orders.filter(o => {
@@ -75,6 +76,8 @@ export default function OrdersPage() { const {t}=useLang();
           ))}
         </div>
       </div>
+
+      {error && <div className="mb-3 rounded-xl bg-red-50 border border-red-100 px-3 py-2 text-xs text-red-700">{error}</div>}
 
       <div className="space-y-3">
         {filtered.length === 0 && (
@@ -117,7 +120,7 @@ export default function OrdersPage() { const {t}=useLang();
                   {o.items?.map((item: any) => (
                     <div key={item.id} className="flex items-center justify-between text-sm">
                       <span className="text-gray-700">{item.product?.name} <span className="text-gray-400">×{item.quantity}</span></span>
-                      <span className="font-semibold text-gray-900">{((item.price ?? item.product?.price ?? 0) * item.quantity).toLocaleString()} RWF</span>
+                      <span className="font-semibold text-gray-900">{((item.price ?? 0) * item.quantity).toLocaleString()} RWF</span>
                     </div>
                   ))}
                 </div>
@@ -125,7 +128,7 @@ export default function OrdersPage() { const {t}=useLang();
                 {/* Merchant amount: food/products only. Delivery is paid separately by the customer to Zana. */}
                 {(() => {
                   const foodTotal = (o.items ?? []).reduce(
-                    (sum: number, item: any) => sum + (item.product?.price ?? 0) * (item.quantity ?? 0),
+                    (sum: number, item: any) => sum + (item.price ?? 0) * (item.quantity ?? 0),
                     0,
                   );
                   return (
