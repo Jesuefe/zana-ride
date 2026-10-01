@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Store, Plus, Minus, ShoppingBag } from 'lucide-react';
-import { fetchMarket, placeOrder } from '../../../lib/api/marketplace';
+import { fetchMarket, placeOrder, quoteMarketOrder } from '../../../lib/api/marketplace';
 import { fetchWallet } from '../../../lib/api/trips';
 import { useLang } from '../../../lib/LangContext';
 
@@ -24,6 +24,8 @@ function MarketContent() {
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [quote, setQuote] = useState<{ itemsSubtotal: number; deliveryFee: number; total: number; distanceKm: number } | null>(null);
+  const [quoting, setQuoting] = useState(false);
 
   useEffect(() => {
     if (!marketId) { setLoading(false); return; }
@@ -52,20 +54,53 @@ function MarketContent() {
     );
 
   const subtotal = cart.reduce((s, c) => s + c.product.price * c.quantity, 0);
-  const estFee = 1000;
-  const grandTotal = subtotal + estFee;
+  const displayedSubtotal = quote?.itemsSubtotal ?? subtotal;
+  const deliveryFee = quote?.deliveryFee ?? 0;
+  const grandTotal = quote?.total ?? displayedSubtotal + deliveryFee;
   const walletShort = paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < grandTotal;
 
+  const refreshQuote = async () => {
+    if (!cart.length) return null;
+    if (!pos) {
+      setError(t('Allow location access to calculate delivery from the market to your destination.'));
+      return null;
+    }
+    setQuoting(true);
+    setError('');
+    try {
+      const nextQuote = await quoteMarketOrder({
+        marketId,
+        items: cart.map(c => ({ productId: c.product.id, quantity: c.quantity })),
+        dropoffLat: pos.lat,
+        dropoffLng: pos.lng,
+      });
+      setQuote(nextQuote);
+      return nextQuote;
+    } catch (e: any) {
+      setError(e?.message || t('Could not calculate delivery.'));
+      return null;
+    } finally {
+      setQuoting(false);
+    }
+  };
+
+  const openCheckout = async () => {
+    const nextQuote = await refreshQuote();
+    if (nextQuote) setCheckout(true);
+  };
+
   const submit = async () => {
-    if (!cart.length) return;
+    if (!cart.length || !pos) return;
     setOrdering(true);
     setError('');
     try {
+      const nextQuote = await refreshQuote();
+      if (!nextQuote) return;
       const order = await placeOrder({
         marketId,
         items: cart.map(c => ({ productId: c.product.id, quantity: c.quantity })),
-        dropoffLat: pos?.lat ?? 0,
-        dropoffLng: pos?.lng ?? 0,
+        dropoffLat: pos.lat,
+        dropoffLng: pos.lng,
         dropoffAddress: 'Current location',
         paymentMethod,
       } as any);
@@ -161,7 +196,7 @@ function MarketContent() {
 
       {cart.length > 0 && !checkout && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[448px] z-40">
-          <button onClick={() => setCheckout(true)}
+          <button onClick={openCheckout}
             className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg">
             <ShoppingBag size={16} />
             {t('Review')} {cart.length} {t(cart.length === 1 ? 'item' : 'items')} · {subtotal.toLocaleString()} RWF
@@ -183,15 +218,15 @@ function MarketContent() {
                 </div>
               ))}
               <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                <span className="text-gray-600">{t('Delivery (estimate)')}</span>
-                <span className="font-semibold">{estFee.toLocaleString()} RWF</span>
+                <span className="text-gray-600">{t('Delivery')}</span>
+                <span className="font-semibold">{quoting ? '…' : `${deliveryFee.toLocaleString()} RWF`}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-100">
                 <span className="font-black text-gray-900">{t('Total')}</span>
                 <span className="font-black text-zana-primary text-lg">{grandTotal.toLocaleString()} RWF</span>
               </div>
               <p className="text-[10px] text-gray-400">
-                {t('Final delivery fee is calculated from the market to your location.')}
+                {quote ? `${t('Delivery from')} ${market?.name ?? t('the market')} · ${quote.distanceKm.toFixed(1)} km` : t('Delivery is calculated from the market to your destination.')}
               </p>
             </div>
 
@@ -218,9 +253,9 @@ function MarketContent() {
 
             {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
 
-            <button onClick={submit} disabled={ordering || walletShort}
+            <button onClick={submit} disabled={ordering || quoting || walletShort || !quote}
               className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl disabled:opacity-40">
-              {ordering ? t('Placing order…') : `${t('Pay & Order')} · ${grandTotal.toLocaleString()} RWF`}
+              {ordering ? t('Placing order…') : quoting ? t('Calculating…') : `${t('Pay & Order')} · ${grandTotal.toLocaleString()} RWF`}
             </button>
           </div>
         </div>
