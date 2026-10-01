@@ -92,11 +92,65 @@ export class ZanaAiService {
     };
   }
 
+  private async getCustomerAccountContext(customerId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: customerId },
+      select: {
+        firstName: true,
+        lastName: true,
+        createdAt: true,
+        tripsAsCustomer: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          select: { id: true, status: true, finalFare: true, estimatedFare: true, destinationAddress: true, createdAt: true, completedAt: true },
+        },
+        deliveries: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          select: { id: true, trackingCode: true, status: true, fee: true, itemDescription: true, pickupAddress: true, dropoffAddress: true, createdAt: true, deliveredAt: true, orderId: true },
+        },
+        orders: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          select: { id: true, trackingCode: true, status: true, total: true, deliveryFee: true, marketId: true, merchantId: true, createdAt: true, updatedAt: true },
+        },
+      },
+    });
+    if (!user) throw new BadRequestException('CUSTOMER_NOT_FOUND');
+
+    const [completedRides, completedDeliveries, deliveredOrders, rideSpend, directDeliverySpend, orderSpend] = await Promise.all([
+      this.prisma.trip.count({ where: { customerId, status: 'RIDE_COMPLETED' } }),
+      this.prisma.delivery.count({ where: { customerId, status: 'DELIVERED', orderId: null } }),
+      this.prisma.order.count({ where: { customerId, status: 'DELIVERED' } }),
+      this.prisma.trip.aggregate({ where: { customerId, status: 'RIDE_COMPLETED' }, _sum: { finalFare: true } }),
+      this.prisma.delivery.aggregate({ where: { customerId, status: 'DELIVERED', orderId: null }, _sum: { fee: true } }),
+      this.prisma.order.aggregate({ where: { customerId, status: 'DELIVERED' }, _sum: { total: true } }),
+    ]);
+
+    return {
+      customerName: [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Customer',
+      accountCreatedAt: user.createdAt,
+      totals: {
+        rides: completedRides,
+        deliveries: completedDeliveries,
+        orders: deliveredOrders,
+        amountSpentRwf: Number(rideSpend._sum.finalFare || 0) + Number(directDeliverySpend._sum.fee || 0) + Number(orderSpend._sum.total || 0),
+      },
+      activeRides: user.tripsAsCustomer.filter(t => !['RIDE_COMPLETED','CUSTOMER_CANCELLED','DRIVER_CANCELLED','NO_DRIVER_FOUND'].includes(t.status)).slice(0, 5),
+      activeDeliveries: user.deliveries.filter(d => !['DELIVERED','CANCELLED'].includes(d.status)).slice(0, 5),
+      recentOrders: user.orders.slice(0, 5),
+      recentRides: user.tripsAsCustomer.slice(0, 5),
+      recentDeliveries: user.deliveries.slice(0, 5),
+    };
+  }
+
   async chat(customerId: string, message: string, history: ChatTurn[] = [], location?: Location) {
     if (!message?.trim()) throw new BadRequestException('MESSAGE_REQUIRED');
     const providers = await this.getActiveProviders();
     if (!providers.length) throw new ServiceUnavailableException('ZANA_AI_NOT_CONFIGURED');
     if ((await this.getProviderSettings(providers[0].provider)).features.customerChat === false) throw new ServiceUnavailableException('ZANA_AI_CUSTOMER_CHAT_DISABLED');
+
+    const account = await this.getCustomerAccountContext(customerId);
 
     const contents = [
       ...history.slice(-12).map(turn => ({ role: turn.role, parts: [{ text: turn.text }] })),
@@ -147,6 +201,11 @@ export class ZanaAiService {
       parts: [{
         text: [
           'You are Zana AI, the single intelligent assistant for Zana in Kigali.',
+          'You have a LIVE private account context for the authenticated customer. Use it to personalize replies. This data belongs only to this customer and must never be exposed as another users data.',
+          `Customer account context: ${JSON.stringify(account)}`,
+          'You may tell the customer their name, completed ride/delivery/order totals, total amount spent in RWF, and the current status of their active rides or deliveries when relevant. Use the live context, not guesses.',
+          'For a delivery-status question, identify the customer delivery from activeDeliveries or recentDeliveries and give its current status/tracking code when available. If there are multiple deliveries, ask which one unless the request clearly identifies one.',
+
           'You help users with rides, food, market shopping, deliveries and place discovery.',
           'Do not pretend that Zana has completed an action unless a Zana tool returned the action result.',
           'For market shopping, understand recipes and convert them into practical ingredient quantities.',
