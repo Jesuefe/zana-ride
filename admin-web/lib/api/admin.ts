@@ -133,3 +133,39 @@ export async function clearDriverTestLocations() { return api.post<any>('/admin/
 export async function getCustomerTestLocations() { return api.get<any[]>('/admin/customers/test-locations'); }
 export async function setCustomerTestLocation(id: string, lat: number | null, lng: number | null) { return api.patch<any>(`/admin/customers/${id}/test-location`, { lat, lng }); }
 export async function clearAllTestLocations() { return api.post<any>('/admin/test-locations/clear-all'); }
+
+
+export type ZanaAiSettings = {
+  enabled: boolean;
+  provider: 'gemini';
+  model: string;
+  configured: boolean;
+  apiKeyHint?: string | null;
+  features: {
+    customerChat: boolean;
+    rideBooking: boolean;
+    foodOrdering: boolean;
+    marketShopping: boolean;
+    deliveryBooking: boolean;
+    placeDiscovery: boolean;
+  };
+  updatedAt?: string | null;
+};
+
+export async function getAiSettings() {
+  return api.get<ZanaAiSettings>('/admin/settings/ai');
+}
+
+export async function saveAiSettings(data: {
+  enabled: boolean;
+  model: string;
+  apiKey?: string;
+  clearApiKey?: boolean;
+  features: ZanaAiSettings['features'];
+}) {
+  return api.patch<ZanaAiSettings & { saved: boolean }>('/admin/settings/ai', data);
+}
+
+export async function testAiConnection() {
+  return api.post<{ ok: boolean; model?: string; response?: string }>('/admin/settings/ai/test');
+}
