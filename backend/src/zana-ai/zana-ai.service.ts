@@ -272,8 +272,8 @@ export class ZanaAiService {
         extraMarketDeliveryWarning: draft.missing.length ? 'A second market would mean a second delivery fee.' : null,
       },
       message: draft.missing.length
-        ? `I found ${draft.items.length} of ${ingredients.length} items at ${draft.market.name}.`
-        : `I found all ${ingredients.length} items at ${draft.market.name}.`,
+        ? `I found ${draft.items.length} of ${ingredients.length} items at ${draft.marketName}.`
+        : `I found all ${ingredients.length} items at ${draft.marketName}.`,
     };
   }
 
