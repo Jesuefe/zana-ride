@@ -9,7 +9,7 @@ import { ZanaGateway } from '../gateway/zana.gateway';
 import { EversendService } from '../wallet/eversend.service';
 import { DriversService } from '../drivers/drivers.service';
 import { ServiceType, TripStatus, DriverOnlineStatus } from '@prisma/client';
-import { estimateDurationMinutes, haversineKm } from './fare.util';
+import { estimateDurationMinutes } from './fare.util';
 import { FareService } from './fare.service';
 
 type LatLng = { lat: number; lng: number };
@@ -30,13 +30,32 @@ export class TripsService {
     private gateway: ZanaGateway,
   ) {}
 
-  estimate(pickup: LatLng, destination: LatLng, serviceType: ServiceType) {
-    const distanceKm = Math.max(0.8, haversineKm(pickup.lat, pickup.lng, destination.lat, destination.lng));
-    const durationMin = estimateDurationMinutes(distanceKm);
+  private async roadRoute(pickup: LatLng, destination: LatLng) {
+    const url = `https://router.project-osrm.org/route/v1/driving/${pickup.lng},${pickup.lat};${destination.lng},${destination.lat}?overview=false`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error(`Routing service returned ${response.status}`);
+      const data = await response.json() as any;
+      const route = data?.routes?.[0];
+      if (!route?.distance) throw new Error('No drivable route found');
+      return {
+        distanceKm: Math.max(0.8, route.distance / 1000),
+        durationMinutes: Math.max(2, Math.round(route.duration / 60)),
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async estimate(pickup: LatLng, destination: LatLng, serviceType: ServiceType) {
+    // Fare distance MUST be road distance. Haversine can materially underprice Kigali routes.
+    const route = await this.roadRoute(pickup, destination);
     return {
-      distanceKm: Math.round(distanceKm * 10) / 10,
-      durationMinutes: durationMin,
-      fare: this.fareService.estimateFare(serviceType, distanceKm, durationMin),
+      distanceKm: Math.round(route.distanceKm * 10) / 10,
+      durationMinutes: route.durationMinutes,
+      fare: this.fareService.estimateFare(serviceType, route.distanceKm, route.durationMinutes),
     };
   }
 
@@ -123,7 +142,7 @@ export class TripsService {
           durationMinutes: estimateDurationMinutes(trustedQuote.distanceKm),
           fare: trustedQuote.fare,
         }
-      : this.estimate(
+      : await this.estimate(
           { lat: data.pickupLat, lng: data.pickupLng },
           { lat: data.destinationLat, lng: data.destinationLng },
           data.serviceType,
