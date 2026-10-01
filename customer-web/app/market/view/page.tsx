@@ -24,7 +24,7 @@ function MarketContent() {
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
-  const [quote, setQuote] = useState<{ itemsSubtotal: number; deliveryFee: number; total: number; distanceKm: number } | null>(null);
+  const [quote, setQuote] = useState<{ items: { productId: string; name: string; quantity: number; unitPrice: number; lineTotal: number }[]; itemsSubtotal: number; deliveryFee: number; total: number; distanceKm: number } | null>(null);
   const [quoting, setQuoting] = useState(false);
 
   useEffect(() => {
@@ -146,7 +146,7 @@ function MarketContent() {
         <h1 className="text-xl font-black text-gray-900">{market?.name}</h1>
         <p className="text-xs text-gray-500 mt-0.5">{market?.address}</p>
         <div className="flex items-start gap-2 bg-zana-primary-light rounded-xl px-3 py-2.5 mt-3">
-          <span className="text-sm shrink-0">🧺</span>
+          
           <p className="text-[11px] text-gray-700 leading-snug">
             {t('A Zana agent buys these items for you at the market, then a rider delivers them.')}
           </p>
@@ -211,10 +211,16 @@ function MarketContent() {
             <p className="font-black text-lg text-gray-900 mb-4">{t('Confirm your order')}</p>
 
             <div className="space-y-1.5 mb-4">
-              {cart.map(c => (
-                <div key={c.product.id} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{c.product.name} ×{c.quantity}</span>
-                  <span className="font-semibold">{(c.product.price * c.quantity).toLocaleString()} RWF</span>
+              {(quote?.items ?? cart.map(c => ({
+                productId: c.product.id,
+                name: c.product.name,
+                quantity: c.quantity,
+                unitPrice: c.product.price,
+                lineTotal: c.product.price * c.quantity,
+              }))).map(item => (
+                <div key={item.productId} className="flex justify-between text-sm">
+                  <span className="text-gray-600">{item.name} ×{item.quantity}</span>
+                  <span className="font-semibold">{item.lineTotal.toLocaleString()} RWF</span>
                 </div>
               ))}
               <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
