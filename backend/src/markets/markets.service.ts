@@ -71,18 +71,26 @@ export class MarketsService {
     });
     if (products.length !== items.length) throw new BadRequestException('One or more products are unavailable');
 
-    const itemsSubtotal = items.reduce((sum, item) => {
+    const quotedItems = items.map(item => {
       const product = products.find(p => p.id === item.productId)!;
       const quantity = Number(item.quantity);
       if (!Number.isInteger(quantity) || quantity <= 0) throw new BadRequestException('INVALID_MARKET_ITEM_QUANTITY');
-      return sum + product.price * quantity;
-    }, 0);
+      return {
+        productId: product.id,
+        name: product.name,
+        quantity,
+        unitPrice: product.price,
+        lineTotal: product.price * quantity,
+      };
+    });
+    const itemsSubtotal = quotedItems.reduce((sum, item) => sum + item.lineTotal, 0);
 
     const distanceKm = haversineKm(market.lat, market.lng, dropoffLat, dropoffLng);
     const deliveryFee = calcDeliveryFee(distanceKm);
     return {
       market: { id: market.id, name: market.name, address: market.address, lat: market.lat, lng: market.lng },
       distanceKm: Math.round(distanceKm * 10) / 10,
+      items: quotedItems,
       itemsSubtotal,
       deliveryFee,
       total: itemsSubtotal + deliveryFee,
