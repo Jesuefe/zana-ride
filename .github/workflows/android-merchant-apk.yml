@@ -9,13 +9,13 @@ on:
   workflow_dispatch:
     inputs:
       versionName:
-        description: "Merchant app version, e.g. 1.0.0"
+        description: "Merchant app version"
         required: true
-        default: "1.0.0"
+        default: "1.0.1"
       versionCode:
         description: "Android version code"
         required: true
-        default: "1"
+        default: "2"
 
 jobs:
   build:
@@ -29,6 +29,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+
       - name: Create merchant native shell
         run: |
           rm -rf native/merchant
@@ -48,31 +49,43 @@ jobs:
           cp native/merchant/android/app/src/main/java/rw/zanaride/app/MainActivity.java native/merchant/android/app/src/main/java/rw/zanaride/merchant/MainActivity.java
           sed -i 's/package rw\.zanaride\.app;/package rw.zanaride.merchant;/' native/merchant/android/app/src/main/java/rw/zanaride/merchant/MainActivity.java
           rm -rf native/merchant/android/app/src/main/java/rw/zanaride/app
+
       - name: Install dependencies
         working-directory: native/merchant
         run: npm install
+
       - name: Sync Android
         working-directory: native/merchant
         run: npx cap sync android
-      - name: Apply Zana Merchant app icon
+
+      - name: Apply Zana Merchant launcher icon
+        shell: bash
         run: |
+          set -euo pipefail
           ICON_URL="https://showmine112.b-cdn.net/89ba9d07-8597-426f-8ec8-1f610bb18586.png"
-          curl -fL --retry 3 --connect-timeout 15 -o /tmp/zana-merchant-icon.png "$ICON_URL"
+          curl -fL --retry 5 --retry-all-errors --connect-timeout 15 -o /tmp/zana-merchant-icon.png "$ICON_URL"
           test -s /tmp/zana-merchant-icon.png
           RES="native/merchant/android/app/src/main/res"
-          rm -f "$RES"/mipmap-anydpi-v26/ic_launcher.xml "$RES"/mipmap-anydpi-v26/ic_launcher_round.xml
-          rm -f "$RES"/mipmap-anydpi/ic_launcher.xml "$RES"/mipmap-anydpi/ic_launcher_round.xml
+
+          rm -rf "$RES"/mipmap-anydpi "$RES"/mipmap-anydpi-v26
+          find "$RES" -type f \( -name 'ic_launcher_foreground.*' -o -name 'ic_launcher_background.*' \) -delete
+
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do mkdir -p "$RES/mipmap-$d"; done
           magick /tmp/zana-merchant-icon.png -auto-orient -resize 48x48! "$RES/mipmap-mdpi/ic_launcher.png"
           magick /tmp/zana-merchant-icon.png -auto-orient -resize 72x72! "$RES/mipmap-hdpi/ic_launcher.png"
           magick /tmp/zana-merchant-icon.png -auto-orient -resize 96x96! "$RES/mipmap-xhdpi/ic_launcher.png"
           magick /tmp/zana-merchant-icon.png -auto-orient -resize 144x144! "$RES/mipmap-xxhdpi/ic_launcher.png"
           magick /tmp/zana-merchant-icon.png -auto-orient -resize 192x192! "$RES/mipmap-xxxhdpi/ic_launcher.png"
-          cp "$RES/mipmap-mdpi/ic_launcher.png" "$RES/mipmap-mdpi/ic_launcher_round.png"
-          cp "$RES/mipmap-hdpi/ic_launcher.png" "$RES/mipmap-hdpi/ic_launcher_round.png"
-          cp "$RES/mipmap-xhdpi/ic_launcher.png" "$RES/mipmap-xhdpi/ic_launcher_round.png"
-          cp "$RES/mipmap-xxhdpi/ic_launcher.png" "$RES/mipmap-xxhdpi/ic_launcher_round.png"
-          cp "$RES/mipmap-xxxhdpi/ic_launcher.png" "$RES/mipmap-xxxhdpi/ic_launcher_round.png"
+
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            cp "$RES/mipmap-$d/ic_launcher.png" "$RES/mipmap-$d/ic_launcher_round.png"
+          done
+
+          find "$RES" -type f | grep -E 'mipmap-.*/ic_launcher(_round)?\.png$' | sort
+          if find "$RES" -type f -path '*/mipmap-anydpi*/*' | grep -q .; then
+            echo "ERROR: adaptive launcher resources still exist"
+            exit 1
+          fi
 
       - name: Build signed APK
         working-directory: native/merchant/android
@@ -82,16 +95,34 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          set -euo pipefail
           echo "$KEYSTORE" | base64 --decode > app/zana.jks
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon -PZANA_VERSION_CODE='${{ inputs.versionCode || '1' }}' -PZANA_VERSION_NAME='${{ inputs.versionName || '1.0.0' }}' -PZANA_KEYSTORE_FILE=zana.jks -PZANA_KEYSTORE_PASSWORD="$STORE_PASSWORD" -PZANA_KEY_ALIAS="$KEY_ALIAS" -PZANA_KEY_PASSWORD="$KEY_PASSWORD"
+          ./gradlew clean assembleRelease --no-daemon             -PZANA_VERSION_CODE='${{ inputs.versionCode || '2' }}'             -PZANA_VERSION_NAME='${{ inputs.versionName || '1.0.1' }}'             -PZANA_KEYSTORE_FILE=zana.jks             -PZANA_KEYSTORE_PASSWORD="$STORE_PASSWORD"             -PZANA_KEY_ALIAS="$KEY_ALIAS"             -PZANA_KEY_PASSWORD="$KEY_PASSWORD"
+
+      - name: Verify APK contains the merchant launcher resources
+        working-directory: native/merchant/android
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          unzip -Z1 "$APK" | grep -E '(^|/)ic_launcher(_round)?\.png$' | sort
+          COUNT=$(unzip -Z1 "$APK" | grep -Ec '(^|/)ic_launcher\.png$')
+          ROUND_COUNT=$(unzip -Z1 "$APK" | grep -Ec '(^|/)ic_launcher_round\.png$')
+          test "$COUNT" -ge 5
+          test "$ROUND_COUNT" -ge 5
+          echo "Launcher icon verification passed."
+
       - name: Collect APK
         run: |
+          set -euo pipefail
           mkdir -p out
-          cp native/merchant/android/app/build/outputs/apk/release/app-release.apk out/zana-merchant-${{ inputs.versionName || '1.0.0' }}.apk
+          cp native/merchant/android/app/build/outputs/apk/release/app-release.apk "out/zana-merchant-${{ inputs.versionName || '1.0.1' }}.apk"
+
       - name: Remove signing key
         if: always()
         run: rm -f native/merchant/android/app/zana.jks
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
