@@ -272,9 +272,25 @@ export class ZanaAiService {
     }
 
     const modelContent = first.candidates?.[0]?.content;
+    // Gemini 3 requires a thoughtSignature on the first functionCall part of
+    // the current tool-calling step. Calls coming from Groq/OpenRouter do not
+    // have Google's signature, so use Google's documented validator bypass for
+    // cross-provider function-call history. Native Gemini signatures are kept
+    // exactly as returned.
+    const preservedModelContent = modelContent?.parts?.length
+      ? {
+          ...modelContent,
+          parts: modelContent.parts.map((part: any) => {
+            if (!part?.functionCall) return part;
+            if (part.thoughtSignature) return part;
+            if (part.thought_signature) return { ...part, thoughtSignature: part.thought_signature };
+            return { ...part, thoughtSignature: 'skip_thought_signature_validator' };
+          }),
+        }
+      : modelContent;
     const followupContents = [
       ...contents,
-      modelContent,
+      preservedModelContent,
       { role: 'user', parts: [{ functionResponse: {
         name: functionCall.name,
         id: functionCall.id,
