@@ -155,3 +155,8 @@ export async function clearAllTestLocations() {
 
 export async function getMyProfile() { return api.get<any>('/users/me'); }
 export async function updateMyPhoto(photoDataUrl: string) { return api.post<any>('/users/me/photo', { photoDataUrl }); }
+
+
+export async function getAiSettings() { return api.get<any>('/admin/settings/ai'); }
+export async function saveAiSettings(data: any) { return api.patch<any>('/admin/settings/ai', data); }
+export async function testAiConnection() { return api.post<any>('/admin/settings/ai/test', {}); }
