@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
-import { ArrowUp, Check, ShoppingCart, Sparkles, X } from 'lucide-react';
+import { ArrowUp, Check, ExternalLink, ShoppingCart, Sparkles, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { executeZanaMarketDraft, sendZanaAiMessage, type ZanaAiAction } from '../../lib/api/zana-ai';
 
@@ -86,6 +86,12 @@ export default function ZanaAiPage() {
     setInput('');
     setLoading(true);
     try {
+      const rideIntent = /\\b(ride|moto|motorcycle|bike|car|taxi|pick me up|take me|go to|drop me)\\b/i.test(text) ||
+        /\\b(current location|current position|where i am|from here|pick me up)\\b/i.test(next.map(m => m.text).join(' '));
+      let liveCoords = coords;
+      if (rideIntent && !liveCoords) {
+        liveCoords = await getCurrentLocation();
+      }
       const result = await sendZanaAiMessage({
         message: text,
         history: next.slice(-12).map(m => ({ role: m.role, text: m.text })),
@@ -141,6 +147,11 @@ export default function ZanaAiPage() {
             <div className="p-4 bg-[#F6FBF9] border-b border-[#E2F2ED]">
               <p className="font-black text-gray-900">{action.serviceType === 'CAR' ? 'Car' : 'Moto'} ride</p>
               <p className="text-xs text-gray-500 mt-1">{action.destinationAddress}</p>
+              {action.mapsUrl && (
+                <a href={action.mapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-[#00A082]">
+                  <ExternalLink size={13} /> View destination on Maps
+                </a>
+              )}
             </div>
             <div className="p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">Distance</span><span className="font-bold">{action.distanceKm} km</span></div>
