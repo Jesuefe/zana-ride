@@ -95,30 +95,32 @@ export class ZanaAiService {
   private async getCustomerAccountContext(customerId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: customerId },
-      select: {
-        firstName: true,
-        lastName: true,
-        createdAt: true,
-        tripsAsCustomer: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-          select: { id: true, status: true, finalFare: true, estimatedFare: true, destinationAddress: true, createdAt: true, completedAt: true },
-        },
-        deliveries: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-          select: { id: true, trackingCode: true, status: true, fee: true, itemDescription: true, pickupAddress: true, dropoffAddress: true, createdAt: true, deliveredAt: true, orderId: true },
-        },
-        orders: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-          select: { id: true, trackingCode: true, status: true, total: true, deliveryFee: true, marketId: true, merchantId: true, createdAt: true, updatedAt: true },
-        },
-      },
+      select: { firstName: true, lastName: true, createdAt: true },
     });
     if (!user) throw new BadRequestException('CUSTOMER_NOT_FOUND');
 
-    const [completedRides, completedDeliveries, deliveredOrders, rideSpend, directDeliverySpend, orderSpend] = await Promise.all([
+    // Query each customer-owned resource directly. This keeps the AI context
+    // compatible with the generated Prisma client even when User relation
+    // fields are not exposed in the selected client shape.
+    const [rides, deliveries, orders, completedRides, completedDeliveries, deliveredOrders, rideSpend, directDeliverySpend, orderSpend] = await Promise.all([
+      this.prisma.trip.findMany({
+        where: { customerId },
+        orderBy: { requestedAt: 'desc' },
+        take: 10,
+        select: { id: true, status: true, finalFare: true, estimatedFare: true, destinationAddress: true, requestedAt: true, completedAt: true },
+      }),
+      this.prisma.delivery.findMany({
+        where: { customerId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: { id: true, trackingCode: true, status: true, fee: true, itemDescription: true, pickupAddress: true, dropoffAddress: true, createdAt: true, deliveredAt: true, orderId: true },
+      }),
+      this.prisma.order.findMany({
+        where: { customerId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: { id: true, trackingCode: true, status: true, total: true, deliveryFee: true, marketId: true, merchantId: true, createdAt: true, updatedAt: true },
+      }),
       this.prisma.trip.count({ where: { customerId, status: 'RIDE_COMPLETED' } }),
       this.prisma.delivery.count({ where: { customerId, status: 'DELIVERED', orderId: null } }),
       this.prisma.order.count({ where: { customerId, status: 'DELIVERED' } }),
@@ -136,11 +138,11 @@ export class ZanaAiService {
         orders: deliveredOrders,
         amountSpentRwf: Number(rideSpend._sum.finalFare || 0) + Number(directDeliverySpend._sum.fee || 0) + Number(orderSpend._sum.total || 0),
       },
-      activeRides: user.tripsAsCustomer.filter(t => !['RIDE_COMPLETED','CUSTOMER_CANCELLED','DRIVER_CANCELLED','NO_DRIVER_FOUND'].includes(t.status)).slice(0, 5),
-      activeDeliveries: user.deliveries.filter(d => !['DELIVERED','CANCELLED'].includes(d.status)).slice(0, 5),
-      recentOrders: user.orders.slice(0, 5),
-      recentRides: user.tripsAsCustomer.slice(0, 5),
-      recentDeliveries: user.deliveries.slice(0, 5),
+      activeRides: rides.filter(t => !['RIDE_COMPLETED', 'CUSTOMER_CANCELLED', 'DRIVER_CANCELLED', 'NO_DRIVER_FOUND'].includes(t.status)).slice(0, 5),
+      activeDeliveries: deliveries.filter(d => !['DELIVERED', 'CANCELLED'].includes(d.status)).slice(0, 5),
+      recentOrders: orders.slice(0, 5),
+      recentRides: rides.slice(0, 5),
+      recentDeliveries: deliveries.slice(0, 5),
     };
   }
 
