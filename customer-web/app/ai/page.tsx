@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { ArrowUp, Check, ShoppingCart, Sparkles, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { executeZanaMarketDraft, sendZanaAiMessage, type ZanaAiAction } from '../../lib/api/zana-ai';
@@ -32,9 +32,36 @@ export default function ZanaAiPage() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading, action]);
 
-  async function send(e?: FormEvent) {
+  function formatInline(text: string): ReactNode[] {
+    return text.split(/(\\*\\*[^*]+\\*\\*)/g).map((part, i) =>
+      part.startsWith('**') && part.endsWith('**')
+        ? <strong key={i}>{part.slice(2, -2)}</strong>
+        : <span key={i}>{part}</span>,
+    );
+  }
+
+  function renderAiText(text: string) {
+    const lines = text.split('\\n');
+    const out: ReactNode[] = [];
+    lines.forEach((raw, i) => {
+      const line = raw.trim();
+      if (!line) { out.push(<div key={i} className="h-1" />); return; }
+      if (/^\\|?\\s*:?-+:?\\s*(\\|\\s*:?-+:?\\s*)+\\|?$/.test(line)) return;
+      if (line.includes('|')) {
+        const cells = line.replace(/^\\||\\|$/g, '').split('|').map(x => x.trim()).filter(Boolean);
+        out.push(<div key={i} className="my-1 rounded-xl bg-white border border-gray-100 px-3 py-2 text-xs">{cells.map((cell, j) => <span key={j}>{j > 0 && <span className="mx-1 text-gray-300">·</span>}{formatInline(cell)}</span>)}</div>);
+        return;
+      }
+      const bullet = line.match(/^[-*]\\s+(.*)$/);
+      const heading = line.replace(/^#{1,3}\\s+/, '');
+      out.push(<div key={i} className={line.startsWith('#') ? 'font-black text-gray-900 mt-1' : bullet ? 'flex gap-2' : ''}>{bullet && <span>•</span>}{formatInline(bullet ? bullet[1] : heading)}</div>);
+    });
+    return out;
+  }
+
+  async function send(e?: FormEvent, overrideText?: string) {
     e?.preventDefault();
-    const text = input.trim();
+    const text = (overrideText ?? input).trim();
     if (!text || loading) return;
     const next = [...messages, { id: Date.now(), role: 'user' as const, text }];
     setMessages(next);
@@ -84,12 +111,35 @@ export default function ZanaAiPage() {
         {messages.map(message => (
           <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[86%] rounded-3xl px-4 py-3 text-sm leading-6 ${message.role === 'user' ? 'bg-[#00A082] text-white rounded-br-md' : 'bg-gray-50 text-gray-800 rounded-bl-md border border-gray-100'}`}>
-              {message.text}
+              {renderAiText(message.text)}
             </div>
           </div>
         ))}
 
         {loading && <div className="bg-gray-50 border border-gray-100 rounded-3xl rounded-bl-md px-4 py-3 w-fit text-sm text-gray-400">Zana is checking...</div>}
+
+        {action?.type === 'RIDE_QUOTE' && (
+          <div className="rounded-3xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <div className="p-4 bg-[#F6FBF9] border-b border-[#E2F2ED]">
+              <p className="font-black text-gray-900">{action.serviceType === 'CAR' ? 'Car' : 'Moto'} ride</p>
+              <p className="text-xs text-gray-500 mt-1">{action.destinationAddress}</p>
+            </div>
+            <div className="p-4 space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-gray-500">Distance</span><span className="font-bold">{action.distanceKm} km</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Estimated time</span><span className="font-bold">{action.durationMinutes} min</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Estimated fare</span><span className="font-black">{money(action.fare ?? 0)}</span></div>
+              <button onClick={() => send(undefined, 'Confirm the ride')} disabled={loading} className="w-full mt-3 rounded-2xl bg-[#00A082] text-white py-4 font-black disabled:opacity-60">CONFIRM RIDE · {money(action.fare ?? 0)}</button>
+            </div>
+          </div>
+        )}
+
+        {action?.type === 'RIDE_BOOKED' && (
+          <div className="rounded-3xl border border-gray-100 bg-white shadow-sm p-4">
+            <p className="font-black text-gray-900">Ride requested</p>
+            <p className="text-sm text-gray-500 mt-1">{action.status === 'DRIVER_ASSIGNED' ? 'A driver has been assigned.' : action.status === 'NO_DRIVER_FOUND' ? 'No driver is available right now.' : 'Searching for a driver.'}</p>
+            <p className="text-sm font-black mt-2">{money(action.fare ?? 0)}</p>
+          </div>
+        )}
 
         {action?.type === 'MARKET_DRAFT' && (
           <div className="rounded-3xl border border-gray-100 bg-white shadow-sm overflow-hidden">
