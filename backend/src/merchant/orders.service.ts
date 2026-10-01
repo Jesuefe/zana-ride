@@ -7,9 +7,13 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.asin(Math.sqrt(a));
 }
 
-// Delivery fee: 500 RWF base + 150 RWF/km, min 500, max 3000
 function calcDeliveryFee(distKm: number): number {
   return Math.min(3000, Math.max(500, Math.round(500 + distKm * 150)));
+}
+
+function calcMarketDeliveryFee(distKm: number): number {
+  const raw = 1000 + Math.max(0, distKm) * 250;
+  return Math.min(6000, Math.max(1500, Math.round(raw / 500) * 500));
 }
 
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
@@ -124,7 +128,7 @@ export class OrdersService {
       distKm = haversineKm(originLat, originLng, data.dropoffLat, data.dropoffLng);
     }
 
-    const deliveryFee = calcDeliveryFee(distKm);
+    const deliveryFee = data.marketId ? calcMarketDeliveryFee(distKm) : calcDeliveryFee(distKm);
     const grandTotal = total + deliveryFee;
     const paymentMethod = data.paymentMethod ?? 'WALLET';
 
