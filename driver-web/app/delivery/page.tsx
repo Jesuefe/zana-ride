@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState, useRef } from 'react';
-import { capturePhoto, stampPhoto } from '../../lib/photoCapture';
+import { stampPhoto } from '../../lib/photoCapture';
 import { fetchMyDriverProfile } from '../../lib/api/driver';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { MapPin, Navigation, Package, ChevronRight, Check, X, MessageCircle } from 'lucide-react';
@@ -15,6 +15,7 @@ import { useLang } from '../../lib/LangContext';
 import { io } from 'socket.io-client';
 import { getToken } from '../../lib/api/client';
 import DeliveryChatPanel from '../../components/DeliveryChatPanel';
+import InAppCamera from '../../components/InAppCamera';
 
 // Straight-line distance in meters — same small, self-contained pattern
 // already used in a few other files in this app rather than a shared
@@ -74,6 +75,7 @@ function ActiveDeliveryContent() {
   const [actionError, setActionError] = useState('');
   const [arrivalRadiusM, setArrivalRadiusM] = useState(DEFAULT_ARRIVAL_RADIUS_M);
   const [showChat, setShowChat] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   // Fetched once on load — if this ever fails, the hardcoded default above
   // keeps the safety check working exactly as before, just not tunable
@@ -177,24 +179,24 @@ function ActiveDeliveryContent() {
   // free to kill the WebView process while that app is in the foreground —
   // when control returns, the app restarted because its JS state was gone.
   // The Camera plugin is built specifically to survive that round trip.
-  const runCapture = async (stage: 'pickup' | 'dropoff') => {
+  const runCapture = (stage: 'pickup' | 'dropoff') => {
     if (!delivery) return;
+    setPhotoStage(stage);
+    setPhotoNote('');
+    setActionError('');
+    setCameraOpen(true);
+  };
+
+  const handleCapturedPhoto = async (base64: string) => {
+    if (!delivery || !photoStage) return;
+    const stage = photoStage;
     setUploading(true);
     setPhotoNote('');
     setActionError('');
     try {
-      const shot = await capturePhoto();
-      if (!shot) {
-        setPhotoNote(dt('Upload failed. A photo is required before you can continue.'));
-        setUploading(false);
-        return;
-      }
-
       const me = await fetchMyDriverProfile().catch(() => null);
       const name = (me as any)?.user?.firstName ? `${(me as any).user.firstName}` : 'Zana rider';
-      const stamped = await stampPhoto(shot.base64, name, shot.lat != null && shot.lng != null
-        ? { lat: shot.lat, lng: shot.lng } : undefined);
-
+      const stamped = await stampPhoto(base64, name);
       await api.post(`/deliveries/${delivery.id}/photo/${stage}`, { imageBase64: stamped });
     } catch {
       // Proof photo is mandatory for advancing the delivery. The driver must
@@ -205,6 +207,7 @@ function ActiveDeliveryContent() {
       return;
     }
     setUploading(false);
+    setPhotoStage(null);
     if (stage === 'pickup') await doPickup();
     else await doComplete();
   };
@@ -333,6 +336,8 @@ function ActiveDeliveryContent() {
           <p className="text-white/60 text-xs mt-1">{dt('Proof of handling')}</p>
         </div>
       )}
+
+      {cameraOpen && <InAppCamera onCapture={handleCapturedPhoto} onClose={() => { setCameraOpen(false); setPhotoStage(null); }} />}
 
       {photoNote && (
         <div className="fixed bottom-24 left-4 right-4 z-50 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">

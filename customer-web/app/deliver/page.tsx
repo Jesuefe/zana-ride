@@ -47,6 +47,7 @@ import {
 } from '../../lib/api/deliveries';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
+import InAppCamera from '../../components/InAppCamera';
 
 type Dropoff = { lat: number; lng: number; address: string } | null;
 
@@ -75,6 +76,7 @@ export default function DeliverPage() {
   ] as const;
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   const [pickup, setPickup] = useState(getStoredPickup());
   const [pickupAddress, setPickupAddress] = useState('Locating…');
@@ -151,18 +153,17 @@ export default function DeliverPage() {
     }
   };
 
-  const handleCapture = async () => {
-    setCapturing(true);
+  const handleCapture = () => {
     setError('');
-    try {
-      const shot = await capturePhoto();
-      if (!shot) { setCapturing(false); return; }
+    setCameraOpen(true);
+  };
 
+  const handleCapturedPhoto = async (base64: string) => {
+    setCapturing(true);
+    try {
       const me = await fetchMe().catch(() => null);
       const name = me?.firstName ? `${me.firstName}` : 'Zana customer';
-      const stamped = await stampPhoto(shot.base64, name, shot.lat != null && shot.lng != null
-        ? { lat: shot.lat, lng: shot.lng } : undefined);
-
+      const stamped = await stampPhoto(base64, name);
       setImageBase64(stamped);
     } catch {
       setError(t('Could not take that photo. Try again.'));
@@ -276,6 +277,8 @@ export default function DeliverPage() {
         }}
         height={180}
       />
+
+      {cameraOpen && <InAppCamera onCapture={handleCapturedPhoto} onClose={() => setCameraOpen(false)} />}
 
       <div className="p-4 space-y-5">
         <div className="flex items-center gap-3">
