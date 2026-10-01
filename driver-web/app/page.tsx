@@ -410,6 +410,19 @@ export default function DriverHome() {
     }).catch(() => {});
   }, []);
 
+  // Reconcile the visible status with the server. The server is authoritative;
+  // this catches another device taking over the session and stale/offline
+  // transitions without requiring the driver to refresh the app.
+  useEffect(() => {
+    const reconcile = () => fetchMyDriverProfile().then(p => {
+      if (!p) return;
+      setProfile(p);
+      setOnline(p.onlineStatus === 'ONLINE');
+    }).catch(() => {});
+    const interval = setInterval(reconcile, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   // GPS watch
   useEffect(() => {
     getCurrentPosition().then(c => { if (c) setCoords(c); }).catch(() => {});

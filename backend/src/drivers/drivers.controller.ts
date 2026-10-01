@@ -35,9 +35,9 @@ export class DriversController {
   }
 
   @Patch('go-offline')
-  async goOffline(@CurrentUser() user: JwtPayload) {
+  async goOffline(@CurrentUser() user: JwtPayload, @Body() body: { sessionId?: string }) {
     const driver = await this.driversService.findByUserId(user.sub);
-    return this.driversService.setOnlineStatus(driver.id, DriverOnlineStatus.OFFLINE);
+    return this.driversService.setOnlineStatus(driver.id, DriverOnlineStatus.OFFLINE, body?.sessionId);
   }
 
   @Patch('mode')

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, BadGatewayException, ForbiddenException } from '@nestjs/common';
+import { Interval } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../deliveries/storage.service';
 import { DriverApprovalStatus, DriverOnlineStatus, ServiceType } from '@prisma/client';
@@ -65,6 +66,12 @@ export class DriversService {
   }
 
   async setOnlineStatus(driverId: string, status: DriverOnlineStatus, sessionId?: string) {
+    if (status === DriverOnlineStatus.OFFLINE && sessionId) {
+      const current = await this.prisma.driver.findUnique({ where: { id: driverId }, select: { activeSessionId: true } });
+      if (current?.activeSessionId && current.activeSessionId !== sessionId) {
+        throw new ForbiddenException('SESSION_SUPERSEDED');
+      }
+    }
     return this.prisma.driver.update({
       where: { id: driverId },
       data: {
@@ -73,7 +80,7 @@ export class DriversService {
         // session was active alone, since a driver going offline on
         // one device shouldn't silently invalidate a different device
         // that's genuinely the current active one.
-        ...(sessionId ? { activeSessionId: sessionId } : {}),
+        ...(sessionId ? { activeSessionId: sessionId, lastLocationAt: new Date() } : {}),
       },
     });
   }
