@@ -349,12 +349,55 @@ export class ZanaAiService {
   private async geocodeDestination(query: string) {
     const q = query.trim();
     if (!q) throw new BadRequestException('DESTINATION_REQUIRED');
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=rw&q=${encodeURIComponent(q + ', Kigali, Rwanda')}`;
-    const response = await fetch(url, { headers: { 'User-Agent': 'Zana-Ride/1.0 (support@zanaride.rw)' } });
-    if (!response.ok) throw new BadRequestException('DESTINATION_LOOKUP_FAILED');
-    const rows = await response.json() as Array<{ lat: string; lon: string; display_name: string }>;
-    if (!rows.length) throw new BadRequestException('DESTINATION_NOT_FOUND');
-    return { lat: Number(rows[0].lat), lng: Number(rows[0].lon), address: rows[0].display_name };
+
+    // Zana uses real map geocoding rather than asking the language model to
+    // guess coordinates. These aliases cover common Kigali landmarks whose
+    // informal names are not consistently indexed by public geocoders.
+    const normalized = q.toLowerCase().replace(/[.,]/g, ' ').replace(/\\s+/g, ' ').trim();
+    const knownPlaces: Record<string, { lat: number; lng: number; address: string }> = {
+      'car free zone': { lat: -1.9477, lng: 30.0555, address: 'Kigali Car-Free Zone / Imbuga City Walk, KN 4 Avenue, Kigali' },
+      'kigali car free zone': { lat: -1.9477, lng: 30.0555, address: 'Kigali Car-Free Zone / Imbuga City Walk, KN 4 Avenue, Kigali' },
+      'imbuga city walk': { lat: -1.9477, lng: 30.0555, address: 'Imbuga City Walk / Kigali Car-Free Zone, KN 4 Avenue, Kigali' },
+      'imbuga city walk car free zone': { lat: -1.9477, lng: 30.0555, address: 'Imbuga City Walk / Kigali Car-Free Zone, KN 4 Avenue, Kigali' },
+    };
+    if (knownPlaces[normalized]) return knownPlaces[normalized];
+
+    const queries = [
+      `${q}, Kigali, Rwanda`,
+      `${q}, Rwanda`,
+    ];
+
+    for (const searchQuery of queries) {
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=rw&q=${encodeURIComponent(searchQuery)}`;
+      const response = await fetch(url, { headers: { 'User-Agent': 'Zana-Ride/1.0 (support@zanaride.rw)' } });
+      if (response.ok) {
+        const rows = await response.json() as Array<{ lat: string; lon: string; display_name: string; type?: string; class?: string }>;
+        const match = rows.find(row => /kigali|rwanda/i.test(row.display_name));
+        if (match) {
+          return { lat: Number(match.lat), lng: Number(match.lon), address: match.display_name };
+        }
+      }
+    }
+
+    // Photon is a second real map index and often finds Kigali landmarks
+    // that Nominatim does not index under their popular/local name.
+    const photonUrl = `https://photon.komoot.io/api/?limit=8&q=${encodeURIComponent(q + ', Kigali, Rwanda')}`;
+    const photonResponse = await fetch(photonUrl, { headers: { 'User-Agent': 'Zana-Ride/1.0 (support@zanaride.rw)' } });
+    if (photonResponse.ok) {
+      const data = await photonResponse.json() as { features?: Array<{ geometry?: { coordinates?: [number, number] }; properties?: Record<string, any> }> };
+      const feature = data.features?.find(item => {
+        const p = item.properties || {};
+        return p.city === 'Kigali' || p.country === 'Rwanda';
+      });
+      const coordinates = feature?.geometry?.coordinates;
+      if (coordinates?.length === 2) {
+        const p = feature?.properties || {};
+        const address = [p.name, p.street, p.city, p.country].filter(Boolean).join(', ');
+        return { lat: Number(coordinates[1]), lng: Number(coordinates[0]), address: address || q };
+      }
+    }
+
+    throw new BadRequestException('DESTINATION_NOT_FOUND');
   }
 
   private async estimateRide(customerId: string, args: { serviceType?: string; destination?: string }, location?: Location) {
@@ -377,7 +420,7 @@ export class ZanaAiService {
     await this.redis.set(`zana-ai:ride-draft:${draftId}`, JSON.stringify(draft), 10 * 60);
     await this.redis.set(`zana-ai:ride-draft:latest:${customerId}`, draftId, 10 * 60);
     return {
-      action: { type: 'RIDE_QUOTE', draftId, serviceType, pickupAddress: draft.pickupAddress, destinationAddress: draft.destinationAddress, distanceKm: quote.distanceKm, durationMinutes: quote.durationMinutes, fare: quote.fare },
+      action: { type: 'RIDE_QUOTE', draftId, serviceType, pickupAddress: draft.pickupAddress, destinationAddress: draft.destinationAddress, destinationLat: draft.destinationLat, destinationLng: draft.destinationLng, mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${draft.destinationLat},${draft.destinationLng}`)}`, distanceKm: quote.distanceKm, durationMinutes: quote.durationMinutes, fare: quote.fare },
       message: `Ride quote ready. ${serviceType === ServiceType.BIKE ? 'Moto' : 'Car'} · ${quote.distanceKm} km · about ${quote.durationMinutes} min · ${quote.fare.toLocaleString()} RWF.`,
     };
   }
