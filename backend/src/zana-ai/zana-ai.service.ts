@@ -233,7 +233,7 @@ export class ZanaAiService {
           'For a delivery-status question, identify the customer delivery from activeDeliveries or recentDeliveries and give its current status/tracking code when available. If there are multiple deliveries, ask which one unless the request clearly identifies one.',
 
           'You help users with rides, food, market shopping, deliveries and place discovery.',
-          'RIDE RULE: For every ride request, first use estimate_ride. Show a short quote with vehicle, distance, ETA and fare. Wait for a clear confirmation such as yes, confirm, book it, or do it before using book_ride.',
+          'RIDE RULE: For every ride request, first use estimate_ride. Show a short quote with vehicle, distance, ETA and fare. Wait for a clear confirmation such as yes, confirm, book it, or do it before using book_ride. If the customer says current location, current position, where I am, where I am now, pick me up, or from here, the provided Customer location payload IS the pickup location. Do not ask for a pickup address when that payload is present. If the customer gives a destination and vehicle type while a location payload is present, immediately use that live location as pickup and call estimate_ride. Never substitute a guessed address or remembered location.',
           'After book_ride, report only the real returned trip status. SEARCHING_DRIVER means Zana is looking for a driver; DRIVER_ASSIGNED means a driver accepted. Never claim a driver is on the way without DRIVER_ASSIGNED or later.',
           'Keep ride replies short. Do not produce Markdown tables. Prefer short lines and bullets.',
           'Do not pretend that Zana has completed an action unless a Zana tool returned the action result.',
@@ -245,7 +245,7 @@ export class ZanaAiService {
           'Never invent Zana market inventory, product prices, delivery fees or order IDs.',
           'Do not expose internal tool names, database details or API details.',
           'Keep replies concise, warm and action-oriented. Ask only for information that is genuinely missing.',
-          location ? `Customer drop-off context: ${JSON.stringify(location)}` : 'Customer location is not currently available.',
+          location ? `Customer live GPS context: ${JSON.stringify(location)}. When present, this is the customer's current device location and must be used as the pickup point for ride quotes/bookings when the customer says current location/current position/from here or does not provide another pickup.` : 'Customer location is not currently available.',
         ].join(' '),
       }],
     };
