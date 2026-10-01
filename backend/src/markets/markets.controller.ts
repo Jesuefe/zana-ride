@@ -19,6 +19,14 @@ export class MarketsController {
     );
   }
 
+  @Post(':id/quote')
+  quote(
+    @Param('id') id: string,
+    @Body() body: { dropoffLat: number; dropoffLng: number; items: { productId: string; quantity: number }[] },
+  ) {
+    return this.marketsService.quoteOrder(id, Number(body.dropoffLat), Number(body.dropoffLng), body.items);
+  }
+
   @Get(':id')
   getOne(@Param('id') id: string) {
     return this.marketsService.getMarketWithProducts(id);
