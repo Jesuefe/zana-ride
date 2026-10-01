@@ -13,6 +13,8 @@ const STATUS_STYLE: Record<string, string> = {
 
 export default function DeliveriesPage() {
   const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [preview, setPreview] = useState<any | null>(null);
+
   useEffect(() => { getDeliveries().then(setDeliveries).catch(() => {}); }, []);
 
   return (
@@ -22,11 +24,19 @@ export default function DeliveriesPage() {
         <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b border-gray-100 text-left">
-              {['Item','From','Pickup','Dropoff','Fee','Status','Courier'].map(h => <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}
+              {['Package','Item','From','Pickup','Dropoff','Fee','Status','Courier'].map(h => <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}
             </tr></thead>
-            <tbody>
-              {deliveries.map(d => (
+            <tbody>              {deliveries.map(d => (
                 <tr key={d.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    {d.imageUrl ? (
+                      <button type="button" onClick={() => setPreview(d)} className="block group" title="View package photo">
+                        <img src={d.imageUrl} alt="Package" className="w-14 h-14 rounded-lg object-cover border border-gray-200 group-hover:opacity-80" />
+                      </button>
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-[10px] text-gray-400">No photo</div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-medium">{d.itemDescription}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{d.customer?.firstName ?? d.merchant?.businessName ?? '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-600 max-w-32 truncate">{d.pickupAddress}</td>
@@ -38,7 +48,24 @@ export default function DeliveriesPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </div>        {preview?.imageUrl && (
+          <div className="fixed inset-0 z-50 bg-black/70 p-4 flex items-center justify-center" onClick={() => setPreview(null)}>
+            <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto p-5" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Package photo</h2>
+                  <p className="text-xs text-gray-500 mt-1">{preview.trackingCode ?? preview.id}</p>
+                </div>
+                <button type="button" onClick={() => setPreview(null)} className="text-sm font-semibold text-gray-500 hover:text-gray-900">Close</button>
+              </div>
+              <img src={preview.imageUrl} alt="Delivery package" className="w-full max-h-[65vh] object-contain rounded-xl bg-gray-100" />
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <p className="text-sm text-gray-600">{preview.itemDescription ?? 'Delivery package'}</p>
+                <a href={preview.imageUrl} target="_blank" rel="noreferrer" className="text-sm font-semibold text-zana-primary hover:underline">Open original image</a>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminShell>
   );
