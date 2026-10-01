@@ -161,17 +161,33 @@ export class ZanaAiService {
   }
 
   private async generate(body: any, apiKey: string, model: string) {
-    const response = await fetch(`${this.endpoint}/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify(body),
-    });
-    if (!response.ok) {
-      const detail = await response.text();
-      console.error('[ZANA AI] Gemini error', response.status, detail);
-      throw new ServiceUnavailableException('ZANA_AI_PROVIDER_ERROR');
+    const models = [model, 'gemini-3.7-flash'].filter((value, index, list) => value && list.indexOf(value) === index);
+    let lastStatus = 503;
+    let lastDetail = '';
+
+    for (const candidate of models) {
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const response = await fetch(`${this.endpoint}/${candidate}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          body: JSON.stringify(body),
+        });
+        if (response.ok) return response.json();
+
+        const detail = await response.text();
+        lastStatus = response.status;
+        lastDetail = detail;
+        console.error('[ZANA AI] Gemini error', response.status, candidate, detail);
+
+        // Gemini can temporarily return 503 during capacity spikes. Retry briefly,
+        // then move to the stable 3.7 Flash fallback before failing the customer request.
+        if (response.status !== 429 && response.status !== 503) break;
+        if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 700));
+      }
     }
-    return response.json();
+
+    console.error('[ZANA AI] Gemini provider unavailable', lastStatus, lastDetail);
+    throw new ServiceUnavailableException('ZANA_AI_PROVIDER_ERROR');
   }
 
   private extractText(response: any): string | null {
