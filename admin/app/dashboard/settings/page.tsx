@@ -273,7 +273,7 @@ export default function SettingsPage() {
                 <p className="text-xs text-gray-500">Gemini-powered assistant for customers, rides, food, market shopping, delivery and place discovery.</p>
               </div>
             </div>
-            <div className={\`text-xs font-semibold px-2.5 py-1 rounded-full \${aiSettings.configured && aiSettings.enabled ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}\`}>
+            <div className={`text-xs font-semibold px-2.5 py-1 rounded-full ${aiSettings.configured && aiSettings.enabled ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
               {aiSettings.configured && aiSettings.enabled ? 'Active' : aiSettings.configured ? 'Configured' : 'Not configured'}
             </div>
           </div>
@@ -285,8 +285,8 @@ export default function SettingsPage() {
                 <div className="text-xs text-gray-500">The customer app will only use AI when this is enabled.</div>
               </div>
               <button onClick={() => setAiSettings((s: any) => ({ ...s, enabled: !s.enabled }))}
-                className={\`relative w-11 h-6 rounded-full transition \${aiSettings.enabled ? 'bg-zana-primary' : 'bg-gray-300'}\`} aria-label="Enable Zana AI">
-                <span className={\`absolute top-1 w-4 h-4 bg-white rounded-full transition \${aiSettings.enabled ? 'left-6' : 'left-1'}\`} />
+                className={`relative w-11 h-6 rounded-full transition ${aiSettings.enabled ? 'bg-zana-primary' : 'bg-gray-300'}`} aria-label="Enable Zana AI">
+                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition ${aiSettings.enabled ? 'left-6' : 'left-1'}`} />
               </button>
             </label>
 
@@ -301,7 +301,7 @@ export default function SettingsPage() {
                 <label className="text-xs font-semibold text-gray-600 block mb-1.5">Gemini API key</label>
                 <div className="relative">
                   <input value={aiKey} onChange={e => setAiKey(e.target.value)} type={showAiKey ? 'text' : 'password'}
-                    placeholder={aiSettings.apiKeyHint ? \`Saved: \${aiSettings.apiKeyHint} — leave blank to keep it\` : 'Paste your Gemini API key'}
+                    placeholder={aiSettings.apiKeyHint ? `Saved: ${aiSettings.apiKeyHint} — leave blank to keep it` : 'Paste your Gemini API key'}
                     autoComplete="new-password"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 pr-10 text-sm font-mono" />
                   <button type="button" onClick={() => setShowAiKey((v: boolean) => !v)} className="absolute right-3 top-2.5 text-gray-400">
@@ -327,8 +327,8 @@ export default function SettingsPage() {
                     <button type="button" onClick={() => setAiSettings((s: any) => ({
                       ...s, features: { ...s.features, [key]: !s.features?.[key] }
                     }))}
-                      className={\`relative w-10 h-5 rounded-full \${aiSettings.features?.[key] ? 'bg-zana-primary' : 'bg-gray-300'}\`}>
-                      <span className={\`absolute top-0.5 w-4 h-4 bg-white rounded-full transition \${aiSettings.features?.[key] ? 'left-5' : 'left-0.5'}\`} />
+                      className={`relative w-10 h-5 rounded-full ${aiSettings.features?.[key] ? 'bg-zana-primary' : 'bg-gray-300'}`}>
+                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition ${aiSettings.features?.[key] ? 'left-5' : 'left-0.5'}`} />
                     </button>
                   </label>
                 ))}
@@ -336,7 +336,7 @@ export default function SettingsPage() {
             </div>
 
             {(aiMessage || aiError) && (
-              <div className={\`rounded-lg p-3 text-sm \${aiError ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}\`}>
+              <div className={`rounded-lg p-3 text-sm ${aiError ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
                 {aiError || aiMessage}
               </div>
             )}
