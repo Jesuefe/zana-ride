@@ -64,7 +64,7 @@ export default function ZanaAiPage() {
     lines.forEach((raw, i) => {
       const line = raw.trim();
       if (!line) { out.push(<div key={i} className="h-1" />); return; }
-      if (/^\\|?\\s*:?-+:?\\s*(\\|\\s*:?-+:?\\s*)+\\|?$/.test(line)) return;
+      if (/^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$/.test(line)) return;
       if (line.includes('|')) {
         const cells = line.replace(/^\\||\\|$/g, '').split('|').map(x => x.trim()).filter(Boolean);
         out.push(<div key={i} className="my-1 rounded-xl bg-white border border-gray-100 px-3 py-2 text-xs">{cells.map((cell, j) => <span key={j}>{j > 0 && <span className="mx-1 text-gray-300">·</span>}{formatInline(cell)}</span>)}</div>);
