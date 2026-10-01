@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Bell } from 'lucide-react';
 import { ZanaWordmark } from './ZanaLogo';
 
@@ -11,13 +12,13 @@ export default function Topbar({ title, subtitle }: { title: string; subtitle?: 
         <h1 className="mt-1 truncate text-lg font-bold text-gray-900">{title}</h1>
         {subtitle && <p className="truncate text-xs text-zana-muted">{subtitle}</p>}
       </div>
-      <button
-        type="button"
-        aria-label="Notifications"
+      <Link
+        href="/orders"
+        aria-label="Orders and notifications"
         className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zana-primary-light text-zana-primary"
       >
         <Bell size={18} />
-      </button>
+      </Link>
     </header>
   );
 }

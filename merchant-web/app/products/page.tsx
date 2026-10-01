@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Plus, Camera, X, ToggleLeft, ToggleRight } from 'lucide-react';
-import { fetchMyProducts, createProduct, updateProduct, Product, WEIGHT_OPTIONS } from '../../lib/api/merchant';
+import { Plus, Camera, X, ToggleLeft, ToggleRight, Pencil, Trash2 } from 'lucide-react';
+import { fetchMyProducts, createProduct, updateProduct, updateProductImage, deleteProduct, Product } from '../../lib/api/merchant';
 import { compressImage } from '../../lib/image';
 import { ApiError } from '../../lib/api/client';
 import { useLang } from '../../lib/LangContext';
+
+const apiErrorMessage = (err: ApiError, fallback: string) => err.message || fallback;
 
 const CATEGORIES = [
   { value: 'FOOD', label: 'Food & Drinks' },
@@ -22,6 +24,7 @@ const STATUS_STYLE: Record<string, string> = {
 export default function ProductsPage() { const {t}=useLang();
   const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', description: '', price: '', category: 'FOOD' as any, stock: '', imageBase64: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -43,28 +46,48 @@ export default function ProductsPage() { const {t}=useLang();
     await setImageFile(image.getAsFile() ?? undefined);
   };
 
+  const resetForm = () => {
+    setForm({ name: '', description: '', price: '', category: 'FOOD', stock: '', imageBase64: '' });
+    setEditingId(null); setShowForm(false);
+  };
+
+  const openEdit = (p: Product) => {
+    setEditingId(p.id); setShowForm(true); setError('');
+    setForm({ name: p.name, description: p.description ?? '', price: String(p.price), category: p.category, stock: String(p.stock), imageBase64: '' });
+  };
+
   const handleCreate = async () => {
     setSaving(true); setError('');
     try {
-      await createProduct({
+      if (editingId) {
+        await updateProduct(editingId, { name: form.name, description: form.description, price: Number(form.price), stock: Number(form.stock || 0) });
+        if (form.imageBase64) await updateProductImage(editingId, form.imageBase64);
+      } else {
+        await createProduct({
         name: form.name,
         description: form.description || undefined,
         price: Number(form.price),
         category: form.category,
         imageBase64: form.imageBase64 || undefined,
-        stock: form.stock ? Number(form.stock) : undefined,
-      });
-      setShowForm(false);
-      setForm({ name: '', description: '', price: '', category: 'FOOD', stock: '', imageBase64: '' });
+          stock: form.stock ? Number(form.stock) : undefined,
+        });
+      }
+      resetForm();
       load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not create product.');
+      setError(err instanceof ApiError ? apiErrorMessage(err, editingId ? 'Could not update product.' : 'Could not create product.') : (editingId ? 'Could not update product.' : 'Could not create product.'));
     } finally { setSaving(false); }
   };
 
   const handleToggle = async (p: Product) => {
-    await updateProduct(p.id, { available: !p.available });
-    load();
+    try { setError(''); await updateProduct(p.id, { available: !p.available }); await load(); }
+    catch (err) { setError(err instanceof ApiError ? err.message : 'Could not change availability.'); }
+  };
+
+  const handleDelete = async (p: Product) => {
+    if (!window.confirm(`Delete ${p.name}? This cannot be undone.`)) return;
+    try { setError(''); await deleteProduct(p.id); await load(); }
+    catch (err) { setError(err instanceof ApiError ? err.message : 'Could not delete product.'); }
   };
 
   return (
@@ -79,14 +102,14 @@ export default function ProductsPage() { const {t}=useLang();
 
       {showForm && (
         <div className="bg-white rounded-xl p-5 shadow-sm mb-5" onPaste={handlePasteImage}>
-          <h2 className="font-semibold text-gray-900 mb-3">{t('New Product')}</h2>
+          <h2 className="font-semibold text-gray-900 mb-3">{editingId ? t('Edit Product') : t('New Product')}</h2>
           <div className="space-y-3">
             <input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder={t('Product name')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
             <textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))} placeholder={t('Description (optional)')} rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none" />
             <div className="grid grid-cols-3 gap-2">
               <input value={form.price} onChange={e => setForm(f => ({...f, price: e.target.value}))} placeholder={t('Price (RWF)')} type="number" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
               <input value={form.stock} onChange={e => setForm(f => ({...f, stock: e.target.value}))} placeholder={t('Stock')} type="number" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              <select value={form.category} onChange={e => setForm(f => ({...f, category: e.target.value as any}))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
+              <select disabled={!!editingId} value={form.category} onChange={e => setForm(f => ({...f, category: e.target.value as any}))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white disabled:bg-gray-100">
                 {CATEGORIES.map(c => <option key={c.value} value={c.value}>{t(c.label)}</option>)}
               </select>
             </div>
@@ -105,8 +128,8 @@ export default function ProductsPage() { const {t}=useLang();
           </div>
           {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
           <div className="flex gap-2 mt-3">
-            <button onClick={handleCreate} disabled={saving || !form.name || !form.price} className="bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-40">{saving ? t('Submitting…') : t('Submit for Review')}</button>
-            <button onClick={() => setShowForm(false)} className="border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm">{t('Cancel')}</button>
+            <button onClick={handleCreate} disabled={saving || !form.name || !form.price} className="bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-40">{saving ? t('Saving…') : editingId ? t('Save Changes') : t('Submit for Review')}</button>
+            <button onClick={resetForm} className="border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm">{t('Cancel')}</button>
           </div>
         </div>
       )}
@@ -124,9 +147,13 @@ export default function ProductsPage() { const {t}=useLang();
               <p className="text-xs text-gray-500">{t('Stock')}: {p.stock} · {t(p.category === 'FOOD' ? 'Food & Drinks' : p.category === 'GIFTS' ? 'Gifts' : 'General Goods')}</p>
               {p.adminNote && <p className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded mt-1">{p.adminNote}</p>}
             </div>
-            <button onClick={() => handleToggle(p)} className={p.available ? 'text-green-600' : 'text-gray-400'}>
-              {p.available ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
-            </button>
+            <div className="flex flex-col items-center gap-2">
+              <button onClick={() => handleToggle(p)} aria-label={p.available ? 'Mark unavailable' : 'Mark available'} className={p.available ? 'text-green-600' : 'text-gray-400'}>
+                {p.available ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+              </button>
+              <button onClick={() => openEdit(p)} aria-label="Edit product" className="text-gray-500"><Pencil size={16} /></button>
+              <button onClick={() => handleDelete(p)} aria-label="Delete product" className="text-red-400"><Trash2 size={16} /></button>
+            </div>
           </div>
         ))}
         {products.length === 0 && <p className="text-sm text-gray-500 text-center py-10">{t('No products yet. Add your first one!')}</p>}

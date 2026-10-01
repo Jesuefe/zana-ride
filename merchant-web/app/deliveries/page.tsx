@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Package, MapPin, Navigation, Phone } from 'lucide-react';
+import { Package, MapPin, Navigation, Phone, MessageCircle } from 'lucide-react';
 import { fetchDeliveries, Delivery } from '../../lib/api/merchant';
 import VoiceCall from '../../components/VoiceCall';
+import DeliveryChatPanel from '../../components/DeliveryChatPanel';
 import { useLang } from '../../lib/LangContext';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -24,6 +25,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 export default function DeliveriesPage() { const {t}=useLang();
   const [callingDelivery, setCallingDelivery] = useState<Delivery | null>(null);
+  const [chatDelivery, setChatDelivery] = useState<Delivery | null>(null);
   const [deliveries, setDeliveries] = useState<Delivery[] | null>(null);
 
   useEffect(() => {
@@ -77,6 +79,14 @@ export default function DeliveriesPage() { const {t}=useLang();
                 </p>
               </div>
               {d.driver && ['COURIER_ASSIGNED', 'PICKED_UP'].includes(d.status) && (
+                <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setChatDelivery(d)}
+                  className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center"
+                  aria-label={t('Chat with rider')}
+                >
+                  <MessageCircle size={16} className="text-zana-primary" />
+                </button>
                 <button
                   onClick={() => setCallingDelivery(d)}
                   className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0"
@@ -84,6 +94,7 @@ export default function DeliveriesPage() { const {t}=useLang();
                 >
                   <Phone size={16} className="text-zana-primary" />
                 </button>
+                </div>
               )}
             </div>
 
@@ -100,6 +111,14 @@ export default function DeliveriesPage() { const {t}=useLang();
           </div>
         ))}
       </div>
+
+      {chatDelivery && (
+        <DeliveryChatPanel
+          deliveryId={chatDelivery.id}
+          participantLabel={chatDelivery.driver?.user.firstName ?? t('Zana courier')}
+          onClose={() => setChatDelivery(null)}
+        />
+      )}
 
       {callingDelivery && (
         <VoiceCall

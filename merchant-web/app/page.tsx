@@ -6,7 +6,7 @@ import { ZanaMark } from '../components/ZanaLogo';
 import Link from 'next/link';
 import { Package, Truck, Wallet, ShoppingBag, Plus, TrendingUp } from 'lucide-react';
 import Topbar from '../components/Topbar';
-import { fetchMyMerchant, fetchDeliveries, fetchWallet, fetchMyOrders, ApiMerchant, ApiDelivery } from '../lib/api/merchant';
+import { fetchMyMerchant, fetchDeliveries, fetchWallet, fetchMyOrders, updateMerchantTimings, ApiMerchant, ApiDelivery } from '../lib/api/merchant';
 import { ApiError, api } from '../lib/api/client';
 import { useRouter } from 'next/navigation';
 
@@ -22,6 +22,9 @@ export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [settingLocation, setSettingLocation] = useState(false);
+  const [prepMinutes, setPrepMinutes] = useState('30');
+  const [deliveryMinutes, setDeliveryMinutes] = useState('30');
+  const [savingTiming, setSavingTiming] = useState(false);
 
   const handleSetLocation = async () => {
     if (!navigator.geolocation) { setError('Geolocation not available'); return; }
@@ -46,6 +49,20 @@ export default function OverviewPage() {
     });
   };
 
+  const saveTimings = async () => {
+    const prep = Number(prepMinutes), delivery = Number(deliveryMinutes);
+    if (!Number.isInteger(prep) || !Number.isInteger(delivery) || prep < 1 || prep > 240 || delivery < 1 || delivery > 240) {
+      setError('Times must be whole minutes from 1 to 240.');
+      return;
+    }
+    setSavingTiming(true); setError(null);
+    try {
+      await updateMerchantTimings(prep, delivery);
+      setMerchant(m => m ? { ...m, prepMinutes: prep, deliveryMinutes: delivery } : m);
+    } catch (e: any) { setError(e?.message ?? 'Could not save timing settings.'); }
+    finally { setSavingTiming(false); }
+  };
+
   useEffect(() => {
     // Agents share this app but have their own dashboard.
     api.get<any>('/users/me')
@@ -63,6 +80,8 @@ export default function OverviewPage() {
           fetchMyOrders().catch(() => []),
         ]);
         setMerchant(m);
+        setPrepMinutes(String(m.prepMinutes ?? 30));
+        setDeliveryMinutes(String(m.deliveryMinutes ?? 30));
         setDeliveries(d);
         setWalletBalance(w.balance);
         setOrders(o);
@@ -234,6 +253,23 @@ export default function OverviewPage() {
             </div>
           </div>
         )}
+        {/* Customer-facing timing settings */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm mb-5">
+          <p className="text-sm font-bold text-gray-900">Order timing</p>
+          <p className="text-xs text-gray-500 mt-1">Customers see these times when choosing your shop.</p>
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <label className="text-xs text-gray-500">Preparation (min)
+              <input value={prepMinutes} onChange={e => setPrepMinutes(e.target.value.replace(/\D/g, ''))} inputMode="numeric" className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900" />
+            </label>
+            <label className="text-xs text-gray-500">Delivery (min)
+              <input value={deliveryMinutes} onChange={e => setDeliveryMinutes(e.target.value.replace(/\D/g, ''))} inputMode="numeric" className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900" />
+            </label>
+          </div>
+          <button onClick={saveTimings} disabled={savingTiming} className="mt-3 w-full bg-zana-primary text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
+            {savingTiming ? 'Saving…' : 'Save timing'}
+          </button>
+        </div>
+
         {/* Quick actions */}
       <h2 className="font-semibold text-gray-900 mb-3">{t("Quick Actions")}</h2>
       <div className="space-y-2">

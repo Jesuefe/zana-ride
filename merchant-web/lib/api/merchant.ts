@@ -7,6 +7,8 @@ export type MerchantProfile = {
   businessName: string;
   branch: string | null;
   user: { firstName: string | null; lastName: string | null; phone: string; wallet: { balance: number } | null };
+  prepMinutes?: number | null;
+  deliveryMinutes?: number | null;
 };
 
 export type ApiUser = { id: string; phone: string; firstName: string | null; lastName: string | null; role: string };
@@ -29,6 +31,10 @@ export async function verifyOtp(phone: string, code: string) {
 
 export async function fetchMyMerchant() {
   return api.get<MerchantProfile>('/merchant/me');
+}
+
+export async function updateMerchantTimings(prepMinutes: number, deliveryMinutes: number) {
+  return api.patch('/merchant/timings', { prepMinutes, deliveryMinutes });
 }
 
 export async function fetchWallet() {
@@ -155,6 +161,14 @@ export async function updateProduct(id: string, data: Partial<{
   available: boolean;
 }>) {
   return api.patch<Product>(`/merchant/products/${id}`, data);
+}
+
+export async function deleteProduct(id: string) {
+  return api.delete(`/merchant/products/${id}`);
+}
+
+export async function updateProductImage(id: string, imageBase64: string) {
+  return api.post<Product>(`/merchant/products/${id}/image`, { imageBase64 });
 }
 
 export async function fetchMyOrders() {

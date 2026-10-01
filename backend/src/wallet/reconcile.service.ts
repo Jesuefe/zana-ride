@@ -186,12 +186,27 @@ export class ReconcileService {
         const res = await this.eversend.getCollectionStatus((order as any).momoRef);
         if ((res?.status ?? '').toLowerCase() !== 'successful') continue;
 
-        await this.prisma.order.update({
-          where: { id: order.id }, data: { paid: true } as any,
+        const claimed = await this.prisma.order.updateMany({
+          where: { id: order.id, paid: false }, data: { paid: true } as any,
         });
-        this.gateway.sendToUser(order.customerId, 'payment:confirmed', {
+        if (claimed.count === 0) continue;
+
+        const payload = {
           orderId: order.id,
-        });
+          trackingCode: (order as any).trackingCode,
+          total: (order as any).total,
+          itemCount: await this.prisma.orderItem.count({ where: { orderId: order.id } }),
+        };
+        this.gateway.sendToUser(order.customerId, 'payment:confirmed', { orderId: order.id });
+        if ((order as any).marketId) {
+          const agents = await this.prisma.agent.findMany({ where: { marketId: (order as any).marketId, active: true }, select: { userId: true } });
+          for (const a of agents) this.gateway.sendToUser(a.userId, 'order:new', payload);
+        } else if ((order as any).merchantId) {
+          const merchant = await this.prisma.merchant.findUnique({ where: { id: (order as any).merchantId }, select: { userId: true } });
+          if (merchant?.userId) this.gateway.sendToUser(merchant.userId, 'order:new', payload);
+        }
+        const admins = await this.prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
+        for (const admin of admins) this.gateway.sendToUser(admin.id, 'order:new', payload);
         this.logger.log(`Order ${(order as any).trackingCode ?? order.id} confirmed paid`);
       } catch { /* retry next sweep */ }
     }

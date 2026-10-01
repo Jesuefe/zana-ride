@@ -353,7 +353,10 @@ export class OrdersService {
         const totalRwf = order.items.reduce((s, i) => s + i.product.price * i.quantity, 0);
 
         const distKm = Math.max(0.5, haversineKm(pickupLat, pickupLng, order.dropoffLat ?? -1.97, order.dropoffLng ?? 30.12));
-        const fee = Math.min(3000, Math.max(500, Math.round(500 + distKm * 150)));
+        // The customer already paid the authoritative order delivery fee.
+        // Never recalculate a second fee at dispatch time; that could make
+        // the delivery ledger disagree with what the customer was charged.
+        const fee = order.deliveryFee ?? 0;
         const dispatchedDelivery = await this.prisma.delivery.create({
           data: {
             customerId: order.customerId,

@@ -17,7 +17,7 @@ function getUserIdFromToken(): string | null {
   }
 }
 
-export default function DeliveryChatPanel({ deliveryId, onClose }: { deliveryId: string; onClose: () => void }) {
+export default function DeliveryChatPanel({ deliveryId, onClose, participantLabel = 'Zana courier' }: { deliveryId: string; onClose: () => void; participantLabel?: string }) {
   const lang = getStoredLang() as Lang;
   const myId = getUserIdFromToken();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -45,9 +45,9 @@ export default function DeliveryChatPanel({ deliveryId, onClose }: { deliveryId:
   };
 
   const copy = {
-    en: { title: 'Chat with market agent', sub: 'Zana chat · auto-translated', empty: 'No messages yet. Send a message to the agent.', placeholder: 'Type a message…' },
-    rw: { title: 'Ganira n’umukozi w’isoko', sub: 'Ubutumwa bwa Zana · buhindurwa mu rurimi', empty: 'Nta butumwa burahari. Ohereza ubutumwa ku mukozi.', placeholder: 'Andika ubutumwa…' },
-    fr: { title: 'Chat avec l’agent du marché', sub: 'Chat Zana · traduction automatique', empty: 'Aucun message. Envoyez un message à l’agent.', placeholder: 'Écrivez un message…' },
+    en: { title: `Chat with ${participantLabel}`, sub: 'Zana chat · auto-translated', empty: `No messages yet. Send a message to ${participantLabel}.`, placeholder: 'Type a message…' },
+    rw: { title: `Ganira na ${participantLabel}`, sub: 'Ubutumwa bwa Zana · buhindurwa mu rurimi', empty: `Nta butumwa burahari. Ohereza ubutumwa kuri ${participantLabel}.`, placeholder: 'Andika ubutumwa…' },
+    fr: { title: `Chat avec ${participantLabel}`, sub: 'Chat Zana · traduction automatique', empty: `Aucun message. Envoyez un message à ${participantLabel}.`, placeholder: 'Écrivez un message…' },
   }[lang];
 
   return (
