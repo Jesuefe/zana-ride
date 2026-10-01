@@ -145,7 +145,26 @@ jobs:
           echo "Compiled launcher resources:"
           "$AAPT2" dump resources "$APK" | grep -E 'ic_launcher(_round)?' | head -n 30
 
-          "$AAPT2" dump resources "$APK" | grep -Eq 'ic_launcher[^[:alnum:]_]' 
+          RESOURCE_DUMP="$("$AAPT2" dump resources "$APK")"
+          echo "$RESOURCE_DUMP" | grep -Eq 'mipmap/ic_launcher(_round)?
+
+      - name: Collect APK
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          cp native/merchant/android/app/build/outputs/apk/release/app-release.apk "out/zana-merchant-${{ inputs.versionName || '1.0.2' }}.apk"
+
+      - name: Remove signing key
+        if: always()
+        run: rm -f native/merchant/android/app/zana.jks
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zana-merchant-apk
+          path: out/*.apk
+          retention-days: 30
+
           echo "Merchant launcher icon verification passed."
 
       - name: Collect APK
