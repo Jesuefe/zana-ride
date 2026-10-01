@@ -359,7 +359,7 @@ export class ZanaAiService {
 
   private async estimateRide(customerId: string, args: { serviceType?: string; destination?: string }, location?: Location) {
     if (!location) return { action: null, message: 'I need your pickup location before I can quote the ride.' };
-    const serviceType = args.serviceType === 'CAR' ? ServiceType.CAR : ServiceType.MOTO;
+    const serviceType = args.serviceType === 'CAR' ? ServiceType.ECONOMY : ServiceType.BIKE;
     let destination: { lat: number; lng: number; address: string };
     try { destination = await this.geocodeDestination(String(args.destination || '')); }
     catch (error: any) { return { action: null, message: 'I could not locate that destination. Please give me the place name or address.' }; }
@@ -378,7 +378,7 @@ export class ZanaAiService {
     await this.redis.set(`zana-ai:ride-draft:latest:${customerId}`, draftId, 10 * 60);
     return {
       action: { type: 'RIDE_QUOTE', draftId, serviceType, pickupAddress: draft.pickupAddress, destinationAddress: draft.destinationAddress, distanceKm: quote.distanceKm, durationMinutes: quote.durationMinutes, fare: quote.fare },
-      message: `Ride quote ready. ${serviceType === ServiceType.MOTO ? 'Moto' : 'Car'} · ${quote.distanceKm} km · about ${quote.durationMinutes} min · ${quote.fare.toLocaleString()} RWF.`,
+      message: `Ride quote ready. ${serviceType === ServiceType.BIKE ? 'Moto' : 'Car'} · ${quote.distanceKm} km · about ${quote.durationMinutes} min · ${quote.fare.toLocaleString()} RWF.`,
     };
   }
 
