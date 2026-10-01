@@ -19,15 +19,33 @@ export default function ZanaAiPage() {
   const [loading, setLoading] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number }>();
+  const [locationError, setLocationError] = useState<string>('');
   const endRef = useRef<HTMLDivElement>(null);
 
+  async function getCurrentLocation() {
+    if (!navigator.geolocation) throw new Error('Location is not supported on this device.');
+    return await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        p => {
+          const value = { lat: p.coords.latitude, lng: p.coords.longitude };
+          setCoords(value);
+          setLocationError('');
+          resolve(value);
+        },
+        error => {
+          const message = error.code === error.PERMISSION_DENIED
+            ? 'Please allow Zana to use your location so I can quote the ride from your current position.'
+            : 'I could not get your current location. Please try again.';
+          setLocationError(message);
+          reject(new Error(message));
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      );
+    });
+  }
+
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      p => setCoords({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => undefined,
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 120000 },
-    );
+    getCurrentLocation().catch(() => undefined);
   }, []);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading, action]);
@@ -71,7 +89,7 @@ export default function ZanaAiPage() {
       const result = await sendZanaAiMessage({
         message: text,
         history: next.slice(-12).map(m => ({ role: m.role, text: m.text })),
-        location: coords,
+        location: liveCoords,
       });
       setMessages(current => [...current, { id: Date.now() + 1, role: 'model', text: result.text }]);
       setAction(result.action);
@@ -116,7 +134,7 @@ export default function ZanaAiPage() {
           </div>
         ))}
 
-        {loading && <div className="bg-gray-50 border border-gray-100 rounded-3xl rounded-bl-md px-4 py-3 w-fit text-sm text-gray-400">Zana is checking...</div>}
+        {locationError && <div className="rounded-2xl bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-800">{locationError}</div>}\n\n        {loading && <div className="bg-gray-50 border border-gray-100 rounded-3xl rounded-bl-md px-4 py-3 w-fit text-sm text-gray-400">Zana is checking...</div>}
 
         {action?.type === 'RIDE_QUOTE' && (
           <div className="rounded-3xl border border-gray-100 bg-white shadow-sm overflow-hidden">
