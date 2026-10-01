@@ -24,6 +24,7 @@ import { CallsModule } from './calls/calls.module';
 import { HealthController } from './health.controller';
 import { FinanceModule } from './finance/finance.module';
 import { ZanaAiModule } from './zana-ai/zana-ai.module';
+import { DownloadsModule } from './downloads/downloads.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { ZanaAiModule } from './zana-ai/zana-ai.module';
     CallsModule,
     FinanceModule,
     ZanaAiModule,
+    DownloadsModule,
   ],
   controllers: [HealthController],
 })
