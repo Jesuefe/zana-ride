@@ -8,5 +8,6 @@ import { MarketsModule } from '../markets/markets.module';
   imports: [MerchantModule, MarketsModule],
   controllers: [ZanaAiController],
   providers: [ZanaAiService],
+  exports: [ZanaAiService],
 })
 export class ZanaAiModule {}
