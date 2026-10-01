@@ -4,6 +4,7 @@ import SplashGate from '../components/SplashGate';
 import "./globals.css";
 import { LangProvider } from "../lib/LangContext";
 import BottomNav from "../components/BottomNav";
+import RealtimeNotificationAlert from "../components/RealtimeNotificationAlert";
 import AuthGuard from "../components/AuthGuard";
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <SplashGate><ThemeProvider>{children}</ThemeProvider></SplashGate>
             </div>
             <BottomNav />
+<RealtimeNotificationAlert />
           </AuthGuard>
         </LangProvider>
       </body>

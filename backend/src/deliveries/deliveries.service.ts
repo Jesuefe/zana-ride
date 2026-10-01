@@ -795,7 +795,7 @@ export class DeliveriesService {
       const merchantName = [d.merchant?.user?.firstName, d.merchant?.user?.lastName].filter(Boolean).join(' ');
       const pickupContactName = agent ? ([agent.user.firstName, agent.user.lastName].filter(Boolean).join(' ') || 'Market agent') : (order?.market?.pickupContactName || merchantName || d.merchant?.businessName || ([d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || 'Pickup contact'));
       const pickupPhone = agent?.user.phone || order?.market?.pickupPhone || d.merchant?.user?.phone || d.customer?.phone || null;
-      return { ...d, pickupContactName, pickupPhone, recipientName: d.receiverName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || null, recipientPhone: d.receiverPhone };
+      return { ...d, isMarketDelivery: Boolean(order?.marketId || order?.agentId), pickupContactName, pickupPhone, recipientName: d.receiverName || [d.customer?.firstName,d.customer?.lastName].filter(Boolean).join(' ') || null, recipientPhone: d.receiverPhone };
     });
   }
 

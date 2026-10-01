@@ -53,6 +53,7 @@ type ActiveDelivery = {
   pickupPhone?: string | null;
   recipientName?: string | null;
   recipientPhone?: string | null;
+  isMarketDelivery?: boolean;
 };
 
 function ActiveDeliveryContent() {
@@ -457,14 +458,14 @@ function ActiveDeliveryContent() {
             </div>
           )}
 
-          {!isPickup && (
+          {!isPickup && delivery.isMarketDelivery && (
             <div className="bg-zana-primary-light border border-zana-primary/10 rounded-2xl px-4 py-3">
               <p className="text-xs font-bold text-zana-primary">{dt('Pickup confirmed')}</p>
               <p className="text-xs text-gray-600 mt-0.5">{dt('Market contact details are now hidden. Use Zana chat if you need to speak with the agent.')}</p>
             </div>
           )}
 
-          {!isPickup && (
+          {!isPickup && delivery.isMarketDelivery && (
             <button
               type="button"
               onClick={() => setShowChat(true)}
