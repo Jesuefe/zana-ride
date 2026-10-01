@@ -54,6 +54,26 @@ jobs:
       - name: Sync Android
         working-directory: native/merchant
         run: npx cap sync android
+      - name: Apply Zana Merchant app icon
+        run: |
+          ICON_URL="https://showmine112.b-cdn.net/89ba9d07-8597-426f-8ec8-1f610bb18586.png"
+          curl -fL --retry 3 --connect-timeout 15 -o /tmp/zana-merchant-icon.png "$ICON_URL"
+          test -s /tmp/zana-merchant-icon.png
+          RES="native/merchant/android/app/src/main/res"
+          rm -f "$RES"/mipmap-anydpi-v26/ic_launcher.xml "$RES"/mipmap-anydpi-v26/ic_launcher_round.xml
+          rm -f "$RES"/mipmap-anydpi/ic_launcher.xml "$RES"/mipmap-anydpi/ic_launcher_round.xml
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do mkdir -p "$RES/mipmap-$d"; done
+          magick /tmp/zana-merchant-icon.png -auto-orient -resize 48x48! "$RES/mipmap-mdpi/ic_launcher.png"
+          magick /tmp/zana-merchant-icon.png -auto-orient -resize 72x72! "$RES/mipmap-hdpi/ic_launcher.png"
+          magick /tmp/zana-merchant-icon.png -auto-orient -resize 96x96! "$RES/mipmap-xhdpi/ic_launcher.png"
+          magick /tmp/zana-merchant-icon.png -auto-orient -resize 144x144! "$RES/mipmap-xxhdpi/ic_launcher.png"
+          magick /tmp/zana-merchant-icon.png -auto-orient -resize 192x192! "$RES/mipmap-xxxhdpi/ic_launcher.png"
+          cp "$RES/mipmap-mdpi/ic_launcher.png" "$RES/mipmap-mdpi/ic_launcher_round.png"
+          cp "$RES/mipmap-hdpi/ic_launcher.png" "$RES/mipmap-hdpi/ic_launcher_round.png"
+          cp "$RES/mipmap-xhdpi/ic_launcher.png" "$RES/mipmap-xhdpi/ic_launcher_round.png"
+          cp "$RES/mipmap-xxhdpi/ic_launcher.png" "$RES/mipmap-xxhdpi/ic_launcher_round.png"
+          cp "$RES/mipmap-xxxhdpi/ic_launcher.png" "$RES/mipmap-xxxhdpi/ic_launcher_round.png"
+
       - name: Build signed APK
         working-directory: native/merchant/android
         env:
