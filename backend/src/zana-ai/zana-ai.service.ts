@@ -51,7 +51,11 @@ export class ZanaAiService {
       where: { entityType: 'AI_SETTINGS', entityId, action: 'ZANA_AI_PROVIDER_UPDATED' },
       orderBy: { createdAt: 'desc' },
     });
-    const stored = row?.afterJson ? JSON.parse(row.afterJson) : null;
+    let stored = row?.afterJson ? JSON.parse(row.afterJson) : null;
+    if (!stored && provider === 'gemini') {
+      const legacy = await this.prisma.auditLog.findFirst({ where: this.settingsEntity, orderBy: { createdAt: 'desc' } });
+      stored = legacy?.afterJson ? JSON.parse(legacy.afterJson) : null;
+    }
     const defaults = this.providerDefaults[provider];
     if (stored) return { enabled: stored.enabled !== false, model: String(stored.model || defaults.model), apiKey: stored.apiKeyEncrypted ? this.decrypt(stored.apiKeyEncrypted) : '', features: stored.features || {} };
     return { enabled: provider === 'gemini' && Boolean(this.config.get<string>('GEMINI_API_KEY')), model: provider === 'gemini' ? (this.config.get<string>('GEMINI_MODEL') || defaults.model) : defaults.model, apiKey: provider === 'gemini' ? (this.config.get<string>('GEMINI_API_KEY') || '') : '', features: {} };
