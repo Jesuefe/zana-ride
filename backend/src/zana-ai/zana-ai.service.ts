@@ -8,6 +8,7 @@ import { MarketsService } from '../markets/markets.service';
 
 type Location = { lat: number; lng: number; address?: string };
 type ChatTurn = { role: 'user' | 'model'; text: string };
+type AiProvider = 'gemini' | 'groq' | 'openrouter';
 type MarketDraft = {
   id: string; customerId: string; marketId: string; marketName: string;
   items: Array<{ ingredient: string; quantity: number; productId: string; productName: string; unitPrice: number }>;
@@ -19,6 +20,11 @@ type MarketDraft = {
 export class ZanaAiService {
   private readonly endpoint = 'https://generativelanguage.googleapis.com/v1beta/models';
   private readonly settingsEntity = { entityType: 'AI_SETTINGS', entityId: 'GEMINI', action: 'ZANA_AI_SETTINGS_UPDATED' };
+  private readonly providerDefaults: Record<AiProvider, { model: string; baseUrl: string }> = {
+    gemini: { model: 'gemini-3.8-flash', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/models' },
+    groq: { model: 'openai/gpt-oss-120b', baseUrl: 'https://api.groq.com/openai/v1' },
+    openrouter: { model: 'openrouter/free', baseUrl: 'https://openrouter.ai/api/v1' },
+  };
 
   constructor(
     private readonly config: ConfigService,
@@ -39,46 +45,54 @@ export class ZanaAiService {
     return Buffer.concat([decipher.update(Buffer.from(cipherHex, 'hex')), decipher.final()]).toString('utf8');
   }
 
-  private async getProviderSettings() {
+  private async getProviderSettings(provider: AiProvider = 'gemini') {
+    const entityId = provider.toUpperCase();
     const row = await this.prisma.auditLog.findFirst({
-      where: this.settingsEntity,
+      where: { entityType: 'AI_SETTINGS', entityId, action: 'ZANA_AI_PROVIDER_UPDATED' },
       orderBy: { createdAt: 'desc' },
     });
     const stored = row?.afterJson ? JSON.parse(row.afterJson) : null;
-    if (stored) {
-      return {
-        enabled: stored.enabled !== false,
-        model: String(stored.model || 'gemini-3.8-flash'),
-        apiKey: stored.apiKeyEncrypted ? this.decrypt(stored.apiKeyEncrypted) : '',
-        features: stored.features || {},
-      };
+    const defaults = this.providerDefaults[provider];
+    if (stored) return { enabled: stored.enabled !== false, model: String(stored.model || defaults.model), apiKey: stored.apiKeyEncrypted ? this.decrypt(stored.apiKeyEncrypted) : '', features: stored.features || {} };
+    return { enabled: provider === 'gemini' && Boolean(this.config.get<string>('GEMINI_API_KEY')), model: provider === 'gemini' ? (this.config.get<string>('GEMINI_MODEL') || defaults.model) : defaults.model, apiKey: provider === 'gemini' ? (this.config.get<string>('GEMINI_API_KEY') || '') : '', features: {} };
+  }
+
+  private async getActiveProviders() {
+    const primary = (await this.getPrimaryProvider()) as AiProvider;
+    const order: AiProvider[] = [primary, 'groq', 'openrouter', 'gemini'];
+    const out: Array<{ provider: AiProvider; model: string; apiKey: string }> = [];
+    for (const provider of order) {
+      if (out.some(x => x.provider === provider)) continue;
+      const settings = await this.getProviderSettings(provider);
+      if (settings.enabled && settings.apiKey) out.push({ provider, model: settings.model, apiKey: settings.apiKey });
     }
-    return {
-      enabled: Boolean(this.config.get<string>('GEMINI_API_KEY')),
-      model: this.config.get<string>('GEMINI_MODEL') || 'gemini-3.8-flash',
-      apiKey: this.config.get<string>('GEMINI_API_KEY') || '',
-      features: {},
-    };
+    return out;
+  }
+
+  private async getPrimaryProvider(): Promise<AiProvider> {
+    const row = await this.prisma.auditLog.findFirst({ where: { entityType: 'AI_SETTINGS', entityId: 'PRIMARY', action: 'ZANA_AI_PRIMARY_UPDATED' }, orderBy: { createdAt: 'desc' } });
+    const provider = row?.afterJson ? JSON.parse(row.afterJson)?.provider : null;
+    return provider === 'groq' || provider === 'openrouter' || provider === 'gemini' ? provider : 'gemini';
   }
 
   async testConnection() {
-    const settings = await this.getProviderSettings();
-    if (!settings.apiKey) throw new ServiceUnavailableException('ZANA_AI_NOT_CONFIGURED');
-    const response = await this.generate({
-      contents: [{ role: 'user', parts: [{ text: 'Reply with exactly: Zana AI connection OK' }] }],
-    }, settings.apiKey, settings.model);
+    const providers = await this.getActiveProviders();
+    if (!providers.length) throw new ServiceUnavailableException('ZANA_AI_NOT_CONFIGURED');
+    const selected = providers[0];
+    const response = await this.generate({ contents: [{ role: 'user', parts: [{ text: 'Reply with exactly: Zana AI connection OK' }] }] }, selected.provider, selected.apiKey, selected.model);
     return {
       ok: true,
-      model: settings.model,
+      provider: selected.provider,
+      model: selected.model,
       response: this.extractText(response) || 'Zana AI connection OK',
     };
   }
 
   async chat(customerId: string, message: string, history: ChatTurn[] = [], location?: Location) {
     if (!message?.trim()) throw new BadRequestException('MESSAGE_REQUIRED');
-    const settings = await this.getProviderSettings();
-    if (!settings.enabled || !settings.apiKey) throw new ServiceUnavailableException('ZANA_AI_NOT_CONFIGURED');
-    if (settings.features.customerChat === false) throw new ServiceUnavailableException('ZANA_AI_CUSTOMER_CHAT_DISABLED');
+    const providers = await this.getActiveProviders();
+    if (!providers.length) throw new ServiceUnavailableException('ZANA_AI_NOT_CONFIGURED');
+    if ((await this.getProviderSettings(providers[0].provider)).features.customerChat === false) throw new ServiceUnavailableException('ZANA_AI_CUSTOMER_CHAT_DISABLED');
 
     const contents = [
       ...history.slice(-12).map(turn => ({ role: turn.role, parts: [{ text: turn.text }] })),
@@ -128,7 +142,8 @@ export class ZanaAiService {
       }],
     };
 
-    const first = await this.generate({ contents, tools, systemInstruction }, settings.apiKey, settings.model);
+    const firstResult = await this.generateWithFallback({ contents, tools, systemInstruction }, providers);
+    const first = firstResult.response;
     const functionCall = first?.candidates?.[0]?.content?.parts?.find((part: any) => part.functionCall)?.functionCall;
 
     if (!functionCall) {
@@ -153,41 +168,62 @@ export class ZanaAiService {
       }}]},
     ];
 
-    const final = await this.generate({ contents: followupContents, tools, systemInstruction }, settings.apiKey, settings.model);
+    const finalResult = await this.generateWithFallback({ contents: followupContents, tools, systemInstruction }, providers);
+    const final = finalResult.response;
     return {
       text: this.extractText(final) ?? this.fallbackToolText(toolResult),
       action: toolResult?.action ?? null,
     };
   }
 
-  private async generate(body: any, apiKey: string, model: string) {
-    const models = [model, 'gemini-3.7-flash'].filter((value, index, list) => value && list.indexOf(value) === index);
-    let lastStatus = 503;
-    let lastDetail = '';
+  private async generateWithFallback(body: any, providers: Array<{ provider: AiProvider; model: string; apiKey: string }>) {
+    let last: any = null;
+    for (const provider of providers) {
+      try { return { provider: provider.provider, response: await this.generate(body, provider.provider, provider.apiKey, provider.model) }; }
+      catch (error) { last = error; console.error('[ZANA AI] provider failed', provider.provider, error?.message || error); }
+    }
+    throw last || new ServiceUnavailableException('ZANA_AI_PROVIDER_ERROR');
+  }
 
-    for (const candidate of models) {
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        const response = await fetch(`${this.endpoint}/${candidate}:generateContent`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-          body: JSON.stringify(body),
-        });
-        if (response.ok) return response.json();
-
-        const detail = await response.text();
-        lastStatus = response.status;
-        lastDetail = detail;
-        console.error('[ZANA AI] Gemini error', response.status, candidate, detail);
-
-        // Gemini can temporarily return 503 during capacity spikes. Retry briefly,
-        // then move to the stable 3.7 Flash fallback before failing the customer request.
-        if (response.status !== 429 && response.status !== 503) break;
-        if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 700));
+  private async generate(body: any, provider: AiProvider, apiKey: string, model: string) {
+    if (provider === 'gemini') {
+      const models = [model, 'gemini-3.7-flash'].filter((value, index, list) => value && list.indexOf(value) === index);
+      let lastStatus = 503;
+      let lastDetail = '';
+      for (const candidate of models) {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          const response = await fetch(`${this.endpoint}/${candidate}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(body) });
+          if (response.ok) return response.json();
+          const detail = await response.text(); lastStatus = response.status; lastDetail = detail;
+          console.error('[ZANA AI] Gemini error', response.status, candidate, detail);
+          if (response.status !== 429 && response.status !== 503) break;
+          if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 700));
+        }
       }
+      throw new ServiceUnavailableException(`ZANA_AI_GEMINI_${lastStatus}`);
     }
 
-    console.error('[ZANA AI] Gemini provider unavailable', lastStatus, lastDetail);
-    throw new ServiceUnavailableException('ZANA_AI_PROVIDER_ERROR');
+    const messages: any[] = [];
+    if (body.systemInstruction?.parts?.length) messages.push({ role: 'system', content: body.systemInstruction.parts.map((p: any) => p.text || '').join('') });
+    for (const item of body.contents || []) {
+      if (item.role === 'user' && item.parts?.some((p: any) => p.functionResponse)) {
+        for (const part of item.parts.filter((p: any) => p.functionResponse)) messages.push({ role: 'tool', tool_call_id: part.functionResponse.id || part.functionResponse.name, content: JSON.stringify(part.functionResponse.response?.result ?? part.functionResponse.response) });
+        continue;
+      }
+      const toolCalls = item.parts?.filter((p: any) => p.functionCall).map((p: any) => ({ id: p.functionCall.id || `${p.functionCall.name}-${messages.length}`, type: 'function', function: { name: p.functionCall.name, arguments: JSON.stringify(p.functionCall.args || {}) } }));
+      const text = item.parts?.filter((p: any) => typeof p.text === 'string').map((p: any) => p.text).join('');
+      messages.push({ role: item.role === 'model' ? 'assistant' : 'user', content: text || null, ...(toolCalls?.length ? { tool_calls: toolCalls } : {}) });
+    }
+    const tools = (body.tools?.[0]?.functionDeclarations || []).map((fn: any) => ({ type: 'function', function: fn }));
+    const base = provider === 'groq' ? 'https://api.groq.com/openai/v1' : 'https://openrouter.ai/api/v1';
+    const response = await fetch(`${base}/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}`, ...(provider === 'openrouter' ? { 'HTTP-Referer': 'https://zana-ride.pages.dev', 'X-Title': 'Zana Ride' } : {}) }, body: JSON.stringify({ model, messages, ...(tools.length ? { tools, tool_choice: 'auto' } : {}) }) });
+    if (!response.ok) { const detail = await response.text(); console.error(`[ZANA AI] ${provider} error`, response.status, detail); throw new ServiceUnavailableException(`ZANA_AI_${provider.toUpperCase()}_${response.status}`); }
+    const data = await response.json();
+    const msg = data?.choices?.[0]?.message;
+    const parts: any[] = [];
+    if (msg?.content) parts.push({ text: msg.content });
+    for (const call of msg?.tool_calls || []) parts.push({ functionCall: { name: call.function?.name, args: JSON.parse(call.function?.arguments || '{}'), id: call.id } });
+    return { candidates: [{ content: { role: 'model', parts } }] };
   }
 
   private extractText(response: any): string | null {

@@ -135,20 +135,16 @@ export async function setCustomerTestLocation(id: string, lat: number | null, ln
 export async function clearAllTestLocations() { return api.post<any>('/admin/test-locations/clear-all'); }
 
 
+export type ZanaAiProvider = 'gemini' | 'groq' | 'openrouter';
+export type ZanaAiProviderSettings = { enabled:boolean; model:string; configured:boolean; apiKeyHint?:string|null; features: ZanaAiSettings['features']; updatedAt?:string|null };
 export type ZanaAiSettings = {
   enabled: boolean;
-  provider: 'gemini';
+  provider: ZanaAiProvider;
   model: string;
   configured: boolean;
   apiKeyHint?: string | null;
-  features: {
-    customerChat: boolean;
-    rideBooking: boolean;
-    foodOrdering: boolean;
-    marketShopping: boolean;
-    deliveryBooking: boolean;
-    placeDiscovery: boolean;
-  };
+  features: { customerChat:boolean; rideBooking:boolean; foodOrdering:boolean; marketShopping:boolean; deliveryBooking:boolean; placeDiscovery:boolean };
+  providers: Record<ZanaAiProvider, ZanaAiProviderSettings>;
   updatedAt?: string | null;
 };
 
@@ -157,6 +153,7 @@ export async function getAiSettings() {
 }
 
 export async function saveAiSettings(data: {
+  provider: ZanaAiProvider;
   enabled: boolean;
   model: string;
   apiKey?: string;
@@ -167,5 +164,5 @@ export async function saveAiSettings(data: {
 }
 
 export async function testAiConnection() {
-  return api.post<{ ok: boolean; model?: string; response?: string }>('/admin/settings/ai/test');
+  return api.post<{ ok: boolean; provider?: ZanaAiProvider; model?: string; response?: string }>('/admin/settings/ai/test');
 }
