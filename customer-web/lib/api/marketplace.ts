@@ -62,6 +62,21 @@ export async function fetchMarkets(lat?: number, lng?: number) {
   return api.get<Market[]>(`/markets${q}`);
 }
 
+export async function quoteMarketOrder(data: {
+  marketId: string;
+  items: { productId: string; quantity: number }[];
+  dropoffLat: number;
+  dropoffLng: number;
+}) {
+  return api.post<{
+    market: { id: string; name: string; address: string; lat: number; lng: number };
+    distanceKm: number;
+    itemsSubtotal: number;
+    deliveryFee: number;
+    total: number;
+  }>(`/markets/${data.marketId}/quote`, data);
+}
+
 export async function fetchMarket(id: string) {
   return api.get<any>(`/markets/${id}`);
 }
