@@ -152,3 +152,6 @@ export async function clearAllCustomerTestLocations() {
 export async function clearAllTestLocations() {
   return api.post('/admin/test-locations/clear-all', {});
 }
+
+export async function getMyProfile() { return api.get<any>('/users/me'); }
+export async function updateMyPhoto(photoDataUrl: string) { return api.post<any>('/users/me/photo', { photoDataUrl }); }

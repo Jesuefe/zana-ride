@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import AdminShell from '../../../components/AdminShell';
+import AdminProfilePhoto from '../../../components/AdminProfilePhoto';
 import { api } from '../../../lib/api/client';
 import { CheckCircle2, CreditCard, Eye, EyeOff, RefreshCw, Save, ShieldCheck, Wifi } from 'lucide-react';
 
@@ -74,6 +75,7 @@ export default function SettingsPage() {
   return (
     <AdminShell>
       <div className="max-w-3xl">
+        <AdminProfilePhoto />
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
           <p className="text-sm text-gray-500 mt-1">Configure Zana's external payment rail without editing the server environment.</p>
