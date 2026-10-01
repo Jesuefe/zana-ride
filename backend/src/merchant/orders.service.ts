@@ -104,23 +104,26 @@ export class OrdersService {
     let originLat: number | null = null;
     let originLng: number | null = null;
     let sellerName: string | undefined;
+    let prepMinutes = 20;
 
     if (data.marketId) {
       const market = await this.prisma.market.findUnique({
         where: { id: data.marketId },
-        select: { lat: true, lng: true, name: true },
+        select: { lat: true, lng: true, name: true, prepMinutes: true },
       });
       originLat = market?.lat ?? null;
       originLng = market?.lng ?? null;
       sellerName = market?.name;
+      prepMinutes = (market as any)?.prepMinutes ?? 20;
     } else {
       const merchantRecord = await this.prisma.merchant.findUnique({
         where: { id: data.merchantId! },
-        select: { businessLat: true, businessLng: true, businessName: true },
+        select: { businessLat: true, businessLng: true, businessName: true, prepMinutes: true },
       });
       originLat = merchantRecord?.businessLat ?? null;
       originLng = merchantRecord?.businessLng ?? null;
       sellerName = merchantRecord?.businessName;
+      prepMinutes = merchantRecord?.prepMinutes ?? 20;
     }
 
     let distKm = 3; // fallback when the seller hasn't set a location yet
@@ -158,6 +161,7 @@ export class OrdersService {
         total: grandTotal,
         deliveryFee,
         status: OrderStatus.PENDING,
+        prepMinutes,
         paymentMethod,
         trackingCode,
         dropoffAddress: data.dropoffAddress,
@@ -313,9 +317,18 @@ export class OrdersService {
   async findForMerchant(merchantId: string) {
     return this.prisma.order.findMany({
       where: { merchantId },
-      include: { items: { include: { product: true } }, customer: true },
+      include: { items: { include: { product: true } }, customer: true, merchant: { select: { businessName: true, prepMinutes: true, deliveryMinutes: true } } },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async findForMerchantById(merchantId: string, id: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id, merchantId },
+      include: { items: { include: { product: true } }, customer: true, merchant: { select: { businessName: true, prepMinutes: true, deliveryMinutes: true } } },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    return order;
   }
 
   async findById(id: string) {
@@ -451,7 +464,15 @@ export class OrdersService {
         : 3; // default 3km if no merchant location set
       const deliveryFee = calcDeliveryFee(distKm);
       const distanceText = distKm < 1 ? `${Math.round(distKm * 1000)}m` : `${distKm.toFixed(1)}km`;
-      return { ...m, deliveryFee, distanceText, distKm: Math.round(distKm * 10) / 10 };
+      return {
+        ...m,
+        deliveryFee,
+        distanceText,
+        distKm: Math.round(distKm * 10) / 10,
+        prepMinutes: m.prepMinutes ?? 20,
+        deliveryMinutes: m.deliveryMinutes ?? 25,
+        etaMinutes: (m.prepMinutes ?? 20) + (m.deliveryMinutes ?? 25),
+      };
     });
   }
 

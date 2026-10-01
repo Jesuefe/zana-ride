@@ -199,16 +199,16 @@ export default function OverviewPage() {
 
       {/* Order history */}
       <button
-        onClick={() => router.push('/earnings')}
+        onClick={() => router.push('/history')}
         className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3.5 shadow-sm mb-4"
       >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-zana-primary-light flex items-center justify-center">
             <TrendingUp size={16} className="text-zana-primary" />
           </div>
-          <span className="text-sm font-bold text-gray-900">Earnings &amp; settlements</span>
+          <span className="text-sm font-bold text-gray-900">Order history</span>
         </div>
-        <span className="text-xs font-bold text-zana-primary">{t("View earnings")}</span>
+        <span className="text-xs font-bold text-zana-primary">{t("View order history")}</span>
       </button>
 
 
@@ -256,7 +256,7 @@ export default function OverviewPage() {
         {/* Customer-facing timing settings */}
         <div className="bg-white rounded-2xl p-4 shadow-sm mb-5">
           <p className="text-sm font-bold text-gray-900">Order timing</p>
-          <p className="text-xs text-gray-500 mt-1">Customers see these times when choosing your shop.</p>
+          <p className="text-xs text-gray-500 mt-1">Set realistic preparation and delivery times. Customers see the combined estimate before ordering.</p>
           <div className="grid grid-cols-2 gap-2 mt-3">
             <label className="text-xs text-gray-500">Preparation (min)
               <input value={prepMinutes} onChange={e => setPrepMinutes(e.target.value.replace(/\D/g, ''))} inputMode="numeric" className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900" />
@@ -265,6 +265,7 @@ export default function OverviewPage() {
               <input value={deliveryMinutes} onChange={e => setDeliveryMinutes(e.target.value.replace(/\D/g, ''))} inputMode="numeric" className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900" />
             </label>
           </div>
+          <p className="text-[11px] text-gray-400 mt-2">Customer estimate: {Number(prepMinutes || 0) + Number(deliveryMinutes || 0) || 0} minutes</p>
           <button onClick={saveTimings} disabled={savingTiming} className="mt-3 w-full bg-zana-primary text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
             {savingTiming ? 'Saving…' : 'Save timing'}
           </button>

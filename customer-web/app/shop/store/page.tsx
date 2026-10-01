@@ -183,6 +183,10 @@ function StoreContent() {
               {t('Delivery from')} {merchant.deliveryFee.toLocaleString()} RWF
             </span>
           </div>
+          <div className="mt-3 rounded-xl bg-zana-primary-light px-3 py-2.5">
+            <p className="text-xs font-bold text-zana-primary">Estimated arrival: {merchant.prepMinutes + merchant.deliveryMinutes} min</p>
+            <p className="text-[10px] text-gray-500 mt-0.5">Preparation {merchant.prepMinutes} min · delivery {merchant.deliveryMinutes} min</p>
+          </div>
         </div>
       </div>
 

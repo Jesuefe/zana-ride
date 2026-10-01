@@ -16,11 +16,11 @@ export default function WalletPage() { const {t}=useLang();
   const [error, setError] = useState('');
 
   const load = () => fetchWallet().then(setWallet).catch(() => {}).finally(() => setLoading(false));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); const timer = window.setInterval(load, 15000); return () => window.clearInterval(timer); }, []);
 
   const handleWithdraw = async () => {
     const amt = Number(amount);
-    if (!amt || amt < 1000) { setError(t('Minimum withdrawal is 1,000 RWF')); return; }
+    if (!Number.isInteger(amt) || amt < 1000) { setError(t('Minimum withdrawal is 1,000 RWF')); return; }
     if (amt > (wallet?.balance ?? 0)) { setError(t('Insufficient balance')); return; }
     
     setWithdrawing(true); setError('');
@@ -41,7 +41,7 @@ export default function WalletPage() { const {t}=useLang();
         <div className="bg-zana-primary-dark text-white rounded-2xl p-6">
           <p className="text-white/60 text-sm">{t('Available balance')}</p>
           <p className="text-4xl font-black mt-1">{loading ? '…' : (wallet?.balance ?? 0).toLocaleString()} RWF</p>
-          <button onClick={() => setShowWithdraw(true)} className="mt-4 flex items-center gap-2 bg-zana-secondary text-gray-900 font-bold text-sm px-5 py-2.5 rounded-xl"><ArrowUpRight size={16} /> Withdraw to MoMo</button>
+          <button disabled={loading || (wallet?.balance ?? 0) < 1000} onClick={() => { setError(''); setShowWithdraw(true); }} className="mt-4 flex items-center gap-2 bg-zana-secondary text-gray-900 font-bold text-sm px-5 py-2.5 rounded-xl"><ArrowUpRight size={16} /> Withdraw to MoMo</button>
         </div>
         {success && <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2 text-green-800 text-sm"><Check size={15} /> {success}</div>}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -49,9 +49,18 @@ export default function WalletPage() { const {t}=useLang();
           {!wallet?.transactions?.length ? <p className="text-sm text-gray-400 text-center py-8">{t('No transactions yet.')}</p> :
             <div className="divide-y divide-gray-50">{wallet.transactions.map((t: any) => (
               <div key={t.id} className="flex items-center gap-3 px-5 py-3">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${t.amount > 0 ? 'bg-green-100' : 'bg-red-50'}`}>{t.amount > 0 ? <ArrowDownLeft size={16} className="text-green-600" /> : <ArrowUpRight size={16} className="text-red-500" />}</div>
-                <div className="flex-1"><p className="text-sm font-semibold text-gray-900">{t.description ?? (t.amount > 0 ? 'Credit' : 'Withdrawal')}</p><p className="text-xs text-gray-400">{new Date(t.createdAt).toLocaleDateString()}</p></div>
-                <p className={`font-bold text-sm ${t.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>{t.amount > 0 ? '+' : ''}{t.amount?.toLocaleString()} RWF</p>
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${t.amount > 0 ? 'bg-green-100' : 'bg-red-50'}`}>
+                  {t.amount > 0 ? <ArrowDownLeft size={16} className="text-green-600" /> : <ArrowUpRight size={16} className="text-red-500" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">{t.description ?? (t.amount > 0 ? 'Credit' : 'Withdrawal')}</p>
+                  <p className="text-xs text-gray-400">{new Date(t.createdAt).toLocaleString()} · Balance after {Number(t.balanceAfter ?? 0).toLocaleString()} RWF</p>
+                  {t.reference && <p className="text-[10px] text-gray-300 truncate">Ref: {t.reference}</p>}
+                </div>
+                <div className="text-right shrink-0">
+                  <p className={`font-bold text-sm ${t.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>{t.amount > 0 ? '+' : ''}{t.amount?.toLocaleString()} RWF</p>
+                  <span className={`inline-block mt-1 text-[9px] font-bold px-2 py-0.5 rounded-full ${t.status === 'COMPLETED' ? 'bg-green-50 text-green-700' : t.status === 'FAILED' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}`}>{t.status}</span>
+                </div>
               </div>
             ))}</div>}
         </div>

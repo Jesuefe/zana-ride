@@ -3,7 +3,7 @@ import { useLang } from '../../lib/LangContext';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, TrendingUp, Package } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Package, ChevronRight } from 'lucide-react';
 import { api } from '../../lib/api/client';
 
 type Stats = {
@@ -108,7 +108,7 @@ export default function MerchantHistoryPage() {
 
       <div className="space-y-2">
         {visible.map(o => (
-          <div key={o.id} className="bg-white rounded-2xl p-4 shadow-sm">
+          <button key={o.id} onClick={() => router.push(`/orders?orderId=${encodeURIComponent(o.id)}`)} className="w-full text-left bg-white rounded-2xl p-4 shadow-sm active:scale-[0.99] transition-transform">
             <div className="flex items-start justify-between mb-2">
               <div>
                 {o.trackingCode && (
@@ -138,7 +138,7 @@ export default function MerchantHistoryPage() {
                 {((o.total ?? 0) - (o.deliveryFee ?? 0)).toLocaleString()} RWF
               </span>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

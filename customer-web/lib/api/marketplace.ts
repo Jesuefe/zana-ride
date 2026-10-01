@@ -9,7 +9,7 @@ export type MarketplaceProduct = {
 export type MarketplaceMerchant = {
   id: string; businessName: string; branch?: string;
   businessAddress?: string; businessLat?: number; businessLng?: number;
-  deliveryFee: number; distanceText: string; distKm: number;
+  deliveryFee: number; distanceText: string; distKm: number; prepMinutes: number; deliveryMinutes: number;
   products: MarketplaceProduct[];
 };
 

@@ -132,6 +132,12 @@ export class MerchantOrdersController {
   }
 
 
+  @Get(':id')
+  async findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const merchant = await this.merchantService.findByUserId(user.sub);
+    return this.ordersService.findForMerchantById(merchant.id, id);
+  }
+
   @Get('history')
   async history(@CurrentUser() user: JwtPayload) {
     const merchant = await this.merchantService.findByUserId(user.sub);

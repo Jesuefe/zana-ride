@@ -40,7 +40,7 @@ export async function updateMerchantTimings(prepMinutes: number, deliveryMinutes
 export async function fetchWallet() {
   return api.get<{
     balance: number;
-    transactions: { id: string; amount: number; reference: string | null; createdAt: string }[];
+    transactions: { id: string; amount: number; balanceBefore: number; balanceAfter: number; reference: string | null; description: string | null; providerRef: string | null; status: 'PENDING' | 'COMPLETED' | 'FAILED'; createdAt: string }[];
   }>('/wallet/me');
 }
 
@@ -122,7 +122,7 @@ export type ApiMerchant = MerchantProfile;
 export type ApiDelivery = Delivery;
 export type ApiWallet = {
   balance: number;
-  transactions: { id: string; amount: number; reference: string | null; createdAt: string }[];
+  transactions: { id: string; amount: number; balanceBefore: number; balanceAfter: number; reference: string | null; description: string | null; providerRef: string | null; status: 'PENDING' | 'COMPLETED' | 'FAILED'; createdAt: string }[];
 };
 
 export type Product = {

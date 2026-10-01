@@ -239,9 +239,32 @@ export class WalletService {
   }
 
   async withdraw(userId: string, amount: number) {
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw new BadRequestException('INVALID_WITHDRAWAL_AMOUNT');
+    }
+    if (amount < WalletService.EVERSEND_MIN_WITHDRAWAL) {
+      throw new BadRequestException(`MIN_WITHDRAWAL:${WalletService.EVERSEND_MIN_WITHDRAWAL}`);
+    }
+
     const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
     if (!wallet) throw new NotFoundException('Wallet not found');
     if (wallet.balance < amount) throw new BadRequestException('Insufficient balance');
+
+    // Protect against double taps/retries that reach the API twice within a
+    // short window. The ledger row is still the source of truth; this guard
+    // only prevents an accidental duplicate payout request.
+    const recent = await this.prisma.walletTransaction.findFirst({
+      where: {
+        walletId: wallet.id,
+        amount: -amount,
+        status: WalletTransactionStatus.PENDING,
+        createdAt: { gte: new Date(Date.now() - 30_000) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (recent) {
+      return { success: true, ref: recent.providerRef, status: 'PENDING', rail: 'EVERSEND', duplicate: true };
+    }
 
     // Always the account's own registered number — this is what
     // actually closes the gap: previously any destination number sent
@@ -255,12 +278,6 @@ export class WalletService {
     // case. It is NOT what protects against overdraft — the atomic
     // conditional decrement further down is what actually guards that,
     // because this read can be stale by the time we act on it.
-
-    if (amount < WalletService.EVERSEND_MIN_WITHDRAWAL) {
-      throw new BadRequestException(
-        `MIN_WITHDRAWAL:${WalletService.EVERSEND_MIN_WITHDRAWAL}`,
-      );
-    }
 
     const balanceBefore = wallet.balance;
 

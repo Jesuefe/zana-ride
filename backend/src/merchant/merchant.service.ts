@@ -114,13 +114,14 @@ export class MerchantService {
     const merchant = await this.findByUserId(userId);
     const data: any = {};
     if (typeof prepMinutes === 'number') {
-      if (prepMinutes < 1 || prepMinutes > 240) throw new BadRequestException('PREP_MINUTES_OUT_OF_RANGE');
+      if (!Number.isInteger(prepMinutes) || prepMinutes < 1 || prepMinutes > 240) throw new BadRequestException('PREP_MINUTES_OUT_OF_RANGE');
       data.prepMinutes = prepMinutes;
     }
     if (typeof deliveryMinutes === 'number') {
-      if (deliveryMinutes < 1 || deliveryMinutes > 240) throw new BadRequestException('DELIVERY_MINUTES_OUT_OF_RANGE');
+      if (!Number.isInteger(deliveryMinutes) || deliveryMinutes < 1 || deliveryMinutes > 240) throw new BadRequestException('DELIVERY_MINUTES_OUT_OF_RANGE');
       data.deliveryMinutes = deliveryMinutes;
     }
+    if (Object.keys(data).length === 0) throw new BadRequestException('TIMING_REQUIRED');
     return this.prisma.merchant.update({ where: { id: merchant.id }, data });
   }
 

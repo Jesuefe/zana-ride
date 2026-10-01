@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { fetchMyOrders, updateOrderStatus, fetchMerchantEarnings, MerchantEarnings } from '../../lib/api/merchant';
 import { Package, ChevronRight, Truck } from 'lucide-react';
 import { useLang } from '../../lib/LangContext';
@@ -33,6 +34,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function OrdersPage() { const {t}=useLang();
+  const searchParams = useSearchParams();
+  const highlightedOrderId = searchParams.get('orderId');
   const [orders, setOrders] = useState<any[]>([]);
   const [advancing, setAdvancing] = useState<string | null>(null);
   const [filter, setFilter] = useState('active');
@@ -58,6 +61,7 @@ export default function OrdersPage() { const {t}=useLang();
   };
 
   const filtered = orders.filter(o => {
+    if (highlightedOrderId) return o.id === highlightedOrderId;
     if (filter === 'active') return !['DELIVERED','CANCELLED'].includes(o.status);
     if (filter === 'done') return ['DELIVERED','CANCELLED'].includes(o.status);
     return true;
@@ -79,8 +83,16 @@ export default function OrdersPage() { const {t}=useLang();
 
       {error && <div className="mb-3 rounded-xl bg-red-50 border border-red-100 px-3 py-2 text-xs text-red-700">{error}</div>}
 
+      <div className="flex items-center justify-between mb-3">
+        {highlightedOrderId ? <button onClick={() => window.history.back()} className="text-xs font-bold text-zana-primary">← All orders</button> : <span />}
+      </div>
+
       <div className="space-y-3">
-        {filtered.length === 0 && (
+        {highlightedOrderId && filtered.length === 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">This order is no longer available in your merchant account.</div>
+        )}
+
+        {!highlightedOrderId && filtered.length === 0 && (
           <div className="bg-white rounded-2xl p-10 text-center shadow-sm">
             <Package size={32} className="text-gray-200 mx-auto mb-2" />
             <p className="text-sm text-gray-400">{t('No orders here')}</p>
@@ -114,6 +126,13 @@ export default function OrdersPage() { const {t}=useLang();
                     {t(STATUS_LABEL[o.status] ?? o.status)}
                   </span>
                 </div>
+
+                {o.prepMinutes && o.merchant?.deliveryMinutes && (
+                  <div className="rounded-xl bg-zana-primary-light px-3 py-2 mb-3">
+                    <p className="text-[11px] font-bold text-zana-primary">Customer timing: {o.prepMinutes + o.merchant.deliveryMinutes} min</p>
+                    <p className="text-[10px] text-gray-500">Preparation {o.prepMinutes} min · delivery {o.merchant.deliveryMinutes} min</p>
+                  </div>
+                )}
 
                 {/* Items */}
                 <div className="space-y-1 mb-3">
