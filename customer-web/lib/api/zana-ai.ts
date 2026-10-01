@@ -11,6 +11,9 @@ export type ZanaAiAction = {
   destinationAddress?: string;
   distanceKm?: number;
   durationMinutes?: number;
+  destinationLat?: number;
+  destinationLng?: number;
+  mapsUrl?: string;
   fare?: number;
   draftId?: string;
   marketId?: string;
