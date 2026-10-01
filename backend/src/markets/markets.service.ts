@@ -6,10 +6,11 @@ import { PushService } from '../push/push.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
 import { FinanceService } from '../finance/finance.service';
 
-// Market orders use the exact same delivery pricing engine as normal
-// marketplace deliveries: 500 RWF base + 150 RWF/km, min 500, max 3000.
+// Market delivery is a distinct service from passenger rides.
+// Customer-facing prices have a 1,500 RWF minimum and 500-RWF steps.
 function calcDeliveryFee(distKm: number): number {
-  return Math.min(3000, Math.max(500, Math.round(500 + distKm * 150)));
+  const raw = 1000 + Math.max(0, distKm) * 250;
+  return Math.min(6000, Math.max(1500, Math.round(raw / 500) * 500));
 }
 
 @Injectable()
@@ -45,6 +46,47 @@ export class MarketsService {
         etaMinutes: m.prepMinutes + Math.round(distKm * 4),
       };
     });
+  }
+
+  async quoteOrder(
+    marketId: string,
+    dropoffLat: number,
+    dropoffLng: number,
+    items: { productId: string; quantity: number }[],
+  ) {
+    if (!Number.isFinite(dropoffLat) || !Number.isFinite(dropoffLng)) {
+      throw new BadRequestException('MARKET_DROPOFF_LOCATION_REQUIRED');
+    }
+    if (!items?.length) throw new BadRequestException('MARKET_ORDER_ITEMS_REQUIRED');
+
+    const market = await this.prisma.market.findUnique({
+      where: { id: marketId },
+      select: { id: true, name: true, address: true, lat: true, lng: true, active: true },
+    });
+    if (!market || !market.active) throw new NotFoundException('Market not found');
+
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: items.map(i => i.productId) }, marketId, status: 'APPROVED', available: true },
+      select: { id: true, name: true, price: true },
+    });
+    if (products.length !== items.length) throw new BadRequestException('One or more products are unavailable');
+
+    const itemsSubtotal = items.reduce((sum, item) => {
+      const product = products.find(p => p.id === item.productId)!;
+      const quantity = Number(item.quantity);
+      if (!Number.isInteger(quantity) || quantity <= 0) throw new BadRequestException('INVALID_MARKET_ITEM_QUANTITY');
+      return sum + product.price * quantity;
+    }, 0);
+
+    const distanceKm = haversineKm(market.lat, market.lng, dropoffLat, dropoffLng);
+    const deliveryFee = calcDeliveryFee(distanceKm);
+    return {
+      market: { id: market.id, name: market.name, address: market.address, lat: market.lat, lng: market.lng },
+      distanceKm: Math.round(distanceKm * 10) / 10,
+      itemsSubtotal,
+      deliveryFee,
+      total: itemsSubtotal + deliveryFee,
+    };
   }
 
   async getMarketWithProducts(marketId: string) {
