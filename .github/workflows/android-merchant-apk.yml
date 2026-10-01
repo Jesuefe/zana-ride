@@ -1,6 +1,11 @@
 name: Build Zana Merchant APK
 
 on:
+  push:
+    paths:
+      - 'merchant/**'
+      - 'native/customer/**'
+      - '.github/workflows/android-merchant-apk.yml'
   workflow_dispatch:
     inputs:
       versionName:
@@ -59,11 +64,11 @@ jobs:
         run: |
           echo "$KEYSTORE" | base64 --decode > app/zana.jks
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon -PZANA_VERSION_CODE='${{ inputs.versionCode }}' -PZANA_VERSION_NAME='${{ inputs.versionName }}' -PZANA_KEYSTORE_FILE=zana.jks -PZANA_KEYSTORE_PASSWORD="$STORE_PASSWORD" -PZANA_KEY_ALIAS="$KEY_ALIAS" -PZANA_KEY_PASSWORD="$KEY_PASSWORD"
+          ./gradlew assembleRelease --no-daemon -PZANA_VERSION_CODE='${{ inputs.versionCode || '1' }}' -PZANA_VERSION_NAME='${{ inputs.versionName || '1.0.0' }}' -PZANA_KEYSTORE_FILE=zana.jks -PZANA_KEYSTORE_PASSWORD="$STORE_PASSWORD" -PZANA_KEY_ALIAS="$KEY_ALIAS" -PZANA_KEY_PASSWORD="$KEY_PASSWORD"
       - name: Collect APK
         run: |
           mkdir -p out
-          cp native/merchant/android/app/build/outputs/apk/release/app-release.apk out/zana-merchant-${{ inputs.versionName }}.apk
+          cp native/merchant/android/app/build/outputs/apk/release/app-release.apk out/zana-merchant-${{ inputs.versionName || '1.0.0' }}.apk
       - name: Remove signing key
         if: always()
         run: rm -f native/merchant/android/app/zana.jks
