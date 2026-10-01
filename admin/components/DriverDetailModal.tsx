@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { X, FileText, Star, Car, Check } from 'lucide-react';
+import { X, FileText, Star, Car, Check, ExternalLink, ZoomIn } from 'lucide-react';
 import { getDriverDetail, verifyDriverDocument } from '../lib/api/admin';
 
 export default function DriverDetailModal({ driverId, onClose }: { driverId: string; onClose: () => void }) {
@@ -67,10 +67,19 @@ export default function DriverDetailModal({ driverId, onClose }: { driverId: str
               {!d.documents?.length && <p className="text-xs text-gray-400">No documents uploaded.</p>}
               {d.documents?.map((doc: any) => (
                 <div key={doc.id} className="flex items-center gap-2 text-xs bg-gray-50 rounded-lg px-3 py-2">
-                  <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 flex-1 min-w-0 hover:underline">
-                    <FileText size={13} className="text-gray-400 shrink-0" />
-                    <span className="text-gray-700 truncate">{doc.label}</span>
-                  </a>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {doc.fileUrl ? (
+                      <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="relative shrink-0 group" title="Open full document">
+                        <img src={doc.fileUrl} alt={doc.label} className="w-16 h-12 rounded-md object-cover border border-gray-200" />
+                        <span className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/40 rounded-md"><ZoomIn size={15} className="text-white" /></span>
+                      </a>
+                    ) : <div className="w-16 h-12 rounded-md bg-gray-100 flex items-center justify-center"><FileText size={15} className="text-gray-400" /></div>}
+                    <div className="min-w-0">
+                      <p className="text-gray-700 truncate">{doc.label}</p>
+                      <p className="text-[10px] text-gray-400">{doc.fileUrl ? 'Image uploaded — review before verification' : 'No image uploaded'}</p>
+                    </div>
+                  </div>
+                  {doc.fileUrl && <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="p-1 text-gray-400 hover:text-zana-primary" title="Open full image"><ExternalLink size={13} /></a>}
                   <button
                     onClick={() => toggleVerify(doc.id, doc.verified)}
                     disabled={verifying === doc.id}

@@ -16,6 +16,7 @@ export default function DeliveriesPage() {
   const router = useRouter();
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [preview, setPreview] = useState<any | null>(null);
   useEffect(() => { getDeliveries().then(setDeliveries).catch(() => {}); }, []);
 
   // Client-side filter over the already-fetched page (100 rows, same
@@ -47,13 +48,20 @@ export default function DeliveriesPage() {
         <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b border-gray-100 text-left">
-              {['Item','From','Pickup','Dropoff','Fee','Status','Courier',''].map(h => <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}
+              {['Package','Item','From','Pickup','Dropoff','Fee','Status','Courier',''].map(h => <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}
             </tr></thead>
             <tbody>
               {filtered.map(d => (
                 <tr key={d.id}
                   onClick={() => d.trackingCode && router.push(`/dashboard/tracking?code=${d.trackingCode}`)}
                   className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer">
+                  <td className="px-4 py-3">
+                    {d.imageUrl ? (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setPreview(d); }} className="block group" title="View package photo">
+                        <img src={d.imageUrl} alt="Package" className="w-14 h-14 rounded-lg object-cover border border-gray-200 group-hover:opacity-80" />
+                      </button>
+                    ) : <div className="w-14 h-14 rounded-lg bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center text-[9px] text-gray-400">No photo</div>}
+                  </td>
                   <td className="px-4 py-3 font-medium">{d.itemDescription}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{d.customer?.firstName ?? d.merchant?.businessName ?? '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-600 max-w-32 truncate">{d.pickupAddress}</td>
@@ -72,6 +80,21 @@ export default function DeliveriesPage() {
           </table>
         </div>
       </div>
+      {preview?.imageUrl && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setPreview(null)}>
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="font-bold text-gray-900">Package photo</h2>
+                <p className="text-xs text-gray-500">{preview.itemDescription || 'Delivery package'} · {preview.trackingCode || ''}</p>
+              </div>
+              <button onClick={() => setPreview(null)} className="p-2 rounded-lg hover:bg-gray-100"><span className="text-xl">×</span></button>
+            </div>
+            <img src={preview.imageUrl} alt="Delivery package" className="w-full max-h-[70vh] object-contain rounded-xl bg-gray-50" />
+            <a href={preview.imageUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center text-xs font-semibold text-zana-primary hover:underline">Open original image</a>
+          </div>
+        </div>
+      )}
     </AdminShell>
   );
 }
