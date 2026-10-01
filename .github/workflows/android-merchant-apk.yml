@@ -73,8 +73,6 @@ jobs:
           rm -rf "$RES"/mipmap-anydpi "$RES"/mipmap-anydpi-v26
           find "$RES" -type f \( -name 'ic_launcher_foreground.*' -o -name 'ic_launcher_background.*' \) -delete
 
-          # GitHub runners do not guarantee Pillow/ImageMagick, so install the
-          # required image converter explicitly and use the portable convert command.
           sudo apt-get update
           sudo apt-get install -y imagemagick
           command -v convert
@@ -137,34 +135,13 @@ jobs:
           test "$COUNT" -ge 5
           test "$ROUND_COUNT" -ge 5
 
-          # Android's resource packager may optimize PNGs into WebP inside the
-          # APK, so checking for literal *.png ZIP entries is not reliable.
-          # Verify the compiled resource table instead.
           AAPT2="$(find "$ANDROID_HOME" -type f -name aapt2 -print -quit)"
           test -x "$AAPT2"
           echo "Compiled launcher resources:"
           "$AAPT2" dump resources "$APK" | grep -E 'ic_launcher(_round)?' | head -n 30
 
           RESOURCE_DUMP="$("$AAPT2" dump resources "$APK")"
-          echo "$RESOURCE_DUMP" | grep -Eq 'mipmap/ic_launcher(_round)?
-
-      - name: Collect APK
-        run: |
-          set -euo pipefail
-          mkdir -p out
-          cp native/merchant/android/app/build/outputs/apk/release/app-release.apk "out/zana-merchant-${{ inputs.versionName || '1.0.2' }}.apk"
-
-      - name: Remove signing key
-        if: always()
-        run: rm -f native/merchant/android/app/zana.jks
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: zana-merchant-apk
-          path: out/*.apk
-          retention-days: 30
-
+          echo "$RESOURCE_DUMP" | grep -Eq 'mipmap/ic_launcher(_round)?$'
           echo "Merchant launcher icon verification passed."
 
       - name: Collect APK
