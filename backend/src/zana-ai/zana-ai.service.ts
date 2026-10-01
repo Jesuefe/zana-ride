@@ -250,6 +250,18 @@ export class ZanaAiService {
       }],
     };
 
+    // A confirmation is a transactional command, not a new AI decision.
+    // If a live ride draft exists, book that exact quoted ride directly so the
+    // model cannot silently switch CAR/MOTO while processing "confirm".
+    const confirmation = /^(yes|confirm|confirmed|book it|book|do it|go ahead|proceed|confirm the ride)[.!\\s]*$/i.test(message.trim());
+    if (confirmation) {
+      const draftId = await this.redis.get(`zana-ai:ride-draft:latest:${customerId}`);
+      if (draftId) {
+        const booked = await this.bookRide(customerId);
+        return { text: booked.message, action: booked.action ?? null };
+      }
+    }
+
     const firstResult = await this.generateWithFallback({ contents, tools, systemInstruction }, providers);
     const first = firstResult.response;
     const functionCall = first?.candidates?.[0]?.content?.parts?.find((part: any) => part.functionCall)?.functionCall;
