@@ -3,7 +3,15 @@ import { api } from './client';
 export type ZanaAiLocation = { lat: number; lng: number; address?: string };
 
 export type ZanaAiAction = {
-  type: 'MARKET_DRAFT' | string;
+  type: 'MARKET_DRAFT' | 'RIDE_QUOTE' | 'RIDE_BOOKED' | string;
+  serviceType?: string;
+  tripId?: string;
+  status?: string;
+  pickupAddress?: string;
+  destinationAddress?: string;
+  distanceKm?: number;
+  durationMinutes?: number;
+  fare?: number;
   draftId?: string;
   marketId?: string;
   marketName?: string;
