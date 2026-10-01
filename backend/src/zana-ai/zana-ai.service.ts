@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createDecipheriv, createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { OrdersService } from '../merchant/orders.service';
@@ -16,9 +17,8 @@ type MarketDraft = {
 
 @Injectable()
 export class ZanaAiService {
-  private readonly apiKey: string;
-  private readonly model: string;
   private readonly endpoint = 'https://generativelanguage.googleapis.com/v1beta/models';
+  private readonly settingsEntity = { entityType: 'AI_SETTINGS', entityId: 'GEMINI', action: 'ZANA_AI_SETTINGS_UPDATED' };
 
   constructor(
     private readonly config: ConfigService,
@@ -26,14 +26,59 @@ export class ZanaAiService {
     private readonly redis: RedisService,
     private readonly orders: OrdersService,
     private readonly markets: MarketsService,
-  ) {
-    this.apiKey = this.config.get<string>('GEMINI_API_KEY') ?? '';
-    this.model = this.config.get<string>('GEMINI_MODEL') ?? 'gemini-3.6-flash';
+  ) {}
+
+  private decrypt(value: string) {
+    const master = this.config.get<string>('SETTINGS_ENCRYPTION_KEY') || this.config.get<string>('JWT_SECRET');
+    if (!master) throw new ServiceUnavailableException('SETTINGS_ENCRYPTION_KEY_NOT_CONFIGURED');
+    const [ivHex, tagHex, cipherHex] = value.split(':');
+    if (!ivHex || !tagHex || !cipherHex) throw new ServiceUnavailableException('INVALID_AI_SECRET');
+    const key = createHash('sha256').update(master).digest();
+    const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+    decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+    return Buffer.concat([decipher.update(Buffer.from(cipherHex, 'hex')), decipher.final()]).toString('utf8');
+  }
+
+  private async getProviderSettings() {
+    const row = await this.prisma.auditLog.findFirst({
+      where: this.settingsEntity,
+      orderBy: { createdAt: 'desc' },
+    });
+    const stored = row?.afterJson ? JSON.parse(row.afterJson) : null;
+    if (stored) {
+      return {
+        enabled: stored.enabled !== false,
+        model: String(stored.model || 'gemini-3.8-flash'),
+        apiKey: stored.apiKeyEncrypted ? this.decrypt(stored.apiKeyEncrypted) : '',
+        features: stored.features || {},
+      };
+    }
+    return {
+      enabled: Boolean(this.config.get<string>('GEMINI_API_KEY')),
+      model: this.config.get<string>('GEMINI_MODEL') || 'gemini-3.8-flash',
+      apiKey: this.config.get<string>('GEMINI_API_KEY') || '',
+      features: {},
+    };
+  }
+
+  async testConnection() {
+    const settings = await this.getProviderSettings();
+    if (!settings.apiKey) throw new ServiceUnavailableException('ZANA_AI_NOT_CONFIGURED');
+    const response = await this.generate({
+      contents: [{ role: 'user', parts: [{ text: 'Reply with exactly: Zana AI connection OK' }] }],
+    }, settings.apiKey, settings.model);
+    return {
+      ok: true,
+      model: settings.model,
+      response: this.extractText(response) || 'Zana AI connection OK',
+    };
   }
 
   async chat(customerId: string, message: string, history: ChatTurn[] = [], location?: Location) {
     if (!message?.trim()) throw new BadRequestException('MESSAGE_REQUIRED');
-    if (!this.apiKey) throw new ServiceUnavailableException('ZANA_AI_NOT_CONFIGURED');
+    const settings = await this.getProviderSettings();
+    if (!settings.enabled || !settings.apiKey) throw new ServiceUnavailableException('ZANA_AI_NOT_CONFIGURED');
+    if (settings.features.customerChat === false) throw new ServiceUnavailableException('ZANA_AI_CUSTOMER_CHAT_DISABLED');
 
     const contents = [
       ...history.slice(-12).map(turn => ({ role: turn.role, parts: [{ text: turn.text }] })),
@@ -83,7 +128,7 @@ export class ZanaAiService {
       }],
     };
 
-    const first = await this.generate({ contents, tools, systemInstruction });
+    const first = await this.generate({ contents, tools, systemInstruction }, settings.apiKey, settings.model);
     const functionCall = first?.candidates?.[0]?.content?.parts?.find((part: any) => part.functionCall)?.functionCall;
 
     if (!functionCall) {
@@ -108,17 +153,17 @@ export class ZanaAiService {
       }}]},
     ];
 
-    const final = await this.generate({ contents: followupContents, tools, systemInstruction });
+    const final = await this.generate({ contents: followupContents, tools, systemInstruction }, settings.apiKey, settings.model);
     return {
       text: this.extractText(final) ?? this.fallbackToolText(toolResult),
       action: toolResult?.action ?? null,
     };
   }
 
-  private async generate(body: any) {
-    const response = await fetch(`${this.endpoint}/${this.model}:generateContent`, {
+  private async generate(body: any, apiKey: string, model: string) {
+    const response = await fetch(`${this.endpoint}/${model}:generateContent`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.apiKey },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify(body),
     });
     if (!response.ok) {
