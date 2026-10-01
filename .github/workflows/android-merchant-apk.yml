@@ -127,13 +127,26 @@ jobs:
           set -euo pipefail
           APK="app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
-          echo "Launcher files inside APK:"
-          unzip -Z1 "$APK" | grep -E '(^|/)ic_launcher(_round)?\.png$' | sort
-          COUNT=$(unzip -Z1 "$APK" | grep -Ec '(^|/)ic_launcher\.png$')
-          ROUND_COUNT=$(unzip -Z1 "$APK" | grep -Ec '(^|/)ic_launcher_round\.png$')
+
+          echo "Generated launcher source files:"
+          find app/src/main/res -type f -path '*/mipmap-*/*' \
+            \( -name 'ic_launcher.png' -o -name 'ic_launcher_round.png' \) | sort
+
+          COUNT=$(find app/src/main/res -type f -name 'ic_launcher.png' | wc -l)
+          ROUND_COUNT=$(find app/src/main/res -type f -name 'ic_launcher_round.png' | wc -l)
           test "$COUNT" -ge 5
           test "$ROUND_COUNT" -ge 5
-          echo "Launcher icon verification passed."
+
+          # Android's resource packager may optimize PNGs into WebP inside the
+          # APK, so checking for literal *.png ZIP entries is not reliable.
+          # Verify the compiled resource table instead.
+          AAPT2="$(find "$ANDROID_HOME" -type f -name aapt2 -print -quit)"
+          test -x "$AAPT2"
+          echo "Compiled launcher resources:"
+          "$AAPT2" dump resources "$APK" | grep -E 'ic_launcher(_round)?' | head -n 30
+
+          "$AAPT2" dump resources "$APK" | grep -Eq 'ic_launcher[^[:alnum:]_]' 
+          echo "Merchant launcher icon verification passed."
 
       - name: Collect APK
         run: |
