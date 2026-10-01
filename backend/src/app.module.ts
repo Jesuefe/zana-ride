@@ -23,6 +23,7 @@ import { SosModule } from './sos/sos.module';
 import { CallsModule } from './calls/calls.module';
 import { HealthController } from './health.controller';
 import { FinanceModule } from './finance/finance.module';
+import { ZanaAiModule } from './zana-ai/zana-ai.module';
 
 @Module({
   imports: [
@@ -33,15 +34,10 @@ import { FinanceModule } from './finance/finance.module';
     MarketsModule,
     PurchaseFloatModule,
     GatewayModule,
-    ThrottlerModule.forRoot([{
-      name: 'short',
-      ttl: 1000,
-      limit: 10,
-    }, {
-      name: 'long',
-      ttl: 60000,
-      limit: 200,
-    }]),
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 1000, limit: 10 },
+      { name: 'long', ttl: 60000, limit: 200 },
+    ]),
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
@@ -56,6 +52,7 @@ import { FinanceModule } from './finance/finance.module';
     SosModule,
     CallsModule,
     FinanceModule,
+    ZanaAiModule,
   ],
   controllers: [HealthController],
 })
