@@ -1,0 +1,75 @@
+name: Build Zana Merchant APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: "Merchant app version, e.g. 1.0.0"
+        required: true
+        default: "1.0.0"
+      versionCode:
+        description: "Android version code"
+        required: true
+        default: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Create merchant native shell
+        run: |
+          rm -rf native/merchant
+          cp -R native/customer native/merchant
+          python3 - <<'PY'
+          import json
+          p="native/merchant/capacitor.config.json"
+          c=json.load(open(p))
+          c["appId"]="rw.zanaride.merchant"
+          c["appName"]="Zana Merchant"
+          c["server"]["url"]="https://merchant.zanaride.rw"
+          open(p,"w").write(json.dumps(c,indent=2)+"\n")
+          PY
+          sed -i 's/rw\.zanaride\.app/rw.zanaride.merchant/g' native/merchant/android/app/build.gradle
+          sed -i 's/rw\.zanaride\.app/rw.zanaride.merchant/g' native/merchant/android/app/src/main/AndroidManifest.xml
+          mkdir -p native/merchant/android/app/src/main/java/rw/zanaride/merchant
+          cp native/merchant/android/app/src/main/java/rw/zanaride/app/MainActivity.java native/merchant/android/app/src/main/java/rw/zanaride/merchant/MainActivity.java
+          sed -i 's/package rw\.zanaride\.app;/package rw.zanaride.merchant;/' native/merchant/android/app/src/main/java/rw/zanaride/merchant/MainActivity.java
+          rm -rf native/merchant/android/app/src/main/java/rw/zanaride/app
+      - name: Install dependencies
+        working-directory: native/merchant
+        run: npm install
+      - name: Sync Android
+        working-directory: native/merchant
+        run: npx cap sync android
+      - name: Build signed APK
+        working-directory: native/merchant/android
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE" | base64 --decode > app/zana.jks
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon -PZANA_VERSION_CODE='${{ inputs.versionCode }}' -PZANA_VERSION_NAME='${{ inputs.versionName }}' -PZANA_KEYSTORE_FILE=zana.jks -PZANA_KEYSTORE_PASSWORD="$STORE_PASSWORD" -PZANA_KEY_ALIAS="$KEY_ALIAS" -PZANA_KEY_PASSWORD="$KEY_PASSWORD"
+      - name: Collect APK
+        run: |
+          mkdir -p out
+          cp native/merchant/android/app/build/outputs/apk/release/app-release.apk out/zana-merchant-${{ inputs.versionName }}.apk
+      - name: Remove signing key
+        if: always()
+        run: rm -f native/merchant/android/app/zana.jks
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zana-merchant-apk
+          path: out/*.apk
+          retention-days: 30
