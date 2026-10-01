@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Check, Pause, RefreshCw, Play } from 'lucide-react';
+import { Check, Pause, RefreshCw, Play, Download } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
 import { getMerchants, approveMerchant, suspendMerchant } from '../../../lib/api/admin';
 
@@ -58,6 +58,19 @@ export default function MerchantsPage() {
             {toast}
           </div>
         )}
+
+        <div className="mb-5 bg-white rounded-2xl shadow-sm p-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-bold text-gray-900">Zana Merchant Android App</p>
+            <p className="text-xs text-gray-500 mt-1">Install the latest merchant APK on Android devices.</p>
+          </div>
+          <a
+            href="https://zana.ajumalink.com/api/v1/downloads/merchant.apk"
+            className="shrink-0 inline-flex items-center gap-2 bg-zana-primary hover:bg-zana-primary-dark text-white font-semibold text-xs px-4 py-2.5 rounded-xl"
+          >
+            <Download size={14} /> Download APK
+          </a>
+        </div>
 
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-2xl font-bold text-gray-900">Merchants</h1>
