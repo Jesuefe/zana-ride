@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ZanaMark, ZanaWordmark } from './ZanaLogo';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Users, Car, Store, Package, MapPin, Crosshair, UserCheck, TrendingUp, LogOut, Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send, Sun, Moon, Smartphone, ClipboardList, Bell, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, Car, Store, Package, MapPin, Crosshair, UserCheck, TrendingUp, LogOut, Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send, Sun, Moon, Smartphone, ClipboardList, Bell, Settings, Sparkles } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
 import { getMyProfile } from '../lib/api/admin';
 import { useTheme } from '../lib/ThemeContext';
@@ -21,7 +21,7 @@ const SENIOR_NAV = [
   { label: 'Fares', href: '/dashboard/fares', icon: BarChart2 }, { label: 'Merchant Invites', href: '/dashboard/invites', icon: ShieldCheck },
   { label: 'Expenses', href: '/dashboard/expenses', icon: DollarSign }, { label: 'Audit Log', href: '/dashboard/audit-log', icon: ClipboardList },
   { label: 'Test Locations', href: '/dashboard/test-locations', icon: Crosshair }, { label: 'Notifications', href: '/dashboard/notifications', icon: Bell },
-  { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { label: 'Settings', href: '/dashboard/settings', icon: Settings }, { label: 'AI Settings', href: '/dashboard/settings/ai', icon: Sparkles },
 ];
 const WORKER_NAV = [
   { label: 'Pending Drivers', href: '/dashboard/drivers', icon: Car }, { label: 'Pending Products', href: '/dashboard/products', icon: Package },
