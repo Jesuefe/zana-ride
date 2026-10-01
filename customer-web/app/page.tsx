@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { SERVICES } from '../lib/services';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Clock, Home, Briefcase, ChevronRight, Search, MapPin, Calendar, Package } from 'lucide-react';
+import { Clock, Home, Briefcase, ChevronRight, Search, MapPin, Calendar, Package, Sparkles } from 'lucide-react';
 import { fetchMe, ApiUser } from '../lib/api/auth';
 import { fetchWallet, recoverActiveRide } from '../lib/api/trips';
 import { haptic } from '../lib/haptics';
@@ -144,6 +144,17 @@ export default function HomePage() {
           <button onClick={loadHomeData} className="text-xs font-bold text-amber-800 shrink-0">{t('Retry')}</button>
         </div>
       )}
+
+      {/* ── Zana AI ───────────────────────────────────────── */}
+      <div className="px-4 mt-3">
+        <button onClick={() => router.push('/ai')} className="w-full rounded-3xl bg-[#00A082] p-5 text-left text-white shadow-md active:scale-[0.99] transition-transform">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center"><Sparkles size={21} /></div>
+            <div className="flex-1"><p className="text-lg font-black">Ask Zana</p><p className="text-xs text-white/75 mt-0.5">Ride, food, market shopping, delivery and more</p></div>
+            <ChevronRight size={19} />
+          </div>
+        </button>
+      </div>
 
       {/* ── Where to card ───────────────────────────────── */}
       <div className="px-4 mt-2">
