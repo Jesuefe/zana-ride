@@ -104,7 +104,21 @@ export class ZanaAiService {
     ];
 
     const tools = [{
-      functionDeclarations: [{
+      functionDeclarations: [
+        {
+          name: 'search_market_inventory',
+          description: 'Search the LIVE Zana market inventory stored in the app database. Use this whenever the customer asks what is available, what products exist, what is in a named market, or asks about prices/availability. Never answer from general knowledge or memory. If a market name is provided, search that market first. Return only products that are currently APPROVED and AVAILABLE in Zana.',
+          parameters: {
+            type: 'object',
+            properties: {
+              query: { type: 'string', description: 'What the customer wants to see, e.g. all products, tomatoes, fruits, ingredients, drinks.' },
+              marketName: { type: 'string', description: 'Optional Zana market name, e.g. Kimironko Market.' },
+              limit: { type: 'integer', description: 'Maximum products to return, default 30.' },
+            },
+            required: ['query'],
+          },
+        },
+        {
         name: 'search_market_for_ingredients',
         description: 'Search Zana market inventory for a recipe or shopping list. Prefer one active market that can fulfill the entire basket. Never invent products or prices. The tool creates a temporary unpaid draft cart for the customer when it finds products.',
         parameters: {
@@ -136,8 +150,10 @@ export class ZanaAiService {
           'You help users with rides, food, market shopping, deliveries and place discovery.',
           'Do not pretend that Zana has completed an action unless a Zana tool returned the action result.',
           'For market shopping, understand recipes and convert them into practical ingredient quantities.',
-          'When the user asks to buy ingredients, call search_market_for_ingredients.',
-          'The market tool prefers ONE market. If one market cannot fulfill everything, report what is missing and explain that using another market would create another delivery fee.',
+          'When the user asks what is available in a market, call search_market_inventory and use the returned live database results. Do not answer availability questions from model knowledge.',
+          'When the user asks to buy ingredients or asks for a recipe shopping basket, call search_market_for_ingredients.',
+          'The market tools read the live Zana market/product database. Never invent products, prices, availability or market names.',
+          'The market shopping tool prefers ONE market. If one market cannot fulfill everything, report what is missing and explain that using another market would create another delivery fee.',
           'Never invent Zana market inventory, product prices, delivery fees or order IDs.',
           'Do not expose internal tool names, database details or API details.',
           'Keep replies concise, warm and action-oriented. Ask only for information that is genuinely missing.',
@@ -155,7 +171,9 @@ export class ZanaAiService {
     }
 
     let toolResult: any;
-    if (functionCall.name === 'search_market_for_ingredients') {
+    if (functionCall.name === 'search_market_inventory') {
+      toolResult = await this.searchMarketInventory(functionCall.args ?? {});
+    } else if (functionCall.name === 'search_market_for_ingredients') {
       toolResult = await this.searchMarketForIngredients(customerId, functionCall.args ?? {}, location);
     } else {
       toolResult = { error: 'Unsupported Zana action' };
@@ -234,6 +252,61 @@ export class ZanaAiService {
     const parts = response?.candidates?.[0]?.content?.parts ?? [];
     const text = parts.filter((part: any) => typeof part.text === 'string').map((part: any) => part.text).join('').trim();
     return text || null;
+  }
+
+  private async searchMarketInventory(args: { query?: string; marketName?: string; limit?: number }) {
+    const query = String(args.query || '').trim();
+    const marketName = String(args.marketName || '').trim();
+    const limit = Math.min(50, Math.max(1, Number(args.limit || 30)));
+
+    const markets = await this.prisma.market.findMany({
+      where: {
+        active: true,
+        ...(marketName ? { name: { contains: marketName, mode: 'insensitive' } } : {}),
+      },
+      include: {
+        products: {
+          where: { status: 'APPROVED', available: true },
+          orderBy: { name: 'asc' },
+          take: 200,
+          select: { id: true, name: true, price: true, referenceCost: true, available: true },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    if (!markets.length) {
+      return { action: null, message: marketName ? `I could not find an active Zana market matching "${marketName}".` : 'No active Zana markets are available right now.' };
+    }
+
+    const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9\\s]/g, ' ').replace(/\\s+/g, ' ').trim();
+    const terms = normalize(query).split(' ').filter(Boolean);
+    const score = (name: string) => {
+      if (!terms.length || ['all', 'everything', 'anything', 'products', 'available', 'today', 'market'].every(x => !terms.includes(x))) {
+        return terms.length ? terms.filter(t => normalize(name).includes(t)).length : 1;
+      }
+      const n = normalize(name);
+      return terms.reduce((s, t) => s + (n.includes(t) ? 10 : 0), 0);
+    };
+
+    const results = markets.map(market => {
+      const products = market.products
+        .map(product => ({ ...product, price: Number(product.price), referenceCost: Number(product.referenceCost || 0), _score: score(product.name) }))
+        .filter(product => !terms.length || product._score > 0 || ['all','everything','anything','products','available','today','market'].some(t => terms.includes(t)))
+        .slice(0, limit)
+        .map(({ _score, ...product }) => product);
+      return { marketId: market.id, marketName: market.name, productCount: market.products.length, products };
+    }).filter(row => row.products.length);
+
+    return {
+      action: null,
+      live: true,
+      query,
+      markets: results,
+      message: results.length
+        ? `Live Zana inventory found in ${results.length} market(s).`
+        : 'No matching available products were found in the active Zana market inventory.',
+    };
   }
 
   private async searchMarketForIngredients(customerId: string, args: {
