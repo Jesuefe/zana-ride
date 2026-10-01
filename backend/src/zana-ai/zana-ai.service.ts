@@ -460,7 +460,7 @@ export class ZanaAiService {
     if (!raw) return { action: null, message: 'That ride quote has expired. I can create a new quote.' };
     const draft = JSON.parse(raw) as RideDraft;
     if (draft.customerId !== customerId) throw new BadRequestException('RIDE_DRAFT_NOT_YOURS');
-    const trip = await this.trips.create(customerId, {
+    const trip = await this.trips.createFromSavedQuote(customerId, {
       serviceType: draft.serviceType,
       pickupAddress: draft.pickupAddress,
       pickupLat: draft.pickupLat,
@@ -469,6 +469,9 @@ export class ZanaAiService {
       destinationLat: draft.destinationLat,
       destinationLng: draft.destinationLng,
       paymentMethod: 'CASH',
+    }, {
+      distanceKm: draft.distanceKm,
+      fare: draft.fare,
     });
     await this.redis.del(`zana-ai:ride-draft:${draftId}`);
     await this.redis.del(`zana-ai:ride-draft:latest:${customerId}`);

@@ -56,6 +56,7 @@ export async function createRide(data: {
   destinationLat: number;
   destinationLng: number;
   paymentMethod?: string;
+  expectedFare?: number;
 }) {
   return api.post<ApiTrip>('/rides', data);
 }

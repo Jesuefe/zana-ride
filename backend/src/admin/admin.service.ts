@@ -681,7 +681,6 @@ export class AdminService {
     data: Partial<{
       base: number;
       perKm: number;
-      perMin: number;
       minimum: number;
       bookingFee: number;
       commissionRate: number;

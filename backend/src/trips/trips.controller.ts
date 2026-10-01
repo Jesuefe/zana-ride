@@ -50,6 +50,7 @@ export class TripsController {
       destinationLng: number;
       count?: number;
       paymentMethod?: string;
+      expectedFare?: number;
     },
   ) {
     const { count, ...tripData } = body;
@@ -225,7 +226,7 @@ export class FareController {
   @Roles('ADMIN')
   update(
     @Param('serviceType') serviceType: ServiceType,
-    @Body() body: { base?: number; perKm?: number; perMin?: number; bookingFee?: number; minimum?: number },
+    @Body() body: { base?: number; perKm?: number; bookingFee?: number; minimum?: number },
   ) {
     return this.fareService.update(serviceType, body);
   }

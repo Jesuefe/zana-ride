@@ -67,13 +67,14 @@ function RideOptionsContent() {
   const passedPickupLng = Number(params.get('pickupLng'));
   const passedPickupAddress = params.get('pickupAddress') ?? 'Current Location';
 
-  const [pickup] = useState(
+  const [pickup, setPickup] = useState(
     Number.isFinite(passedPickupLat) && passedPickupLat !== 0
       ? { lat: passedPickupLat, lng: passedPickupLng }
       : getStoredPickup(),
   );
 
   const [fares, setFares] = useState<Record<ServiceType, number>>({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
+  const [fareError, setFareError] = useState<string | null>(null);
   const [loadingFares, setLoadingFares] = useState(true);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [selected, setSelected] = useState<ServiceType | null>(preselected ?? null);
@@ -84,6 +85,7 @@ function RideOptionsContent() {
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
 
   useEffect(() => {
+    setLoadingFares(true);
     (async () => {
       try {
         const [economy, comfort] = await Promise.all([
@@ -91,15 +93,22 @@ function RideOptionsContent() {
           estimateRide(pickup, { lat: destLat, lng: destLng }, 'COMFORT'),
         ]);
         setFares({ BIKE: 0, ECONOMY: economy.fare, COMFORT: comfort.fare });
+        setFareError(null);
       } catch {
-        setFares({ BIKE: 0, ECONOMY: 1500, COMFORT: 2500 });
+        setFares({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
+        setFareError(t('Could not calculate the ride fare. Please try again.'));
       } finally {
         setLoadingFares(false);
       }
     })();
     // Also fetch wallet balance to warn if insufficient
     fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(() => {});
-  }, []);
+  }, [pickup.lat, pickup.lng, destLat, destLng, t]);
+
+  const handlePickupChange = (coords: { lat: number; lng: number }) => {
+    setPickup(coords);
+    setStep('select');
+  };
 
   const handleSelect = (service: ServiceType) => {
     setSelected(service);
@@ -123,6 +132,7 @@ function RideOptionsContent() {
         destinationLat: destLat,
         destinationLng: destLng,
         paymentMethod,
+        expectedFare: fares[selected],
       });
       router.push(`/tracking?tripId=${trip.id}`);
     } catch (err) {
@@ -143,6 +153,8 @@ function RideOptionsContent() {
             origin={pickup}
             destination={{ lat: destLat, lng: destLng }}
             height="100%"
+            draggablePickup
+            onPickupChange={handlePickupChange}
             onRouteInfo={setRouteInfo}
           />
           <button
@@ -181,12 +193,14 @@ function RideOptionsContent() {
           {/* Ride options */}
           <div className="px-4 pt-4 pb-6">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">{t('Choose a ride')}</p>
+            {fareError && <p className="mb-3 text-xs text-red-600">{fareError}</p>}
             <div className="space-y-3">
               {OPTIONS.map(opt => (
                 <button
                   key={opt.service}
                   onClick={() => handleSelect(opt.service)}
-                  className="w-full flex items-center gap-4 bg-white border-2 border-gray-100 hover:border-zana-primary rounded-2xl px-4 py-4 text-left transition-all active:scale-[0.98]"
+                  disabled={loadingFares || !!fareError || fares[opt.service] <= 0}
+                  className="w-full flex items-center gap-4 bg-white disabled:opacity-50 disabled:pointer-events-none border-2 border-gray-100 hover:border-zana-primary rounded-2xl px-4 py-4 text-left transition-all active:scale-[0.98]"
                 >
                   {/* Icon */}
                   <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center shrink-0 text-3xl">

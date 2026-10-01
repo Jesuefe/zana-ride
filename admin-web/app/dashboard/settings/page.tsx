@@ -7,10 +7,10 @@ import { CheckCircle2, CreditCard, Eye, EyeOff, RefreshCw, Save, ShieldCheck, Wi
 import { getAiSettings, saveAiSettings, testAiConnection, type ZanaAiSettings, type ZanaAiProvider } from '../../../lib/api/admin';
 
 type PaymentSettings = { enabled:boolean; environment:'sandbox'|'production'; baseUrl:string; rail:'mtn_momo'|'airtel_money'; minWithdrawal:number; configured:boolean; apiKeyHint?:string|null; webhookConfigured?:boolean };
-type Fare = { serviceType:'BIKE'|'ECONOMY'|'COMFORT'; base:number; perKm:number; perMin:number; bookingFee:number; minimum:number; commissionRate:number; freeWaitingMinutes:number; waitingPerMinute:number };
+type Fare = { serviceType:'BIKE'|'ECONOMY'|'COMFORT'; base:number; perKm:number; bookingFee:number; minimum:number; commissionRate:number; freeWaitingMinutes:number; waitingPerMinute:number };
 type MarketConfig = { id?:string; autoApprovePercent:number; hardRejectPercent:number; markupPercent:number; agentEarningRate:number; zanaMarkupShare:number; agentMarkupShare:number };
 const fareLabels:any={BIKE:{name:'Moto / Bike',icon:Bike},ECONOMY:{name:'Economy Car',icon:CarFront},COMFORT:{name:'Premium Car',icon:CarFront}};
-const fareFields:any=[['base','Base fare','RWF'],['perKm','Per kilometer','RWF / km'],['perMin','Time rate','RWF / min'],['bookingFee','Booking fee','RWF'],['minimum','Minimum fare','RWF'],['commissionRate','ZANA commission','%'],['freeWaitingMinutes','Free waiting','minutes'],['waitingPerMinute','Waiting charge','RWF / min']];
+const fareFields:any=[['base','Base fare','RWF'],['perKm','Per kilometer','RWF / km'],['bookingFee','Booking fee','RWF'],['minimum','Minimum fare','RWF'],['commissionRate','ZANA commission','%'],['freeWaitingMinutes','Free waiting','minutes'],['waitingPerMinute','Waiting charge','RWF / min']];
 const defaultMarket:MarketConfig={autoApprovePercent:15,hardRejectPercent:100,markupPercent:20,agentEarningRate:40,zanaMarkupShare:60,agentMarkupShare:40};
 
 export default function SettingsPage(){
