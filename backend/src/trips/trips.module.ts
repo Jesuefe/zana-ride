@@ -25,6 +25,6 @@ import { PrismaModule } from '../prisma/prisma.module';
     CustomerReportsController,
   ],
   providers: [TripsService, RatingsService, CommissionDebtService, EversendService, PointsService, ScheduledRideService, CancellationService, FareService],
-  exports: [FareService, CommissionDebtService],
+  exports: [TripsService, FareService, CommissionDebtService],
 })
 export class TripsModule {}
