@@ -26,7 +26,11 @@ function alertSound() {
   } catch {}
 }
 
-function vibrate() {
+function vibrateRide() {
+  try { if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 600, 200, 300]); } catch {}
+}
+
+function vibrateNormal() {
   try { if (navigator.vibrate) navigator.vibrate([80, 70, 80, 70, 180]); } catch {}
 }
 
@@ -37,7 +41,8 @@ export default function RealtimeNotificationAlert() {
     const socket = io(process.env.NEXT_PUBLIC_API_URL ?? 'https://zana.ajumalink.com', {
       auth: { token }, transports: ['websocket'],
     });
-    const notify = () => { alertSound(); vibrate(); };
+    const notify = () => { alertSound(); vibrateNormal(); };
+    socket.on('ride:offer', () => { alertSound(); vibrateRide(); });
     socket.on('delivery:assigned', notify);
     socket.on('chat:message', notify);
     socket.on('delivery:status', notify);
