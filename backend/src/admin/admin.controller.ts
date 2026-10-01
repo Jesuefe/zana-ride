@@ -438,7 +438,8 @@ export class AdminController {
     const rows = await this.prisma.auditLog.findMany({ where: { entityType: 'AI_SETTINGS', action: 'ZANA_AI_PROVIDER_UPDATED' }, orderBy: { createdAt: 'desc' } });
     const byProvider: any = {};
     for (const provider of providers) {
-      const row = rows.find(r => r.entityId === provider.toUpperCase());
+      let row: any = rows.find(r => r.entityId === provider.toUpperCase());
+      if (!row && provider === 'gemini') row = await this.prisma.auditLog.findFirst({ where: { entityType: 'AI_SETTINGS', entityId: 'GEMINI', action: 'ZANA_AI_SETTINGS_UPDATED' }, orderBy: { createdAt: 'desc' } });
       const data = row?.afterJson ? JSON.parse(row.afterJson) : {};
       byProvider[provider] = { enabled: Boolean(data.enabled), model: data.model || defaults[provider], configured: Boolean(data.apiKeyEncrypted), apiKeyHint: data.apiKeyHint || null, features: data.features || { customerChat: true, rideBooking: true, foodOrdering: true, marketShopping: true, deliveryBooking: true, placeDiscovery: true }, updatedAt: row?.createdAt || null };
     }
