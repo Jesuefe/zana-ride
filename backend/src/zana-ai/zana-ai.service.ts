@@ -5,10 +5,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { OrdersService } from '../merchant/orders.service';
 import { MarketsService } from '../markets/markets.service';
+import { TripsService } from '../trips/trips.service';
+import { ServiceType } from '@prisma/client';
 
 type Location = { lat: number; lng: number; address?: string };
 type ChatTurn = { role: 'user' | 'model'; text: string };
 type AiProvider = 'gemini' | 'groq' | 'openrouter';
+type RideDraft = {
+  id: string; customerId: string; serviceType: ServiceType;
+  pickupLat: number; pickupLng: number; pickupAddress: string;
+  destinationLat: number; destinationLng: number; destinationAddress: string;
+  distanceKm: number; durationMinutes: number; fare: number; createdAt: string;
+};
 type MarketDraft = {
   id: string; customerId: string; marketId: string; marketName: string;
   items: Array<{ ingredient: string; quantity: number; productId: string; productName: string; unitPrice: number }>;
@@ -32,6 +40,7 @@ export class ZanaAiService {
     private readonly redis: RedisService,
     private readonly orders: OrdersService,
     private readonly markets: MarketsService,
+    private readonly trips: TripsService,
   ) {}
 
   private decrypt(value: string) {
@@ -175,6 +184,21 @@ export class ZanaAiService {
           },
         },
         {
+          name: 'estimate_ride',
+          description: 'Create a REAL Zana ride quote using the existing Zana fare engine. Use this before any ride booking. Resolve the destination to real coordinates, calculate distance, duration and fare, and save a short-lived quote. Never invent a fare. If the customer location is unavailable, ask for pickup instead of guessing.',
+          parameters: {
+            type: 'object', properties: {
+              serviceType: { type: 'string', enum: ['MOTO', 'CAR'] },
+              destination: { type: 'string', description: 'The destination/place the customer wants to travel to.' },
+            }, required: ['serviceType', 'destination'],
+          },
+        },
+        {
+          name: 'book_ride',
+          description: 'Book the customer using the latest confirmed Zana AI ride quote. Only call this after the customer clearly confirms the quote. It creates the REAL Trip and starts real driver dispatch. Never say the driver is on the way unless the returned trip status is DRIVER_ASSIGNED or later.',
+          parameters: { type: 'object', properties: {}, required: [] },
+        },
+        {
         name: 'search_market_for_ingredients',
         description: 'Search Zana market inventory for a recipe or shopping list. Prefer one active market that can fulfill the entire basket. Never invent products or prices. The tool creates a temporary unpaid draft cart for the customer when it finds products.',
         parameters: {
@@ -209,6 +233,9 @@ export class ZanaAiService {
           'For a delivery-status question, identify the customer delivery from activeDeliveries or recentDeliveries and give its current status/tracking code when available. If there are multiple deliveries, ask which one unless the request clearly identifies one.',
 
           'You help users with rides, food, market shopping, deliveries and place discovery.',
+          'RIDE RULE: For every ride request, first use estimate_ride. Show a short quote with vehicle, distance, ETA and fare. Wait for a clear confirmation such as yes, confirm, book it, or do it before using book_ride.',
+          'After book_ride, report only the real returned trip status. SEARCHING_DRIVER means Zana is looking for a driver; DRIVER_ASSIGNED means a driver accepted. Never claim a driver is on the way without DRIVER_ASSIGNED or later.',
+          'Keep ride replies short. Do not produce Markdown tables. Prefer short lines and bullets.',
           'Do not pretend that Zana has completed an action unless a Zana tool returned the action result.',
           'For market shopping, understand recipes and convert them into practical ingredient quantities.',
           'When the user asks what is available in a market, call search_market_inventory and use the returned live database results. Do not answer availability questions from model knowledge.',
@@ -232,7 +259,11 @@ export class ZanaAiService {
     }
 
     let toolResult: any;
-    if (functionCall.name === 'search_market_inventory') {
+    if (functionCall.name === 'estimate_ride') {
+      toolResult = await this.estimateRide(customerId, functionCall.args ?? {}, location);
+    } else if (functionCall.name === 'book_ride') {
+      toolResult = await this.bookRide(customerId);
+    } else if (functionCall.name === 'search_market_inventory') {
       toolResult = await this.searchMarketInventory(functionCall.args ?? {});
     } else if (functionCall.name === 'search_market_for_ingredients') {
       toolResult = await this.searchMarketForIngredients(customerId, functionCall.args ?? {}, location);
@@ -313,6 +344,72 @@ export class ZanaAiService {
     const parts = response?.candidates?.[0]?.content?.parts ?? [];
     const text = parts.filter((part: any) => typeof part.text === 'string').map((part: any) => part.text).join('').trim();
     return text || null;
+  }
+
+  private async geocodeDestination(query: string) {
+    const q = query.trim();
+    if (!q) throw new BadRequestException('DESTINATION_REQUIRED');
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=rw&q=${encodeURIComponent(q + ', Kigali, Rwanda')}`;
+    const response = await fetch(url, { headers: { 'User-Agent': 'Zana-Ride/1.0 (support@zanaride.rw)' } });
+    if (!response.ok) throw new BadRequestException('DESTINATION_LOOKUP_FAILED');
+    const rows = await response.json() as Array<{ lat: string; lon: string; display_name: string }>;
+    if (!rows.length) throw new BadRequestException('DESTINATION_NOT_FOUND');
+    return { lat: Number(rows[0].lat), lng: Number(rows[0].lon), address: rows[0].display_name };
+  }
+
+  private async estimateRide(customerId: string, args: { serviceType?: string; destination?: string }, location?: Location) {
+    if (!location) return { action: null, message: 'I need your pickup location before I can quote the ride.' };
+    const serviceType = args.serviceType === 'CAR' ? ServiceType.CAR : ServiceType.MOTO;
+    let destination: { lat: number; lng: number; address: string };
+    try { destination = await this.geocodeDestination(String(args.destination || '')); }
+    catch (error: any) { return { action: null, message: 'I could not locate that destination. Please give me the place name or address.' }; }
+    const quote = this.trips.estimate({ lat: location.lat, lng: location.lng }, destination, serviceType);
+    const draftId = `ride_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
+    const draft: RideDraft = {
+      id: draftId, customerId, serviceType,
+      pickupLat: location.lat, pickupLng: location.lng,
+      pickupAddress: location.address || 'Current location',
+      destinationLat: destination.lat, destinationLng: destination.lng,
+      destinationAddress: destination.address,
+      distanceKm: quote.distanceKm, durationMinutes: quote.durationMinutes, fare: quote.fare,
+      createdAt: new Date().toISOString(),
+    };
+    await this.redis.set(`zana-ai:ride-draft:${draftId}`, JSON.stringify(draft), 10 * 60);
+    await this.redis.set(`zana-ai:ride-draft:latest:${customerId}`, draftId, 10 * 60);
+    return {
+      action: { type: 'RIDE_QUOTE', draftId, serviceType, pickupAddress: draft.pickupAddress, destinationAddress: draft.destinationAddress, distanceKm: quote.distanceKm, durationMinutes: quote.durationMinutes, fare: quote.fare },
+      message: `Ride quote ready. ${serviceType === ServiceType.MOTO ? 'Moto' : 'Car'} · ${quote.distanceKm} km · about ${quote.durationMinutes} min · ${quote.fare.toLocaleString()} RWF.`,
+    };
+  }
+
+  private async bookRide(customerId: string) {
+    const draftId = await this.redis.get(`zana-ai:ride-draft:latest:${customerId}`);
+    if (!draftId) return { action: null, message: 'Please get a ride quote first, then confirm it.' };
+    const raw = await this.redis.get(`zana-ai:ride-draft:${draftId}`);
+    if (!raw) return { action: null, message: 'That ride quote has expired. I can create a new quote.' };
+    const draft = JSON.parse(raw) as RideDraft;
+    if (draft.customerId !== customerId) throw new BadRequestException('RIDE_DRAFT_NOT_YOURS');
+    const trip = await this.trips.create(customerId, {
+      serviceType: draft.serviceType,
+      pickupAddress: draft.pickupAddress,
+      pickupLat: draft.pickupLat,
+      pickupLng: draft.pickupLng,
+      destinationAddress: draft.destinationAddress,
+      destinationLat: draft.destinationLat,
+      destinationLng: draft.destinationLng,
+      paymentMethod: 'CASH',
+    });
+    await this.redis.del(`zana-ai:ride-draft:${draftId}`);
+    await this.redis.del(`zana-ai:ride-draft:latest:${customerId}`);
+    const assigned = ['DRIVER_ASSIGNED', 'DRIVER_EN_ROUTE', 'DRIVER_ARRIVED', 'RIDE_IN_PROGRESS'].includes(String(trip.status));
+    return {
+      action: { type: 'RIDE_BOOKED', tripId: trip.id, status: trip.status, fare: trip.estimatedFare, destinationAddress: trip.destinationAddress },
+      message: assigned
+        ? `Ride booked. A driver has been assigned. Fare: ${Number(trip.estimatedFare).toLocaleString()} RWF.`
+        : String(trip.status) === 'NO_DRIVER_FOUND'
+          ? 'I could not find an available driver right now. You can try again.'
+          : `Ride requested. I am looking for a driver. Fare: ${Number(trip.estimatedFare).toLocaleString()} RWF.`,
+    };
   }
 
   private async searchMarketInventory(args: { query?: string; marketName?: string; limit?: number }) {
