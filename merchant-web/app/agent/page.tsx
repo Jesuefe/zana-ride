@@ -4,13 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Store, Package, ShoppingBag, Wallet, Truck, Clock3, CheckCircle2,
   AlertTriangle, MapPin, ChevronRight, Plus, Trash2, X, RefreshCw, MessageCircle,
-  ArrowUpRight, Loader2
+  ArrowUpRight, Loader2, LogOut
 } from 'lucide-react';
-import { api } from '../../lib/api/client';
+import { api, clearToken } from '../../lib/api/client';
 import { fetchAgentEarnings } from '../../lib/api/merchant';
 import DeliveryChatPanel from '../../components/DeliveryChatPanel';
 import { t } from '../../lib/lang';
 import { useLang } from '../../lib/LangContext';
+import { useRouter } from 'next/navigation';
 
 const money = (n: any) => Number(n || 0).toLocaleString() + ' RWF';
 const label = (s: string) => (s || '').replace(/_/g, ' ');
@@ -49,6 +50,12 @@ export default function AgentPage() {
   const [withdrawingWallet, setWithdrawingWallet] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState('');
   const { lang, setLang } = useLang();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    clearToken();
+    router.replace('/login');
+  };
 
 
   const setRouteView = (next: string) => {
@@ -227,6 +234,9 @@ export default function AgentPage() {
         <div className="flex items-center gap-2">
           <button onClick={load} className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold flex items-center gap-2"><RefreshCw size={14}/> {t("Refresh",lang)}</button><select value={lang} onChange={e=>{const v=e.target.value as any;setLang(v)}} className="px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold"><option value="en">English</option><option value="rw">Ikinyarwanda</option><option value="fr">Français</option></select>
           <div className="bg-white rounded-xl border border-gray-200 px-3 py-2"><span className="text-[10px] text-gray-400 block">{t("Agent wallet",lang)}</span><span className={"font-black text-sm "+(Number(wallet?.balance||0)<0?"text-red-600":"")}>{money(wallet?.balance)}</span></div>
+          <button onClick={handleLogout} className="px-3 py-2 rounded-xl bg-white border border-red-100 text-red-600 text-xs font-bold flex items-center gap-2 hover:bg-red-50" aria-label="Sign out">
+            <LogOut size={14}/> Sign out
+          </button>
         </div>
       </div>
 
