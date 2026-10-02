@@ -1,0 +1,164 @@
+name: Build Zana Admin APK
+
+on:
+  push:
+    paths:
+      - 'admin-web/**'
+      - 'native/customer/**'
+      - '.github/workflows/android-admin-apk.yml'
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: "Admin app version"
+        required: true
+        default: "1.0.0"
+      versionCode:
+        description: "Android version code"
+        required: true
+        default: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Create admin native shell
+        run: |
+          set -euo pipefail
+          rm -rf native/admin
+          cp -R native/customer native/admin
+
+          python3 - <<'PY'
+          import json
+          p="native/admin/capacitor.config.json"
+          c=json.load(open(p))
+          c["appId"]="rw.zanaride.admin"
+          c["appName"]="Zana Admin"
+          c["server"]["url"]="https://admin.zanaride.rw"
+          open(p,"w").write(json.dumps(c,indent=2)+"\n")
+          PY
+
+          sed -i 's/rw\.zanaride\.app/rw.zanaride.admin/g' native/admin/android/app/build.gradle
+          sed -i 's/rw\.zanaride\.app/rw.zanaride.admin/g' native/admin/android/app/src/main/AndroidManifest.xml
+
+          mkdir -p native/admin/android/app/src/main/java/rw/zanaride/admin
+          cp native/admin/android/app/src/main/java/rw/zanaride/app/MainActivity.java native/admin/android/app/src/main/java/rw/zanaride/admin/MainActivity.java
+          sed -i 's/package rw\.zanaride\.app;/package rw.zanaride.admin;/' native/admin/android/app/src/main/java/rw/zanaride/admin/MainActivity.java
+          rm -rf native/admin/android/app/src/main/java/rw/zanaride/app
+
+      - name: Install dependencies
+        working-directory: native/admin
+        run: npm install
+
+      - name: Sync Android
+        working-directory: native/admin
+        run: npx cap sync android
+
+      - name: Apply Zana Admin launcher icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          ICON_URL="https://www.ajumalink.com/logo%20files/ChatGPT%20Image%20Oct%202%2C%202026%2C%2007_03_31%20AM.png"
+          curl -fL --retry 5 --retry-all-errors --connect-timeout 15 -o /tmp/zana-admin-icon.png "$ICON_URL"
+          test -s /tmp/zana-admin-icon.png
+
+          RES="native/admin/android/app/src/main/res"
+          rm -rf "$RES"/mipmap-anydpi "$RES"/mipmap-anydpi-v26
+          find "$RES" -type f \( -name 'ic_launcher_foreground.*' -o -name 'ic_launcher_background.*' \) -delete
+
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          command -v convert
+          convert -version
+
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            mkdir -p "$RES/mipmap-$d"
+          done
+
+          convert /tmp/zana-admin-icon.png -auto-orient -resize 48x48! "$RES/mipmap-mdpi/ic_launcher.png"
+          convert /tmp/zana-admin-icon.png -auto-orient -resize 72x72! "$RES/mipmap-hdpi/ic_launcher.png"
+          convert /tmp/zana-admin-icon.png -auto-orient -resize 96x96! "$RES/mipmap-xhdpi/ic_launcher.png"
+          convert /tmp/zana-admin-icon.png -auto-orient -resize 144x144! "$RES/mipmap-xxhdpi/ic_launcher.png"
+          convert /tmp/zana-admin-icon.png -auto-orient -resize 192x192! "$RES/mipmap-xxxhdpi/ic_launcher.png"
+
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            cp "$RES/mipmap-$d/ic_launcher.png" "$RES/mipmap-$d/ic_launcher_round.png"
+          done
+
+          echo "Generated Admin launcher resources:"
+          find "$RES" -type f -name 'ic_launcher.png'
+          find "$RES" -type f -name 'ic_launcher_round.png'
+
+          if compgen -G "$RES/mipmap-anydpi*" > /dev/null; then
+            echo "ERROR: adaptive launcher resources still exist"
+            exit 1
+          fi
+
+      - name: Build signed APK
+        working-directory: native/admin/android
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "$KEYSTORE" | base64 --decode > app/zana.jks
+          chmod +x gradlew
+          ./gradlew clean assembleRelease --no-daemon \
+            -PZANA_VERSION_CODE='${{ inputs.versionCode || '1' }}' \
+            -PZANA_VERSION_NAME='${{ inputs.versionName || '1.0.0' }}' \
+            -PZANA_KEYSTORE_FILE=zana.jks \
+            -PZANA_KEYSTORE_PASSWORD="$STORE_PASSWORD" \
+            -PZANA_KEY_ALIAS="$KEY_ALIAS" \
+            -PZANA_KEY_PASSWORD="$KEY_PASSWORD"
+
+      - name: Verify Admin APK launcher resources
+        working-directory: native/admin/android
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+
+          COUNT=$(find app/src/main/res -type f -name 'ic_launcher.png' | wc -l)
+          ROUND_COUNT=$(find app/src/main/res -type f -name 'ic_launcher_round.png' | wc -l)
+          test "$COUNT" -ge 5
+          test "$ROUND_COUNT" -ge 5
+
+          AAPT2="$(find "$ANDROID_HOME" -type f -name aapt2 -print -quit)"
+          test -x "$AAPT2"
+
+          RESOURCE_DUMP="/tmp/zana-admin-resource-dump.txt"
+          "$AAPT2" dump resources "$APK" > "$RESOURCE_DUMP"
+          grep -Eq 'mipmap/ic_launcher($|[^[:alnum:]_])' "$RESOURCE_DUMP"
+          grep -Eq 'mipmap/ic_launcher_round($|[^[:alnum:]_])' "$RESOURCE_DUMP"
+
+          echo "Compiled Zana Admin launcher resources verified."
+          echo "Zana Admin APK verification passed."
+
+      - name: Collect APK
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          cp native/admin/android/app/build/outputs/apk/release/app-release.apk "out/zana-admin-${{ inputs.versionName || '1.0.0' }}.apk"
+
+      - name: Remove signing key
+        if: always()
+        run: rm -f native/admin/android/app/zana.jks
+
+      - name: Upload Admin APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: zana-admin-apk
+          path: out/*.apk
+          retention-days: 30
