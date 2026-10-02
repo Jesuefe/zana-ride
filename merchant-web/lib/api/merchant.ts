@@ -70,8 +70,18 @@ export type Delivery = {
   distanceKm: number;
   fee: number;
   status: string;
+  paid: boolean;
+  paymentMethod: string;
+  trackingCode?: string | null;
+  pickupLat: number;
+  pickupLng: number;
+  dropoffLat: number;
+  dropoffLng: number;
   createdAt: string;
-  driver?: { id: string; user: { firstName: string | null } } | null;
+  assignedAt?: string | null;
+  pickedUpAt?: string | null;
+  deliveredAt?: string | null;
+  driver?: { id: string; lastLat?: number | null; lastLng?: number | null; lastLocationAt?: string | null; vehicle?: string | null; plate?: string | null; user: { firstName: string | null; phone?: string | null } } | null;
 };
 
 export async function createDelivery(data: {

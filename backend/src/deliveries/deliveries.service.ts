@@ -301,7 +301,7 @@ export class DeliveriesService {
 
     const updated = await this.prisma.delivery.findUnique({
       where: { id },
-      include: { order: { include: { merchant: true } } },
+      include: { order: { include: { merchant: true } }, merchant: { select: { userId: true } } },
     });
     // Genuinely shouldn't happen — this row was just the target of the
     // atomic update above — but TypeScript is right that findUnique's
@@ -317,7 +317,7 @@ export class DeliveriesService {
         trackingCode: (updated as any).trackingCode,
       };
       if (updated.customerId) this.gateway.sendToUser(updated.customerId, 'delivery:status', payload);
-      const merchantUserId = (updated as any).order?.merchant?.userId;
+      const merchantUserId = (updated as any).merchant?.userId ?? (updated as any).order?.merchant?.userId;
       if (merchantUserId) this.gateway.sendToUser(merchantUserId, 'delivery:status', payload);
 
       // Admin previously had no live path for this at all — same small,
@@ -954,7 +954,7 @@ export class DeliveriesService {
   async broadcastDriverPosition(driverId: string, lat: number, lng: number) {
     const active = await this.prisma.delivery.findMany({
       where: { driverId, status: { in: ['COURIER_ASSIGNED', 'PICKED_UP'] } },
-      include: { order: { include: { merchant: { select: { userId: true } } } } },
+      include: { order: { include: { merchant: { select: { userId: true } } } }, merchant: { select: { userId: true } } },
     });
     if (active.length === 0) return { broadcast: 0 };
 
@@ -968,7 +968,7 @@ export class DeliveriesService {
         at: new Date().toISOString(),
       };
       if (d.customerId) { this.gateway.sendToUser(d.customerId, 'delivery:position', payload); sent++; }
-      const merchantUserId = (d as any).order?.merchant?.userId;
+      const merchantUserId = (d as any).merchant?.userId ?? (d as any).order?.merchant?.userId;
       if (merchantUserId) { this.gateway.sendToUser(merchantUserId, 'delivery:position', payload); sent++; }
     }
 
