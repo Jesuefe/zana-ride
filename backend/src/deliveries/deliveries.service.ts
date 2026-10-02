@@ -149,7 +149,17 @@ export class DeliveriesService {
     // ── Settle the fee ────────────────────────────────────────────────────
     if (chargeUserId && fee > 0) {
       if (paymentMethod === 'WALLET') {
-        await this.debitWallet(chargeUserId, fee, delivery.id);
+        try {
+          await this.debitWallet(chargeUserId, fee, delivery.id);
+        } catch (e) {
+          // Never leave a merchant delivery sitting in REQUESTED after a
+          // failed wallet debit. It must not look dispatchable or remain as
+          // an unpaid ghost delivery after the request has already failed.
+          await this.prisma.delivery.update({
+            where: { id: delivery.id }, data: { status: DeliveryStatus.CANCELLED } as any,
+          }).catch(() => {});
+          throw e;
+        }
         await this.prisma.delivery.update({
           where: { id: delivery.id }, data: { paid: true } as any,
         });
