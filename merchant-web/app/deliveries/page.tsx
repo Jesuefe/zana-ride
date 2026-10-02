@@ -1,5 +1,7 @@
 'use client';
 
+// Merchant delivery tracking/reconciliation deployment marker: 2026-10-02
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
