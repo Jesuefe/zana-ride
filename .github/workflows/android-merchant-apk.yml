@@ -76,7 +76,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y imagemagick
           command -v convert
-          convert -version | head -n 1
+          convert -version
 
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
             mkdir -p "$RES/mipmap-$d"
@@ -95,7 +95,7 @@ jobs:
           echo "Generated Merchant launcher resources:"
           find "$RES" -type f | grep -E 'mipmap-.*/ic_launcher(_round)?\.png$' | sort
 
-          if find "$RES" -type f -path '*/mipmap-anydpi*/*' | grep -q .; then
+          if compgen -G "$RES/mipmap-anydpi*" > /dev/null; then
             echo "ERROR: adaptive launcher resources still exist"
             exit 1
           fi
@@ -126,10 +126,6 @@ jobs:
           APK="app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
 
-          echo "Generated launcher source files:"
-          find app/src/main/res -type f -path '*/mipmap-*/*' \
-            \( -name 'ic_launcher.png' -o -name 'ic_launcher_round.png' \) | sort
-
           COUNT=$(find app/src/main/res -type f -name 'ic_launcher.png' | wc -l)
           ROUND_COUNT=$(find app/src/main/res -type f -name 'ic_launcher_round.png' | wc -l)
           test "$COUNT" -ge 5
@@ -137,28 +133,13 @@ jobs:
 
           AAPT2="$(find "$ANDROID_HOME" -type f -name aapt2 -print -quit)"
           test -x "$AAPT2"
-          echo "Compiled launcher resources:"
-          RESOURCE_DUMP="$("$AAPT2" dump resources "$APK")"
-          echo "$RESOURCE_DUMP" | grep -E 'ic_launcher(_round)?' || true
-          echo "$RESOURCE_DUMP" | grep -Eq 'mipmap/ic_launcher(_round)?
 
-      - name: Collect APK
-        run: |
-          set -euo pipefail
-          mkdir -p out
-          cp native/merchant/android/app/build/outputs/apk/release/app-release.apk "out/zana-merchant-${{ inputs.versionName || '1.0.2' }}.apk"
+          RESOURCE_DUMP="/tmp/zana-merchant-resource-dump.txt"
+          "$AAPT2" dump resources "$APK" > "$RESOURCE_DUMP"
+          grep -Eq 'mipmap/ic_launcher($|[^[:alnum:]_])' "$RESOURCE_DUMP"
+          grep -Eq 'mipmap/ic_launcher_round($|[^[:alnum:]_])' "$RESOURCE_DUMP"
 
-      - name: Remove signing key
-        if: always()
-        run: rm -f native/merchant/android/app/zana.jks
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: zana-merchant-apk
-          path: out/*.apk
-          retention-days: 30
-
+          echo "Compiled merchant launcher resources verified."
           echo "Merchant launcher icon verification passed."
 
       - name: Collect APK
