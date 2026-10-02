@@ -68,38 +68,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ICON_URL="https://www.ajumalink.com/logo%20files/ChatGPT%20Image%20Oct%202%2C%202026%2C%2007_03_31%20AM.png"
-          # Download without forcing a .png extension. The remote file may be a valid
-          # JPEG/WebP/etc. even though its URL ends in .png.
-          curl -fL --retry 5 --retry-all-errors --connect-timeout 15             -A "Mozilla/5.0 (GitHub Actions; Zana Admin APK Builder)"             -o /tmp/zana-admin-icon "$ICON_URL"
-          test -s /tmp/zana-admin-icon
 
-          echo "Downloaded admin icon:"
-          file /tmp/zana-admin-icon
-          identify /tmp/zana-admin-icon || {
-            echo "ERROR: The configured Admin icon URL did not return a valid image."
-            echo "The server may be returning HTML, an error page, or another non-image response."
-            exit 1
-          }
+          # Use the repository-controlled Zana mark instead of downloading from
+          # an external URL that may return an HTML page or redirect.
+          ICON_SOURCE="admin-web/public/zana-mark.png"
+          test -s "$ICON_SOURCE"
+
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+
+          echo "Admin icon source:"
+          file "$ICON_SOURCE"
+          identify "$ICON_SOURCE"
 
           RES="native/admin/android/app/src/main/res"
           rm -rf "$RES"/mipmap-anydpi "$RES"/mipmap-anydpi-v26
           find "$RES" -type f \( -name 'ic_launcher_foreground.*' -o -name 'ic_launcher_background.*' \) -delete
 
-          sudo apt-get update
-          sudo apt-get install -y imagemagick
-          command -v convert
-          convert -version
-
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
             mkdir -p "$RES/mipmap-$d"
           done
 
-          convert /tmp/zana-admin-icon -auto-orient -resize 48x48! "$RES/mipmap-mdpi/ic_launcher.png"
-          convert /tmp/zana-admin-icon -auto-orient -resize 72x72! "$RES/mipmap-hdpi/ic_launcher.png"
-          convert /tmp/zana-admin-icon -auto-orient -resize 96x96! "$RES/mipmap-xhdpi/ic_launcher.png"
-          convert /tmp/zana-admin-icon -auto-orient -resize 144x144! "$RES/mipmap-xxhdpi/ic_launcher.png"
-          convert /tmp/zana-admin-icon -auto-orient -resize 192x192! "$RES/mipmap-xxxhdpi/ic_launcher.png"
+          convert "$ICON_SOURCE" -auto-orient -resize 48x48! "$RES/mipmap-mdpi/ic_launcher.png"
+          convert "$ICON_SOURCE" -auto-orient -resize 72x72! "$RES/mipmap-hdpi/ic_launcher.png"
+          convert "$ICON_SOURCE" -auto-orient -resize 96x96! "$RES/mipmap-xhdpi/ic_launcher.png"
+          convert "$ICON_SOURCE" -auto-orient -resize 144x144! "$RES/mipmap-xxhdpi/ic_launcher.png"
+          convert "$ICON_SOURCE" -auto-orient -resize 192x192! "$RES/mipmap-xxxhdpi/ic_launcher.png"
 
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
             cp "$RES/mipmap-$d/ic_launcher.png" "$RES/mipmap-$d/ic_launcher_round.png"
