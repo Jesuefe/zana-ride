@@ -10,21 +10,44 @@ platform :ios do
       in_house: false
     )
 
+    # The previous CI distribution certificate was invalid/expired.
+    # Generate/use a current Apple Distribution certificate through
+    # the App Store Connect API and install it into the CI keychain.
+    cert(
+      api_key: api_key,
+      team_id: "TVNH48NRJX",
+      keychain_path: ENV["KEYCHAIN_PATH"],
+      keychain_password: ENV["KEYCHAIN_PASSWORD"],
+      generate_apple_certs: true
+    )
+
+    # Generate/download an App Store provisioning profile that matches
+    # the current bundle ID and the newly installed distribution cert.
+    sigh(
+      api_key: api_key,
+      app_identifier: ENV["BUNDLE_ID"],
+      force: true,
+      output_path: "build"
+    )
+
+    profile_name = lane_context[SharedValues::SIGH_NAME]
+
     build_app(
       workspace: "App.xcworkspace",
       scheme: "App",
       export_method: "app-store",
-      xcargs: "DEVELOPMENT_TEAM=TVNH48NRJX CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=\"Apple Distribution\" PROVISIONING_PROFILE_SPECIFIER=\"#{ENV['PROFILE_NAME']}\"",
+      xcargs: "DEVELOPMENT_TEAM=TVNH48NRJX PRODUCT_BUNDLE_IDENTIFIER=#{ENV['BUNDLE_ID']} CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=\"Apple Distribution\" PROVISIONING_PROFILE_SPECIFIER=\"#{profile_name}\"",
       export_options: {
         teamID: "TVNH48NRJX",
         provisioningProfiles: {
-          ENV["BUNDLE_ID"] => ENV["PROFILE_NAME"]
+          ENV["BUNDLE_ID"] => profile_name
         }
       }
     )
 
     upload_to_testflight(
       api_key: api_key,
+      app_identifier: ENV["BUNDLE_ID"],
       skip_waiting_for_build_processing: true
     )
   end
