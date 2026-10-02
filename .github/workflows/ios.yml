@@ -105,3 +105,5 @@ jobs:
           name: zana-${{ matrix.app.dir }}-ipa
           path: native/${{ matrix.app.dir }}/ios/App/*.ipa
           if-no-files-found: warn
+
+# Release trigger verified for Zana Ride App Store Connect upload.
