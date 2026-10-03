@@ -183,3 +183,25 @@ body > .skiptranslate {
   background: none !important;
   box-shadow: none !important;
 }
+
+/* Responsive helpers: keep the established phone layout intact while making
+   controls and media safe on very narrow and notched mobile screens. */
+img, video, canvas, svg {
+  max-width: 100%;
+}
+
+button, a, input, textarea, select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@supports (padding: max(0px)) {
+  .app-shell {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 359px) {
+  .app-shell {
+    overflow-x: hidden;
+  }
+}
