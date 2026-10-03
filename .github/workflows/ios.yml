@@ -17,9 +17,9 @@ jobs:
       matrix:
         app:
           - dir: driver
-            bundle_id: rw.zanaride.driver
+            bundle_id: com.bastionholdings.zana.driver
           - dir: customer
-            bundle_id: rw.zanaride.app
+            bundle_id: com.bastionholdings.zana
 
     steps:
       - uses: actions/checkout@v5
