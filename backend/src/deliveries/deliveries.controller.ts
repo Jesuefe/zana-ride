@@ -206,7 +206,7 @@ export class DriverDeliveriesController {
 
 @Controller('admin/deliveries')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('ADMIN', 'STAFF')
 export class AdminDeliveriesController {
   constructor(private deliveriesService: DeliveriesService) {}
 
