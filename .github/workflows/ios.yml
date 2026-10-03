@@ -69,8 +69,8 @@ jobs:
       - name: Build and upload to TestFlight
         working-directory: native/${{ matrix.app.dir }}/ios/App
         env:
-          ASC_KEY_ID: "8Z8DTKTUS7"
-          ASC_ISSUER_ID: "1f3de8a1-2a50-4e94-8f25-5dde456a9ab1"
+          ASC_KEY_ID: "4949DJ3PMM"
+          ASC_ISSUER_ID: "78eef06e-8cf0-4f3d-9c62-380ae304adee"
           ASC_KEY_PATH: ${{ runner.temp }}/asc_key.p8
           BUNDLE_ID: ${{ matrix.app.bundle_id }}
         run: fastlane beta
