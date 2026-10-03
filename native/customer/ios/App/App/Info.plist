@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Zana</string>
+	<string>Zana</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -41,19 +41,28 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Zana uses your location to set your pickup point, show nearby shops and follow your ride or delivery on the map.</string>
+
 	<key>NSCameraUsageDescription</key>
 	<string>Zana uses the camera to photograph a package when you send one.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Zana needs access to your photo library so you can choose photos to attach to packages, deliveries, or support requests.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Zana may save photos to your photo library when you choose to save a photo from the app.</string>
+
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Zana uses the microphone for in-app voice calls with your driver.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Zana detects a shake so you can raise an emergency alert without unlocking your phone.</string>
+
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
 		<string>voip</string>
 	</array>
+
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 </dict>
