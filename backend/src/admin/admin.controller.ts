@@ -139,7 +139,6 @@ export class AdminController {
   }
 
   @Roles('ADMIN')
-  @Roles('ADMIN')
   @Patch('users/:id/status')
   updateUserStatus(@Param('id') id: string, @Body() body: { status: UserStatus }) {
     return this.adminService.updateUserStatus(id, body.status);
@@ -192,6 +191,7 @@ export class AdminController {
     return this.adminService.getProducts(status);
   }
 
+  @Roles('ADMIN')
   @Delete('products/:id')
   deleteProduct(@Param('id') id: string) {
     return this.adminService.deleteProduct(id);
@@ -223,21 +223,25 @@ export class AdminController {
   @Get('markets/:id/dashboard')
   marketDashboard(@Param('id') id: string) { return this.adminService.getMarketDashboard(id); }
 
+  @Roles('ADMIN')
   @Post('markets')
   createMarket(@Body() body: { name: string; description?: string; address: string; lat: number; lng: number; pickupContactName?: string; pickupPhone: string }) {
     return this.adminService.createMarket(body);
   }
 
+  @Roles('ADMIN')
   @Patch('markets/:id')
   updateMarket(@Param('id') id: string, @Body() body: any) {
     return this.adminService.updateMarket(id, body);
   }
 
+  @Roles('ADMIN')
   @Delete('markets/:id')
   deactivateMarket(@Param('id') id: string) {
     return this.adminService.deactivateMarket(id);
   }
 
+  @Roles('ADMIN')
   @Post('markets/:id/products')
   addMarketProduct(
     @Param('id') id: string,
@@ -246,6 +250,7 @@ export class AdminController {
     return this.adminService.addMarketProduct(id, body);
   }
 
+  @Roles('ADMIN')
   @Patch('markets/:marketId/products/:productId')
   updateMarketProduct(
     @Param('marketId') marketId: string,
@@ -255,6 +260,7 @@ export class AdminController {
     return this.adminService.updateMarketProduct(marketId, productId, body);
   }
 
+  @Roles('ADMIN')
   @Delete('markets/:marketId/products/:productId')
   disableMarketProduct(
     @Param('marketId') marketId: string,
@@ -271,14 +277,17 @@ export class AdminController {
   @Get('agents/:id/detail')
   agentDetail(@Param('id') id: string) { return this.adminService.getAgentDetail(id); }
 
+  @Roles('ADMIN')
   @Post('agents')
   createAgent(@Body() body: any) { return this.adminService.createAgent(body); }
 
+  @Roles('ADMIN')
   @Patch('agents/:id/assign-market')
   assignAgent(@Param('id') id: string, @Body() body: { marketId: string }) {
     return this.adminService.assignAgentToMarket(id, body.marketId);
   }
 
+  @Roles('ADMIN')
   @Patch('agents/:id/toggle')
   toggleAgent(@Param('id') id: string, @Body() body: { active: boolean }) {
     return this.adminService.toggleAgent(id, body.active);
@@ -333,22 +342,26 @@ export class AdminController {
 
   // Live-testing only — see setDriverTestLocation in admin.service.ts
   // for what this actually does and why it's safe by default.
+  @Roles('ADMIN')
   @Patch('drivers/:id/test-location')
   setDriverTestLocation(@Param('id') id: string, @Body() body: { lat: number | null; lng: number | null }) {
     return this.adminService.setDriverTestLocation(id, body.lat, body.lng);
   }
 
+  @Roles('ADMIN')
   @Get('drivers/test-locations')
   listDriverTestLocations() {
     return this.adminService.listDriverTestLocations();
   }
 
   // DANGEROUS — see scatterAllDriverTestLocations in admin.service.ts.
+  @Roles('ADMIN')
   @Post('drivers/test-locations/scatter')
   scatterAllDriverTestLocations(@Body() body: { centerLat: number; centerLng: number; radiusMeters?: number }) {
     return this.adminService.scatterAllDriverTestLocations(body.centerLat, body.centerLng, body.radiusMeters);
   }
 
+  @Roles('ADMIN')
   @Post('drivers/test-locations/clear-all')
   clearAllDriverTestLocations() {
     return this.adminService.clearAllDriverTestLocations();
@@ -356,22 +369,26 @@ export class AdminController {
 
   // ---- Same set of endpoints, for customer accounts ----
 
+  @Roles('ADMIN')
   @Patch('customers/:id/test-location')
   setCustomerTestLocation(@Param('id') id: string, @Body() body: { lat: number | null; lng: number | null }) {
     return this.adminService.setCustomerTestLocation(id, body.lat, body.lng);
   }
 
+  @Roles('ADMIN')
   @Get('customers/test-locations')
   listCustomerTestLocations() {
     return this.adminService.listCustomerTestLocations();
   }
 
   // DANGEROUS
+  @Roles('ADMIN')
   @Post('customers/test-locations/scatter')
   scatterAllCustomerTestLocations(@Body() body: { centerLat: number; centerLng: number; radiusMeters?: number }) {
     return this.adminService.scatterAllCustomerTestLocations(body.centerLat, body.centerLng, body.radiusMeters);
   }
 
+  @Roles('ADMIN')
   @Post('customers/test-locations/clear-all')
   clearAllCustomerTestLocations() {
     return this.adminService.clearAllCustomerTestLocations();
@@ -379,6 +396,7 @@ export class AdminController {
 
   // "Destroy the session" — clears every driver AND customer test
   // location in one call, once a live test has wrapped up.
+  @Roles('ADMIN')
   @Post('test-locations/clear-all')
   clearAllTestLocations() {
     return this.adminService.clearAllTestLocations();
