@@ -131,7 +131,7 @@ export class DriversController {
 
 @Controller('admin/drivers')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('ADMIN', 'STAFF')
 export class AdminDriversController {
   constructor(private driversService: DriversService) {}
 
