@@ -56,7 +56,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     const token = getToken();
     if (!token) { router.replace('/login'); return; }
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
       const role = payload?.role;
       if (role === 'STAFF') {
         setMode('worker');
