@@ -19,7 +19,7 @@ export default function BottomNav() {
   if (hidden) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md border-t border-zana-border flex items-center justify-center py-2 z-30 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[1200px] bg-white/95 backdrop-blur-md border-t border-zana-border flex items-center justify-center py-2 z-30 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
       {items.map((item) => {
         const active = pathname === item.href;
         const Icon = item.icon;
