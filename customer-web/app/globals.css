@@ -35,28 +35,85 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  min-width: 320px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Phone-width by default; grows on larger screens instead of staying
-   locked to a narrow column, so the app feels native on tablet/desktop too. */
+/* One fluid application surface.
+   The layout responds to the available viewport instead of pretending every
+   device is a 390–480px phone. Content can grow on tablets and desktop while
+   remaining edge-to-edge on phones. */
 .app-shell {
-  max-width: 480px;
+  width: 100%;
+  max-width: 1120px;
   margin: 0 auto;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--zana-surface);
   position: relative;
+  isolation: isolate;
 }
 
-@media (min-width: 768px) {
+/* Shared responsive primitives used by maps, sheets and full-height screens. */
+.zana-map {
+  width: 100%;
+  min-height: 200px;
+}
+
+.zana-touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.zana-safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 640px) {
   .app-shell {
-    max-width: 640px;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .app-shell {
-    max-width: 760px;
+    min-height: 100dvh;
+  }
+
+  .zana-map {
+    min-height: 260px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .zana-map {
+    min-height: 320px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .app-shell {
+    max-width: 1200px;
+  }
+
+  .zana-map {
+    min-height: 360px;
+  }
+}
+
+/* Let the browser respect device text scaling and orientation changes. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .app-shell {
+    min-height: 100svh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
