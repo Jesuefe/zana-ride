@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Users, Car, Store, Package, Truck, TrendingUp, AlertCircle, CheckCircle, ShieldAlert, ArrowUpRight } from 'lucide-react';
 import AdminShell from '../../components/AdminShell';
-import { getOverview } from '../../lib/api/admin';
+import { getOverview, getLiveOperations } from '../../lib/api/admin';
+import { getToken } from '../../lib/api/client';
 
 type Overview = {
   totalUsers: number; customers: number; merchants: number; drivers: number; agents: number;
@@ -31,12 +32,50 @@ function StatCard({ icon: Icon, label, value, sub, alert }: any) {
 
 export default function DashboardPage() {
   const [data, setData] = useState<Overview | null>(null);
+  const [staffOps, setStaffOps] = useState<any>(null);
+  const [isStaff, setIsStaff] = useState(false);
 
   useEffect(() => {
+    let staff = false;
+    try {
+      const token = getToken();
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        staff = payload?.role === 'STAFF';
+      }
+    } catch {}
+    setIsStaff(staff);
+    if (staff) {
+      getLiveOperations().then(setStaffOps).catch(() => {});
+      const interval = setInterval(() => getLiveOperations().then(setStaffOps).catch(() => {}), 5000);
+      return () => clearInterval(interval);
+    }
     getOverview().then(setData).catch(() => {});
     const interval = setInterval(() => getOverview().then(setData).catch(() => {}), 15000);
     return () => clearInterval(interval);
   }, []);
+
+  if (isStaff) {
+    const k = staffOps?.kpis ?? {};
+    return (
+      <AdminShell>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Staff Operations</h1>
+          <p className="text-sm text-gray-500 mb-6">Live operational workspace. Financial and system controls are restricted to administrators.</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <StatCard icon={Car} label="Online drivers" value={k.onlineDrivers} />
+            <StatCard icon={Car} label="Busy drivers" value={k.busyDrivers} />
+            <StatCard icon={TrendingUp} label="Active rides" value={k.activeRides} />
+            <StatCard icon={Truck} label="Active deliveries" value={k.activeDeliveries} />
+          </div>
+          <div className="bg-white rounded-xl p-5 shadow-sm">
+            <h2 className="font-semibold text-gray-900 mb-3">Your operational tools</h2>
+            <p className="text-sm text-gray-500">Use Drivers, Orders, Deliveries, Dispatch, Tracking and Merchants from the sidebar to handle daily Zana operations.</p>
+          </div>
+        </div>
+      </AdminShell>
+    );
+  }
 
   return (
     <AdminShell>
