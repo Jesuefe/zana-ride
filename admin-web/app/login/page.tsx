@@ -49,7 +49,7 @@ export default function LoginPage() {
         >
           Forgot your password?
         </button>
-        <button onClick={() => router.push('/staff-login')} className="w-full text-xs text-zana-primary py-2.5 mt-1">Staff login</button>
+        <button onClick={() => router.push('/staff')} className="w-full text-xs text-zana-primary py-2.5 mt-1">Staff login</button>
       </div>
     </div>
   );
