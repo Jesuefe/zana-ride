@@ -103,14 +103,24 @@ jobs:
 
           cp build/export/*.ipa build/zana-${{ matrix.app.dir }}.ipa
 
-      - name: Validate exported bundle identifiers
+      - name: Validate exported IPA bundle identifiers
         working-directory: native/${{ matrix.app.dir }}/ios/App
         run: |
+          rm -rf build/ipa-check
+          mkdir -p build/ipa-check
+          unzip -q "build/zana-${{ matrix.app.dir }}.ipa" -d build/ipa-check
+
           python3 - <<'PY'
           import plistlib
           from pathlib import Path
           from collections import defaultdict
-          app = next(Path("build/export").glob("*.app"))
+
+          payload = Path("build/ipa-check/Payload")
+          apps = list(payload.glob("*.app"))
+          if len(apps) != 1:
+              raise SystemExit(f"Expected exactly one app bundle in IPA, found {len(apps)}")
+
+          app = apps[0]
           grouped = defaultdict(list)
           for plist_path in app.rglob("Info.plist"):
               try:
@@ -121,11 +131,19 @@ jobs:
                       grouped[bundle_id].append(str(plist_path.relative_to(app)))
               except Exception:
                   pass
+
           print("Exported bundle identifiers:")
           for bundle_id, paths in sorted(grouped.items()):
               print(f"  {bundle_id}")
               for path in paths:
                   print(f"    - {path}")
+
+          expected = "${{ matrix.app.bundle_id }}"
+          root_info = plistlib.loads((app / "Info.plist").read_bytes())
+          actual = root_info.get("CFBundleIdentifier")
+          if actual != expected:
+              raise SystemExit(f"Root app bundle ID mismatch: expected {expected}, got {actual}")
+
           duplicates = {k: v for k, v in grouped.items() if len(v) > 1}
           if duplicates:
               print("\nERROR: duplicate CFBundleIdentifier values found:")
