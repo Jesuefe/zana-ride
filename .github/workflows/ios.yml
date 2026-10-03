@@ -89,15 +89,7 @@ jobs:
       - name: Upload to TestFlight
         working-directory: native/${{ matrix.app.dir }}/ios/App
         run: |
-          fastlane pilot upload             --ipa "build/zana-${{ matrix.app.dir }}.ipa"             --app_identifier "${{ matrix.app.bundle_id }}"             --skip_waiting_for_build_processing true             --api_key_path <(python3 - <<'PY'
-          import json, os
-          print(json.dumps({
-              "key_id": "4949DJ3PMM",
-              "issuer_id": "78eef06e-8cf0-4f3d-9c62-380ae304adee",
-              "key": open(os.environ["ASC_KEY_PATH"]).read()
-          }))
-          PY
-          )
+          fastlane pilot upload             --ipa "build/zana-${{ matrix.app.dir }}.ipa"             --app_identifier "${{ matrix.app.bundle_id }}"             --skip_waiting_for_build_processing true             --api_key '{"key_id":"4949DJ3PMM","issuer_id":"78eef06e-8cf0-4f3d-9c62-380ae304adee","key_filepath":"'"$ASC_KEY_PATH"'"}'
 
       - name: Upload .ipa as a downloadable artifact
         if: always()
