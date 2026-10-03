@@ -49,6 +49,7 @@ model User {
   merchant    Merchant?
   agent       Agent?
   wallet      Wallet?
+  staffMember StaffMember?
   tripsAsCustomer Trip[]  @relation("CustomerTrips")
   deliveries      Delivery[] @relation("CustomerDeliveries")
   orders          Order[]    @relation("CustomerOrders")
