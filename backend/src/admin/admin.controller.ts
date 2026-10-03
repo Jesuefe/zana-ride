@@ -534,6 +534,41 @@ export class AdminController {
   }
 
   @Roles('ADMIN')
+  @Post('settings/payments/wooshpay/test-collection')
+  async testWooshPayCollection(
+    @Body() body: { phone: string; amount: number; provider?: 'mtn_rw'|'airtel_rw'; reference?: string },
+  ) {
+    const settings = await this.wooshPayService.getPublicSettings();
+    if (settings.environment !== 'sandbox') throw new BadRequestException('WOOSHPAY_TEST_TRANSACTIONS_REQUIRE_SANDBOX');
+    const reference = body.reference?.trim() || 'ZANA-WOOSHPAY-TEST-' + Date.now();
+    return this.wooshPayService.collectMobileMoney(body.phone, Number(body.amount), reference, body.provider);
+  }
+
+  @Roles('ADMIN')
+  @Post('settings/payments/wooshpay/test-payout')
+  async testWooshPayPayout(
+    @Body() body: { phone: string; amount: number; provider?: 'mtn_rw'|'airtel_rw'; name?: string; reference?: string },
+  ) {
+    const settings = await this.wooshPayService.getPublicSettings();
+    if (settings.environment !== 'sandbox') throw new BadRequestException('WOOSHPAY_TEST_TRANSACTIONS_REQUIRE_SANDBOX');
+    const reference = body.reference?.trim() || 'ZANA-WOOSHPAY-PAYOUT-TEST-' + Date.now();
+    return this.wooshPayService.payout(body.phone, Number(body.amount), reference, body.provider, body.name || 'ZANA Test Recipient');
+  }
+
+  @Roles('ADMIN')
+  @Get('settings/payments/wooshpay/collection/:ref')
+  getWooshPayCollectionStatus(@Param('ref') ref: string) {
+    return this.wooshPayService.getCollectionStatus(ref);
+  }
+
+  @Roles('ADMIN')
+  @Get('settings/payments/wooshpay/payout/:ref')
+  getWooshPayPayoutStatus(@Param('ref') ref: string) {
+    return this.wooshPayService.getPayoutStatus(ref);
+  }
+
+
+  @Roles('ADMIN')
   @Get('settings/ai')
   async getAiSettings() {
     const providers = ['gemini', 'groq', 'openrouter'] as const;
