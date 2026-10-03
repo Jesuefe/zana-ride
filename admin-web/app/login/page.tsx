@@ -16,7 +16,7 @@ export default function LoginPage() {
     setLoading(true); setError('');
     try {
       const result = await login(identifier, password);
-      if (result.user.role !== 'ADMIN') { setError('Not an admin account.'); setLoading(false); return; }
+      if (result.user.role !== 'ADMIN') { setError('This login is for admin accounts only.'); setLoading(false); return; }
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed.');
