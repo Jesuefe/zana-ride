@@ -9,7 +9,7 @@ export default function StaffPage() {
   const [payments, setPayments] = useState<any[]>([]);
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', role: '', phone: '', email: '', salary: '' });
+  const [form, setForm] = useState({ name: '', role: '', accessRole: 'OPERATIONS', phone: '', email: '', password: '', salary: '' });
   const [saving, setSaving] = useState(false);
 
   const load = () => {
@@ -22,7 +22,7 @@ export default function StaffPage() {
     setSaving(true);
     await createStaff({ ...form, salary: Number(form.salary) });
     setShowForm(false);
-    setForm({ name: '', role: '', phone: '', email: '', salary: '' });
+    setForm({ name: '', role: '', accessRole: 'OPERATIONS', phone: '', email: '', password: '', salary: '' });
     load();
     setSaving(false);
   };
@@ -42,7 +42,7 @@ export default function StaffPage() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Staff & Payroll</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Monthly salary burden: {totalDue.toLocaleString()} RWF</p>
+            <p className="text-sm text-gray-500 mt-0.5">Create staff accounts with operational access. Monthly salary burden: {totalDue.toLocaleString()} RWF</p>
           </div>
           <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm"><Plus size={15} /> Add Staff</button>
         </div>
@@ -59,12 +59,19 @@ export default function StaffPage() {
             <div className="grid grid-cols-2 gap-3">
               <input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder="Full name" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
               <input value={form.role} onChange={e => setForm(f => ({...f, role: e.target.value}))} placeholder="Role (e.g. Driver Coordinator)" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              <input value={form.phone} onChange={e => setForm(f => ({...f, phone: e.target.value}))} placeholder="Phone" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              <input value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))} placeholder="Email" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+              <input value={form.phone} onChange={e => setForm(f => ({...f, phone: e.target.value}))} placeholder="Phone (login)" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+              <input value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))} placeholder="Email (login, optional)" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+              <input value={form.password} onChange={e => setForm(f => ({...f, password: e.target.value}))} placeholder="Temporary password (min 8)" type="password" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+              <select value={form.accessRole} onChange={e => setForm(f => ({...f, accessRole: e.target.value}))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
+                <option value="OPERATIONS">Operations</option>
+                <option value="DRIVER_OPERATIONS">Driver Operations</option>
+                <option value="MARKET_OPERATIONS">Market Operations</option>
+                <option value="CUSTOMER_SUPPORT">Customer Support</option>
+              </select>
               <input value={form.salary} onChange={e => setForm(f => ({...f, salary: e.target.value}))} placeholder="Monthly salary (RWF)" type="number" className="border border-gray-200 rounded-lg px-3 py-2 text-sm col-span-2" />
             </div>
             <div className="flex gap-2 mt-3">
-              <button onClick={handleCreate} disabled={saving || !form.name || !form.salary} className="bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-40">{saving ? 'Saving…' : 'Add Staff'}</button>
+              <button onClick={handleCreate} disabled={saving || !form.name || !form.phone || !form.password || !form.salary} className="bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-40">{saving ? 'Saving…' : 'Add Staff'}</button>
               <button onClick={() => setShowForm(false)} className="border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm">Cancel</button>
             </div>
           </div>
