@@ -80,8 +80,9 @@ export class WooshPayService {
     // WooshPay does not document a generic account/balance endpoint for this
     // payment product. A harmless authenticated list request is used as the
     // connection test; no payment or payout is created.
+    const auth = 'Basic ' + Buffer.from(s.apiKey + ':').toString('base64');
     const res = await fetch(s.baseUrl + '/payouts?limit=1', {
-      headers: this.authHeaders(),
+      headers: { Authorization: auth, Accept: 'application/json' },
     });
     const raw = await res.text();
     let data: WooshPayResponse = {};
@@ -90,14 +91,6 @@ export class WooshPayService {
       throw new BadGatewayException(String(data?.message || data?.error || raw || 'WooshPay connection failed'));
     }
     return { ok: true, environment: s.environment, currency: 'RWF', provider: s.provider };
-  }
-
-  private authHeaders(extra: Record<string, string> = {}) {
-    return {
-      ...extra,
-      Authorization: 'Basic ' + Buffer.from((this.config.get<string>('WOOSHPAY_API_KEY') || '') + ':').toString('base64'),
-      Accept: 'application/json',
-    };
   }
 
   private async request(path: string, init: RequestInit = {}) {
