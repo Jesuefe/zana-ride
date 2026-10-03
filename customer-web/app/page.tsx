@@ -303,12 +303,12 @@ export default function HomePage() {
       {/* ── Schedule & Location FABs ─────────────────────── */}
       <div className="fixed bottom-20 right-4 flex flex-col gap-2.5 z-30">
         <button onClick={() => router.push('/schedule')}
-          className="w-13 h-13 rounded-2xl bg-zana-primary shadow-lg flex flex-col items-center justify-center gap-0.5 px-3 py-2.5">
+          className="w-13 h-13 min-w-[52px] min-h-[52px] rounded-2xl bg-zana-primary shadow-lg flex flex-col items-center justify-center gap-0.5 px-3 py-2.5">
           <Calendar size={16} className="text-white" />
           <span className="text-[8px] text-white font-bold">{t('Schedule')}</span>
         </button>
         <button onClick={() => router.push('/share-location')}
-          className="w-13 h-13 rounded-2xl bg-white border border-gray-200 shadow-md flex flex-col items-center justify-center gap-0.5 px-3 py-2.5">
+          className="w-13 h-13 min-w-[52px] min-h-[52px] rounded-2xl bg-white border border-gray-200 shadow-md flex flex-col items-center justify-center gap-0.5 px-3 py-2.5">
           <MapPin size={16} className="text-zana-primary" />
           <span className="text-[8px] text-zana-primary font-bold">{t('Location')}</span>
         </button>
@@ -371,7 +371,7 @@ export default function HomePage() {
       )}
 
       {/* ── Bottom nav ───────────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-3 z-40">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-white border-t border-gray-100 px-4 py-3 z-40 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-around">
           {[
             { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>, label: t('Home'), route: '/', active: true },
