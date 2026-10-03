@@ -163,7 +163,7 @@ function StoreContent() {
           {cartCount > 0 && (
             <button
               onClick={() => setShowCart(true)}
-              className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[448px] z-40 flex items-center justify-center gap-2 bg-zana-primary text-white px-4 py-3.5 rounded-2xl text-sm font-black shadow-lg"
+              className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[448px] z-40 flex items-center justify-center gap-2 bg-zana-primary text-white px-4 py-3.5 rounded-2xl text-sm font-black shadow-lg"
             >
               <ShoppingCart size={16} />
               View cart · {cartCount} {t(cartCount === 1 ? 'item' : 'items')} · {cartTotal.toLocaleString()} RWF
