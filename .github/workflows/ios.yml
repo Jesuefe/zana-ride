@@ -51,6 +51,23 @@ jobs:
           chmod 600 "$KEY_PATH"
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
+          API_JSON="$RUNNER_TEMP/appstoreconnect_api.json"
+          python3 - "$KEY_PATH" "$API_JSON" <<'PY'
+          import json, sys
+          key_path, json_path = sys.argv[1], sys.argv[2]
+          with open(key_path, "r", encoding="utf-8") as f:
+              key = f.read()
+          with open(json_path, "w", encoding="utf-8") as f:
+              json.dump({
+                  "key_id": "4949DJ3PMM",
+                  "issuer_id": "78eef06e-8cf0-4f3d-9c62-380ae304adee",
+                  "key": key,
+                  "in_house": False
+              }, f)
+          PY
+          chmod 600 "$API_JSON"
+          echo "ASC_API_JSON=$API_JSON" >> "$GITHUB_ENV"
+
       - name: Install fastlane
         run: gem install fastlane --no-document
 
@@ -89,7 +106,11 @@ jobs:
       - name: Upload to TestFlight
         working-directory: native/${{ matrix.app.dir }}/ios/App
         run: |
-          fastlane pilot upload             --ipa "build/zana-${{ matrix.app.dir }}.ipa"             --app_identifier "${{ matrix.app.bundle_id }}"             --skip_waiting_for_build_processing true             --api_key '{"key_id":"4949DJ3PMM","issuer_id":"78eef06e-8cf0-4f3d-9c62-380ae304adee","key_filepath":"'"$ASC_KEY_PATH"'"}'
+          fastlane pilot upload \
+            --ipa "build/zana-${{ matrix.app.dir }}.ipa" \
+            --app_identifier "${{ matrix.app.bundle_id }}" \
+            --skip_waiting_for_build_processing true \
+            --api_key_path "$ASC_API_JSON"
 
       - name: Upload .ipa as a downloadable artifact
         if: always()
