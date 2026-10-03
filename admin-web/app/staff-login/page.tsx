@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BriefcaseBusiness, Loader2 } from 'lucide-react';
 import { login } from '../../lib/api/admin';
-import { ApiError, requestPasswordReset } from '../../lib/api/client';
+import { ApiError } from '../../lib/api/client';
 
 export default function StaffLoginPage() {
   const router = useRouter();
