@@ -195,7 +195,7 @@ function MarketContent() {
       </div>
 
       {cart.length > 0 && !checkout && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[448px] z-40">
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[448px] z-40">
           <button onClick={openCheckout}
             className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg">
             <ShoppingBag size={16} />
