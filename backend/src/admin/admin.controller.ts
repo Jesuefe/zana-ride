@@ -13,7 +13,7 @@ import { UserRole, UserStatus, DriverApprovalStatus, MerchantStatus, ProductStat
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('ADMIN', 'STAFF')
 export class AdminController {
   constructor(
     private adminService: AdminService,
@@ -24,6 +24,7 @@ export class AdminController {
     private zanaAiService: ZanaAiService,
   ) {}
 
+  @Roles('ADMIN')
   @Get('overview')
   overview() { return this.adminService.getOverview(); }
 
@@ -50,62 +51,76 @@ export class AdminController {
   liveOperations() { return this.adminService.getLiveOperations(); }
 
   // Unified accounting ledger for the operations/AI accounting layer.
+  @Roles('ADMIN')
   @Get('accounting/ledger')
   accountingLedger(@Query('limit') limit?: string) {
     return this.financialService.getAccountingLedger(limit ? Number(limit) : 500);
   }
 
   // Financial snapshot
+  @Roles('ADMIN')
   @Get('financial')
   financial() { return this.financialService.getFinancialSnapshot(); }
 
   // Driver settlement monitor — reads the same existing ledger, not a
   // separate financial system.
+  @Roles('ADMIN')
   @Get('settlements/overview')
   settlementOverview() { return this.financialService.getSettlementOverview(); }
 
+  @Roles('ADMIN')
   @Get('settlements/drivers')
   driverSettlements() { return this.financialService.getDriverSettlements(); }
 
   // Commissions
+  @Roles('ADMIN')
   @Get('commissions')
   commissions() { return this.commissionService.getAll(); }
 
+  @Roles('ADMIN')
   @Get('commissions/summary')
   commissionSummary() { return this.commissionService.getSummary(); }
 
   // Expenses
+  @Roles('ADMIN')
   @Get('expenses')
   getExpenses() { return this.financialService.getExpenses(); }
 
+  @Roles('ADMIN')
   @Post('expenses')
   createExpense(@Body() body: { title: string; amount: number; category: string; description?: string }) {
     return this.financialService.createExpense(body);
   }
 
+  @Roles('ADMIN')
   @Delete('expenses/:id')
   deleteExpense(@Param('id') id: string) { return this.financialService.deleteExpense(id); }
 
   // Staff
+  @Roles('ADMIN')
   @Get('staff')
   getStaff() { return this.financialService.getStaff(); }
 
+  @Roles('ADMIN')
   @Post('staff')
   createStaff(@Body() body: { name: string; role: string; phone?: string; email?: string; salary: number }) {
     return this.financialService.createStaff(body);
   }
 
+  @Roles('ADMIN')
   @Patch('staff/:id')
   updateStaff(@Param('id') id: string, @Body() body: any) {
     return this.financialService.updateStaff(id, body);
   }
 
   // Salary payments
+  @Roles('ADMIN')
   @Get('salary-payments')
   getSalaryPayments(@Query('month') month?: string) {
     return this.financialService.getSalaryPayments(month);
   }
 
+  @Roles('ADMIN')
   @Post('salary-payments')
   recordPayment(@Body() body: { staffMemberId: string; month: string; amount?: number; note?: string }) {
     return this.financialService.recordSalaryPayment(body.staffMemberId, body.month, body.amount, body.note);
@@ -123,11 +138,14 @@ export class AdminController {
     return this.adminService.getUsers(clean(role) as UserRole, clean(status) as UserStatus, clean(search));
   }
 
+  @Roles('ADMIN')
+  @Roles('ADMIN')
   @Patch('users/:id/status')
   updateUserStatus(@Param('id') id: string, @Body() body: { status: UserStatus }) {
     return this.adminService.updateUserStatus(id, body.status);
   }
 
+  @Roles('ADMIN')
   @Post('users/:id/reset-password')
   resetUserPassword(
     @CurrentUser() admin: JwtPayload,
@@ -267,12 +285,14 @@ export class AdminController {
   }
 
   // Centralised policy settings used by the admin Settings page.
+  @Roles('ADMIN')
   @Get('settings/marketplace')
   async getMarketplaceSettings() {
     const config = await this.prisma.marketPriceConfig.findFirst();
     return config ?? this.prisma.marketPriceConfig.create({ data: {} });
   }
 
+  @Roles('ADMIN')
   @Patch('settings/marketplace')
   async updateMarketplaceSettings(
     @CurrentUser() user: JwtPayload,
@@ -297,9 +317,11 @@ export class AdminController {
   }
 
   // Fares
+  @Roles('ADMIN')
   @Get('fares')
   getFares() { return this.adminService.getFares(); }
 
+  @Roles('ADMIN')
   @Patch('fares/:serviceType')
   updateFare(
     @CurrentUser() user: JwtPayload,
@@ -362,17 +384,20 @@ export class AdminController {
     return this.adminService.clearAllTestLocations();
   }
 
+  @Roles('ADMIN')
   @Post('merchant-invites')
   generateInvite(@CurrentUser() user: JwtPayload) {
     return this.adminService.generateMerchantInvite(user.sub);
   }
 
+  @Roles('ADMIN')
   @Get('merchant-invites')
   getInvites() {
     return this.adminService.getMerchantInvites();
   }
 
 
+  @Roles('ADMIN')
   @Get('settings/payments/eversend')
   async getEversendSettings() {
     const row = await this.prisma.auditLog.findFirst({
@@ -395,6 +420,7 @@ export class AdminController {
     };
   }
 
+  @Roles('ADMIN')
   @Patch('settings/payments/eversend')
   async saveEversendSettings(
     @Body() body: { enabled?: boolean; environment?: 'sandbox'|'production'; apiKey?: string; webhookSecret?: string; baseUrl?: string; rail?: 'mtn_momo'|'airtel_money'; minWithdrawal?: number },
@@ -431,6 +457,7 @@ export class AdminController {
     return { saved: true, enabled: record.enabled, environment: record.environment, baseUrl: record.baseUrl, rail: record.rail, minWithdrawal: record.minWithdrawal, configured: Boolean(record.apiKeyEncrypted), apiKeyHint: record.apiKeyHint, webhookConfigured: Boolean(record.webhookSecretEncrypted) };
   }
 
+  @Roles('ADMIN')
   @Get('settings/ai')
   async getAiSettings() {
     const providers = ['gemini', 'groq', 'openrouter'] as const;
@@ -448,6 +475,7 @@ export class AdminController {
     return { enabled: Object.values(byProvider).some((x: any) => x.enabled && x.configured), provider: primary, providers: byProvider, model: byProvider[primary]?.model, configured: byProvider[primary]?.configured, apiKeyHint: byProvider[primary]?.apiKeyHint, features: byProvider[primary]?.features, updatedAt: primaryRow?.createdAt || null };
   }
 
+  @Roles('ADMIN')
   @Patch('settings/ai')
   async saveAiSettings(@CurrentUser() user: JwtPayload, @Body() body: {
     provider?: 'gemini' | 'groq' | 'openrouter'; enabled?: boolean; model?: string; apiKey?: string; clearApiKey?: boolean; features?: Record<string, boolean>;
@@ -471,6 +499,7 @@ export class AdminController {
     return { saved: true, provider, enabled: record.enabled, model: record.model, configured: Boolean(record.apiKeyEncrypted), apiKeyHint: record.apiKeyHint, features: record.features, updatedAt: updated.createdAt };
   }
 
+  @Roles('ADMIN')
   @Post('settings/ai/test')
   async testAiConnection(@CurrentUser() user: JwtPayload) {
     const result = await this.zanaAiService.testConnection();
@@ -478,6 +507,7 @@ export class AdminController {
     return result;
   }
 
+  @Roles('ADMIN')
   @Post('settings/payments/eversend/test')
   async testEversend(@CurrentUser() user: JwtPayload) {
     const result = await this.eversendService.testConnection();
