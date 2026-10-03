@@ -60,7 +60,7 @@ jobs:
           rm -rf build
           mkdir -p build
 
-          xcodebuild             -workspace App.xcworkspace             -scheme App             -configuration Release             -destination "generic/platform=iOS"             -archivePath "$PWD/build/App.xcarchive"             DEVELOPMENT_TEAM=BX52G3KQ85             PRODUCT_BUNDLE_IDENTIFIER="${{ matrix.app.bundle_id }}"             CODE_SIGN_STYLE=Automatic             CODE_SIGN_IDENTITY="Apple Distribution"             -allowProvisioningUpdates             -authenticationKeyPath "$ASC_KEY_PATH"             -authenticationKeyID "4949DJ3PMM"             -authenticationKeyIssuerID "78eef06e-8cf0-4f3d-9c62-380ae304adee"             clean archive
+          xcodebuild             -workspace App.xcworkspace             -scheme App             -configuration Release             -destination "generic/platform=iOS"             -archivePath "$PWD/build/App.xcarchive"             DEVELOPMENT_TEAM=BX52G3KQ85             PRODUCT_BUNDLE_IDENTIFIER="${{ matrix.app.bundle_id }}"             CODE_SIGN_STYLE=Automatic             -allowProvisioningUpdates             -authenticationKeyPath "$ASC_KEY_PATH"             -authenticationKeyID "4949DJ3PMM"             -authenticationKeyIssuerID "78eef06e-8cf0-4f3d-9c62-380ae304adee"             clean archive
 
       - name: Export signed IPA
         working-directory: native/${{ matrix.app.dir }}/ios/App
