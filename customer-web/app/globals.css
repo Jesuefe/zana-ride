@@ -35,26 +35,24 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  min-width: 320px;
+  min-width: 0;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* One fluid application surface.
-   The layout responds to the available viewport instead of pretending every
-   device is a 390–480px phone. Content can grow on tablets and desktop while
-   remaining edge-to-edge on phones. */
 .app-shell {
   width: 100%;
-  max-width: 1120px;
+  max-width: 480px;
   margin: 0 auto;
+  min-height: 100vh;
   min-height: 100dvh;
   background: var(--zana-surface);
   position: relative;
   isolation: isolate;
 }
 
-/* Shared responsive primitives used by maps, sheets and full-height screens. */
+/* The customer UI is phone-first. Only expand the outer canvas at tablet
+   sizes; never force a mobile screen to behave like a desktop layout. */
 .zana-map {
   width: 100%;
   min-height: 200px;
@@ -69,15 +67,10 @@ body {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
-@media (min-width: 640px) {
-  .app-shell {
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
-  }
-}
-
 @media (min-width: 768px) {
   .app-shell {
-    min-height: 100dvh;
+    max-width: 768px;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
   }
 
   .zana-map {
@@ -86,12 +79,16 @@ body {
 }
 
 @media (min-width: 1024px) {
+  .app-shell {
+    max-width: 1024px;
+  }
+
   .zana-map {
     min-height: 320px;
   }
 }
 
-@media (min-width: 1440px) {
+@media (min-width: 1280px) {
   .app-shell {
     max-width: 1200px;
   }
@@ -101,7 +98,6 @@ body {
   }
 }
 
-/* Let the browser respect device text scaling and orientation changes. */
 @media (orientation: landscape) and (max-height: 560px) {
   .app-shell {
     min-height: 100svh;
