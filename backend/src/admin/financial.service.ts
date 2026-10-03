@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -75,8 +76,40 @@ export class FinancialService {
 
   // ─── STAFF & SALARY ────────────────────────────────────────────────────
 
-  async createStaff(data: { name: string; role: string; phone?: string; email?: string; salary: number; startDate?: Date }) {
-    return this.prisma.staffMember.create({ data });
+  async createStaff(data: { name: string; role: string; accessRole?: string; phone: string; email?: string; password: string; salary: number; startDate?: Date }) {
+    if (!data.phone?.trim()) throw new BadRequestException('STAFF_PHONE_REQUIRED');
+    if (!data.password || data.password.length < 8) throw new BadRequestException('STAFF_PASSWORD_TOO_SHORT');
+    const phone = data.phone.trim();
+    const email = data.email?.trim() || undefined;
+    const existing = await this.prisma.user.findFirst({ where: { OR: [{ phone }, ...(email ? [{ email }] : [])] } });
+    if (existing) throw new ConflictException('A user with that phone or email already exists');
+    const passwordHash = await bcrypt.hash(data.password, 12);
+    return this.prisma.$transaction(async tx => {
+      const user = await tx.user.create({
+        data: {
+          phone,
+          email,
+          password: passwordHash,
+          firstName: data.name,
+          role: 'STAFF',
+          status: 'ACTIVE',
+          phoneVerified: true,
+        },
+      });
+      const staff = await tx.staffMember.create({
+        data: {
+          userId: user.id,
+          name: data.name,
+          role: data.role,
+          accessRole: data.accessRole || 'OPERATIONS',
+          phone,
+          email,
+          salary: Number(data.salary) || 0,
+          startDate: data.startDate,
+        },
+      });
+      return { ...staff, user: { id: user.id, phone: user.phone, email: user.email, role: user.role } };
+    });
   }
 
   async getStaff() {

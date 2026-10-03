@@ -13,7 +13,7 @@ import { UserRole, UserStatus, DriverApprovalStatus, MerchantStatus, ProductStat
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('ADMIN', 'STAFF')
 export class AdminController {
   constructor(
     private adminService: AdminService,
@@ -24,6 +24,7 @@ export class AdminController {
     private zanaAiService: ZanaAiService,
   ) {}
 
+  @Roles('ADMIN')
   @Get('overview')
   overview() { return this.adminService.getOverview(); }
 
@@ -50,62 +51,76 @@ export class AdminController {
   liveOperations() { return this.adminService.getLiveOperations(); }
 
   // Unified accounting ledger for the operations/AI accounting layer.
+  @Roles('ADMIN')
   @Get('accounting/ledger')
   accountingLedger(@Query('limit') limit?: string) {
     return this.financialService.getAccountingLedger(limit ? Number(limit) : 500);
   }
 
   // Financial snapshot
+  @Roles('ADMIN')
   @Get('financial')
   financial() { return this.financialService.getFinancialSnapshot(); }
 
   // Driver settlement monitor — reads the same existing ledger, not a
   // separate financial system.
+  @Roles('ADMIN')
   @Get('settlements/overview')
   settlementOverview() { return this.financialService.getSettlementOverview(); }
 
+  @Roles('ADMIN')
   @Get('settlements/drivers')
   driverSettlements() { return this.financialService.getDriverSettlements(); }
 
   // Commissions
+  @Roles('ADMIN')
   @Get('commissions')
   commissions() { return this.commissionService.getAll(); }
 
+  @Roles('ADMIN')
   @Get('commissions/summary')
   commissionSummary() { return this.commissionService.getSummary(); }
 
   // Expenses
+  @Roles('ADMIN')
   @Get('expenses')
   getExpenses() { return this.financialService.getExpenses(); }
 
+  @Roles('ADMIN')
   @Post('expenses')
   createExpense(@Body() body: { title: string; amount: number; category: string; description?: string }) {
     return this.financialService.createExpense(body);
   }
 
+  @Roles('ADMIN')
   @Delete('expenses/:id')
   deleteExpense(@Param('id') id: string) { return this.financialService.deleteExpense(id); }
 
   // Staff
+  @Roles('ADMIN')
   @Get('staff')
   getStaff() { return this.financialService.getStaff(); }
 
+  @Roles('ADMIN')
   @Post('staff')
-  createStaff(@Body() body: { name: string; role: string; phone?: string; email?: string; salary: number }) {
+  createStaff(@Body() body: { name: string; role: string; accessRole?: string; phone: string; email?: string; password: string; salary: number }) {
     return this.financialService.createStaff(body);
   }
 
+  @Roles('ADMIN')
   @Patch('staff/:id')
   updateStaff(@Param('id') id: string, @Body() body: any) {
     return this.financialService.updateStaff(id, body);
   }
 
   // Salary payments
+  @Roles('ADMIN')
   @Get('salary-payments')
   getSalaryPayments(@Query('month') month?: string) {
     return this.financialService.getSalaryPayments(month);
   }
 
+  @Roles('ADMIN')
   @Post('salary-payments')
   recordPayment(@Body() body: { staffMemberId: string; month: string; amount?: number; note?: string }) {
     return this.financialService.recordSalaryPayment(body.staffMemberId, body.month, body.amount, body.note);
@@ -123,11 +138,13 @@ export class AdminController {
     return this.adminService.getUsers(clean(role) as UserRole, clean(status) as UserStatus, clean(search));
   }
 
+  @Roles('ADMIN')
   @Patch('users/:id/status')
   updateUserStatus(@Param('id') id: string, @Body() body: { status: UserStatus }) {
     return this.adminService.updateUserStatus(id, body.status);
   }
 
+  @Roles('ADMIN')
   @Post('users/:id/reset-password')
   resetUserPassword(
     @CurrentUser() admin: JwtPayload,
@@ -174,6 +191,7 @@ export class AdminController {
     return this.adminService.getProducts(status);
   }
 
+  @Roles('ADMIN')
   @Delete('products/:id')
   deleteProduct(@Param('id') id: string) {
     return this.adminService.deleteProduct(id);
@@ -205,21 +223,25 @@ export class AdminController {
   @Get('markets/:id/dashboard')
   marketDashboard(@Param('id') id: string) { return this.adminService.getMarketDashboard(id); }
 
+  @Roles('ADMIN')
   @Post('markets')
   createMarket(@Body() body: { name: string; description?: string; address: string; lat: number; lng: number; pickupContactName?: string; pickupPhone: string }) {
     return this.adminService.createMarket(body);
   }
 
+  @Roles('ADMIN')
   @Patch('markets/:id')
   updateMarket(@Param('id') id: string, @Body() body: any) {
     return this.adminService.updateMarket(id, body);
   }
 
+  @Roles('ADMIN')
   @Delete('markets/:id')
   deactivateMarket(@Param('id') id: string) {
     return this.adminService.deactivateMarket(id);
   }
 
+  @Roles('ADMIN')
   @Post('markets/:id/products')
   addMarketProduct(
     @Param('id') id: string,
@@ -228,6 +250,7 @@ export class AdminController {
     return this.adminService.addMarketProduct(id, body);
   }
 
+  @Roles('ADMIN')
   @Patch('markets/:marketId/products/:productId')
   updateMarketProduct(
     @Param('marketId') marketId: string,
@@ -237,6 +260,7 @@ export class AdminController {
     return this.adminService.updateMarketProduct(marketId, productId, body);
   }
 
+  @Roles('ADMIN')
   @Delete('markets/:marketId/products/:productId')
   disableMarketProduct(
     @Param('marketId') marketId: string,
@@ -253,26 +277,31 @@ export class AdminController {
   @Get('agents/:id/detail')
   agentDetail(@Param('id') id: string) { return this.adminService.getAgentDetail(id); }
 
+  @Roles('ADMIN')
   @Post('agents')
   createAgent(@Body() body: any) { return this.adminService.createAgent(body); }
 
+  @Roles('ADMIN')
   @Patch('agents/:id/assign-market')
   assignAgent(@Param('id') id: string, @Body() body: { marketId: string }) {
     return this.adminService.assignAgentToMarket(id, body.marketId);
   }
 
+  @Roles('ADMIN')
   @Patch('agents/:id/toggle')
   toggleAgent(@Param('id') id: string, @Body() body: { active: boolean }) {
     return this.adminService.toggleAgent(id, body.active);
   }
 
   // Centralised policy settings used by the admin Settings page.
+  @Roles('ADMIN')
   @Get('settings/marketplace')
   async getMarketplaceSettings() {
     const config = await this.prisma.marketPriceConfig.findFirst();
     return config ?? this.prisma.marketPriceConfig.create({ data: {} });
   }
 
+  @Roles('ADMIN')
   @Patch('settings/marketplace')
   async updateMarketplaceSettings(
     @CurrentUser() user: JwtPayload,
@@ -297,9 +326,11 @@ export class AdminController {
   }
 
   // Fares
+  @Roles('ADMIN')
   @Get('fares')
   getFares() { return this.adminService.getFares(); }
 
+  @Roles('ADMIN')
   @Patch('fares/:serviceType')
   updateFare(
     @CurrentUser() user: JwtPayload,
@@ -311,22 +342,26 @@ export class AdminController {
 
   // Live-testing only — see setDriverTestLocation in admin.service.ts
   // for what this actually does and why it's safe by default.
+  @Roles('ADMIN')
   @Patch('drivers/:id/test-location')
   setDriverTestLocation(@Param('id') id: string, @Body() body: { lat: number | null; lng: number | null }) {
     return this.adminService.setDriverTestLocation(id, body.lat, body.lng);
   }
 
+  @Roles('ADMIN')
   @Get('drivers/test-locations')
   listDriverTestLocations() {
     return this.adminService.listDriverTestLocations();
   }
 
   // DANGEROUS — see scatterAllDriverTestLocations in admin.service.ts.
+  @Roles('ADMIN')
   @Post('drivers/test-locations/scatter')
   scatterAllDriverTestLocations(@Body() body: { centerLat: number; centerLng: number; radiusMeters?: number }) {
     return this.adminService.scatterAllDriverTestLocations(body.centerLat, body.centerLng, body.radiusMeters);
   }
 
+  @Roles('ADMIN')
   @Post('drivers/test-locations/clear-all')
   clearAllDriverTestLocations() {
     return this.adminService.clearAllDriverTestLocations();
@@ -334,22 +369,26 @@ export class AdminController {
 
   // ---- Same set of endpoints, for customer accounts ----
 
+  @Roles('ADMIN')
   @Patch('customers/:id/test-location')
   setCustomerTestLocation(@Param('id') id: string, @Body() body: { lat: number | null; lng: number | null }) {
     return this.adminService.setCustomerTestLocation(id, body.lat, body.lng);
   }
 
+  @Roles('ADMIN')
   @Get('customers/test-locations')
   listCustomerTestLocations() {
     return this.adminService.listCustomerTestLocations();
   }
 
   // DANGEROUS
+  @Roles('ADMIN')
   @Post('customers/test-locations/scatter')
   scatterAllCustomerTestLocations(@Body() body: { centerLat: number; centerLng: number; radiusMeters?: number }) {
     return this.adminService.scatterAllCustomerTestLocations(body.centerLat, body.centerLng, body.radiusMeters);
   }
 
+  @Roles('ADMIN')
   @Post('customers/test-locations/clear-all')
   clearAllCustomerTestLocations() {
     return this.adminService.clearAllCustomerTestLocations();
@@ -357,22 +396,26 @@ export class AdminController {
 
   // "Destroy the session" — clears every driver AND customer test
   // location in one call, once a live test has wrapped up.
+  @Roles('ADMIN')
   @Post('test-locations/clear-all')
   clearAllTestLocations() {
     return this.adminService.clearAllTestLocations();
   }
 
+  @Roles('ADMIN')
   @Post('merchant-invites')
   generateInvite(@CurrentUser() user: JwtPayload) {
     return this.adminService.generateMerchantInvite(user.sub);
   }
 
+  @Roles('ADMIN')
   @Get('merchant-invites')
   getInvites() {
     return this.adminService.getMerchantInvites();
   }
 
 
+  @Roles('ADMIN')
   @Get('settings/payments/eversend')
   async getEversendSettings() {
     const row = await this.prisma.auditLog.findFirst({
@@ -395,6 +438,7 @@ export class AdminController {
     };
   }
 
+  @Roles('ADMIN')
   @Patch('settings/payments/eversend')
   async saveEversendSettings(
     @Body() body: { enabled?: boolean; environment?: 'sandbox'|'production'; apiKey?: string; webhookSecret?: string; baseUrl?: string; rail?: 'mtn_momo'|'airtel_money'; minWithdrawal?: number },
@@ -431,6 +475,7 @@ export class AdminController {
     return { saved: true, enabled: record.enabled, environment: record.environment, baseUrl: record.baseUrl, rail: record.rail, minWithdrawal: record.minWithdrawal, configured: Boolean(record.apiKeyEncrypted), apiKeyHint: record.apiKeyHint, webhookConfigured: Boolean(record.webhookSecretEncrypted) };
   }
 
+  @Roles('ADMIN')
   @Get('settings/ai')
   async getAiSettings() {
     const providers = ['gemini', 'groq', 'openrouter'] as const;
@@ -448,6 +493,7 @@ export class AdminController {
     return { enabled: Object.values(byProvider).some((x: any) => x.enabled && x.configured), provider: primary, providers: byProvider, model: byProvider[primary]?.model, configured: byProvider[primary]?.configured, apiKeyHint: byProvider[primary]?.apiKeyHint, features: byProvider[primary]?.features, updatedAt: primaryRow?.createdAt || null };
   }
 
+  @Roles('ADMIN')
   @Patch('settings/ai')
   async saveAiSettings(@CurrentUser() user: JwtPayload, @Body() body: {
     provider?: 'gemini' | 'groq' | 'openrouter'; enabled?: boolean; model?: string; apiKey?: string; clearApiKey?: boolean; features?: Record<string, boolean>;
@@ -471,6 +517,7 @@ export class AdminController {
     return { saved: true, provider, enabled: record.enabled, model: record.model, configured: Boolean(record.apiKeyEncrypted), apiKeyHint: record.apiKeyHint, features: record.features, updatedAt: updated.createdAt };
   }
 
+  @Roles('ADMIN')
   @Post('settings/ai/test')
   async testAiConnection(@CurrentUser() user: JwtPayload) {
     const result = await this.zanaAiService.testConnection();
@@ -478,6 +525,7 @@ export class AdminController {
     return result;
   }
 
+  @Roles('ADMIN')
   @Post('settings/payments/eversend/test')
   async testEversend(@CurrentUser() user: JwtPayload) {
     const result = await this.eversendService.testConnection();

@@ -53,8 +53,26 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    if (!getToken()) router.replace('/login');
-  }, [router]);
+    const token = getToken();
+    if (!token) { router.replace('/login'); return; }
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      const role = payload?.role;
+      if (role === 'STAFF') {
+        setMode('worker');
+        const adminOnly = ['/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/invites'];
+        if (adminOnly.some(path => pathname === path || pathname.startsWith(path + '/'))) router.replace('/dashboard');
+      } else if (role === 'ADMIN') {
+        setMode('senior');
+      } else {
+        clearToken();
+        router.replace('/login');
+      }
+    } catch {
+      clearToken();
+      router.replace('/login');
+    }
+  }, [router, pathname]);
 
   const nav = mode === 'senior' ? SENIOR_NAV : WORKER_NAV;
   const handleLogout = () => { clearToken(); router.push('/login'); };
@@ -66,9 +84,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           <ZanaMark size={32} />
           <span className="flex items-center gap-2"><ZanaWordmark size={16} color="#FFFFFF" /><span className="text-white font-bold text-sm">Admin</span></span>
         </div>
-        <div className="flex rounded-lg overflow-hidden border border-white/20">
-          <button onClick={() => setMode('senior')} className={`flex-1 text-[10px] font-semibold py-1.5 ${mode === 'senior' ? 'bg-white text-zana-primary-dark' : 'text-white/70'}`}>Senior</button>
-          <button onClick={() => setMode('worker')} className={`flex-1 text-[10px] font-semibold py-1.5 ${mode === 'worker' ? 'bg-white text-zana-primary-dark' : 'text-white/70'}`}>Worker</button>
+        <div className="rounded-lg border border-white/20 px-3 py-2 text-[10px] font-semibold text-white/80 text-center">
+          {mode === 'senior' ? 'ADMIN CONTROL CENTER' : 'STAFF WORKSPACE'}
         </div>
       </div>
       <nav className="flex-1 py-4 overflow-y-auto">

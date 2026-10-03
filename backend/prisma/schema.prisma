@@ -12,6 +12,7 @@ enum UserRole {
   CUSTOMER
   DRIVER
   ADMIN
+  STAFF
   MERCHANT
   AGENT
 }
@@ -48,6 +49,7 @@ model User {
   merchant    Merchant?
   agent       Agent?
   wallet      Wallet?
+  staffMember StaffMember?
   tripsAsCustomer Trip[]  @relation("CustomerTrips")
   deliveries      Delivery[] @relation("CustomerDeliveries")
   orders          Order[]    @relation("CustomerOrders")
@@ -584,8 +586,11 @@ model Expense {
 // Staff members with salary records.
 model StaffMember {
   id         String   @id @default(uuid())
+  userId     String?  @unique
+  user       User?    @relation(fields: [userId], references: [id])
   name       String
   role       String
+  accessRole String   @default("OPERATIONS")
   phone      String?
   email      String?
   salary     Int

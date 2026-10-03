@@ -1,11 +1,12 @@
 'use client';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, Loader2 } from 'lucide-react';
+import { BriefcaseBusiness, Loader2 } from 'lucide-react';
 import { login } from '../../lib/api/admin';
 import { ApiError } from '../../lib/api/client';
 
-export default function LoginPage() {
+export default function StaffLoginPage() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -15,8 +16,13 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setLoading(true); setError('');
     try {
-      const result = await login(identifier, password);
-      if (result.user.role !== 'ADMIN') { setError('This login is for admin accounts only.'); setLoading(false); return; }
+      const result = await login(identifier.trim(), password);
+      if (result.user.role !== 'STAFF') {
+        setError('This login is for Zana staff accounts only.');
+        localStorage.removeItem('zana_admin_token');
+        setLoading(false);
+        return;
+      }
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed.');
@@ -29,10 +35,10 @@ export default function LoginPage() {
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-zana-primary-light rounded-2xl flex items-center justify-center mb-3">
-            <Shield size={28} className="text-zana-primary" />
+            <BriefcaseBusiness size={28} className="text-zana-primary" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Zana Control Center</h1>
-          <p className="text-sm text-gray-500 mt-1">Admin access only</p>
+          <h1 className="text-xl font-bold text-gray-900">Zana Staff Login</h1>
+          <p className="text-sm text-gray-500 mt-1">Operations workspace</p>
         </div>
         <div className="space-y-3">
           <input value={identifier} onChange={e => setIdentifier(e.target.value)} placeholder="Email or phone" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30" autoFocus />
@@ -42,14 +48,12 @@ export default function LoginPage() {
         <button onClick={handleLogin} disabled={loading || !identifier || !password} className="w-full mt-4 bg-zana-primary text-white font-semibold py-2.5 rounded-lg disabled:opacity-40 flex items-center justify-center gap-2">
           {loading ? <><Loader2 size={15} className="animate-spin" /> Signing in…</> : 'Sign In'}
         </button>
-
-        <button
-          onClick={() => router.push('/forgot-password')}
-          className="w-full text-sm text-gray-500 py-2.5 mt-1"
-        >
+        <button onClick={() => router.push('/forgot-password')} className="w-full text-sm text-gray-500 py-2.5 mt-1">
           Forgot your password?
         </button>
-        <button onClick={() => router.push('/staff-login')} className="w-full text-xs text-zana-primary py-2.5 mt-1">Staff login</button>
+        <button onClick={() => router.push('/login')} className="w-full text-xs text-zana-primary py-2">
+          Admin login
+        </button>
       </div>
     </div>
   );

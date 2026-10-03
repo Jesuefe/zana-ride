@@ -190,7 +190,7 @@ export class DriverTripsController {
 
 @Controller('admin/trips')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('ADMIN', 'STAFF')
 export class AdminTripsController {
   constructor(private tripsService: TripsService) {}
 

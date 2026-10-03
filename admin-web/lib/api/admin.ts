@@ -82,7 +82,7 @@ export async function deleteExpense(id: string) {
 }
 
 export async function getStaff() { return api.get<any[]>('/admin/staff'); }
-export async function createStaff(data: any) { return api.post('/admin/staff', data); }
+export async function createStaff(data: { name: string; role: string; accessRole: string; phone: string; email?: string; password: string; salary: number }) { return api.post('/admin/staff', data); }
 export async function updateStaff(id: string, data: any) { return api.patch(`/admin/staff/${id}`, data); }
 
 export async function getSalaryPayments(month?: string) {
