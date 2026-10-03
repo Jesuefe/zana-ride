@@ -19,7 +19,7 @@ export default function BottomNav() {
   if (hidden) return null;
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] md:max-w-[640px] lg:max-w-[760px] bg-white border-t border-zana-border flex items-center justify-around py-2 z-30">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[1200px] bg-white/95 backdrop-blur-md border-t border-zana-border flex items-center justify-center py-2 z-30 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
       {items.map((item) => {
         const active = pathname === item.href;
         const Icon = item.icon;
@@ -27,7 +27,7 @@ export default function BottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-1 px-3 py-1 ${active ? 'text-zana-primary' : 'text-zana-muted'}`}
+            className={`flex min-h-11 min-w-20 sm:min-w-24 items-center justify-center flex-col gap-1 px-3 py-1 ${active ? 'text-zana-primary' : 'text-zana-muted'}`}
           >
             <Icon size={20} strokeWidth={active ? 2.4 : 2} />
             <span className="text-[11px]">{t(item.label)}</span>
