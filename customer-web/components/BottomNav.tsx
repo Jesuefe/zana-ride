@@ -15,7 +15,7 @@ const items = [
 export default function BottomNav() {
   const pathname = usePathname();
   const { t } = useLang();
-  const hidden = ['/login', '/verify', '/search', '/ride-options', '/tracking', '/ai'].includes(pathname);
+  const hidden = ['/login', '/verify', '/search', '/ride-options', '/tracking'].includes(pathname);
   if (hidden) return null;
 
   return (
