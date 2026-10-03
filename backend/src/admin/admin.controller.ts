@@ -103,7 +103,7 @@ export class AdminController {
 
   @Roles('ADMIN')
   @Post('staff')
-  createStaff(@Body() body: { name: string; role: string; phone?: string; email?: string; salary: number }) {
+  createStaff(@Body() body: { name: string; role: string; accessRole?: string; phone: string; email?: string; password: string; salary: number }) {
     return this.financialService.createStaff(body);
   }
 
