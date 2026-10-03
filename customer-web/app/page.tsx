@@ -93,7 +93,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white pb-24">
+    <div className="min-h-[100dvh] bg-white pb-24 overflow-x-hidden">
       {recoveringRide && (
         <div className="fixed inset-0 z-[80] bg-white/95 flex flex-col items-center justify-center px-8">
           <div className="w-16 h-16 rounded-full bg-zana-primary-light flex items-center justify-center mb-4 animate-pulse">
@@ -106,7 +106,7 @@ export default function HomePage() {
 
       {/* ── Header ──────────────────────────────────────── */}
       <div className="px-5 pt-12 pb-4 bg-white">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-3 max-[399px]:flex-col">
           <div>
             <p className="text-gray-500 text-sm">{t(greeting())}</p>
             <h1 className="text-2xl font-black text-gray-900 mt-0.5">
@@ -121,7 +121,7 @@ export default function HomePage() {
           {/* Wallet pill */}
           <button
             onClick={() => router.push('/wallet')}
-            className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-2.5 shadow-sm"
+            className="flex min-w-0 shrink-0 items-center gap-2 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-2.5 shadow-sm max-[399px]:w-full max-[399px]:justify-between"
           >
             <div className="w-7 h-7 rounded-xl bg-zana-primary-light flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -301,7 +301,7 @@ export default function HomePage() {
       )}
 
       {/* ── Schedule & Location FABs ─────────────────────── */}
-      <div className="fixed bottom-20 right-4 flex flex-col gap-2.5 z-30">
+      <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 flex flex-col gap-2.5 z-30 max-[359px]:right-2">
         <button onClick={() => router.push('/schedule')}
           className="w-13 h-13 min-w-[52px] min-h-[52px] rounded-2xl bg-zana-primary shadow-lg flex flex-col items-center justify-center gap-0.5 px-3 py-2.5">
           <Calendar size={16} className="text-white" />
@@ -369,24 +369,6 @@ export default function HomePage() {
           </div>
         </div>
       )}
-
-      {/* ── Bottom nav ───────────────────────────────────── */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-white border-t border-gray-100 px-4 py-3 z-40 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-        <div className="flex items-center justify-around">
-          {[
-            { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>, label: t('Home'), route: '/', active: true },
-            { icon: <Package size={22} />, label: t('Orders'), route: '/orders', active: false },
-            { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="15" rx="3"/><path d="M16 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0z" fill="currentColor" stroke="none"/><path d="M2 9h20"/></svg>, label: t('Wallet'), route: '/wallet', active: false },
-            { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: t('Profile'), route: '/profile', active: false },
-          ].map(item => (
-            <button key={item.label} onClick={() => router.push(item.route)}
-              className={`flex flex-col items-center gap-1 ${item.active ? 'text-zana-primary' : 'text-gray-400'}`}>
-              {item.icon}
-              <span className="text-[10px] font-semibold">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
 
     </div>
   );
