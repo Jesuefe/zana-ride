@@ -8,5 +8,4 @@ export const SERVICES = [
   { id: 'shop',    title: 'Shop',       sub: 'Groceries & goods',   image: '/icons/grocery-bag.png',    bg: '#EEF9F6', route: '/shop' },
   { id: 'gift',    title: 'Send Gift',  sub: 'Roses & surprises',   image: '/icons/flower-bouquet.png', bg: '#FDF6E3', route: '/gifts' },
   { id: 'market',  title: 'Market',     sub: 'Agent shops for you', image: '/icons/grocery-bag.png',    bg: '#EEF9F6', route: '/market' },
-  { id: 'ai',      title: 'Zana AI',    sub: 'Tell Zana what you need', image: '/icons/zana-ai.svg', bg: '#E8F7F3', route: '/ai' },
 ];
