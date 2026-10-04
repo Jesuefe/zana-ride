@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
-import AdminShell from '../../../components/AdminShell';
-import { getFinancialReconciliation } from '../../../lib/api/admin';
+import AdminShell from '../../../../components/AdminShell';
+import { getFinancialReconciliation } from '../../../../lib/api/admin';
 
 const fmt = (n: any) => `${Number(n ?? 0).toLocaleString()} RWF`;
 
