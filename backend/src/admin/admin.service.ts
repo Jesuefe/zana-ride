@@ -932,17 +932,23 @@ export class AdminService {
 
   async getStaffSecurity() {
     return this.prisma.staffMember.findMany({
-      include: { user: { select: { id: true, phone: true, email: true, status: true, lastLoginAt: true, createdAt: true } } },
+      include: { user: { select: { id: true, phone: true, email: true, status: true, createdAt: true } } },
       orderBy: { name: 'asc' },
     });
   }
 
   async getAuditLog(limit = 100, action?: string, entityType?: string) {
     const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 500);
-    return this.prisma.auditLog.findMany({
+    const rows = await this.prisma.auditLog.findMany({
       where: { ...(action ? { action: { contains: action, mode: 'insensitive' } } : {}), ...(entityType ? { entityType } : {}) },
       orderBy: { createdAt: 'desc' }, take: safeLimit,
-      include: { actor: { select: { id: true, firstName: true, lastName: true, phone: true, email: true, role: true } } },
     });
+    const actorIds = [...new Set(rows.map(r => r.actorId).filter(Boolean) as string[])];
+    const actors = actorIds.length ? await this.prisma.user.findMany({
+      where: { id: { in: actorIds } },
+      select: { id: true, firstName: true, lastName: true, phone: true, email: true, role: true },
+    }) : [];
+    const actorById = new Map(actors.map(a => [a.id, a]));
+    return rows.map(r => ({ ...r, actor: r.actorId ? actorById.get(r.actorId) || null : null }));
   }
 }
