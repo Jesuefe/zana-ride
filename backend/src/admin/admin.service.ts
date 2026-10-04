@@ -250,6 +250,68 @@ export class AdminService {
     return { people, merchants, products, trips, deliveries, orders };
   }
 
+
+  // Production data-integrity monitor. This is intentionally read-only:
+  // it surfaces reconciliation risks without mutating live financial or
+  // operational records.
+  async getSystemHealth() {
+    const staleLocationCutoff = new Date(Date.now() - 5 * 60 * 1000);
+    const pendingWalletCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const [
+      users, drivers, merchants, agents, staff,
+      openSos, unverifiedDriverDocs, pendingMerchants, pendingProducts,
+      pendingOrders, assignedDeliveries, onlineDrivers,
+      negativeWallets, staleWalletTransactions, walletBalanceMismatches,
+      orphanStaffMembers, staffUserStatusMismatches,
+    ] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.driver.count(),
+      this.prisma.merchant.count(),
+      this.prisma.agent.count(),
+      this.prisma.staffMember.count(),
+      this.prisma.sosAlert.count({ where: { status: { not: 'RESOLVED' } } }),
+      this.prisma.driverDocument.count({ where: { verified: false } }),
+      this.prisma.merchant.count({ where: { status: 'PENDING' } }),
+      this.prisma.product.count({ where: { status: 'PENDING' } }),
+      this.prisma.order.count({ where: { status: { in: ['PENDING', 'PREPARING'] } } }),
+      this.prisma.delivery.count({ where: { status: { in: ['COURIER_ASSIGNED', 'PICKED_UP'] } } }),
+      this.prisma.driver.count({ where: { onlineStatus: { in: ['ONLINE', 'BUSY'] } } }),
+      this.prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*)::bigint AS count FROM "Wallet" WHERE balance < 0`,
+      this.prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*)::bigint AS count FROM "WalletTransaction" WHERE status = 'PENDING' AND "createdAt" < ${pendingWalletCutoff}`,
+      this.prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*)::bigint AS count FROM "WalletTransaction" wt JOIN "Wallet" w ON w.id = wt."walletId" WHERE wt.status = 'COMPLETED' AND wt."balanceAfter" <> wt."balanceBefore" + wt.amount`,
+      this.prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*)::bigint AS count FROM "StaffMember" WHERE "userId" IS NULL`,
+      this.prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*)::bigint AS count FROM "StaffMember" s JOIN "User" u ON u.id = s."userId" WHERE (s.active = true AND u.status <> 'ACTIVE') OR (s.active = false AND u.status = 'ACTIVE')`,
+    ]);
+
+    const staleOnlineDrivers = await this.prisma.driver.count({
+      where: { onlineStatus: { in: ['ONLINE', 'BUSY'] }, OR: [{ lastLocationAt: null }, { lastLocationAt: { lt: staleLocationCutoff } }] },
+    });
+
+    const n = (v: Array<{ count: bigint }>) => Number(v[0]?.count ?? 0);
+    const findings = [
+      { key: 'negative_wallets', severity: 'critical', count: n(negativeWallets), title: 'Negative wallet balances', detail: 'Completed wallet activity has pushed one or more wallets below zero.' },
+      { key: 'wallet_balance_mismatch', severity: 'critical', count: n(walletBalanceMismatches), title: 'Wallet ledger mismatches', detail: 'A completed transaction balanceAfter does not equal balanceBefore + amount.' },
+      { key: 'orphan_staff', severity: 'high', count: n(orphanStaffMembers), title: 'Staff without user accounts', detail: 'Staff records cannot authenticate or be centrally suspended.' },
+      { key: 'staff_status_mismatch', severity: 'high', count: n(staffUserStatusMismatches), title: 'Staff/user status mismatch', detail: 'Staff active state and linked user status disagree.' },
+      { key: 'stale_online_drivers', severity: 'high', count: staleOnlineDrivers, title: 'Stale online drivers', detail: 'Drivers appear online/busy but have no location update in the last five minutes.' },
+      { key: 'pending_wallet_transactions', severity: 'medium', count: n(staleWalletTransactions), title: 'Wallet transactions pending >24h', detail: 'Pending wallet transactions need reconciliation or expiry handling.' },
+      { key: 'open_sos', severity: 'high', count: openSos, title: 'Open SOS alerts', detail: 'Safety alerts still require acknowledgement or resolution.' },
+      { key: 'unverified_driver_docs', severity: 'medium', count: unverifiedDriverDocs, title: 'Unverified driver documents', detail: 'Driver documents remain pending review.' },
+      { key: 'pending_merchants', severity: 'medium', count: pendingMerchants, title: 'Pending merchants', detail: 'Merchant applications are waiting for approval.' },
+      { key: 'pending_products', severity: 'medium', count: pendingProducts, title: 'Pending products', detail: 'Products are waiting for admin review.' },
+      { key: 'pending_orders', severity: 'medium', count: pendingOrders, title: 'Pending/preparing orders', detail: 'Orders are still in operational processing states.' },
+      { key: 'active_deliveries', severity: 'info', count: assignedDeliveries, title: 'Active deliveries', detail: 'Deliveries are assigned or picked up and need operational monitoring.' },
+    ];
+
+    return {
+      generatedAt: new Date(),
+      healthy: findings.filter(f => f.severity === 'critical' || f.severity === 'high').every(f => f.count === 0),
+      summary: { users, drivers, merchants, agents, staff, onlineDrivers },
+      findings,
+    };
+  }
+
   async getOverview() {
     const [
       totalUsers, customers, merchants, drivers, agents,
