@@ -121,6 +121,10 @@ export class AdminController {
   getStaffSecurity() { return this.adminService.getStaffSecurity(); }
 
   @Roles('ADMIN')
+  @Get('system-health')
+  getSystemHealth() { return this.adminService.getSystemHealth(); }
+
+  @Roles('ADMIN')
   @Get('audit')
   getAudit(@Query('limit') limit?: string, @Query('action') action?: string, @Query('entityType') entityType?: string) {
     return this.adminService.getAuditLog(Number(limit) || 100, action, entityType);
