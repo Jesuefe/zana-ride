@@ -993,13 +993,27 @@ export class AdminService {
   }
 
   async getFinancialReconciliation() {
-    const [wallets, pendingWalletTx, negativeWallets, paidOrdersWithoutSettlement, commissionSummary, debtSummary, debtSettlements, merchantSettlements, agentSettlements] = await Promise.all([
-      this.prisma.wallet.findMany({ select: { id: true, userId: true, balance: true, transactions: { orderBy: { createdAt: 'desc' }, take: 1, select: { balanceAfter: true, createdAt: true } } } }),
-      this.prisma.walletTransaction.findMany({ where: { status: { not: 'COMPLETED' as any }, createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }, orderBy: { createdAt: 'asc' }, take: 100 }),
+    const [wallets, pendingWalletTx, negativeWallets, paidOrders, commissionSummary, debtSummary, debtSettlements, merchantSettlements, agentSettlements] = await Promise.all([
+      this.prisma.wallet.findMany({
+        select: {
+          id: true, userId: true, balance: true,
+          transactions: { orderBy: { createdAt: 'desc' }, take: 1, select: { balanceAfter: true, createdAt: true } },
+        },
+      }),
+      this.prisma.walletTransaction.findMany({
+        where: { status: { not: 'COMPLETED' as any }, createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+        orderBy: { createdAt: 'asc' }, take: 100,
+      }),
       this.prisma.wallet.findMany({ where: { balance: { lt: 0 } }, select: { id: true, userId: true, balance: true } }),
       this.prisma.order.findMany({
-        where: { paid: true, merchantSettlement: { none: {} }, agentSettlement: { none: {} } },
-        select: { id: true, status: true, total: true, paid: true, paymentMethod: true, momoRef: true, createdAt: true, merchantId: true, marketId: true, agentId: true },
+        where: { paid: true },
+        select: {
+          id: true, status: true, total: true, deliveryFee: true, paid: true, paymentMethod: true, momoRef: true,
+          createdAt: true, merchantId: true, marketId: true, agentId: true,
+          items: { select: { id: true, productId: true, quantity: true, price: true, status: true, refundedAmount: true, actualPurchasePrice: true } },
+          merchantSettlement: { select: { id: true, status: true, merchantNet: true, commissionAmount: true } },
+          agentSettlement: { select: { id: true, status: true, agentEarning: true, zanaEarning: true } },
+        },
         orderBy: { createdAt: 'asc' },
       }),
       this.prisma.commission.aggregate({ _count: { _all: true }, _sum: { amount: true, debtCreatedAmount: true, walletCoveredAmount: true } }),
@@ -1011,12 +1025,85 @@ export class AdminService {
 
     const walletMismatches = wallets.filter(w => {
       const latest = w.transactions[0];
-      return !latest || w.balance !== latest.balanceAfter;
+      return !latest || Number(w.balance) !== Number(latest.balanceAfter);
     }).map(w => ({
       walletId: w.id, userId: w.userId, walletBalance: w.balance,
       latestTransactionBalance: w.transactions[0]?.balanceAfter ?? null,
       latestTransactionAt: w.transactions[0]?.createdAt ?? null,
     }));
+
+    // Marketplace totals are reconciled from the order's item lifecycle.
+    // A refunded/removed item must not be treated as customer revenue a
+    // second time. refundedAmount is applied first; REMOVED items with no
+    // refund are excluded from the payable item subtotal. This is diagnostic
+    // only: it never mutates an order or financial record.
+    const orderReconciliation = paidOrders.map(order => {
+      let itemGross = 0;
+      let refunded = 0;
+      let effectiveItems = 0;
+      const itemDetails = order.items.map(item => {
+        const gross = Math.max(0, Number(item.price) * Number(item.quantity));
+        const refund = Math.min(gross, Math.max(0, Number(item.refundedAmount || 0)));
+        const removed = item.status === 'REMOVED';
+        const effective = removed ? 0 : Math.max(0, gross - refund);
+        itemGross += gross;
+        refunded += refund;
+        effectiveItems += effective;
+        return { id: item.id, productId: item.productId, quantity: item.quantity, price: item.price, status: item.status, gross, refundedAmount: refund, effective };
+      });
+      const expectedTotal = Number(order.deliveryFee || 0) + effectiveItems;
+      const recordedTotal = Number(order.total || 0);
+      const variance = recordedTotal - expectedTotal;
+      const missingMerchantSettlement = !!order.merchantId && !order.merchantSettlement;
+      const missingAgentSettlement = !!order.agentId && !order.agentSettlement;
+      const settlementComplete = !missingMerchantSettlement && !missingAgentSettlement;
+      const totalStatus = variance === 0 ? 'MATCH' : 'MISMATCH';
+
+      return {
+        id: order.id,
+        status: order.status,
+        paymentMethod: order.paymentMethod,
+        momoRef: order.momoRef,
+        createdAt: order.createdAt,
+        merchantId: order.merchantId,
+        marketId: order.marketId,
+        agentId: order.agentId,
+        recordedTotal,
+        deliveryFee: Number(order.deliveryFee || 0),
+        itemGross,
+        refundedAmount: refunded,
+        effectiveItemSubtotal: effectiveItems,
+        expectedTotal,
+        variance,
+        totalStatus,
+        settlement: {
+          merchant: order.merchantSettlement ? {
+            id: order.merchantSettlement.id,
+            status: order.merchantSettlement.status,
+            net: order.merchantSettlement.merchantNet,
+            commission: order.merchantSettlement.commissionAmount,
+          } : null,
+          agent: order.agentSettlement ? {
+            id: order.agentSettlement.id,
+            status: order.agentSettlement.status,
+            earning: order.agentSettlement.agentEarning,
+            zanaEarning: order.agentSettlement.zanaEarning,
+          } : null,
+          missingMerchant: missingMerchantSettlement,
+          missingAgent: missingAgentSettlement,
+          complete: settlementComplete,
+        },
+        accountingStatus: totalStatus === 'MISMATCH'
+          ? 'TOTAL_MISMATCH'
+          : !settlementComplete
+            ? 'SETTLEMENT_MISSING'
+            : 'RECONCILED',
+        items: itemDetails,
+      };
+    });
+
+    const paidWithoutSettlement = orderReconciliation.filter(o => !o.settlement.complete);
+    const totalMismatches = orderReconciliation.filter(o => o.totalStatus === 'MISMATCH');
 
     return {
       generatedAt: new Date().toISOString(),
@@ -1026,7 +1113,17 @@ export class AdminService {
         balanceMismatches: walletMismatches,
         pendingOver24h: pendingWalletTx,
       },
-      orders: { paidWithoutSettlement: paidOrdersWithoutSettlement },
+      orders: {
+        paidWithoutSettlement,
+        totalMismatches,
+        reconciliation: orderReconciliation,
+        summary: {
+          paidOrders: orderReconciliation.length,
+          reconciled: orderReconciliation.filter(o => o.accountingStatus === 'RECONCILED').length,
+          settlementMissing: paidWithoutSettlement.length,
+          totalMismatches: totalMismatches.length,
+        },
+      },
       commissions: commissionSummary,
       commissionDebts: debtSummary,
       debtSettlements,
