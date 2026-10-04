@@ -76,6 +76,7 @@ export default function LoginPage() {
         </button>
 
         {mode === 'otp' && otpSent && <button onClick={() => { setOtpSent(false); setCode(''); setError(''); }} className="w-full text-xs text-gray-500 py-2.5">Use a different number</button>}
+        <button onClick={() => router.push('/create-admin')} className="w-full text-sm text-zana-primary font-medium py-2.5 mt-1">Create administrator</button>
         <button onClick={() => router.push('/forgot-password')} className="w-full text-sm text-gray-500 py-2.5 mt-1">Forgot your password?</button>
         <button onClick={() => router.push('/staff')} className="w-full text-xs text-zana-primary py-2.5 mt-1">Staff login</button>
       </div>

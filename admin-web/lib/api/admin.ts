@@ -1,5 +1,9 @@
 import { api, setToken } from './client';
 
+export async function createAdmin(data: { phone: string; email: string; password: string; firstName?: string; lastName?: string; recoverySecret: string }) {
+  return api.post<any>('/auth/admin/recover', data);
+}
+
 export async function login(identifier: string, password: string) {
   const result = await api.post<{ token: string; user: any }>('/auth/login', { identifier, password });
   setToken(result.token);
