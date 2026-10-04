@@ -20,7 +20,7 @@ export default function FinancialReconciliationPage() {
   if (loading && !data) return <AdminShell><div className="p-6 text-sm text-gray-500">Reconciling wallets, payments, commissions and settlements…</div></AdminShell>;
 
   const walletIssues = (data?.wallet?.negative?.length ?? 0) + (data?.wallet?.balanceMismatches?.length ?? 0) + (data?.wallet?.pendingOver24h?.length ?? 0);
-  const orderIssues = data?.orders?.paidWithoutSettlement?.length ?? 0;
+  const orderIssues = data?.orders?.paidWithoutSettlement?.length ?? 0;\n  const totalMismatches = data?.orders?.totalMismatches?.length ?? 0;\n  const attention = walletIssues + orderIssues + totalMismatches;
 
   return (
     <AdminShell>
@@ -53,7 +53,7 @@ export default function FinancialReconciliationPage() {
             <div className="rounded-lg bg-gray-50 p-3"><div className="text-xs text-gray-500">Negative wallets</div><div className="font-bold mt-1">{data?.wallet?.negative?.length ?? 0}</div></div>
             <div className="rounded-lg bg-gray-50 p-3"><div className="text-xs text-gray-500">Wallet balance mismatches</div><div className="font-bold mt-1">{data?.wallet?.balanceMismatches?.length ?? 0}</div></div>
             <div className="rounded-lg bg-gray-50 p-3"><div className="text-xs text-gray-500">Pending wallet tx &gt;24h</div><div className="font-bold mt-1">{data?.wallet?.pendingOver24h?.length ?? 0}</div></div>
-            <div className="rounded-lg bg-gray-50 p-3"><div className="text-xs text-gray-500">Paid orders without settlement</div><div className="font-bold mt-1">{orderIssues}</div></div>
+            <div className="rounded-lg bg-gray-50 p-3"><div className="text-xs text-gray-500">Paid orders missing settlement</div><div className="font-bold mt-1">{orderIssues}</div></div>\n            <div className="rounded-lg bg-gray-50 p-3"><div className="text-xs text-gray-500">Actual total mismatches</div><div className="font-bold mt-1">{totalMismatches}</div></div>
           </div>
         </div>
 
