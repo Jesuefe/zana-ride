@@ -157,7 +157,7 @@ export default function WalletPage() {
                 {error && <p className="text-xs text-zana-error mt-3">{error}</p>}
                 <button
                   onClick={handleStartTopUp}
-                  disabled={!phone.trim() || !amount || Number(amount) < 100}
+                  disabled={!phone.trim() || !amount || Number(amount) < 980}
                   className="w-full mt-5 bg-zana-primary text-white font-semibold py-3 rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
                 >
                   {t('Request payment')}
