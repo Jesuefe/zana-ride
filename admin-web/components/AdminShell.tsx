@@ -26,6 +26,7 @@ const SENIOR_NAV = [
   { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send },
   { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
   { label: 'Test Lab', href: '/dashboard/test-locations', icon: Smartphone },
+  { label: 'Test Accounts', href: '/dashboard/test-accounts', icon: Users },
   { label: 'Products', href: '/dashboard/products', icon: Package },
   { label: 'Media Library', href: '/dashboard/media', icon: ImageIcon },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
