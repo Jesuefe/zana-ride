@@ -1,15 +1,18 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EversendService } from './eversend.service';
+import { WooshPayService } from './wooshpay.service';
 import { WalletTransactionStatus } from '@prisma/client';
 
 @Injectable()
 export class WalletService {
   static readonly EVERSEND_MIN_WITHDRAWAL = 1000;
+  static readonly WOOSHPAY_MIN_WITHDRAWAL = 980;
 
   constructor(
     private prisma: PrismaService,
     private eversend: EversendService,
+    private wooshPay: WooshPayService,
   ) {}
 
   async findByUserId(userId: string) {
@@ -67,17 +70,20 @@ export class WalletService {
   // confirmTopUp() sees a successful status (the frontend polls for this,
   // same pattern as ride tracking, since we don't have a stable public URL
   // for Eversend's webhook yet).
-  async initiateTopUp(userId: string, amountRwf: number) {
+  async initiateTopUp(userId: string, phoneNumber: string, amountRwf: number) {
     const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
     if (!wallet) throw new NotFoundException('Wallet not found');
 
-    // Always the account's own registered number — top-up can never be
-    // sent to (or, more importantly for withdraw's sibling method,
-    // received from) a number the account holder doesn't actually own.
-    const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
-    if (!account) throw new NotFoundException('Account not found');
+    // Customers may fund their own wallet from any supported mobile-money
+    // number. The destination of the collection is the payment provider,
+    // not another ZANA wallet, so the number does not have to match the
+    // customer's registered account phone.
+    const phone = String(phoneNumber ?? '').trim();
+    if (!/^\+?[0-9]{9,15}$/.test(phone)) {
+      throw new BadRequestException('INVALID_MOBILE_MONEY_NUMBER');
+    }
 
-    const cashin = await this.eversend.collectMobileMoney(account.phone, amountRwf, `ZANA-TOPUP-${userId}-${Date.now()}`);
+    const cashin = await this.wooshPay.collectMobileMoney(phone, amountRwf, `ZANA-TOPUP-${userId}-${Date.now()}`);
 
     await this.prisma.walletTransaction.create({
       data: {
@@ -102,7 +108,7 @@ export class WalletService {
       return { status: pending.status.toLowerCase() };
     }
 
-    const remote = await this.eversend.getCollectionStatus(ref);
+    const remote = await this.wooshPay.getCollectionStatus(ref);
     const remoteStatus = remote.status?.toLowerCase();
 
     const isFailed = remoteStatus === 'failed' || remoteStatus === 'cancelled' || remoteStatus === 'canceled';
@@ -239,11 +245,20 @@ export class WalletService {
   }
 
   async withdraw(userId: string, amount: number) {
+    const account = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, phone: true },
+    });
+    if (!account) throw new NotFoundException('Account not found');
+    if (account.role !== 'DRIVER' && account.role !== 'MERCHANT') {
+      throw new BadRequestException('PAYOUT_ONLY_DRIVER_OR_MERCHANT');
+    }
+
     if (!Number.isInteger(amount) || amount <= 0) {
       throw new BadRequestException('INVALID_WITHDRAWAL_AMOUNT');
     }
-    if (amount < WalletService.EVERSEND_MIN_WITHDRAWAL) {
-      throw new BadRequestException(`MIN_WITHDRAWAL:${WalletService.EVERSEND_MIN_WITHDRAWAL}`);
+    if (amount < WalletService.WOOSHPAY_MIN_WITHDRAWAL) {
+      throw new BadRequestException(`MIN_WITHDRAWAL:${WalletService.WOOSHPAY_MIN_WITHDRAWAL}`);
     }
 
     const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
@@ -263,7 +278,7 @@ export class WalletService {
       orderBy: { createdAt: 'desc' },
     });
     if (recent) {
-      return { success: true, ref: recent.providerRef, status: 'PENDING', rail: 'EVERSEND', duplicate: true };
+      return { success: true, ref: recent.providerRef, status: 'PENDING', rail: 'WOOSHPAY', duplicate: true };
     }
 
     // Always the account's own registered number — this is what
@@ -271,8 +286,8 @@ export class WalletService {
     // by the client was trusted outright, so a compromised account
     // could be drained to an attacker's own MoMo number instead of the
     // real account holder's.
-    const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
-    if (!account) throw new NotFoundException('Account not found');
+    // Payout destination is always the driver's/merchant's registered
+    // account number. Never accept a payout destination from the client.
     const phone = account.phone;
     // This early check is only a fast, friendly rejection for the common
     // case. It is NOT what protects against overdraft — the atomic
@@ -297,7 +312,7 @@ export class WalletService {
     const balanceAfter = afterWallet!.balance;
 
     try {
-      const result = await this.eversend.payout(phone, amount, `ZANA-WITHDRAW-${userId}-${Date.now()}`);
+      const result = await this.wooshPay.payout(phone, amount, `ZANA-WITHDRAW-${userId}-${Date.now()}`);
 
       // Both rails settle asynchronously — the reconciler confirms it.
       await this.prisma.walletTransaction.create({
@@ -309,18 +324,18 @@ export class WalletService {
           status: WalletTransactionStatus.PENDING,
           reference: `Withdrawal to ${phone}`,
           providerRef: result?.ref ?? undefined,
-          description: `Withdrawal to ${phone} (Eversend)`,
+          description: `Withdrawal to ${phone} (WooshPay)`,
         } as any,
       });
 
       console.log(
-        `[WITHDRAW] ${amount} RWF to ${phone} via Eversend | ref ${result?.ref}`,
+        `[WITHDRAW] ${amount} RWF to ${phone} via WooshPay | ref ${result?.ref}`,
       );
       return {
         success: true,
         ref: result?.ref,
         status: 'PENDING',
-        rail: 'EVERSEND',
+        rail: 'WOOSHPAY',
       };
     } catch (err: any) {
       // Nothing left Zana — put it back. Adding the exact amount back atomically

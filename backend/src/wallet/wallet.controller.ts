@@ -14,14 +14,12 @@ export class WalletController {
     return this.walletService.findByUserId(user.sub);
   }
 
-  // Real mobile money top-up via Eversend.
+  // Real mobile money top-up via WooshPay.
   @Post('top-up/momo')
-  initiateMomoTopUp(@CurrentUser() user: JwtPayload, @Body() body: { amount: number }) {
-    // Previously accepted a phone number directly from the request body
-    // with no server-side check it belonged to the account — a real
-    // security gap, not just a UI restriction. The service now always
-    // looks up the account's own registered number itself.
-    return this.walletService.initiateTopUp(user.sub, body.amount);
+  initiateMomoTopUp(@CurrentUser() user: JwtPayload, @Body() body: { amount: number; phone: string }) {
+    // Customers may top up from any supported mobile-money number.
+    // Payouts remain restricted to the account's registered number.
+    return this.walletService.initiateTopUp(user.sub, body.phone, body.amount);
   }
 
   @Get('top-up/momo/:ref/status')

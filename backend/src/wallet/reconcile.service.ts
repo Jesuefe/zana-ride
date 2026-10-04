@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EversendService } from './eversend.service';
+import { WooshPayService } from './wooshpay.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
 
 /**
@@ -22,6 +23,7 @@ export class ReconcileService {
   constructor(
     private prisma: PrismaService,
     private eversend: EversendService,
+    private wooshPay: WooshPayService,
     private gateway: ZanaGateway,
   ) {}
 
@@ -68,7 +70,7 @@ export class ReconcileService {
 
     for (const txn of pending) {
       try {
-        const res = await this.eversend.getPayoutStatus(txn.providerRef!);
+        const res = await this.wooshPay.getPayoutStatus(txn.providerRef!);
         const status = res.status;
         if (!this.isFinal(status)) continue;
 
@@ -129,7 +131,7 @@ export class ReconcileService {
 
     for (const txn of pending) {
       try {
-        const res = await this.eversend.getCollectionStatus(txn.providerRef!);
+        const res = await this.wooshPay.getCollectionStatus(txn.providerRef!);
         const status = res.status;
         if (!this.isFinal(status)) continue;
 
@@ -186,27 +188,12 @@ export class ReconcileService {
         const res = await this.eversend.getCollectionStatus((order as any).momoRef);
         if ((res?.status ?? '').toLowerCase() !== 'successful') continue;
 
-        const claimed = await this.prisma.order.updateMany({
-          where: { id: order.id, paid: false }, data: { paid: true } as any,
+        await this.prisma.order.update({
+          where: { id: order.id }, data: { paid: true } as any,
         });
-        if (claimed.count === 0) continue;
-
-        const payload = {
+        this.gateway.sendToUser(order.customerId, 'payment:confirmed', {
           orderId: order.id,
-          trackingCode: (order as any).trackingCode,
-          total: (order as any).total,
-          itemCount: await this.prisma.orderItem.count({ where: { orderId: order.id } }),
-        };
-        this.gateway.sendToUser(order.customerId, 'payment:confirmed', { orderId: order.id });
-        if ((order as any).marketId) {
-          const agents = await this.prisma.agent.findMany({ where: { marketId: (order as any).marketId, active: true }, select: { userId: true } });
-          for (const a of agents) this.gateway.sendToUser(a.userId, 'order:new', payload);
-        } else if ((order as any).merchantId) {
-          const merchant = await this.prisma.merchant.findUnique({ where: { id: (order as any).merchantId }, select: { userId: true } });
-          if (merchant?.userId) this.gateway.sendToUser(merchant.userId, 'order:new', payload);
-        }
-        const admins = await this.prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
-        for (const admin of admins) this.gateway.sendToUser(admin.id, 'order:new', payload);
+        });
         this.logger.log(`Order ${(order as any).trackingCode ?? order.id} confirmed paid`);
       } catch { /* retry next sweep */ }
     }
