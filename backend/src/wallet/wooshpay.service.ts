@@ -77,17 +77,19 @@ export class WooshPayService {
     const s = await this.settings();
     if (!s.enabled || !s.apiKey) throw new ServiceUnavailableException('WOOSHPAY_NOT_CONFIGURED');
 
-    // WooshPay does not document a generic account/balance endpoint for this
-    // payment product. A harmless authenticated list request is used as the
-    // connection test; no payment or payout is created.
+    // Validate authentication without creating a payment or payout. WooshPay
+    // exposes PaymentIntent retrieval as a GET endpoint; an intentionally
+    // nonexistent ID should return a normal authenticated API response.
     const auth = 'Basic ' + Buffer.from(s.apiKey + ':').toString('base64');
-    const res = await fetch(s.baseUrl + '/payouts/list?limit=1', {
+    const res = await fetch(s.baseUrl + '/payment_intents/zana_connection_test', {
       headers: { Authorization: auth, Accept: 'application/json' },
     });
     const raw = await res.text();
     let data: WooshPayResponse = {};
     try { data = raw ? JSON.parse(raw) : {}; } catch { data = { raw }; }
-    if (!res.ok) {
+    // A 404 for this deliberately nonexistent ID still proves that the API
+    // accepted the authenticated request. 401/403 and other failures do not.
+    if (!res.ok && res.status !== 404) {
       throw new BadGatewayException(String(data?.message || data?.error || raw || 'WooshPay connection failed'));
     }
     return { ok: true, environment: s.environment, currency: 'RWF', provider: s.provider };
@@ -120,8 +122,10 @@ export class WooshPayService {
   }
 
   async collectMobileMoney(phone: string, amountRwf: number, transactionRef: string, provider?: 'mtn_rw' | 'airtel_rw') {
-    if (!Number.isInteger(amountRwf) || amountRwf <= 0) throw new BadGatewayException('INVALID_RWF_AMOUNT');
+    if (!Number.isInteger(amountRwf) || amountRwf < 980) throw new BadGatewayException('MIN_TOPUP:980');
     const msisdn = this.normalizeRwandaPhone(phone);
+    const local = msisdn.slice(3);
+    const detectedProvider = /^(078|079)/.test(local) ? 'mtn_rw' : /^(072|073)/.test(local) ? 'airtel_rw' : (provider || (await this.settings()).provider);
     const data = await this.request('/payment_intents', {
       method: 'POST',
       headers: { 'Idempotency-Key': transactionRef },
@@ -133,7 +137,7 @@ export class WooshPayService {
           type: 'mobile_money',
           mobile_money: {
             phone_number: msisdn,
-            provider_code: provider || (await this.settings()).provider,
+            provider_code: detectedProvider as any,
           },
         },
         merchant_order_id: transactionRef,
