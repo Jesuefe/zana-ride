@@ -120,8 +120,18 @@ export class FinancialService {
     });
   }
 
-  async updateStaff(id: string, data: Partial<{ name: string; role: string; salary: number; active: boolean }>) {
-    return this.prisma.staffMember.update({ where: { id }, data });
+  async updateStaff(id: string, data: Partial<{ name: string; role: string; accessRole: string; salary: number; active: boolean }>, actorId?: string) {
+    const before = await this.prisma.staffMember.findUnique({ where: { id }, include: { user: true } });
+    if (!before) throw new NotFoundException('Staff member not found');
+    const update: any = {};
+    for (const key of ['name', 'role', 'accessRole', 'salary', 'active']) if ((data as any)[key] !== undefined) update[key] = (data as any)[key];
+    const result = await this.prisma.$transaction(async tx => {
+      const staff = await tx.staffMember.update({ where: { id }, data: update });
+      if (update.active !== undefined) await tx.user.update({ where: { id: before.userId }, data: { status: update.active ? 'ACTIVE' : 'SUSPENDED' } });
+      return staff;
+    });
+    await this.prisma.auditLog.create({ data: { actorId, action: 'STAFF_SECURITY_UPDATED', entityType: 'StaffMember', entityId: id, beforeJson: JSON.stringify(before), afterJson: JSON.stringify(result) } }).catch(() => {});
+    return result;
   }
 
   async recordSalaryPayment(staffMemberId: string, month: string, amount?: number, note?: string) {
