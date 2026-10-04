@@ -166,3 +166,14 @@ export async function saveAiSettings(data: {
 export async function testAiConnection() {
   return api.post<{ ok: boolean; provider?: ZanaAiProvider; model?: string; response?: string }>('/admin/settings/ai/test');
 }
+
+
+export async function getStaffSecurity() { return api.get<any[]>('/admin/security/staff'); }
+export async function getAuditLog(params?: { limit?: number; action?: string; entityType?: string }) {
+  const q = new URLSearchParams();
+  if (params?.limit) q.set('limit', String(params.limit));
+  if (params?.action) q.set('action', params.action);
+  if (params?.entityType) q.set('entityType', params.entityType);
+  const qs = q.toString();
+  return api.get<any[]>(`/admin/audit${qs ? `?${qs}` : ''}`);
+}
