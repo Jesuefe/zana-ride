@@ -33,12 +33,12 @@ export default function WalletPage() {
 
   const handleStartTopUp = async () => {
     setError(null);
-    if (!registeredPhone || phone !== registeredPhone.replace(/\D/g, '')) {
-      setError(t('Wallet top-up is only available from your registered ZANA phone number.'));
+    if (!phone.trim() || !/^\+?[0-9]{9,15}$/.test(phone.trim())) {
+      setError(t('Enter a valid mobile money number.'));
       return;
     }
     try {
-      const { ref } = await initiateMomoTopUp(phone, Number(amount));
+      const { ref } = await initiateMomoTopUp(phone.trim(), Number(amount));
       setStage('waiting');
 
       const interval = setInterval(async () => {
@@ -135,13 +135,13 @@ export default function WalletPage() {
                   <div>
                     <label className="text-xs font-medium text-zana-muted block mb-1.5">{t('Mobile money number')}</label>
                     <input
-                      value={phone || registeredPhone}
-                      readOnly
-                      inputMode="numeric"
-                      placeholder={t('Registered phone number')}
-                      className="w-full border border-zana-border rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700 focus:outline-none"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/[^0-9+]/g, ''))}
+                      inputMode="tel"
+                      placeholder={t('Mobile money number')}
+                      className="w-full border border-zana-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
                     />
-                    <p className="text-[10px] text-zana-muted mt-1.5">{t('Top-ups can only use your registered ZANA phone number.')}</p>
+                    <p className="text-[10px] text-zana-muted mt-1.5">{t('You can top up from any supported mobile money number.')}</p>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-zana-muted block mb-1.5">{t('Amount (RWF)')}</label>
@@ -157,7 +157,7 @@ export default function WalletPage() {
                 {error && <p className="text-xs text-zana-error mt-3">{error}</p>}
                 <button
                   onClick={handleStartTopUp}
-                  disabled={!registeredPhone || !amount || Number(amount) < 100}
+                  disabled={!phone.trim() || !amount || Number(amount) < 100}
                   className="w-full mt-5 bg-zana-primary text-white font-semibold py-3 rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98]"
                 >
                   {t('Request payment')}
