@@ -18,6 +18,7 @@ const SENIOR_NAV = [
   { label: 'Financial', href: '/dashboard/financial', icon: DollarSign },
   { label: 'Staff & Payroll', href: '/dashboard/staff', icon: Users },
   { label: 'Security', href: '/dashboard/security', icon: ShieldCheck },
+  { label: 'System Health', href: '/dashboard/system-health', icon: ShieldCheck },
   { label: 'Users', href: '/dashboard/users', icon: Users },
   { label: 'Drivers', href: '/dashboard/drivers', icon: Car },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
