@@ -125,6 +125,10 @@ export class AdminController {
   getSystemHealth() { return this.adminService.getSystemHealth(); }
 
   @Roles('ADMIN')
+  @Get('financial/reconciliation')
+  getFinancialReconciliation() { return this.adminService.getFinancialReconciliation(); }
+
+  @Roles('ADMIN')
   @Get('audit')
   getAudit(@Query('limit') limit?: string, @Query('action') action?: string, @Query('entityType') entityType?: string) {
     return this.adminService.getAuditLog(Number(limit) || 100, action, entityType);
