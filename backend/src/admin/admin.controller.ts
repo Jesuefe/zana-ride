@@ -38,6 +38,7 @@ export class AdminController {
     return this.adminService.sendNotification(body);
   }
 
+  @Roles('ADMIN')
   @Post('email/send')
   sendCustomEmail(@Body() body: { to: string; subject: string; message: string }) {
     return this.adminService.sendCustomEmail(body.to, body.subject, body.message);
@@ -187,9 +188,11 @@ export class AdminController {
     return this.adminService.getMerchantDetail(id);
   }
 
+  @Roles('ADMIN')
   @Patch('merchants/:id/approve')
   approveMerchant(@Param('id') id: string) { return this.adminService.approveMerchant(id); }
 
+  @Roles('ADMIN')
   @Patch('merchants/:id/suspend')
   suspendMerchant(@Param('id') id: string) { return this.adminService.suspendMerchant(id); }
 
@@ -209,6 +212,7 @@ export class AdminController {
     return this.adminService.deleteProduct(id);
   }
 
+  @Roles('ADMIN')
   @Patch('products/:id/review')
   reviewProduct(@Param('id') id: string, @Body() body: { status: 'APPROVED' | 'REJECTED'; adminNote?: string }) {
     return this.adminService.reviewProduct(id, body.status, body.adminNote);
