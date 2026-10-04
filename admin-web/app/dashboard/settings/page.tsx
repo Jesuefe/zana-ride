@@ -1,5 +1,7 @@
 'use client';
 
+// Production deployment trigger: keep Admin Pages aligned with current main.
+
 import { useEffect, useState } from 'react';
 import AdminShell from '../../../components/AdminShell';
 import { api } from '../../../lib/api/client';
