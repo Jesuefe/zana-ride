@@ -173,7 +173,9 @@ export async function testAiConnection() {
 
 
 export async function getSystemHealth() { return api.get<any>('/admin/system-health'); }
-export async function getFinancialReconciliation() { return api.get<any>('/admin/financial/reconciliation'); }\n\nexport async function getStaffSecurity() { return api.get<any[]>('/admin/security/staff'); }
+export async function getFinancialReconciliation() { return api.get<any>('/admin/financial/reconciliation'); }
+
+export async function getStaffSecurity() { return api.get<any[]>('/admin/security/staff'); }
 export async function getAuditLog(params?: { limit?: number; action?: string; entityType?: string }) {
   const q = new URLSearchParams();
   if (params?.limit) q.set('limit', String(params.limit));
