@@ -64,7 +64,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       const role = payload?.role;
       if (role === 'STAFF') {
         setMode('worker');
-        const adminOnly = ['/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/invites'];
+        const adminOnly = ['/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/test-accounts', '/dashboard/invites'];
         if (adminOnly.some(path => pathname === path || pathname.startsWith(path + '/'))) router.replace('/dashboard');
       } else if (role === 'ADMIN') {
         setMode('senior');
