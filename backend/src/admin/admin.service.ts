@@ -992,6 +992,58 @@ export class AdminService {
     return { driversCleared: drivers.count, customersCleared: customers.count };
   }
 
+  async getFinancialReconciliation() {
+    const [wallets, pendingWalletTx, negativeWallets, paidOrdersWithoutSettlement, commissionSummary, debtSummary, debtSettlements, merchantSettlements, agentSettlements] = await Promise.all([
+      this.prisma.wallet.findMany({ select: { id: true, userId: true, balance: true, transactions: { orderBy: { createdAt: 'desc' }, take: 1, select: { balanceAfter: true, createdAt: true } } } }),
+      this.prisma.walletTransaction.findMany({ where: { status: { not: 'COMPLETED' as any }, createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }, orderBy: { createdAt: 'asc' }, take: 100 }),
+      this.prisma.wallet.findMany({ where: { balance: { lt: 0 } }, select: { id: true, userId: true, balance: true } }),
+      this.prisma.order.findMany({
+        where: { paid: true, merchantSettlement: { none: {} }, agentSettlement: { none: {} } },
+        select: { id: true, status: true, total: true, paid: true, paymentMethod: true, momoRef: true, createdAt: true, merchantId: true, marketId: true, agentId: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.commission.aggregate({ _count: { _all: true }, _sum: { amount: true, debtCreatedAmount: true, walletCoveredAmount: true } }),
+      this.prisma.commissionDebt.aggregate({ _count: { _all: true }, _sum: { amount: true } }),
+      this.prisma.debtSettlement.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }),
+      this.prisma.merchantSettlement.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }),
+      this.prisma.agentSettlement.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }),
+    ]);
+
+    const walletMismatches = wallets.filter(w => {
+      const latest = w.transactions[0];
+      return !latest || w.balance !== latest.balanceAfter;
+    }).map(w => ({
+      walletId: w.id, userId: w.userId, walletBalance: w.balance,
+      latestTransactionBalance: w.transactions[0]?.balanceAfter ?? null,
+      latestTransactionAt: w.transactions[0]?.createdAt ?? null,
+    }));
+
+    return {
+      generatedAt: new Date().toISOString(),
+      wallet: {
+        total: wallets.length,
+        negative: negativeWallets,
+        balanceMismatches: walletMismatches,
+        pendingOver24h: pendingWalletTx,
+      },
+      orders: { paidWithoutSettlement: paidOrdersWithoutSettlement },
+      commissions: commissionSummary,
+      commissionDebts: debtSummary,
+      debtSettlements,
+      merchantSettlements,
+      agentSettlements,
+      totals: {
+        commissionAmount: commissionSummary._sum.amount ?? 0,
+        commissionDebtAmount: debtSummary._sum.amount ?? 0,
+        debtSettledAmount: debtSettlements.filter((x: any) => x.status === 'SETTLED' || x.status === 'COMPLETED').reduce((s: number, x: any) => s + Number(x.amount || 0), 0),
+        merchantNet: merchantSettlements.reduce((s: number, x: any) => s + Number(x.merchantNet || 0), 0),
+        merchantCommission: merchantSettlements.reduce((s: number, x: any) => s + Number(x.commissionAmount || 0), 0),
+        agentEarnings: agentSettlements.reduce((s: number, x: any) => s + Number(x.agentEarning || 0), 0),
+        zanaMarketplaceEarnings: agentSettlements.reduce((s: number, x: any) => s + Number(x.zanaEarning || 0), 0),
+      },
+    };
+  }
+
   async getStaffSecurity() {
     return this.prisma.staffMember.findMany({
       include: { user: { select: { id: true, phone: true, email: true, status: true, createdAt: true } } },
