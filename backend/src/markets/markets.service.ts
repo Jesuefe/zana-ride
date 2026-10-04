@@ -291,9 +291,68 @@ export class MarketsService {
       const claimed = await tx.orderItem.updateMany({ where: { id: item.id, orderId, status: 'UNAVAILABLE_PENDING' } as any, data: { status: action === 'REFUND' ? 'REFUNDED' : 'REMOVED', refundedAmount: refund, unavailableAt: item.unavailableAt ?? new Date() } as any });
       if (claimed.count !== 1) throw new BadRequestException('ITEM_ALREADY_RESOLVED');
       const updatedWallet = await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: refund } } });
-      await tx.order.update({ where: { id: orderId }, data: { total: { decrement: refund }, updatedAt: new Date() } });
+      const remainingItems = await tx.orderItem.findMany({ where: { orderId }, select: { status: true } });
+      const allItemsResolved = remainingItems.length > 0 && remainingItems.every((line: any) =>
+        ['REFUNDED', 'REMOVED'].includes(line.status),
+      );
+      const currentOrder = await tx.order.findUnique({
+        where: { id: orderId },
+        include: { delivery: { select: { id: true, status: true } } },
+      });
+      if (!currentOrder) throw new NotFoundException('Order not found');
+
+      // If every line is unavailable and fulfillment has not actually started,
+      // the customer must also receive the delivery fee. There is no delivery
+      // cost to retain when no package was ever handed to the courier.
+      const deliveryNotIncurred =
+        !currentOrder.delivery ||
+        currentOrder.delivery.status === 'REQUESTED' ||
+        currentOrder.delivery.status === 'CANCELLED';
+      const deliveryFeeRefund = allItemsResolved && deliveryNotIncurred
+        ? Math.max(0, Number(currentOrder.deliveryFee || 0))
+        : 0;
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: {
+          total: { decrement: refund + deliveryFeeRefund },
+          ...(allItemsResolved && deliveryNotIncurred ? { status: 'CANCELLED' as any } : {}),
+          updatedAt: new Date(),
+        },
+      });
       await tx.walletTransaction.create({ data: { walletId: wallet.id, amount: refund, balanceBefore: wallet.balance, balanceAfter: updatedWallet.balance, reference: 'ORDER_ITEM_' + action + ':' + orderId + ':' + item.id, description: action === 'REFUND' ? 'Refund — unavailable market item' : 'Refund — removed unavailable market item', status: 'COMPLETED' } as any });
-      await tx.auditLog.create({ data: { actorId: customerId, action: action === 'REFUND' ? 'ORDER_ITEM_REFUNDED' : 'ORDER_ITEM_REMOVED', entityType: 'ORDER_ITEM', entityId: item.id, metadataJson: JSON.stringify({ orderId, refund, productId: item.productId }) } });
+      if (deliveryFeeRefund > 0) {
+        const afterDeliveryRefund = await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: { increment: deliveryFeeRefund } },
+        });
+        await tx.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            amount: deliveryFeeRefund,
+            balanceBefore: updatedWallet.balance,
+            balanceAfter: afterDeliveryRefund.balance,
+            reference: 'ORDER_DELIVERY_FEE_REFUND:' + orderId,
+            description: 'Refund — delivery fee because all market items were unavailable before delivery',
+            status: 'COMPLETED',
+          } as any,
+        });
+      }
+      await tx.auditLog.create({ data: { actorId: customerId, action: action === 'REFUND' ? 'ORDER_ITEM_REFUNDED' : 'ORDER_ITEM_REMOVED', entityType: 'ORDER_ITEM', entityId: item.id, metadataJson: JSON.stringify({ orderId, refund, deliveryFeeRefund, allItemsResolved, deliveryNotIncurred, productId: item.productId }) } });
+      if (deliveryFeeRefund > 0) {
+        await tx.auditLog.create({
+          data: {
+            actorId: customerId,
+            action: 'ORDER_DELIVERY_FEE_REFUNDED',
+            entityType: 'ORDER',
+            entityId: orderId,
+            metadataJson: JSON.stringify({
+              reason: 'ALL_ITEMS_UNAVAILABLE_BEFORE_DELIVERY',
+              deliveryFeeRefund,
+            }),
+          },
+        });
+      }
     }, { isolationLevel: 'Serializable' });
     if (order.agentId) {
       const agent = await this.prisma.agent.findUnique({ where: { id: order.agentId }, select: { userId: true } });
