@@ -1010,6 +1010,7 @@ export class AdminService {
         select: {
           id: true, status: true, total: true, deliveryFee: true, paid: true, paymentMethod: true, momoRef: true,
           createdAt: true, merchantId: true, marketId: true, agentId: true,
+          delivery: { select: { id: true, status: true } },
           items: { select: { id: true, productId: true, quantity: true, price: true, status: true, refundedAmount: true, actualPurchasePrice: true } },
           merchantSettlement: { select: { id: true, status: true, merchantNet: true, commissionAmount: true } },
           agentSettlement: { select: { id: true, status: true, agentEarning: true, zanaEarning: true } },
@@ -1051,8 +1052,21 @@ export class AdminService {
         effectiveItems += effective;
         return { id: item.id, productId: item.productId, quantity: item.quantity, price: item.price, status: item.status, gross, refundedAmount: refund, effective };
       });
-      const expectedTotal = Number(order.deliveryFee || 0) + effectiveItems;
       const recordedTotal = Number(order.total || 0);
+      const deliveryNotIncurred =
+        !order.delivery ||
+        order.delivery.status === 'REQUESTED' ||
+        order.delivery.status === 'CANCELLED';
+      const allItemsResolved =
+        order.items.length > 0 &&
+        order.items.every((line: any) => ['REFUNDED', 'REMOVED'].includes(line.status));
+      const deliveryFee = Number(order.deliveryFee || 0);
+      const deliveryFeeRefundRequired =
+        allItemsResolved &&
+        deliveryNotIncurred &&
+        deliveryFee > 0 &&
+        recordedTotal > effectiveItems;
+      const expectedTotal = effectiveItems + (deliveryFeeRefundRequired ? 0 : deliveryFee);
       const variance = recordedTotal - expectedTotal;
       const missingMerchantSettlement = !!order.merchantId && !order.merchantSettlement;
       const missingAgentSettlement = !!order.agentId && !order.agentSettlement;
@@ -1093,17 +1107,20 @@ export class AdminService {
           missingAgent: missingAgentSettlement,
           complete: settlementComplete,
         },
-        accountingStatus: totalStatus === 'MISMATCH'
-          ? 'TOTAL_MISMATCH'
-          : !settlementComplete
-            ? 'SETTLEMENT_MISSING'
-            : 'RECONCILED',
+        accountingStatus: deliveryFeeRefundRequired
+          ? 'DELIVERY_FEE_REFUND_REQUIRED'
+          : totalStatus === 'MISMATCH'
+            ? 'TOTAL_MISMATCH'
+            : !settlementComplete
+              ? 'SETTLEMENT_MISSING'
+              : 'RECONCILED',
         items: itemDetails,
       };
     });
 
     const paidWithoutSettlement = orderReconciliation.filter(o => !o.settlement.complete);
     const totalMismatches = orderReconciliation.filter(o => o.totalStatus === 'MISMATCH');
+    const deliveryFeeRefundRequired = orderReconciliation.filter(o => o.deliveryFeeRefundRequired);
 
     return {
       generatedAt: new Date().toISOString(),
@@ -1122,6 +1139,7 @@ export class AdminService {
           reconciled: orderReconciliation.filter(o => o.accountingStatus === 'RECONCILED').length,
           settlementMissing: paidWithoutSettlement.length,
           totalMismatches: totalMismatches.length,
+          deliveryFeeRefundRequired: deliveryFeeRefundRequired.length,
         },
       },
       commissions: commissionSummary,
