@@ -81,7 +81,7 @@ export class WooshPayService {
     // payment product. A harmless authenticated list request is used as the
     // connection test; no payment or payout is created.
     const auth = 'Basic ' + Buffer.from(s.apiKey + ':').toString('base64');
-    const res = await fetch(s.baseUrl + '/payouts?limit=1', {
+    const res = await fetch(s.baseUrl + '/payouts/list?limit=1', {
       headers: { Authorization: auth, Accept: 'application/json' },
     });
     const raw = await res.text();
