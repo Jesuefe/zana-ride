@@ -111,8 +111,18 @@ export class AdminController {
 
   @Roles('ADMIN')
   @Patch('staff/:id')
-  updateStaff(@Param('id') id: string, @Body() body: any) {
-    return this.financialService.updateStaff(id, body);
+  updateStaff(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: any) {
+    return this.financialService.updateStaff(id, body, admin.sub);
+  }
+
+  @Roles('ADMIN')
+  @Get('security/staff')
+  getStaffSecurity() { return this.adminService.getStaffSecurity(); }
+
+  @Roles('ADMIN')
+  @Get('audit')
+  getAudit(@Query('limit') limit?: string, @Query('action') action?: string, @Query('entityType') entityType?: string) {
+    return this.adminService.getAuditLog(Number(limit) || 100, action, entityType);
   }
 
   // Salary payments
