@@ -4,6 +4,10 @@ export async function createAdmin(data: { phone: string; email: string; password
   return api.post<any>('/auth/admin/recover', data);
 }
 
+export async function createTestAccounts(data: { password: string }) {
+  return api.post<any>('/admin/test-accounts', data);
+}
+
 export async function login(identifier: string, password: string) {
   const result = await api.post<{ token: string; user: any }>('/auth/login', { identifier, password });
   setToken(result.token);
