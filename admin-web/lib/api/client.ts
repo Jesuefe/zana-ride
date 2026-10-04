@@ -13,6 +13,12 @@ async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API}${path}`, { ...options, headers });
   if (!res.ok) {
+    // A database reset or revoked session makes the cached admin JWT invalid.
+    // Do not leave the dashboard rendering with endless 401 placeholders.
+    if (res.status === 401 && typeof window !== 'undefined') {
+      clearToken();
+      if (window.location.pathname !== '/login') window.location.replace('/login');
+    }
     let msg = res.statusText;
     try { msg = (await res.json()).message ?? msg; } catch {}
     throw new ApiError(Array.isArray(msg) ? msg.join(', ') : msg, res.status);
