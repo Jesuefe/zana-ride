@@ -178,3 +178,13 @@ export async function getAuditLog(params?: { limit?: number; action?: string; en
   const qs = q.toString();
   return api.get<any[]>(`/admin/audit${qs ? `?${qs}` : ''}`);
 }
+
+export async function requestAdminOtp(phone: string) {
+  return api.post<{ sent: boolean }>('/auth/request-otp', { phone });
+}
+
+export async function verifyAdminOtp(phone: string, code: string) {
+  const result = await api.post<{ token: string; user: any }>('/auth/verify-otp', { phone, code });
+  setToken(result.token);
+  return result;
+}
