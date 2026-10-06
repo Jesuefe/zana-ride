@@ -111,7 +111,7 @@ export class WalletService {
       return { status: pending.status.toLowerCase() };
     }
 
-    const remote = await this.wooshPay.getCollectionStatus(ref);
+    const remote = await this.paypack.getTransaction(ref);
     const remoteStatus = remote.status?.toLowerCase();
 
     const isFailed = remoteStatus === 'failed' || remoteStatus === 'cancelled' || remoteStatus === 'canceled';
@@ -199,7 +199,7 @@ export class WalletService {
       return { status: pending.status.toLowerCase() };
     }
 
-    const remote = await this.eversend.getCollectionStatus(ref);
+    const remote = await this.paypack.getTransaction(ref);
     const remoteStatus = remote.status?.toLowerCase();
     const isFailed = remoteStatus === 'failed' || remoteStatus === 'cancelled' || remoteStatus === 'canceled';
     const isStillPending = remoteStatus === 'pending';
@@ -253,8 +253,8 @@ export class WalletService {
       select: { role: true, phone: true },
     });
     if (!account) throw new NotFoundException('Account not found');
-    if (account.role !== 'DRIVER' && account.role !== 'MERCHANT') {
-      throw new BadRequestException('PAYOUT_ONLY_DRIVER_OR_MERCHANT');
+    if (account.role !== 'DRIVER' && account.role !== 'MERCHANT' && account.role !== 'AGENT') {
+      throw new BadRequestException('PAYOUT_ONLY_DRIVER_MERCHANT_OR_AGENT');
     }
 
     if (!Number.isInteger(amount) || amount <= 0) {
@@ -332,13 +332,13 @@ export class WalletService {
       });
 
       console.log(
-        `[WITHDRAW] ${amount} RWF to ${phone} via WooshPay | ref ${result?.ref}`,
+        `[WITHDRAW] ${amount} RWF to ${phone} via Paypack | ref ${result?.ref}`,
       );
       return {
         success: true,
         ref: result?.ref,
         status: 'PENDING',
-        rail: 'WOOSHPAY',
+        rail: 'PAYPACK',
       };
     } catch (err: any) {
       // Nothing left Zana — put it back. Adding the exact amount back atomically
