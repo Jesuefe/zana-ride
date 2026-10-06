@@ -24,6 +24,7 @@ export class AdminController {
     private prisma: PrismaService,
     private eversendService: EversendService,
     private wooshPayService: WooshPayService,
+    private paypackService: PaypackService,
     private zanaAiService: ZanaAiService,
   ) {}
 
