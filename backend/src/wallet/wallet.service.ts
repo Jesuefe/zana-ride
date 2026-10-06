@@ -2,17 +2,20 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { EversendService } from './eversend.service';
 import { WooshPayService } from './wooshpay.service';
+import { PaypackService } from './paypack.service';
 import { WalletTransactionStatus } from '@prisma/client';
 
 @Injectable()
 export class WalletService {
   static readonly EVERSEND_MIN_WITHDRAWAL = 1000;
   static readonly WOOSHPAY_MIN_WITHDRAWAL = 980;
+  static readonly PAYPACK_MIN_WITHDRAWAL = 1000;
 
   constructor(
     private prisma: PrismaService,
     private eversend: EversendService,
     private wooshPay: WooshPayService,
+    private paypack: PaypackService,
   ) {}
 
   async findByUserId(userId: string) {
@@ -83,7 +86,7 @@ export class WalletService {
       throw new BadRequestException('INVALID_MOBILE_MONEY_NUMBER');
     }
 
-    const cashin = await this.wooshPay.collectMobileMoney(phone, amountRwf, `ZANA-TOPUP-${userId}-${Date.now()}`);
+    const cashin = await this.paypack.cashin(phone, amountRwf, `ZANA-TOPUP-${userId}-${Date.now()}`);
 
     await this.prisma.walletTransaction.create({
       data: {
@@ -176,7 +179,7 @@ export class WalletService {
     const amount = unpaidDebts.reduce((s, d) => s + d.amount, 0);
     if (amount <= 0) throw new BadRequestException('No outstanding balance to settle');
 
-    const cashin = await this.eversend.collectMobileMoney(phoneNumber, amount, `ZANA-DEBT-${driver.id}-${Date.now()}`);
+    const cashin = await this.paypack.cashin(phoneNumber, amount, `ZANA-DEBT-${driver.id}-${Date.now()}`);
 
     await this.prisma.debtSettlement.create({
       data: { driverId: driver.id, amount, providerRef: cashin.ref, status: 'PENDING' },
@@ -257,8 +260,8 @@ export class WalletService {
     if (!Number.isInteger(amount) || amount <= 0) {
       throw new BadRequestException('INVALID_WITHDRAWAL_AMOUNT');
     }
-    if (amount < WalletService.WOOSHPAY_MIN_WITHDRAWAL) {
-      throw new BadRequestException(`MIN_WITHDRAWAL:${WalletService.WOOSHPAY_MIN_WITHDRAWAL}`);
+    if (amount < WalletService.PAYPACK_MIN_WITHDRAWAL) {
+      throw new BadRequestException(`MIN_WITHDRAWAL:${WalletService.PAYPACK_MIN_WITHDRAWAL}`);
     }
 
     const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
@@ -278,7 +281,7 @@ export class WalletService {
       orderBy: { createdAt: 'desc' },
     });
     if (recent) {
-      return { success: true, ref: recent.providerRef, status: 'PENDING', rail: 'WOOSHPAY', duplicate: true };
+      return { success: true, ref: recent.providerRef, status: 'PENDING', rail: 'PAYPACK', duplicate: true };
     }
 
     // Always the account's own registered number — this is what
@@ -312,7 +315,7 @@ export class WalletService {
     const balanceAfter = afterWallet!.balance;
 
     try {
-      const result = await this.wooshPay.payout(phone, amount, `ZANA-WITHDRAW-${userId}-${Date.now()}`);
+      const result = await this.paypack.cashout(phone, amount, `ZANA-WITHDRAW-${userId}-${Date.now()}`);
 
       // Both rails settle asynchronously — the reconciler confirms it.
       await this.prisma.walletTransaction.create({
@@ -324,7 +327,7 @@ export class WalletService {
           status: WalletTransactionStatus.PENDING,
           reference: `Withdrawal to ${phone}`,
           providerRef: result?.ref ?? undefined,
-          description: `Withdrawal to ${phone} (WooshPay)`,
+          description: `Withdrawal to ${phone} (Paypack)`,
         } as any,
       });
 
