@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EversendService } from './eversend.service';
 import { WooshPayService } from './wooshpay.service';
+import { PaypackService } from './paypack.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
 
 /**
@@ -24,6 +25,7 @@ export class ReconcileService {
     private prisma: PrismaService,
     private eversend: EversendService,
     private wooshPay: WooshPayService,
+    private paypack: PaypackService,
     private gateway: ZanaGateway,
   ) {}
 
@@ -70,7 +72,7 @@ export class ReconcileService {
 
     for (const txn of pending) {
       try {
-        const res = await this.wooshPay.getPayoutStatus(txn.providerRef!);
+        const res = await this.paypack.getTransaction(txn.providerRef!);
         const status = res.status;
         if (!this.isFinal(status)) continue;
 
@@ -131,7 +133,7 @@ export class ReconcileService {
 
     for (const txn of pending) {
       try {
-        const res = await this.wooshPay.getCollectionStatus(txn.providerRef!);
+        const res = await this.paypack.getTransaction(txn.providerRef!);
         const status = res.status;
         if (!this.isFinal(status)) continue;
 
