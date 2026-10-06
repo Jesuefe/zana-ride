@@ -9,6 +9,7 @@ import { createCipheriv, createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { EversendService } from '../wallet/eversend.service';
 import { WooshPayService } from '../wallet/wooshpay.service';
+import { PaypackService } from '../wallet/paypack.service';
 import { ZanaAiService } from '../zana-ai/zana-ai.service';
 import { UserRole, UserStatus, DriverApprovalStatus, MerchantStatus, ProductStatus } from '@prisma/client';
 
@@ -438,6 +439,26 @@ export class AdminController {
     return this.adminService.getMerchantInvites();
   }
 
+
+  @Roles('ADMIN')
+  @Get('settings/payments/paypack')
+  async getPaypackSettings() {
+    try {
+      return await this.paypackService.getPublicSettings();
+    } catch (err: any) {
+      return { enabled: false, configured: false, provider: 'PAYPACK', error: err?.message || 'PAYPACK_NOT_CONFIGURED' };
+    }
+  }
+
+  @Roles('ADMIN')
+  @Post('settings/payments/paypack/test')
+  async testPaypack(@CurrentUser() user: JwtPayload) {
+    const result = await this.paypackService.testConnection();
+    await this.prisma.auditLog.create({
+      data: { actorId: user.sub, action: 'PAYPACK_CONNECTION_TESTED', entityType: 'PAYMENT_SETTINGS', entityId: 'PAYPACK', afterJson: JSON.stringify({ ok: true, at: new Date().toISOString(), environment: result.environment }) },
+    });
+    return result;
+  }
 
   @Roles('ADMIN')
   @Get('settings/payments/eversend')
