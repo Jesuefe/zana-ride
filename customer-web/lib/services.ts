@@ -8,5 +8,5 @@ export const SERVICES = [
   { id: 'shop',     title: 'Shop',     sub: 'Groceries & goods',   image: '/icons/grocery-bag.png',    bg: '#EEF9F6', route: '/shop' },
   { id: 'gift',     title: 'Send Gift',sub: 'Roses & surprises',   image: '/icons/flower-bouquet.png', bg: '#FDF6E3', route: '/gifts' },
   { id: 'market',   title: 'Market',   sub: 'Agent shops for you', image: '/icons/grocery-bag.png',    bg: '#EEF9F6', route: '/market' },
-  { id: 'pharmacy', title: 'Pharmacy', sub: 'Medicines & health',  image: '/icons/pharmacy.png',       bg: '#E8F7F2', route: '/pharmacy' },
+  { id: 'pharmacy', title: 'Pharmacy', sub: 'Medicines & health',  image: '/icons/pharmacy.svg',       bg: '#E8F7F2', route: '/pharmacy' },
 ];
