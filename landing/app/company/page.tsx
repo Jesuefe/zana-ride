@@ -1,21 +1,48 @@
 import '../../components/company-hero.css';
 
 export const metadata = {
-  title: 'Ogbiti Davis Kalu | Founder & CEO — Zana Ride',
+  title: 'Ogbiti Davis Kalu | Founder & CEO',
   description:
     'Meet Ogbiti Davis Kalu, founder of Bastion Holdings and Chief Executive Officer of Zana Ride in Kigali, Rwanda.',
+  alternates: { canonical: '/company' },
+  robots: { index: true, follow: true },
   openGraph: {
-    title: 'Ogbiti Davis Kalu | Zana Ride',
+    title: 'Ogbiti Davis Kalu | Founder & CEO — Zana Ride',
     description:
       'Founder of Bastion Holdings and Chief Executive Officer of Zana Ride, Rwanda.',
+    url: 'https://zanaride.rw/company',
+    siteName: 'Zana Ride',
+    locale: 'en_RW',
     type: 'profile',
+    images: [{ url: '/kalu-portrait.png', alt: 'Ogbiti Davis Kalu, Founder and CEO of Zana Ride' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Ogbiti Davis Kalu | Founder & CEO',
+    description: 'Founder of Bastion Holdings and Chief Executive Officer of Zana Ride in Kigali, Rwanda.',
     images: ['/kalu-portrait.png'],
   },
 };
 
 export default function CompanyPage() {
   return (
-    <main className="kalu-page">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Person',
+            name: 'Ogbiti Davis Kalu',
+            jobTitle: 'Founder and Chief Executive Officer',
+            worksFor: { '@type': 'Organization', name: 'Zana Ride', url: 'https://zanaride.rw' },
+            image: 'https://zanaride.rw/kalu-portrait.png',
+            url: 'https://zanaride.rw/company',
+            address: { '@type': 'PostalAddress', addressLocality: 'Kigali', addressCountry: 'RW' },
+          }),
+        }}
+      />
+      <main className="kalu-page">
       <header className="kalu-topbar">
         <a className="kalu-wordmark" href="/" aria-label="Zana home">
           ZANA<span>.</span>
@@ -127,6 +154,7 @@ export default function CompanyPage() {
         <p>Ogbiti Davis Kalu · Kigali, Rwanda</p>
         <a href="mailto:hello@zanaride.rw">Contact Zana <span aria-hidden="true">↗</span></a>
       </footer>
-    </main>
+      </main>
+    </>
   );
 }
