@@ -182,3 +182,288 @@
 @media (prefers-reduced-motion: reduce) {
   .company-hero__cta { transition: none; }
 }
+
+
+/* ── Public founder profile ─────────────────────────────────────────────── */
+.kalu-page {
+  --kalu-night: #06100D;
+  --kalu-night-2: #0A1712;
+  --kalu-green: #00A082;
+  --kalu-yellow: #FFC244;
+  --kalu-paper: #EAF2EE;
+  --kalu-muted: #9AAEA5;
+  background: var(--kalu-night);
+  color: var(--kalu-paper);
+  min-height: 100vh;
+  font-family: Archivo, system-ui, sans-serif;
+}
+.kalu-page * { box-sizing: border-box; }
+.kalu-page a { color: inherit; }
+.kalu-topbar {
+  width: min(1240px, calc(100% - 64px));
+  margin: 0 auto;
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.kalu-wordmark {
+  text-decoration: none;
+  font-size: 1.45rem;
+  line-height: 1;
+  letter-spacing: -.07em;
+  font-variation-settings: 'wdth' 90, 'wght' 850;
+}
+.kalu-wordmark span { color: var(--kalu-yellow); }
+.kalu-nav { display: flex; align-items: center; gap: clamp(16px, 2.5vw, 34px); }
+.kalu-nav a {
+  color: var(--kalu-muted);
+  font-size: .88rem;
+  text-decoration: none;
+  transition: color .2s ease;
+}
+.kalu-nav a:hover { color: var(--kalu-paper); }
+.kalu-nav .kalu-nav__cta {
+  color: var(--kalu-night);
+  background: var(--kalu-yellow);
+  padding: .75rem 1.05rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+.kalu-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(48px, 8vw, 104px) 32px 28px;
+  background:
+    radial-gradient(ellipse at 76% 25%, rgba(0,160,130,.18), transparent 43%),
+    linear-gradient(145deg, #07120E, #030806 76%);
+  border-top: 1px solid #12251E;
+}
+.kalu-hero__inner {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, .8fr);
+  align-items: center;
+  gap: clamp(36px, 7vw, 92px);
+}
+.kalu-hero__copy { padding-bottom: 28px; }
+.kalu-eyebrow, .kalu-section-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--kalu-yellow);
+  font-size: .76rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.kalu-eyebrow { margin: 0 0 28px; }
+.kalu-eyebrow span {
+  width: 34px; height: 1px; background: var(--kalu-green); display: inline-block;
+}
+.kalu-hero h1 {
+  margin: 0;
+  max-width: 10ch;
+  color: var(--kalu-paper);
+  font-size: clamp(3.2rem, 7.2vw, 6.7rem);
+  line-height: .96;
+  letter-spacing: -.075em;
+  font-variation-settings: 'wdth' 88, 'wght' 780;
+}
+.kalu-hero h1 em {
+  display: block;
+  color: var(--kalu-green);
+  font-style: normal;
+}
+.kalu-hero__lede {
+  max-width: 54ch;
+  margin: 28px 0 0;
+  color: #B3C3BB;
+  font-size: clamp(1.05rem, 1.55vw, 1.22rem);
+  line-height: 1.75;
+}
+.kalu-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 42px;
+  padding-top: 24px;
+  border-top: 1px solid #1B3027;
+}
+.kalu-facts div { display: flex; flex-direction: column; gap: 8px; }
+.kalu-facts span {
+  color: #7F968B;
+  font-size: .7rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.kalu-facts strong { color: var(--kalu-paper); font-size: .92rem; font-weight: 600; }
+.kalu-hero__portrait { max-width: 440px; width: 100%; justify-self: end; }
+.kalu-hero__portrait-frame {
+  position: relative;
+  padding: 10px;
+  background: linear-gradient(145deg, rgba(0,160,130,.65), rgba(255,194,68,.2) 58%, rgba(255,255,255,.04));
+  border-radius: 16px;
+  box-shadow: 0 28px 100px rgba(0,0,0,.28);
+}
+.kalu-hero__portrait-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 757 / 767;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: 9px;
+}
+.kalu-hero__caption {
+  margin: 14px 2px 0;
+  color: #7F968B;
+  font-size: .8rem;
+  letter-spacing: .04em;
+}
+.kalu-hero__bottomline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin: 58px auto 0;
+  color: #678176;
+  font-size: .68rem;
+  letter-spacing: .18em;
+  text-align: center;
+}
+.kalu-hero__bottomline span { width: 34px; height: 1px; background: #244136; }
+.kalu-bio {
+  padding: clamp(72px, 10vw, 132px) 32px;
+  background: #EAF2EE;
+  color: #10231B;
+}
+.kalu-section-label { color: #087A65; margin-bottom: 34px; }
+.kalu-bio__grid {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(240px, .75fr) minmax(0, 1.25fr);
+  gap: clamp(36px, 8vw, 112px);
+}
+.kalu-bio h2, .kalu-ventures h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4.3vw, 3.6rem);
+  line-height: 1.08;
+  letter-spacing: -.055em;
+  font-variation-settings: 'wdth' 92, 'wght' 700;
+}
+.kalu-bio__copy p {
+  margin: 0 0 20px;
+  max-width: 67ch;
+  color: #43564D;
+  font-size: 1.02rem;
+  line-height: 1.9;
+}
+.kalu-bio__copy p:last-child { margin-bottom: 0; }
+.kalu-bio__copy strong { color: #087A65; font-weight: 750; }
+.kalu-ventures {
+  padding: clamp(72px, 10vw, 120px) 32px;
+  background: var(--kalu-night-2);
+}
+.kalu-ventures__head, .kalu-ventures__grid {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+}
+.kalu-ventures__head { max-width: 1160px; margin-bottom: 44px; }
+.kalu-ventures h2 { max-width: 16ch; }
+.kalu-ventures__head > p {
+  margin: 18px 0 0;
+  max-width: 58ch;
+  color: #9AAEA5;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+.kalu-ventures__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.kalu-venture-card {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 22px;
+  padding: clamp(26px, 4vw, 44px);
+  border: 1px solid #1B3027;
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(255,255,255,.025), transparent);
+}
+.kalu-venture-card__index { color: var(--kalu-yellow); font-size: .8rem; letter-spacing: .08em; }
+.kalu-venture-card__tag {
+  margin: 0 0 14px;
+  color: var(--kalu-green);
+  font-size: .72rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.kalu-venture-card h3 {
+  margin: 0 0 12px;
+  color: var(--kalu-paper);
+  font-size: clamp(1.35rem, 2.2vw, 1.8rem);
+  letter-spacing: -.04em;
+  font-variation-settings: 'wdth' 92, 'wght' 700;
+}
+.kalu-venture-card p:not(.kalu-venture-card__tag) {
+  margin: 0;
+  color: #9AAEA5;
+  font-size: .95rem;
+  line-height: 1.8;
+}
+.kalu-venture-card a {
+  display: inline-block;
+  margin-top: 24px;
+  color: var(--kalu-yellow);
+  font-size: .88rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.kalu-venture-card a span { padding-left: 6px; }
+.kalu-footer {
+  width: min(1160px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 34px 0 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.kalu-footer p { margin: 0; color: #7F968B; font-size: .82rem; }
+.kalu-footer > a:last-child { color: var(--kalu-yellow); text-decoration: none; font-size: .85rem; font-weight: 650; }
+.kalu-footer > a:last-child span { padding-left: 6px; }
+
+@media (max-width: 760px) {
+  .kalu-topbar { width: calc(100% - 40px); min-height: 74px; }
+  .kalu-nav { gap: 14px; }
+  .kalu-nav a { font-size: .78rem; }
+  .kalu-nav .kalu-nav__cta { padding: .65rem .8rem; }
+  .kalu-hero { padding: 54px 20px 24px; }
+  .kalu-hero__inner { grid-template-columns: 1fr; gap: 32px; }
+  .kalu-hero__copy { padding-bottom: 0; }
+  .kalu-hero__portrait { justify-self: center; max-width: 380px; }
+  .kalu-facts { gap: 12px; }
+  .kalu-facts strong { font-size: .82rem; }
+  .kalu-bio, .kalu-ventures { padding-left: 20px; padding-right: 20px; }
+  .kalu-bio__grid { grid-template-columns: 1fr; gap: 26px; }
+  .kalu-ventures__grid { grid-template-columns: 1fr; }
+  .kalu-venture-card { grid-template-columns: 32px minmax(0, 1fr); gap: 14px; }
+  .kalu-footer { width: calc(100% - 40px); flex-wrap: wrap; }
+}
+@media (max-width: 440px) {
+  .kalu-nav a:not(.kalu-nav__cta) { display: none; }
+  .kalu-hero h1 { font-size: clamp(3rem, 15vw, 4.2rem); }
+  .kalu-facts { grid-template-columns: 1fr; }
+  .kalu-facts div { gap: 5px; }
+  .kalu-hero__bottomline { gap: 8px; font-size: .55rem; letter-spacing: .1em; }
+  .kalu-hero__bottomline span { width: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kalu-page * { scroll-behavior: auto !important; transition: none !important; }
+}

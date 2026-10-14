@@ -249,6 +249,7 @@ export default function Landing() {
           <a href={MERCHANT}>Sell</a>
           <a href="/privacy">Privacy</a>
           <a href="/terms">Terms</a>
+          <a href="/company#leadership">Leadership</a>
           <a href="mailto:hello@zanaride.rw">Contact</a>
         </nav>
       </footer>
