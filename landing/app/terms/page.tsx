@@ -1,8 +1,10 @@
 import LegalPage from '../../components/LegalPage';
 
 export const metadata = {
-  title: 'Terms of Service — Zana',
+  title: 'Terms of Service',
   description: 'The terms you agree to when using Zana.',
+  alternates: { canonical: '/terms' },
+  robots: { index: true, follow: true },
 };
 
 export default function Terms() {
