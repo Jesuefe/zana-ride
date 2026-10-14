@@ -1,8 +1,10 @@
 import LegalPage from '../../components/LegalPage';
 
 export const metadata = {
-  title: 'Privacy Policy — Zana',
+  title: 'Privacy Policy',
   description: 'How Zana collects, uses and protects your information.',
+  alternates: { canonical: '/privacy' },
+  robots: { index: true, follow: true },
 };
 
 export default function Privacy() {
