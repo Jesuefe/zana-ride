@@ -414,3 +414,89 @@ button, a, input, textarea, select {
 .zana-wallet-chip .text-gray-900 { color: #fff !important; }
 .zana-home-top .text-zana-primary { color: #7ce0c5 !important; }
 .zana-home-top .bg-zana-primary-light { background: rgba(255,255,255,.14) !important; }
+
+
+/* ── Shared premium surfaces: marketplace, wallet and profile ──────────── */
+.zana-marketplace-page,
+.zana-wallet-page,
+.zana-profile-page {
+  color: #12211c;
+}
+.zana-marketplace-header {
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+  box-shadow: 0 4px 18px rgba(18,45,35,.025);
+}
+.zana-marketplace-list {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.zana-merchant-card {
+  box-shadow: 0 5px 20px rgba(15,45,35,.045);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.zana-merchant-card:hover {
+  transform: translateY(-2px);
+  border-color: #c4e8de;
+  box-shadow: 0 14px 30px rgba(0,90,72,.08);
+}
+.zana-wallet-page { max-width: 900px; margin: 0 auto; }
+.zana-wallet-balance {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(255,194,68,.25), transparent 42%),
+    linear-gradient(135deg,#063e33 0%,#00765f 60%,#00a082 100%);
+  box-shadow: 0 16px 36px rgba(0,105,82,.18);
+}
+.zana-wallet-balance::after {
+  content: "";
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  right: -75px;
+  top: -105px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 50%;
+  box-shadow: 0 0 0 22px rgba(255,255,255,.045), 0 0 0 46px rgba(255,255,255,.025);
+  pointer-events: none;
+}
+.zana-wallet-balance > * { position: relative; z-index: 1; }
+.zana-transaction-row { transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+.zana-transaction-row:hover {
+  border-color: #cde8df;
+  box-shadow: 0 8px 20px rgba(15,45,35,.045);
+}
+.zana-topup-modal { box-shadow: 0 -18px 60px rgba(0,0,0,.12); }
+.zana-profile-page { max-width: 850px; margin: 0 auto; }
+.zana-profile-hero {
+  color: #fff;
+  background:
+    radial-gradient(ellipse at 100% 0%,rgba(255,194,68,.20),transparent 45%),
+    linear-gradient(135deg,#073d32 0%,#00836a 100%);
+  box-shadow: 0 14px 30px rgba(0,105,82,.12);
+}
+.zana-profile-hero .text-gray-900 { color: #fff; }
+.zana-profile-hero .text-zana-muted { color: rgba(255,255,255,.7); }
+.zana-profile-menu-item { min-height: 58px; }
+.zana-profile-menu-item + .zana-profile-menu-item { border-top: 1px solid #f0f3f1; }
+.zana-profile-menu-item:active { background: #f1faf7; }
+.zana-logout-button { min-height: 56px; }
+.dark .zana-marketplace-page,
+.dark .zana-wallet-page,
+.dark .zana-profile-page { color: var(--foreground); }
+.dark .zana-marketplace-header { background: var(--zana-surface) !important; border-color: var(--zana-border) !important; }
+.dark .zana-merchant-card,
+.dark .zana-transaction-row,
+.dark .zana-profile-menu,
+.dark .zana-profile-menu-item,
+.dark .zana-logout-button,
+.dark .zana-topup-modal { background: var(--zana-surface) !important; border-color: var(--zana-border) !important; }
+.dark .zana-profile-menu-item + .zana-profile-menu-item { border-color: var(--zana-border); }
+@media (min-width: 768px) {
+  .zana-marketplace-page { padding-bottom: 3rem; }
+  .zana-marketplace-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; gap: 1rem; }
+  .zana-merchant-card { margin-bottom: 0; }
+}
+@media (min-width: 1100px) {
+  .zana-marketplace-list { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
