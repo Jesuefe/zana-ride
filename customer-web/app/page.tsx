@@ -93,7 +93,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] bg-white pb-24 overflow-x-hidden">
+    <div className="zana-home min-h-[100dvh] pb-28 overflow-x-hidden">
       {recoveringRide && (
         <div className="fixed inset-0 z-[80] bg-white/95 flex flex-col items-center justify-center px-8">
           <div className="w-16 h-16 rounded-full bg-zana-primary-light flex items-center justify-center mb-4 animate-pulse">
@@ -105,23 +105,23 @@ export default function HomePage() {
       )}
 
       {/* ── Header ──────────────────────────────────────── */}
-      <div className="px-5 pt-12 pb-4 bg-white">
+      <div className="zana-home-top px-5 pt-8 pb-5">
         <div className="flex items-start justify-between gap-3 max-[399px]:flex-col">
           <div>
-            <p className="text-gray-500 text-sm">{t(greeting())}</p>
-            <h1 className="text-2xl font-black text-gray-900 mt-0.5">
+            <div className="mb-2 flex items-center gap-2"><span className="zana-brand-mark">Z</span><span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-white/75">ZANA · MOVE KIGALI</span></div><p className="text-white/70 text-sm">{t(greeting())}</p>
+            <h1 className="text-3xl font-black tracking-tight text-white mt-0.5">
               {user?.firstName ?? t('Welcome')} 👋
             </h1>
-            <div className="flex items-center gap-1 mt-1">
+            <div className="flex items-center gap-1.5 mt-2 text-white/75">
               <MapPin size={12} className="text-zana-primary" />
-              <p className="text-xs text-gray-500">{t('Kigali, Rwanda')}</p>
+              <p className="text-xs font-medium text-white/75">{t('Kigali, Rwanda')}</p>
             </div>
           </div>
 
           {/* Wallet pill */}
           <button
             onClick={() => router.push('/wallet')}
-            className="flex min-w-0 shrink-0 items-center gap-2 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-2.5 shadow-sm max-[399px]:w-full max-[399px]:justify-between"
+            className="zana-wallet-chip flex min-w-0 shrink-0 items-center gap-2 rounded-2xl px-3 py-2.5 max-[399px]:w-full max-[399px]:justify-between"
           >
             <div className="w-7 h-7 rounded-xl bg-zana-primary-light flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -146,14 +146,14 @@ export default function HomePage() {
       )}
 
       {/* ── Where to card ───────────────────────────────── */}
-      <div className="px-4 mt-2">
-        <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-5">
-          <h2 className="text-xl font-black text-gray-900 mb-4">{t('Where to?')}</h2>
+      <div className="zana-destination-wrap px-4 mt-2">
+        <div className="zana-destination-card rounded-[28px] border p-5">
+          <h2 className="text-2xl font-black tracking-tight text-gray-950 mb-4">{t('Where to?')}</h2>
 
           {/* Search bar */}
           <button
             onClick={() => router.push('/search')}
-            className="w-full flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-3.5 mb-3"
+            className="zana-search-trigger w-full flex items-center gap-3 rounded-2xl px-3 py-3.5 mb-3"
           >
             <Search size={18} className="text-gray-400 shrink-0" />
             <span className="text-gray-400 text-sm flex-1 text-left">{t('Search destination')}</span>
@@ -201,7 +201,7 @@ export default function HomePage() {
                     if (tile.place) setRidePick(tile.place);
                     else router.push('/profile/places');
                   }}
-                  className="flex flex-col items-start gap-1.5 bg-gray-50 rounded-2xl px-3 py-3 text-left active:scale-95 transition-transform"
+                  className="zana-place-chip flex flex-col items-start gap-1.5 rounded-2xl px-3 py-3 text-left active:scale-95 transition-transform"
                 >
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-sm ${
                     tile.place ? 'bg-zana-primary-light text-zana-primary' : 'bg-white text-gray-400'
@@ -222,20 +222,20 @@ export default function HomePage() {
       </div>
 
       {/* ── Services ─────────────────────────────────────── */}
-      <div className="px-4 mt-6">
+      <div className="zana-home-section px-4 mt-7">
         <div className="mb-4">
-          <h2 className="text-base font-black text-gray-900">{t('Services')}</h2>
+          <h2 className="text-xl font-black tracking-tight text-gray-950">{t('Explore services')}</h2>
         </div>
 
-        <div className="grid grid-cols-4 gap-y-5 gap-x-2">
+        <div className="zana-service-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {SERVICES.map(s => (
             <button
               key={s.id}
               onClick={() => router.push(s.route)}
-              className="flex flex-col items-center gap-2 active:scale-95 transition-transform"
+              className="zana-service-tile flex flex-col items-start gap-2 active:scale-[0.98] transition-transform"
             >
               <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden"
+                className="zana-service-icon w-16 h-16 rounded-[20px] flex items-center justify-center overflow-hidden"
                 style={{ background: s.bg }}
               >
                 <Image
@@ -247,11 +247,11 @@ export default function HomePage() {
                 />
               </div>
 
-              <p className="text-[10px] font-bold text-gray-900 text-center leading-tight">
+              <p className="text-sm font-extrabold text-gray-900 text-left leading-tight">
                 {t(s.title)}
               </p>
 
-              <p className="text-[8px] text-gray-400 text-center leading-tight -mt-1">
+              <p className="text-[11px] text-gray-500 text-left leading-tight">
                 {t(s.sub)}
               </p>
             </button>
@@ -260,9 +260,9 @@ export default function HomePage() {
       </div>
 
       {/* ── Promo banner ─────────────────────────────────── */}
-      <div className="px-4 mt-6">
+      <div className="px-4 mt-7">
         <div
-          className="rounded-3xl overflow-hidden p-5 flex items-center justify-between"
+          className="zana-promo-panel rounded-[28px] overflow-hidden p-5 flex items-center justify-between relative"
           style={{ background: 'linear-gradient(135deg, #00A082 0%, #007A63 100%)' }}
         >
           <div className="flex-1">
@@ -284,7 +284,7 @@ export default function HomePage() {
         <div className="px-4 mt-4">
           <button
             onClick={() => router.push('/wallet')}
-            className="w-full flex items-center gap-3 bg-white border-2 border-dashed border-zana-primary/30 rounded-2xl px-4 py-3.5 text-left active:scale-[0.99] transition-transform"
+            className="zana-wallet-tip w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left active:scale-[0.99] transition-transform"
           >
             <div className="w-9 h-9 rounded-xl bg-zana-primary-light flex items-center justify-center shrink-0">
               <span className="text-lg">💡</span>
