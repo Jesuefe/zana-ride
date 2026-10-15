@@ -410,3 +410,7 @@ button, a, input, textarea, select {
   background: rgba(23,32,32,.94);
   border-color: #253130;
 }
+
+.zana-wallet-chip .text-gray-900 { color: #fff !important; }
+.zana-home-top .text-zana-primary { color: #7ce0c5 !important; }
+.zana-home-top .bg-zana-primary-light { background: rgba(255,255,255,.14) !important; }
