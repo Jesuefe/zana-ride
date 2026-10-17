@@ -67,23 +67,23 @@ export default function WalletPage() {
 
   return (
     <div className="zana-wallet-page zana-wallet-screen min-h-screen bg-gray-50 p-4 pb-28 sm:p-6">
-      <div className="zana-wallet-heading mb-5"><p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-zana-primary">ZANA PAYMENTS</p><div className="mt-1 flex items-end justify-between gap-3"><div><h1 className="text-2xl font-black tracking-tight text-gray-950">{t('Wallet')}</h1><p className="mt-1 text-sm text-gray-500">{t('Your money, ready to move.')}</p></div><span className="zana-wallet-status"><span className="zana-wallet-status-dot" /> {t('Secure wallet')}</span></div></div>
+      <div className="zana-wallet-heading mb-5"><p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-zana-primary">ZANA PAYMENTS</p><div className="mt-1 flex items-end justify-between gap-3"><div><h1 className="text-2xl font-black tracking-tight text-gray-950">{t('Wallet')}</h1><p className="mt-1 text-sm text-gray-500">{t('Available balance')}</p></div></div></div>
 
       <div className="zana-wallet-balance zana-wallet-balance-card rounded-[28px] p-6 text-white sm:p-8">
         <div className="zana-wallet-card-topline"><span className="zana-wallet-eyebrow">{t('Available balance')}</span><span className="zana-wallet-card-mark">Z</span></div>
         <p className="zana-wallet-amount mt-3 text-4xl font-black tracking-tight sm:text-5xl">{wallet ? wallet.balance.toLocaleString() : '…'} <span>RWF</span></p>
-        <p className="zana-wallet-card-note">{t('Use your ZANA balance for a smoother checkout.')}</p>
+        <p className="zana-wallet-card-note">{t('Pay with your Zana Wallet')}</p>
         <div className="zana-wallet-actions">
           <button
             onClick={() => setShowTopUp(true)}
             className="zana-wallet-primary-action flex items-center justify-center gap-2 text-sm font-extrabold transition-transform active:scale-[0.98]"
           >
-            <Plus size={16} /> {t('Top Up wallet')}
+            <Plus size={16} /> {t('Top Up')}
           </button>
         </div>
       </div>
 
-      <div className="zana-transactions-heading mb-3 mt-8"><div><h2 className="text-lg font-black tracking-tight text-gray-900">{t('Recent transactions')}</h2><p className="mt-1 text-xs text-gray-500">{t('Your latest wallet activity')}</p></div><span className="zana-transaction-count">{wallet?.transactions.length ?? 0}</span></div>
+      <div className="zana-transactions-heading mb-3 mt-8"><div><h2 className="text-lg font-black tracking-tight text-gray-900">{t('Recent transactions')}</h2><p className="mt-1 text-xs text-gray-500">{t('Available balance')}</p></div><span className="zana-transaction-count">{wallet?.transactions.length ?? 0}</span></div>
       <div className="zana-transactions-list space-y-2">
         {wallet?.transactions.length === 0 && <p className="text-sm text-zana-muted">{t('No transactions yet.')}</p>}
         {wallet?.transactions.map((tx: any) => {
