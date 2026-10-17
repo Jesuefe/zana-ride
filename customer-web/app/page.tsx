@@ -93,7 +93,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="zana-home min-h-[100dvh] pb-28 overflow-x-hidden">
+    <div className="zana-home zana-page-enter min-h-[100dvh] pb-28 overflow-x-hidden">
       {recoveringRide && (
         <div className="fixed inset-0 z-[80] bg-white/95 flex flex-col items-center justify-center px-8">
           <div className="w-16 h-16 rounded-full bg-zana-primary-light flex items-center justify-center mb-4 animate-pulse">
