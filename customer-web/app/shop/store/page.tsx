@@ -7,7 +7,7 @@ import { fetchMarketplaceWithLocation, placeOrder, MarketplaceMerchant, Marketpl
 import { getStoredPickup } from '../../../lib/location';
 import OrderRecipient, { OrderRecipient as OrderRecipientValue } from '../../../components/OrderRecipient';
 import { useLang } from '../../../lib/LangContext';
-import ZanaLoading from '../../components/ZanaLoading';
+import ZanaLoading from '../../../components/ZanaLoading';
 
 function StoreContent() {
   const { t } = useLang();
@@ -125,9 +125,7 @@ function StoreContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-6 h-6 border-2 border-zana-primary border-t-transparent rounded-full animate-spin" />
-      </div>
+      <ZanaLoading label={t('Loading store')} />
     );
   }
 
