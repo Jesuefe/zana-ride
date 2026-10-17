@@ -41,7 +41,7 @@ export default function AccountSettingsPage() {
   };
 
   return (
-    <div className="p-4">
+    <div className="zana-page-enter zana-settings-page p-4">
       <div className="mb-6"><ThemePicker /></div>
       <div className="mb-6">
         <label className="text-xs font-medium text-gray-500 block mb-2">{t("Language")}</label>
