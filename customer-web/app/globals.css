@@ -500,3 +500,193 @@ button, a, input, textarea, select {
 @media (min-width: 1100px) {
   .zana-marketplace-list { grid-template-columns: repeat(3,minmax(0,1fr)); }
 }
+
+
+/* ── ZANA clean motion system — quiet, spacious, ride-first ─────────────── */
+:root {
+  --background: #f8faf9;
+  --foreground: #17211e;
+  --zana-border: #e8eeeb;
+}
+html { scroll-behavior: smooth; }
+body { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+.zana-home {
+  background: #f8faf9;
+  color: #17211e;
+}
+.zana-home-top {
+  padding-top: max(1.1rem, env(safe-area-inset-top));
+  padding-bottom: .65rem;
+  border-radius: 0;
+  background: #f8faf9;
+}
+.zana-home-top .text-white { color: #17211e !important; }
+.zana-home-top .text-white\/70,
+.zana-home-top .text-white\/75 { color: #75827d !important; }
+.zana-home-top .text-white\/\[.*\] { color: #75827d !important; }
+.zana-home-top .zana-brand-mark {
+  width: 29px;
+  height: 29px;
+  border-radius: 10px;
+  background: #00a082;
+  color: #fff;
+  box-shadow: none;
+}
+.zana-home-top .text-\[10px\] { letter-spacing: .14em; color: #687770 !important; }
+.zana-home-top .text-3xl {
+  margin-top: .15rem;
+  font-size: clamp(1.55rem, 5vw, 1.9rem);
+  font-weight: 750;
+  letter-spacing: -.045em;
+}
+.zana-home-top .text-zana-primary { color: #00a082 !important; }
+.zana-wallet-chip {
+  border: 1px solid #e4ebe7;
+  background: #fff;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.zana-wallet-chip .text-gray-900 { color: #17211e !important; }
+.zana-wallet-chip .bg-zana-primary-light { background: #e8f7f2; }
+.zana-destination-wrap { max-width: 780px; padding-inline: 1rem; }
+.zana-destination-card {
+  padding: 1.1rem 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.zana-destination-card h2 {
+  margin-bottom: .85rem;
+  font-size: clamp(1.45rem, 4.5vw, 1.8rem);
+  font-weight: 750;
+  letter-spacing: -.045em;
+}
+.zana-search-trigger {
+  min-height: 58px;
+  padding: .65rem .8rem;
+  border: 1px solid #e3eae6;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(24,48,38,.025);
+}
+.zana-search-trigger:hover { background: #fff; border-color: #a8dccc; }
+.zana-search-trigger > div {
+  border: 0;
+  background: #f1f5f3;
+  border-radius: 11px;
+}
+.zana-place-chip {
+  padding: .7rem .65rem;
+  border: 1px solid #e8eeeb;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: none;
+}
+.zana-place-chip:hover { box-shadow: none; background: #f2faf7; }
+.zana-place-chip > div { box-shadow: none !important; }
+.zana-home-section { padding-inline: 1rem; margin-top: 2rem; }
+.zana-home-section h2 {
+  font-size: 1.2rem;
+  font-weight: 750;
+  letter-spacing: -.035em;
+}
+.zana-service-grid { gap: .7rem !important; }
+.zana-service-tile {
+  min-height: 126px;
+  padding: .85rem;
+  gap: .6rem;
+  border: 1px solid #e8eeeb;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: none;
+}
+.zana-service-tile:hover {
+  transform: translateY(-2px);
+  border-color: #c8e7dc;
+  box-shadow: 0 7px 18px rgba(0,90,72,.045);
+}
+.zana-service-icon {
+  width: 47px;
+  height: 47px;
+  border-radius: 14px;
+  box-shadow: none;
+}
+.zana-service-tile p.text-sm { font-weight: 700; letter-spacing: -.015em; }
+.zana-service-tile p.text-\[11px\] { color: #7a8781; }
+.zana-promo-panel {
+  min-height: 148px;
+  border-radius: 20px;
+  background: #006f5b !important;
+  box-shadow: none;
+}
+.zana-promo-panel::after { opacity: .12; }
+.zana-promo-panel button { background: rgba(255,255,255,.16); transition: background .2s ease, transform .2s ease; }
+.zana-promo-panel button:hover { background: rgba(255,255,255,.24); }
+.zana-wallet-tip { border-color: #e8eeeb; border-radius: 16px; box-shadow: none; }
+.zana-bottom-nav {
+  width: 100%;
+  border: 1px solid #e9efec;
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -4px 20px rgba(16,47,37,.045);
+}
+.zana-bottom-nav-active::before { top: -7px; width: 22px; }
+.zana-merchant-card,
+.zana-transaction-row,
+.zana-profile-menu-item,
+.zana-search-trigger,
+.zana-service-tile,
+.zana-place-chip,
+.zana-wallet-chip,
+button, a {
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(.2,.75,.25,1);
+}
+.zana-home-section,
+.zana-destination-wrap,
+.zana-promo-panel,
+.zana-wallet-tip {
+  animation: zanaContentEnter .42s cubic-bezier(.2,.75,.25,1) both;
+}
+.zana-home-section { animation-delay: .04s; }
+.zana-promo-panel { animation-delay: .08s; }
+.zana-wallet-tip { animation-delay: .1s; }
+@keyframes zanaContentEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(0,160,130,.32);
+  outline-offset: 3px;
+}
+.dark .zana-home { background: #101816; color: #eff5f2; }
+.dark .zana-home-top { background: #101816; }
+.dark .zana-home-top .text-white { color: #eff5f2 !important; }
+.dark .zana-home-top .text-white\/70,
+.dark .zana-home-top .text-white\/75 { color: #9aa9a2 !important; }
+.dark .zana-wallet-chip,
+.dark .zana-search-trigger,
+.dark .zana-place-chip,
+.dark .zana-service-tile,
+.dark .zana-wallet-tip {
+  background: #17211e;
+  border-color: #2a3832;
+}
+.dark .zana-wallet-chip .text-gray-900,
+.dark .zana-place-chip .text-gray-900,
+.dark .zana-service-tile .text-gray-900 { color: #eff5f2 !important; }
+@media (min-width: 768px) {
+  .zana-home-top { padding-bottom: .75rem; }
+  .zana-destination-wrap { margin-top: 0; }
+  .zana-destination-card { padding-top: 1.25rem; }
+  .zana-home-section { margin-top: 2.5rem; }
+  .zana-service-tile { min-height: 140px; padding: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .zana-home-section, .zana-destination-wrap, .zana-promo-panel, .zana-wallet-tip {
+    animation: none !important;
+  }
+}
