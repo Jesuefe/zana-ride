@@ -97,7 +97,7 @@ export default function ShareLocationPage() {
   const secs = secondsLeft !== null ? secondsLeft % 60 : 0;
 
   return (
-    <div className="animate-fade-in zana-page-enter">
+    <div className="animate-fade-in zana-page-enter zana-share-page">
       {coords && <BrandedMap origin={coords} height={180} />}
 
       <div className="p-4">
