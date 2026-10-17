@@ -204,7 +204,7 @@ function OrdersContent() {
   };
 
   return (
-    <div className="zana-page-enter p-4 pb-8">
+    <div className="zana-page-enter zana-orders-page p-4 pb-8">
       <div className="mb-4">
         <h1 className="text-xl font-black text-gray-900">{t('My Orders')}</h1>
         <p className="text-xs text-zana-muted mt-1">{t('Track your orders and deliveries in one place.')}</p>
