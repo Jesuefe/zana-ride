@@ -160,14 +160,14 @@ function RideOptionsContent() {
           />
           <button
             onClick={() => router.back()}
-            className="absolute top-10 left-4 z-10 w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"
+            className="zana-glass-control absolute top-10 left-4 z-10 w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"
           >
             <ArrowLeft size={18} className="text-gray-700" />
           </button>
         </div>
 
         {/* Bottom sheet */}
-        <div className="flex-1 bg-white rounded-t-3xl -mt-5 overflow-y-auto shadow-2xl">
+        <div className="zana-glass-sheet flex-1 bg-white rounded-t-3xl -mt-5 overflow-y-auto shadow-2xl">
           <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3" />
 
           {/* Route summary */}
