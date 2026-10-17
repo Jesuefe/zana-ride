@@ -62,6 +62,7 @@ function OrdersContent() {
   const params = useSearchParams();
   const highlightId = params.get('highlight');
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<any[]>([]);
   const [tab, setTab] = useState<'orders' | 'deliveries'>('orders');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -72,8 +73,10 @@ function OrdersContent() {
 
   useEffect(() => {
     const load = () => {
-      fetchMyDeliveries().then(setDeliveries).catch(() => {});
-      fetchMyOrders().then(setOrders).catch(() => {});
+      Promise.all([
+        fetchMyDeliveries().then(setDeliveries).catch(() => {}),
+        fetchMyOrders().then(setOrders).catch(() => {}),
+      ]).finally(() => setLoading(false));
     };
     load();
     const interval = setInterval(load, 8000);
@@ -224,7 +227,8 @@ function OrdersContent() {
 
       {tab === 'orders' && (
         <div className="space-y-5">
-          {activeOrders.length > 0 && (
+          {loading && <div className="space-y-3" role="status" aria-label={t('Loading orders')}>{[0, 1].map((item) => <div key={item} className="rounded-2xl border border-gray-100 bg-white p-4"><div className="flex items-center gap-3"><div className="zana-loading-skeleton h-11 w-11 rounded-xl" /><div className="flex-1 space-y-2"><div className="zana-loading-skeleton h-3 w-2/3 rounded-full" /><div className="zana-loading-skeleton h-2.5 w-1/3 rounded-full" /></div></div><div className="zana-loading-skeleton mt-4 h-3 w-full rounded-full" /><div className="zana-loading-skeleton mt-2 h-3 w-3/4 rounded-full" /></div>)}</div>}
+          {!loading && activeOrders.length > 0 && (
             <section>
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2 h-2 rounded-full bg-zana-primary animate-pulse" />
@@ -235,14 +239,14 @@ function OrdersContent() {
             </section>
           )}
 
-          {historyOrders.length > 0 && (
+          {!loading && historyOrders.length > 0 && (
             <section>
               <h2 className="text-sm font-black text-gray-900 mb-2">{t('Order history')}</h2>
               <div className="space-y-3">{historyOrders.map(o => renderOrder(o, false))}</div>
             </section>
           )}
 
-          {orders.length === 0 && (
+          {!loading && orders.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-14 h-14 rounded-full bg-zana-primary-light flex items-center justify-center mb-3">
                 <ShoppingBag size={22} className="text-zana-primary" />
@@ -255,7 +259,8 @@ function OrdersContent() {
 
       {tab === 'deliveries' && (
         <div className="space-y-3">
-          {deliveries.length === 0 && (
+          {loading && <div className="space-y-3" role="status" aria-label={t('Loading deliveries')}>{[0, 1].map((item) => <div key={item} className="rounded-2xl border border-gray-100 bg-white p-4"><div className="zana-loading-skeleton h-3 w-2/3 rounded-full" /><div className="zana-loading-skeleton mt-3 h-3 w-full rounded-full" /><div className="zana-loading-skeleton mt-2 h-3 w-1/2 rounded-full" /></div>)}</div>}
+          {!loading && deliveries.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-14 h-14 rounded-full bg-zana-primary-light flex items-center justify-center mb-3">
                 <Package size={22} className="text-zana-primary" />
