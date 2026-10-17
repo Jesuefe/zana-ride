@@ -18,6 +18,7 @@ import { resolveLocationCode } from '../../lib/api/deliveries';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 import { useLang } from '../../lib/LangContext';
+import ZanaLoading from '../../components/ZanaLoading';
 
 function SearchContent() {
   const { t } = useLang();
@@ -211,4 +212,4 @@ function SearchContent() {
   );
 }
 
-export default function SearchPage() { return <Suspense fallback={null}><SearchContent /></Suspense>; }
+export default function SearchPage() { return <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}><SearchContent /></Suspense>; }
