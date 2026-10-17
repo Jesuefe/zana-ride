@@ -817,3 +817,107 @@ html, body { background-color: var(--background); color: var(--foreground); }
     scroll-behavior: auto !important;
   }
 }
+
+
+/* ── Wallet refinement: clear hierarchy, premium tactility ─────────────── */
+.zana-wallet-screen { max-width: 920px; margin-inline: auto; }
+.zana-wallet-heading { padding-top: max(.35rem, env(safe-area-inset-top)); }
+.zana-wallet-balance-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(1.35rem, 4vw, 2rem);
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 28px;
+  background:
+    radial-gradient(ellipse at 92% 0%, rgba(255,194,68,.24), transparent 36%),
+    linear-gradient(135deg, #073d32 0%, #00765f 58%, #00a082 100%);
+  box-shadow: 0 18px 38px rgba(0,105,82,.16), inset 0 1px 0 rgba(255,255,255,.13);
+  animation: zanaWalletReveal 460ms cubic-bezier(.2,.75,.25,1) both;
+}
+.zana-wallet-balance-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 240px;
+  height: 240px;
+  top: -145px;
+  right: -50px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 50%;
+  box-shadow: 0 0 0 22px rgba(255,255,255,.035), 0 0 0 46px rgba(255,255,255,.025);
+  pointer-events: none;
+}
+.zana-wallet-balance-card::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 120px;
+  height: 120px;
+  bottom: -78px;
+  right: 18%;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.zana-wallet-card-topline { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.zana-wallet-eyebrow { color:rgba(255,255,255,.76); font-size:.82rem; font-weight:650; }
+.zana-wallet-card-mark {
+  display:grid; place-items:center; width:34px; height:34px; border-radius:12px;
+  color:#153e33; background:#ffc244; font-size:16px; font-weight:950;
+  box-shadow:0 4px 12px rgba(0,0,0,.12);
+}
+.zana-wallet-amount { color:#fff; font-variant-numeric:tabular-nums; letter-spacing:-.055em; line-height:1.08; overflow-wrap:anywhere; }
+.zana-wallet-amount span { font-size:.43em; letter-spacing:-.01em; opacity:.86; font-weight:750; }
+.zana-wallet-card-note { margin-top:.75rem; color:rgba(255,255,255,.76); font-size:.78rem; line-height:1.45; max-width:28rem; }
+.zana-wallet-actions { display:flex; gap:.65rem; margin-top:1.3rem; }
+.zana-wallet-primary-action {
+  min-height:48px; min-width:124px; padding:.8rem 1.15rem; border-radius:15px;
+  color:#173d32; background:#ffc244; box-shadow:0 4px 12px rgba(0,0,0,.08);
+  transition:transform 180ms cubic-bezier(.2,.75,.25,1), background-color 180ms ease, box-shadow 180ms ease;
+}
+.zana-wallet-primary-action:hover { background:#ffd06b; box-shadow:0 8px 18px rgba(0,0,0,.13); transform:translateY(-1px); }
+.zana-transactions-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.zana-transaction-count {
+  display:grid; place-items:center; min-width:32px; height:32px; padding:0 .5rem;
+  border:1px solid var(--zana-border); border-radius:11px; color:var(--zana-text-secondary);
+  background:var(--zana-card); font-size:.75rem; font-weight:800; font-variant-numeric:tabular-nums;
+}
+.zana-transactions-list { display:flex; flex-direction:column; gap:.65rem; }
+.zana-transaction-row {
+  min-height:76px; border-color:var(--zana-line, #e2ebe6) !important;
+  border-radius:18px !important; box-shadow:var(--zana-elevation-1) !important;
+  animation: zanaWalletReveal 380ms cubic-bezier(.2,.75,.25,1) both;
+}
+.zana-transaction-row:hover { transform:translateY(-1px); box-shadow:var(--zana-elevation-2) !important; }
+.zana-wallet-modal { border:1px solid var(--zana-line, #e2ebe6); box-shadow:0 -20px 70px rgba(0,0,0,.18); }
+.zana-wallet-modal input { min-height:48px; border-radius:13px; }
+@keyframes zanaWalletReveal {
+  from { opacity:0; transform:translate3d(0,9px,0); }
+  to { opacity:1; transform:translate3d(0,0,0); }
+}
+.dark .zana-wallet-screen { color:var(--foreground); }
+.dark .zana-wallet-screen .zana-wallet-heading .text-gray-950,
+.dark .zana-wallet-screen .zana-transactions-heading .text-gray-900 { color:var(--foreground) !important; }
+.dark .zana-wallet-screen .zana-transaction-row { background:var(--zana-card) !important; border-color:var(--zana-line) !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-gray-900 { color:var(--foreground) !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-gray-400 { color:var(--zana-text-muted, #9aaba1) !important; }
+.dark .zana-wallet-screen .zana-transaction-row .bg-green-50 { background:#16372b !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-green-600 { color:#63dfa7 !important; }
+.dark .zana-wallet-screen .zana-transaction-row .bg-red-50 { background:#3b2220 !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-red-500 { color:#ff8c82 !important; }
+.dark .zana-wallet-modal { background:var(--zana-card) !important; border-color:var(--zana-line) !important; }
+.dark .zana-wallet-modal h2,
+.dark .zana-wallet-modal .text-gray-900 { color:var(--foreground) !important; }
+.dark .zana-wallet-modal .bg-gray-100 { background:#25332c !important; }
+.dark .zana-wallet-modal input { color:var(--foreground); background:#111a16; border-color:var(--zana-line); }
+@media (max-width: 390px) {
+  .zana-wallet-screen { padding-inline:1rem; }
+  .zana-wallet-balance-card { padding:1.25rem; border-radius:24px; }
+  .zana-wallet-amount { font-size:clamp(2rem, 10vw, 2.6rem); }
+  .zana-wallet-card-note { max-width:17rem; }
+  .zana-transaction-row { padding:.85rem !important; gap:.65rem !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zana-wallet-balance-card, .zana-transaction-row { animation:none !important; }
+}
