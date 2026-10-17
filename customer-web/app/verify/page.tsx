@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { verifyPhone, resendVerification } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
 import { useLang } from '../../lib/LangContext';
+import ZanaLoading from '../../components/ZanaLoading';
 
 function VerifyForm() {
   const { t } = useLang();
@@ -101,7 +102,7 @@ function VerifyForm() {
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}>
       <VerifyForm />
     </Suspense>
   );
