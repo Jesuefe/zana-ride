@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 
 type ZanaSplashProps = {
   onDone?: () => void;
@@ -64,7 +64,7 @@ export default function ZanaSplash({ onDone, variant = 'customer' }: ZanaSplashP
 
         <div className="zana-splash-wordmark" aria-label="ZANA">
           {'ZANA'.split('').map((letter, index) => (
-            <span className={index === 1 ? 'zana-splash-letter-accent' : ''} key={letter + index} style={{ '--letter-index': index } as React.CSSProperties}>
+            <span className={index === 1 ? 'zana-splash-letter-accent' : ''} key={letter + index} style={{ '--letter-index': index } as CSSProperties}>
               {letter}
             </span>
           ))}
