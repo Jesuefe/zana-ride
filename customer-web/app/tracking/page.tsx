@@ -440,7 +440,7 @@ function TrackingContent() {
         )}
 
         {showRouteBanner && (
-          <div className={"absolute top-4 left-4 right-24 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs shadow animate-fade-slide-up " + (routeDeviation?.offRoute ? 'bg-red-50 text-red-800' : 'bg-white text-gray-900')}>
+          <div className={"zana-glass-status absolute top-4 left-4 right-24 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs shadow animate-fade-slide-up " + (routeDeviation?.offRoute ? 'bg-red-50 text-red-800' : 'bg-white text-gray-900')}>
             <Navigation size={13} className={routeDeviation?.offRoute ? 'text-red-600 shrink-0' : 'text-zana-primary shrink-0'} />
             <span className="truncate">{routeDeviation?.offRoute ? t('Driver appears to be off the recommended route') : t('Driver is following the recommended route')}</span>
           </div>
@@ -448,7 +448,7 @@ function TrackingContent() {
 
         <button
           onClick={triggerSOS}
-          className="absolute top-4 right-4 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full text-xs font-bold text-zana-error shadow"
+          className="zana-glass-control absolute top-4 right-4 flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full text-xs font-bold text-zana-error shadow"
         >
           <AlertTriangle size={13} /> SOS
         </button>
@@ -489,7 +489,7 @@ function TrackingContent() {
           const paidSeconds = Math.max(0, waitingSeconds - freeSeconds);
           const paidMinutes = Math.ceil(paidSeconds / 60);
           return (
-            <div className="mt-3 rounded-2xl border border-zana-primary/20 bg-zana-primary-light p-4">
+            <div className="zana-glass-info mt-3 rounded-2xl border border-zana-primary/20 bg-zana-primary-light p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-zana-muted">{t('Waiting time')}</p>
