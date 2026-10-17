@@ -316,8 +316,18 @@ export default function HomePage() {
 
       {/* ── Ride type picker for a saved place ────────────────────────── */}
       {ridePick && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={() => setRidePick(null)}>
-          <div className="w-full bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/50"
+          role="presentation"
+          onClick={() => setRidePick(null)}
+        >
+          <div
+            className="w-full bg-white rounded-t-3xl p-5 pb-8"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('Choose a ride type')}
+            onClick={e => e.stopPropagation()}
+          >
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
 
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">{t('Going to')} {ridePick.label}</p>
