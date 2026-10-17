@@ -37,7 +37,7 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
   }, []);
 
   return (
-    <div className="zana-marketplace-page min-h-screen bg-gray-50 pb-28">
+    <div className="zana-marketplace-page zana-page-enter min-h-screen bg-gray-50 pb-28">
       <div className="zana-marketplace-header sticky top-0 z-10 flex items-center gap-3 border-b border-gray-100 bg-white px-4 pb-4 pt-8">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />
@@ -47,8 +47,21 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
 
       <div className="zana-marketplace-list p-4 sm:p-6">
         {loading && (
-          <div className="flex justify-center py-16">
-            <div className="w-6 h-6 border-2 border-zana-primary border-t-transparent rounded-full animate-spin" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-label={t('Loading stores')}>
+            {[0, 1, 2].map((item) => (
+              <div key={item} className="overflow-hidden rounded-[24px] border border-gray-100 bg-white p-4">
+                <div className="zana-loading-skeleton h-28 w-full rounded-2xl" />
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="zana-loading-skeleton h-11 w-11 shrink-0 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <div className="zana-loading-skeleton h-3 w-3/4 rounded-full" />
+                    <div className="zana-loading-skeleton h-2.5 w-1/2 rounded-full" />
+                  </div>
+                </div>
+                <div className="zana-loading-skeleton mt-4 h-3 w-full rounded-full" />
+                <div className="zana-loading-skeleton mt-2 h-3 w-2/3 rounded-full" />
+              </div>
+            ))}
           </div>
         )}
 
