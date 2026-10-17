@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { SERVICES } from '../lib/services';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Clock, Home, Briefcase, ChevronRight, Search, MapPin, Calendar, Package } from 'lucide-react';
+import { Clock, Home, Briefcase, ChevronRight, Search, MapPin, Calendar, Package, Wallet } from 'lucide-react';
 import { fetchMe, ApiUser } from '../lib/api/auth';
 import { fetchWallet, recoverActiveRide } from '../lib/api/trips';
 import { haptic } from '../lib/haptics';
@@ -97,7 +97,7 @@ export default function HomePage() {
       {recoveringRide && (
         <div className="fixed inset-0 z-[80] bg-white/95 flex flex-col items-center justify-center px-8">
           <div className="w-16 h-16 rounded-full bg-zana-primary-light flex items-center justify-center mb-4 animate-pulse">
-            <span className="text-2xl">🚕</span>
+            <span className="text-xl font-extrabold text-zana-primary">Z</span>
           </div>
           <p className="text-lg font-black text-gray-900 text-center">Recovering your ride…</p>
           <p className="text-sm text-gray-500 text-center mt-1">Please wait while we reconnect you to your active trip.</p>
@@ -110,7 +110,7 @@ export default function HomePage() {
           <div>
             <div className="mb-2 flex items-center gap-2"><span className="zana-brand-mark">Z</span><span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-white/75">ZANA · MOVE KIGALI</span></div><p className="text-white/70 text-sm">{t(greeting())}</p>
             <h1 className="text-3xl font-black tracking-tight text-white mt-0.5">
-              {user?.firstName ?? t('Welcome')} 👋
+              {user?.firstName ?? t('Welcome')}
             </h1>
             <div className="flex items-center gap-1.5 mt-2 text-white/75">
               <MapPin size={12} className="text-zana-primary" />
@@ -287,7 +287,7 @@ export default function HomePage() {
             className="zana-wallet-tip w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left active:scale-[0.99] transition-transform"
           >
             <div className="w-9 h-9 rounded-xl bg-zana-primary-light flex items-center justify-center shrink-0">
-              <span className="text-lg">💡</span>
+              <Wallet size={18} className="text-zana-primary" />
             </div>
             <div className="flex-1">
               <p className="text-xs font-black text-gray-900">{t('Pay with your Zana Wallet')}</p>
