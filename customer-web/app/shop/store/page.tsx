@@ -7,6 +7,7 @@ import { fetchMarketplaceWithLocation, placeOrder, MarketplaceMerchant, Marketpl
 import { getStoredPickup } from '../../../lib/location';
 import OrderRecipient, { OrderRecipient as OrderRecipientValue } from '../../../components/OrderRecipient';
 import { useLang } from '../../../lib/LangContext';
+import ZanaLoading from '../../components/ZanaLoading';
 
 function StoreContent() {
   const { t } = useLang();
@@ -367,7 +368,7 @@ function StoreContent() {
 
 export default function StorePage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}>
       <StoreContent />
     </Suspense>
   );
