@@ -146,7 +146,7 @@ function RideOptionsContent() {
   // ─── STEP 1: Select ride type ───────────────────────────────────────
   if (step === 'select') {
     return (
-      <div className="flex min-h-[100dvh] flex-col overflow-hidden bg-gray-50">
+      <div className="zana-page-enter flex min-h-[100dvh] flex-col overflow-hidden bg-gray-50">
         {/* Map */}
         <div className="relative flex-shrink-0" style={{ height: 'clamp(220px, 38dvh, 420px)' }}>
           <BrandedMap
