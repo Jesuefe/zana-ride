@@ -1014,3 +1014,15 @@ html, body { background-color: var(--background); color: var(--foreground); }
     scroll-behavior: auto !important;
   }
 }
+
+
+/* Micro-interactions for the main app navigation */
+.zana-bottom-nav-item { -webkit-tap-highlight-color: transparent; }
+.zana-bottom-nav-active svg { animation: zanaNavArrive 260ms cubic-bezier(.2,.9,.3,1.25) both; }
+.zana-bottom-nav-active span { animation: zanaNavLabel 220ms ease both; }
+.zana-bottom-nav a:focus-visible { outline-offset: -2px; border-radius: 12px; }
+@keyframes zanaNavArrive { from { transform: translateY(2px) scale(.86); } to { transform: translateY(0) scale(1); } }
+@keyframes zanaNavLabel { from { opacity: .65; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .zana-bottom-nav-active svg, .zana-bottom-nav-active span { animation: none !important; }
+}
