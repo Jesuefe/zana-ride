@@ -15,6 +15,7 @@ import ReportModal from '../../components/ReportModal';
 import { useShakeDetector, requestMotionPermission } from '../../lib/shake';
 import { useLang } from '../../lib/LangContext';
 import { haptic, startCallVibration, stopHaptic } from '../../lib/haptics';
+import ZanaLoading from '../../components/ZanaLoading';
 
 const STATUS_COPY: Record<string, string> = {
   SEARCHING_DRIVER: 'Finding your driver…',
@@ -693,7 +694,7 @@ function TrackingContent() {
 
 export default function TrackingPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}>
       <TrackingContent />
     </Suspense>
   );
