@@ -9,6 +9,7 @@ import { fetchMyDeliveries, Delivery } from '../../lib/api/deliveries';
 import { fetchMyOrders, fetchReplacementOptions, resolveUnavailableItem } from '../../lib/api/trips';
 import { cancelOrder } from '../../lib/api/orders';
 import { useLang } from '../../lib/LangContext';
+import ZanaLoading from '../../components/ZanaLoading';
 
 const DELIVERY_STATUS: Record<string, string> = {
   REQUESTED: 'Finding courier',
@@ -436,5 +437,5 @@ function OrdersContent() {
 }
 
 export default function OrdersPage() {
-  return <Suspense fallback={null}><OrdersContent /></Suspense>;
+  return <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}><OrdersContent /></Suspense>;
 }
