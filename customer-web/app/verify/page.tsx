@@ -55,7 +55,7 @@ function VerifyForm() {
   };
 
   return (
-    <div className="p-6">
+    <div className="zana-page-enter p-6">
       <h1 className="text-2xl font-bold text-gray-900">{t('Enter the code')}</h1>
       <p className="text-sm text-zana-muted mt-1">
         {usingEmail ? `${t('Sent by email to')} ${email || t('your email')}` : `${t('Sent via SMS to')} ${phone}`}
