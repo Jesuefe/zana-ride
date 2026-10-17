@@ -66,7 +66,7 @@ export default function WalletPage() {
   };
 
   return (
-    <div className="zana-wallet-page zana-wallet-screen min-h-screen bg-gray-50 p-4 pb-28 sm:p-6">
+    <div className="zana-wallet-page zana-wallet-screen zana-page-enter min-h-screen bg-gray-50 p-4 pb-28 sm:p-6">
       <div className="zana-wallet-heading mb-5"><p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-zana-primary">ZANA PAYMENTS</p><div className="mt-1 flex items-end justify-between gap-3"><div><h1 className="text-2xl font-black tracking-tight text-gray-950">{t('Wallet')}</h1><p className="mt-1 text-sm text-gray-500">{t('Available balance')}</p></div></div></div>
 
       <div className="zana-wallet-balance zana-wallet-balance-card rounded-[28px] p-6 text-white sm:p-8">
