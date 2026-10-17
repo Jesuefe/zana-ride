@@ -921,3 +921,96 @@ html, body { background-color: var(--background); color: var(--foreground); }
 @media (prefers-reduced-motion: reduce) {
   .zana-wallet-balance-card, .zana-transaction-row { animation:none !important; }
 }
+
+
+/* ── Shared ZANA loading language: route transitions, data waits and skeletons ── */
+.zana-loading {
+  --loading-green: #00a082;
+  --loading-yellow: #ffc244;
+  color: #17211e;
+}
+.zana-loading-page {
+  min-height: min(76vh, 760px);
+  width: min(100% - 2rem, 560px);
+  margin: 0 auto;
+  padding: max(3rem, env(safe-area-inset-top)) 0 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+}
+.zana-loading-brand {
+  width: 58px;
+  height: 58px;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.zana-loading-mark {
+  position: relative;
+  z-index: 2;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--loading-green);
+  color: #fff;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: -.08em;
+  box-shadow: 0 8px 20px rgba(0,160,130,.2);
+  animation: zanaLoadingLift 1.5s ease-in-out infinite;
+}
+.zana-loading-orbit {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid rgba(0,160,130,.25);
+  border-radius: 18px;
+  transform: rotate(0);
+  animation: zanaLoadingOrbit 2.4s linear infinite;
+}
+.zana-loading-orbit-a { border-top-color: var(--loading-yellow); border-right-color: transparent; }
+.zana-loading-orbit-b { inset: 5px; border-bottom-color: var(--loading-green); border-left-color: transparent; animation-direction: reverse; animation-duration: 3.2s; }
+.zana-loading-copy { width: 100%; display: flex; flex-direction: column; align-items: center; gap: .8rem; }
+.zana-loading-title { color: #53635c; font-size: .86rem; font-weight: 650; letter-spacing: -.01em; }
+.zana-loading-track { display: block; width: 116px; height: 3px; overflow: hidden; border-radius: 999px; background: #e4efeb; }
+.zana-loading-track > span { display: block; width: 42%; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--loading-green),var(--loading-yellow)); animation: zanaLoadingProgress 1.15s cubic-bezier(.4,0,.2,1) infinite; }
+.zana-loading-skeletons { width: 100%; display: grid; gap: .75rem; margin-top: 1rem; }
+.zana-loading-skeleton { position: relative; overflow: hidden; background: #edf2ef; border: 1px solid rgba(224,233,228,.7); border-radius: 16px; }
+.zana-loading-skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(100deg,transparent 15%,rgba(255,255,255,.8) 48%,transparent 80%); animation: zanaLoadingShimmer 1.5s ease-in-out infinite; }
+.zana-loading-skeleton-wide { height: 88px; }
+.zana-loading-skeleton-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; }
+.zana-loading-skeleton-card { height: 112px; }
+.zana-loading-skeleton-line { height: 54px; }
+.zana-loading-skeleton-short { width: 68%; }
+.zana-loading-inline { display: inline-flex; align-items: center; gap: .65rem; min-height: 30px; }
+.zana-loading-inline .zana-loading-brand { width: 30px; height: 30px; }
+.zana-loading-inline .zana-loading-mark { width: 24px; height: 24px; border-radius: 8px; font-size: 14px; box-shadow: none; }
+.zana-loading-inline .zana-loading-orbit { border-radius: 10px; }
+.zana-loading-inline .zana-loading-copy { width: auto; align-items: flex-start; gap: .35rem; }
+.zana-loading-inline .zana-loading-title { font-size: .8rem; }
+.zana-loading-inline .zana-loading-track { width: 84px; height: 2px; }
+.zana-loading-inline .zana-loading-skeletons { display: none; }
+.zana-page-enter { animation: zanaPageEnter .32s cubic-bezier(.2,.75,.25,1) both; }
+.zana-skeleton-block { position: relative; overflow: hidden; background: var(--zana-card, #edf2ef); border: 1px solid var(--zana-border, #e5ece8); border-radius: 16px; }
+.zana-skeleton-block::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(100deg,transparent 10%,rgba(255,255,255,.7) 50%,transparent 90%); animation: zanaLoadingShimmer 1.5s ease-in-out infinite; }
+@keyframes zanaLoadingLift { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-3px) scale(1.025); } }
+@keyframes zanaLoadingOrbit { to { transform: rotate(360deg); } }
+@keyframes zanaLoadingProgress { 0% { transform: translateX(-120%); } 100% { transform: translateX(300%); } }
+@keyframes zanaLoadingShimmer { 100% { transform: translateX(100%); } }
+@keyframes zanaPageEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.dark .zana-loading { color: #eef5f1; }
+.dark .zana-loading-title { color: #aab8b1; }
+.dark .zana-loading-track { background: #2b3933; }
+.dark .zana-loading-skeleton, .dark .zana-skeleton-block { background: #1b2822; border-color: #2a3932; }
+.dark .zana-loading-skeleton::after, .dark .zana-skeleton-block::after { background: linear-gradient(100deg,transparent 10%,rgba(255,255,255,.055) 50%,transparent 90%); }
+@media (prefers-reduced-motion: reduce) {
+  .zana-loading *, .zana-loading *::before, .zana-loading *::after, .zana-skeleton-block::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
