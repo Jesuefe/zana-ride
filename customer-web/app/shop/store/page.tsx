@@ -142,7 +142,7 @@ function StoreContent() {
   }
 
   return (
-    <div className="zana-page-enter pb-24 min-h-screen bg-gray-50">
+    <div className="zana-page-enter zana-store-page pb-24 min-h-screen bg-gray-50">
       {/* Store header */}
       <div className="bg-white rounded-b-3xl overflow-hidden shadow-sm mb-3">
         <div className="relative">
