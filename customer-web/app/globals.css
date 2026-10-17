@@ -1026,3 +1026,72 @@ html, body { background-color: var(--background); color: var(--foreground); }
 @media (prefers-reduced-motion: reduce) {
   .zana-bottom-nav-active svg, .zana-bottom-nav-active span { animation: none !important; }
 }
+
+
+/* ── Screen-by-screen polish for the remaining customer journey ────────── */
+.zana-ride-search { isolation: isolate; }
+.zana-ride-search input,
+.zana-delivery-page input,
+.zana-schedule-page input,
+.zana-share-page input,
+.zana-auth-page input {
+  min-height: 46px;
+  border-radius: 13px;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.zana-ride-search input:focus,
+.zana-delivery-page input:focus,
+.zana-schedule-page input:focus,
+.zana-share-page input:focus,
+.zana-auth-page input:focus {
+  border-color: rgba(0,160,130,.65);
+  box-shadow: 0 0 0 4px rgba(0,160,130,.09);
+}
+.zana-ride-options { background: #f7faf8; }
+.zana-ride-options .rounded-t-3xl {
+  border: 1px solid #e8eeeb;
+  border-bottom: 0;
+  box-shadow: 0 -12px 38px rgba(18,45,35,.09);
+}
+.zana-tracking-page { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.zana-tracking-page .rounded-2xl,
+.zana-tracking-page .rounded-xl {
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.zana-orders-page { max-width: 960px; margin-inline: auto; }
+.zana-orders-page .rounded-2xl.bg-white {
+  border: 1px solid #e7eeea;
+  box-shadow: 0 4px 18px rgba(17,43,33,.035);
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.zana-orders-page .rounded-2xl.bg-white:hover {
+  border-color: #cce7dd;
+  box-shadow: 0 10px 24px rgba(17,43,33,.055);
+}
+.zana-schedule-page { max-width: 860px; margin-inline: auto; }
+.zana-schedule-page > div:first-child { box-shadow: 0 3px 14px rgba(17,43,33,.035); }
+.zana-share-page { min-height: calc(100dvh - 5rem); background: #f8faf9; }
+.zana-share-page > div.p-4 { width: min(100%, 680px); margin-inline: auto; }
+.zana-delivery-page { width: min(100%, 960px); margin-inline: auto; }
+.zana-places-page { width: min(100%, 760px); margin-inline: auto; }
+.zana-places-page .rounded-2xl,
+.zana-places-page .rounded-xl { transition: border-color .18s ease, box-shadow .18s ease; }
+.zana-auth-page { width: min(100%, 540px); margin-inline: auto; }
+.zana-auth-page input { min-height: 49px; }
+.zana-auth-page button { transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
+.zana-auth-page button:active { transform: scale(.985); }
+.zana-store-page { width: min(100%, 1040px); margin-inline: auto; }
+.zana-store-page > .bg-white { border: 1px solid #e7eeea; box-shadow: 0 5px 22px rgba(17,43,33,.045); }
+.dark .zana-ride-options { background: #101816; }
+.dark .zana-ride-options .rounded-t-3xl,
+.dark .zana-orders-page .rounded-2xl.bg-white,
+.dark .zana-store-page > .bg-white {
+  border-color: #2a3932;
+  box-shadow: 0 -8px 30px rgba(0,0,0,.18);
+}
+.dark .zana-share-page { background: #101816; }
+.dark .zana-orders-page .rounded-2xl.bg-white:hover { border-color: #37584a; }
+@media (min-width: 768px) {
+  .zana-orders-page { padding-top: 2rem; }
+  .zana-schedule-page > div:first-child { border-radius: 0 0 20px 20px; }
+}
