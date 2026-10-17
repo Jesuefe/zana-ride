@@ -8,6 +8,7 @@ import { estimateRide, createRide, ServiceType, fetchWallet } from '../../lib/ap
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 import { getStoredPickup } from '../../lib/location';
+import ZanaLoading from '../../components/ZanaLoading';
 
 type Option = { service: ServiceType; label: string; sub: string; icon: string };
 
@@ -438,7 +439,7 @@ function RideOptionsContent() {
 
 export default function RideOptionsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}>
       <RideOptionsContent />
     </Suspense>
   );
