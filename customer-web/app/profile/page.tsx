@@ -36,7 +36,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="zana-profile-page min-h-screen bg-gray-50 p-4 pb-28 sm:p-6">
+    <div className="zana-profile-page zana-page-enter min-h-screen bg-gray-50 p-4 pb-28 sm:p-6">
       <div className="zana-profile-hero mb-6 flex flex-col items-center gap-1 rounded-[28px] px-5 py-8">
         <div className="mb-2 flex h-20 w-20 items-center justify-center rounded-[26px] bg-white/15 text-white shadow-lg">
           <User size={30} className="text-[#FFC244]" />
