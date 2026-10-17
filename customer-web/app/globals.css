@@ -1095,3 +1095,12 @@ html, body { background-color: var(--background); color: var(--foreground); }
   .zana-orders-page { padding-top: 2rem; }
   .zana-schedule-page > div:first-child { border-radius: 0 0 20px 20px; }
 }
+
+
+.zana-settings-page { width: min(100%, 800px); margin-inline: auto; }
+.zana-settings-page .bg-white.rounded-2xl {
+  border: 1px solid #e7eeea;
+  box-shadow: 0 5px 20px rgba(17,43,33,.035);
+}
+.zana-settings-page input { min-height: 36px; }
+.dark .zana-settings-page .bg-white.rounded-2xl { border-color: #2a3932; }
