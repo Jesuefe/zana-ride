@@ -165,7 +165,7 @@ function SearchContent() {
   };
 
   return (
-    <div className="animate-fade-in zana-page-enter">
+    <div className="animate-fade-in zana-page-enter zana-ride-search">
       <div className="relative">
         <BrandedMap origin={pickup} nearbyDrivers={nearby} vehicleType={vehicleType} draggablePickup onPickupChange={handlePickupDrag} height={200} />
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/95 px-3 py-1 rounded-full text-[11px] text-zana-muted shadow">
