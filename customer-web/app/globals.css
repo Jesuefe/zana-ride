@@ -690,3 +690,130 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
     animation: none !important;
   }
 }
+
+
+/* ── Contrast-safe theme tokens + refined motion (preview branch) ────────
+   Keep text readable on both light and dark surfaces, including legacy
+   Tailwind utility classes that pre-date the theme tokens. */
+:root {
+  color-scheme: light;
+  --zana-canvas: #f7faf8;
+  --zana-card: #ffffff;
+  --zana-card-raised: #ffffff;
+  --zana-text: #14221d;
+  --zana-text-secondary: #53635c;
+  --zana-text-muted: #6c7b74;
+  --zana-line: #e2ebe6;
+  --zana-focus: rgba(0,160,130,.34);
+  --zana-elevation-1: 0 2px 8px rgba(20,50,38,.035);
+  --zana-elevation-2: 0 10px 28px rgba(20,50,38,.07);
+}
+.dark {
+  color-scheme: dark;
+  --background: #0c1210;
+  --foreground: #f2f7f4;
+  --zana-canvas: #0c1210;
+  --zana-card: #151e1a;
+  --zana-card-raised: #1a2520;
+  --zana-text: #f2f7f4;
+  --zana-text-secondary: #c0cec6;
+  --zana-text-muted: #9aaba1;
+  --zana-line: #2b3931;
+  --zana-border: #2b3931;
+  --zana-focus: rgba(70,218,179,.45);
+  --zana-elevation-1: 0 2px 8px rgba(0,0,0,.18);
+  --zana-elevation-2: 0 12px 30px rgba(0,0,0,.25);
+}
+html, body { background-color: var(--background); color: var(--foreground); }
+::selection { background: rgba(0,160,130,.2); color: inherit; }
+:where(button,a,input,textarea,select,[role="button"]):focus-visible {
+  outline: 3px solid var(--zana-focus);
+  outline-offset: 3px;
+}
+/* Readable legacy utility text and borders in dark mode. */
+.dark .text-black,
+.dark .text-gray-950,
+.dark .text-gray-900 { color: var(--foreground) !important; }
+.dark .text-gray-800 { color: #e0e9e4 !important; }
+.dark .text-gray-700 { color: #d0dbd4 !important; }
+.dark .text-gray-600 { color: #b8c7be !important; }
+.dark .text-gray-500 { color: #a5b5ab !important; }
+.dark .text-gray-400 { color: #91a197 !important; }
+.dark .text-gray-300 { color: #83948a !important; }
+.dark .bg-gray-50 { background-color: #111a16 !important; }
+.dark .bg-gray-100 { background-color: #1a2520 !important; }
+.dark .bg-gray-200 { background-color: #29372f !important; }
+.dark .bg-white { background-color: var(--zana-card) !important; }
+.dark .border-gray-50,
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 { border-color: var(--zana-line) !important; }
+.dark input, .dark textarea, .dark select {
+  color: var(--foreground);
+  background-color: var(--zana-card);
+  border-color: var(--zana-line);
+}
+.dark input::placeholder, .dark textarea::placeholder { color: #91a197; opacity: 1; }
+.dark .zana-home { background: var(--zana-canvas); color: var(--zana-text); }
+.dark .zana-home-top { background: var(--zana-canvas); }
+.dark .zana-destination-card { color: var(--zana-text); }
+.dark .zana-search-trigger > div { background: #202c26; }
+.dark .zana-service-tile p.text-\\[11px\\],
+.dark .zana-place-chip p.text-\\[10px\\] { color: var(--zana-text-muted) !important; }
+.dark .zana-promo-panel { color: #fff; }
+.dark .zana-profile-menu-item:active { background: #1d3028 !important; }
+.dark .zana-ride-sheet,
+.dark .zana-topup-modal { background: var(--zana-card) !important; color: var(--foreground); }
+.dark .zana-ride-sheet .text-gray-900,
+.dark .zana-topup-modal .text-gray-900 { color: var(--foreground) !important; }
+.dark .zana-ride-sheet .border-gray-100,
+.dark .zana-ride-sheet .border-gray-200 { border-color: var(--zana-line) !important; }
+.dark .zana-wallet-tip { background: var(--zana-card); border-color: var(--zana-line); }
+.dark .zana-bottom-nav-item { color: #b8c7be; }
+.dark .zana-bottom-nav-active { color: #55d9b5; }
+.dark .zana-profile-menu-item + .zana-profile-menu-item { border-color: var(--zana-line); }
+.dark .fixed.inset-0.z-\\[80\\] { background: rgba(12,18,16,.97) !important; }
+.dark .fixed.inset-0.z-50 > .w-full.bg-white { background: var(--zana-card) !important; color: var(--foreground); }
+/* Ensure contrast even when an old component uses muted text on a white card. */
+.zana-home, .zana-marketplace-page, .zana-wallet-page, .zana-profile-page {
+  color: var(--zana-text);
+}
+.zana-wallet-chip, .zana-search-trigger, .zana-place-chip,
+.zana-service-tile, .zana-wallet-tip, .zana-merchant-card,
+.zana-transaction-row, .zana-profile-menu, .zana-profile-menu-item {
+  transition:
+    transform 220ms cubic-bezier(.2,.75,.25,1),
+    box-shadow 220ms cubic-bezier(.2,.75,.25,1),
+    border-color 220ms ease,
+    background-color 220ms ease,
+    color 180ms ease;
+}
+.zana-service-tile:hover, .zana-merchant-card:hover {
+  box-shadow: var(--zana-elevation-2);
+}
+.zana-search-trigger:focus-visible, .zana-place-chip:focus-visible,
+.zana-service-tile:focus-visible, .zana-wallet-chip:focus-visible {
+  outline: 3px solid var(--zana-focus);
+  outline-offset: 3px;
+}
+/* Subtle, intentional entrance motion: staggered without delaying interaction. */
+@keyframes zanaPremiumEnter {
+  0% { opacity: 0; transform: translate3d(0,10px,0); }
+  100% { opacity: 1; transform: translate3d(0,0,0); }
+}
+.zana-home .zana-destination-wrap { animation: zanaPremiumEnter 420ms cubic-bezier(.2,.75,.25,1) both; }
+.zana-home .zana-home-section { animation: zanaPremiumEnter 480ms cubic-bezier(.2,.75,.25,1) both; }
+.zana-home .zana-home-section:nth-of-type(2) { animation-delay: 45ms; }
+.zana-home .zana-promo-panel { animation: zanaPremiumEnter 520ms cubic-bezier(.2,.75,.25,1) 70ms both; }
+.zana-home .zana-wallet-tip { animation: zanaPremiumEnter 520ms cubic-bezier(.2,.75,.25,1) 100ms both; }
+.zana-service-tile:active, .zana-place-chip:active, .zana-wallet-chip:active {
+  transform: scale(.985);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
