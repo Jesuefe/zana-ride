@@ -17,6 +17,7 @@ type TopUpStage = 'form' | 'waiting' | 'success' | 'failed';
 export default function WalletPage() {
   const { t } = useLang();
   const [wallet, setWallet] = useState<WalletData | null>(null);
+  const [walletLoading, setWalletLoading] = useState(true);
   const [showTopUp, setShowTopUp] = useState(false);
   const [stage, setStage] = useState<TopUpStage>('form');
   const [phone, setPhone] = useState('');
@@ -24,7 +25,7 @@ export default function WalletPage() {
   const [error, setError] = useState<string | null>(null);
   const [registeredPhone, setRegisteredPhone] = useState('');
 
-  const loadWallet = () => fetchWallet().then(setWallet).catch(() => {});
+  const loadWallet = () => fetchWallet().then(setWallet).catch(() => {}).finally(() => setWalletLoading(false));
 
   useEffect(() => {
     loadWallet();
@@ -66,29 +67,34 @@ export default function WalletPage() {
   };
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold text-gray-900 mb-4">{t('Wallet')}</h1>
+    <div className="zana-wallet-page zana-wallet-screen zana-page-enter min-h-screen bg-gray-50 p-4 pb-28 sm:p-6">
+      <div className="zana-wallet-heading mb-5"><p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-zana-primary">ZANA PAYMENTS</p><div className="mt-1 flex items-end justify-between gap-3"><div><h1 className="text-2xl font-black tracking-tight text-gray-950">{t('Wallet')}</h1><p className="mt-1 text-sm text-gray-500">{t('Available balance')}</p></div></div></div>
 
-      <div className="bg-zana-primary-dark rounded-2xl p-5 text-white">
-        <p className="text-white/70 text-sm">{t('Available balance')}</p>
-        <p className="text-3xl font-bold mt-1">{wallet ? wallet.balance.toLocaleString() : '…'} RWF</p>
-        <button
-          onClick={() => setShowTopUp(true)}
-          className="mt-4 flex items-center gap-1.5 bg-zana-secondary text-gray-900 text-xs font-bold px-4 py-2 rounded-full transition-transform active:scale-95"
-        >
-          <Plus size={14} /> {t('Top Up')}
-        </button>
+      <div className="zana-wallet-balance zana-wallet-balance-card rounded-[28px] p-6 text-white sm:p-8">
+        <div className="zana-wallet-card-topline"><span className="zana-wallet-eyebrow">{t('Available balance')}</span><span className="zana-wallet-card-mark">Z</span></div>
+        <p className="zana-wallet-amount mt-3 text-4xl font-black tracking-tight sm:text-5xl">{walletLoading ? <span className="zana-loading-skeleton inline-block h-9 w-32 rounded-lg align-middle sm:h-11" /> : wallet ? wallet.balance.toLocaleString() : '—'} <span>RWF</span></p>
+        <p className="zana-wallet-card-note">{t('Pay with your Zana Wallet')}</p>
+        <div className="zana-wallet-actions">
+          <button
+            onClick={() => setShowTopUp(true)}
+            className="zana-wallet-primary-action flex items-center justify-center gap-2 text-sm font-extrabold transition-transform active:scale-[0.98]"
+          >
+            <Plus size={16} /> {t('Top Up')}
+          </button>
+        </div>
       </div>
 
-      <h2 className="text-sm font-semibold text-gray-900 mt-6 mb-2">{t('Recent transactions')}</h2>
-      <div className="space-y-2">
-        {wallet?.transactions.length === 0 && <p className="text-sm text-zana-muted">{t('No transactions yet.')}</p>}
+      <div className="zana-transactions-heading mb-3 mt-8"><div><h2 className="text-lg font-black tracking-tight text-gray-900">{t('Recent transactions')}</h2><p className="mt-1 text-xs text-gray-500">{t('Available balance')}</p></div><span className="zana-transaction-count">{wallet?.transactions.length ?? 0}</span></div>
+      <div className="zana-transactions-list space-y-2">
+        {walletLoading && <div className="space-y-2" role="status" aria-label={t('Loading transactions')}>{[0, 1, 2].map((item) => <div key={item} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4"><div className="zana-loading-skeleton h-10 w-10 rounded-xl" /><div className="flex-1 space-y-2"><div className="zana-loading-skeleton h-3 w-2/3 rounded-full" /><div className="zana-loading-skeleton h-2.5 w-1/3 rounded-full" /></div><div className="zana-loading-skeleton h-4 w-16 rounded-full" /></div>)}</div>}
+        {wallet && wallet.transactions.length === 0 && <p className="text-sm text-zana-muted">{t('No transactions yet.')}</p>}
+        {!walletLoading && !wallet && <p className="text-sm text-zana-muted">{t('Could not load wallet details. Please try again.')}</p>}
         {wallet?.transactions.map((tx: any) => {
           const isCredit = tx.amount > 0;
           const isDebit = tx.amount < 0;
           const isInfo = tx.amount === 0; // cash/momo rides — recorded for history but no balance change
           return (
-            <div key={tx.id} className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm">
+            <div key={tx.id} className="zana-transaction-row flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                 isCredit ? 'bg-green-50 text-green-600' :
                 isDebit ? 'bg-red-50 text-red-500' :
@@ -122,7 +128,7 @@ export default function WalletPage() {
       {showTopUp && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={stage === 'waiting' ? undefined : closeModal} />
-          <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl p-6 animate-fade-slide-up">
+          <div className="zana-topup-modal zana-wallet-modal relative w-full rounded-t-[28px] bg-white p-6 sm:max-w-sm sm:rounded-[28px] animate-fade-slide-up">
             {stage === 'form' && (
               <>
                 <div className="flex items-center justify-between mb-4">

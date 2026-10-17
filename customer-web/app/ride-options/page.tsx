@@ -8,6 +8,7 @@ import { estimateRide, createRide, ServiceType, fetchWallet } from '../../lib/ap
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 import { getStoredPickup } from '../../lib/location';
+import ZanaLoading from '../../components/ZanaLoading';
 
 type Option = { service: ServiceType; label: string; sub: string; icon: string };
 
@@ -146,7 +147,7 @@ function RideOptionsContent() {
   // ─── STEP 1: Select ride type ───────────────────────────────────────
   if (step === 'select') {
     return (
-      <div className="flex min-h-[100dvh] flex-col overflow-hidden bg-gray-50">
+      <div className="zana-page-enter zana-ride-options flex min-h-[100dvh] flex-col overflow-hidden bg-gray-50">
         {/* Map */}
         <div className="relative flex-shrink-0" style={{ height: 'clamp(220px, 38dvh, 420px)' }}>
           <BrandedMap
@@ -159,14 +160,14 @@ function RideOptionsContent() {
           />
           <button
             onClick={() => router.back()}
-            className="absolute top-10 left-4 z-10 w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"
+            className="zana-glass-control absolute top-10 left-4 z-10 w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"
           >
             <ArrowLeft size={18} className="text-gray-700" />
           </button>
         </div>
 
         {/* Bottom sheet */}
-        <div className="flex-1 bg-white rounded-t-3xl -mt-5 overflow-y-auto shadow-2xl">
+        <div className="zana-glass-sheet flex-1 bg-white rounded-t-3xl -mt-5 overflow-y-auto shadow-2xl">
           <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3" />
 
           {/* Route summary */}
@@ -438,7 +439,7 @@ function RideOptionsContent() {
 
 export default function RideOptionsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}>
       <RideOptionsContent />
     </Suspense>
   );

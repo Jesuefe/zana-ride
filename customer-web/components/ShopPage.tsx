@@ -37,18 +37,31 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
   }, []);
 
   return (
-    <div className="pb-24 min-h-screen bg-gray-50">
-      <div className="sticky top-0 bg-white z-10 px-4 pt-10 pb-3 border-b border-gray-100 flex items-center gap-3">
+    <div className="zana-marketplace-page zana-page-enter min-h-screen bg-gray-50 pb-28">
+      <div className="zana-marketplace-header sticky top-0 z-10 flex items-center gap-3 border-b border-gray-100 bg-white px-4 pb-4 pt-8">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />
         </button>
-        <h1 className="text-lg font-bold text-gray-900">{t(title)}</h1>
+        <div className="min-w-0"><p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-zana-primary">ZANA MARKETPLACE</p><h1 className="mt-0.5 text-xl font-black tracking-tight text-gray-900">{t(title)}</h1></div>
       </div>
 
-      <div className="p-4">
+      <div className="zana-marketplace-list p-4 sm:p-6">
         {loading && (
-          <div className="flex justify-center py-16">
-            <div className="w-6 h-6 border-2 border-zana-primary border-t-transparent rounded-full animate-spin" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-label={t('Loading stores')}>
+            {[0, 1, 2].map((item) => (
+              <div key={item} className="overflow-hidden rounded-[24px] border border-gray-100 bg-white p-4">
+                <div className="zana-loading-skeleton h-28 w-full rounded-2xl" />
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="zana-loading-skeleton h-11 w-11 shrink-0 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <div className="zana-loading-skeleton h-3 w-3/4 rounded-full" />
+                    <div className="zana-loading-skeleton h-2.5 w-1/2 rounded-full" />
+                  </div>
+                </div>
+                <div className="zana-loading-skeleton mt-4 h-3 w-full rounded-full" />
+                <div className="zana-loading-skeleton mt-2 h-3 w-2/3 rounded-full" />
+              </div>
+            ))}
           </div>
         )}
 
@@ -64,17 +77,17 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
           <button
             key={m.id}
             onClick={() => router.push(`/shop/store?id=${m.id}&category=${category}`)}
-            className="w-full bg-white rounded-2xl overflow-hidden shadow-sm mb-3 text-left active:scale-[0.99] transition-transform"
+            className="zana-merchant-card mb-4 w-full overflow-hidden rounded-[24px] border border-gray-100 bg-white text-left shadow-sm transition-transform active:scale-[0.99]"
           >
             {(m as any).coverUrl ? (
-              <img src={(m as any).coverUrl} alt="" className="w-full h-28 object-cover" />
+              <img src={(m as any).coverUrl} alt="" className="h-36 w-full object-cover sm:h-44" />
             ) : (
               <div className="w-full h-24 bg-zana-primary-light flex items-center justify-center">
                 <Store size={26} className="text-zana-primary/40" />
               </div>
             )}
 
-            <div className="p-4">
+            <div className="p-4 sm:p-5">
               <div className="flex items-start gap-3">
                 {(m as any).logoUrl ? (
                   <img
