@@ -1104,3 +1104,122 @@ html, body { background-color: var(--background); color: var(--foreground); }
 }
 .zana-settings-page input { min-height: 36px; }
 .dark .zana-settings-page .bg-white.rounded-2xl { border-color: #2a3932; }
+
+
+/* ── ZANA liquid glass: restrained, readable, touch-friendly ────────────── */
+.zana-bottom-nav {
+  left: 50%;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  width: min(calc(100% - 24px), 640px);
+  transform: translateX(-50%);
+  padding-top: .45rem;
+  padding-bottom: .45rem;
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 26px;
+  background: rgba(250,253,251,.82);
+  box-shadow: 0 12px 36px rgba(12,43,32,.14), inset 0 1px 0 rgba(255,255,255,.92);
+  backdrop-filter: blur(28px) saturate(175%);
+  -webkit-backdrop-filter: blur(28px) saturate(175%);
+  isolation: isolate;
+}
+.zana-bottom-nav::before {
+  content: "";
+  position: absolute;
+  inset: 1px 12% auto;
+  height: 1px;
+  border-radius: 100%;
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);
+  pointer-events: none;
+}
+.zana-bottom-nav-item {
+  min-height: 48px;
+  justify-content: center;
+  border-radius: 18px;
+  gap: 3px;
+  padding-inline: .5rem;
+}
+.zana-bottom-nav-active {
+  color: #007c65 !important;
+}
+.zana-bottom-nav-active::before {
+  top: 2px;
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(0,160,130,.22);
+}
+.zana-bottom-nav-item:active {
+  background: rgba(0,160,130,.07);
+}
+.dark .zana-bottom-nav {
+  background: rgba(18,29,24,.84);
+  border-color: rgba(180,218,201,.16);
+  box-shadow: 0 12px 36px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.09);
+}
+.dark .zana-bottom-nav::before {
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+}
+.dark .zana-bottom-nav-active { color: #70e2c1 !important; }
+.dark .zana-bottom-nav-item:active { background: rgba(112,226,193,.09); }
+
+/* Frosted ride details stay opaque enough to keep prices and actions legible. */
+.zana-glass-sheet {
+  background: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(255,255,255,.78);
+  border-bottom: 0;
+  box-shadow: 0 -16px 46px rgba(10,44,32,.16), inset 0 1px 0 rgba(255,255,255,.9) !important;
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+.zana-glass-control,
+.zana-glass-status {
+  border: 1px solid rgba(255,255,255,.68);
+  box-shadow: 0 8px 24px rgba(10,40,30,.12), inset 0 1px 0 rgba(255,255,255,.85);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+.zana-glass-status:not(.bg-red-50) { background: rgba(255,255,255,.78) !important; }
+.zana-glass-info {
+  background: rgba(232,250,243,.78) !important;
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+}
+.zana-wallet-screen .fixed.inset-0.z-50 > .absolute.inset-0 {
+  background: rgba(7,20,15,.42) !important;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+.zana-wallet-modal {
+  background: rgba(255,255,255,.94) !important;
+  backdrop-filter: blur(26px) saturate(155%);
+  -webkit-backdrop-filter: blur(26px) saturate(155%);
+}
+.dark .zana-glass-sheet {
+  background: rgba(20,31,26,.94) !important;
+  border-color: rgba(190,220,205,.12);
+  box-shadow: 0 -16px 46px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+.dark .zana-glass-control,
+.dark .zana-glass-status {
+  border-color: rgba(190,220,205,.16);
+  box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.dark .zana-glass-status:not(.bg-red-50) { background: rgba(20,31,26,.82) !important; color: #eef8f2 !important; }
+.dark .zana-glass-info { background: rgba(15,75,55,.68) !important; }
+@media (max-width: 360px) {
+  .zana-bottom-nav { width: calc(100% - 16px); bottom: calc(6px + env(safe-area-inset-bottom)); }
+  .zana-bottom-nav-item { padding-inline: .25rem; }
+  .zana-bottom-nav-item span { font-size: 10px; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .zana-bottom-nav { background: rgba(250,253,251,.97); }
+  .zana-glass-sheet, .zana-wallet-modal { background: #fff !important; }
+  .zana-glass-control, .zana-glass-status { background: rgba(255,255,255,.97); }
+  .dark .zana-bottom-nav, .dark .zana-glass-sheet, .dark .zana-wallet-modal { background: #141f1a !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zana-bottom-nav, .zana-glass-sheet, .zana-glass-control, .zana-glass-status {
+    transition: none !important;
+    animation: none !important;
+  }
+}
