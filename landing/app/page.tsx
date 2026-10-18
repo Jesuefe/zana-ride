@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import ImmersiveHero from '../components/ImmersiveHero';
 
 /**
  * The page is a route. One yellow road runs its full height, each service is
@@ -141,34 +142,41 @@ export default function Landing() {
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <header className="hero">
-        <span className="lockup">
-          <img src="/zana-mark.png" alt="" width={44} height={34} />
-          <span className="lockup-word">
-            z<span>a</span>na
+        <div className="hero-copy">
+          <span className="lockup">
+            <img src="/zana-mark.png" alt="" width={44} height={34} />
+            <span className="lockup-word">
+              z<span>a</span>na
+            </span>
+            <span className="sr-only">Zana</span>
           </span>
-          <span className="sr-only">Zana</span>
-        </span>
 
-        <h1 className="display d-hero">
-          Move
-          <br />
-          Kigali.
-        </h1>
+          <p className="hero-eyebrow"><span /> KIGALI, RWANDA · YOUR CITY, CONNECTED</p>
+          <h1 className="display d-hero">
+            Move
+            <br />
+            Kigali<span className="hero-period">.</span>
+          </h1>
 
-        <p className="lede" style={{ marginTop: '2rem' }}>
-          Rides, deliveries and shopping in one app. Built here, for the way
-          this city actually moves.
-        </p>
+          <p className="lede" style={{ marginTop: '2rem' }}>
+            Your city, moving as one. Book a ride, send a delivery, order your favourites or shop the market — all with Zana.
+          </p>
 
-        <div className="cta-row">
-          <a className="btn btn--primary" href={APP}>
-            Open Zana
-          </a>
-          <a className="btn btn--ghost" href="#ride">
-            See what it does
-          </a>
+          <div className="cta-row">
+            <a className="btn btn--primary" href={APP}>
+              Open Zana <span aria-hidden="true">↗</span>
+            </a>
+            <a className="btn btn--ghost" href="#ride">
+              Explore the app
+            </a>
+          </div>
+
+          <div className="hero-proof">
+            <span className="proof-line" />
+            <span>ONE APP</span><i /> <span>FOUR WAYS TO MOVE</span>
+          </div>
         </div>
-
+        <ImmersiveHero />
         <div className="scroll-hint">
           <span className="arrow-down" aria-hidden="true" />
           Follow the road
