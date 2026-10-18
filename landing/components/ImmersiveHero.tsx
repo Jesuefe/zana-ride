@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 
 export default function ImmersiveHero() {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -14,7 +14,7 @@ export default function ImmersiveHero() {
     return () => query.removeEventListener?.('change', sync);
   }, []);
 
-  function move(e: React.MouseEvent<HTMLDivElement>) {
+  function move(e: MouseEvent<HTMLDivElement>) {
     if (reducedMotion || window.matchMedia('(max-width: 760px)').matches) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setTilt({
