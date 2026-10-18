@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import '../components/immersive-hero.css';
 
 const SITE_URL = 'https://zanaride.rw';
 
