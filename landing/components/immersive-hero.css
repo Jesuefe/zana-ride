@@ -1,0 +1,80 @@
+/* Immersive hero: lightweight CSS 3D composition, no WebGL dependency. */
+.hero { display: grid; grid-template-columns: minmax(0, 0.94fr) minmax(420px, 1.06fr); align-items: center; gap: clamp(1rem, 3vw, 3rem); padding-top: 4rem; padding-bottom: 4rem; overflow: hidden; }
+.hero-copy { position: relative; z-index: 3; min-width: 0; }
+.hero .d-hero { font-size: clamp(4.4rem, 8.8vw, 8.7rem); }
+.hero .lede { max-width: 33ch; }
+.hero .lockup { margin-bottom: 2.1rem; }
+.immersive-stage { height: min(76vh, 760px); min-height: 540px; width: 100%; max-width: 820px; position: relative; isolation: isolate; perspective: 1100px; transform-style: preserve-3d; overflow: hidden; border-radius: 34px; background: radial-gradient(ellipse at 53% 48%, rgba(0,160,130,.18), transparent 48%), linear-gradient(145deg, #0c1d17 0%, #07100d 65%, #0b2119 100%); border: 1px solid rgba(135,190,169,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 35px 100px rgba(0,0,0,.22); }
+.stage-halo { position:absolute; width:68%; aspect-ratio:1; border-radius:50%; top:11%; left:18%; background:radial-gradient(circle,rgba(0,160,130,.24),rgba(0,160,130,.045) 48%,transparent 70%); filter:blur(12px); }
+.stage-grid { position:absolute; inset:0; opacity:.22; background-image:linear-gradient(rgba(104,174,148,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(104,174,148,.12) 1px,transparent 1px); background-size:42px 42px; mask-image:linear-gradient(to bottom,transparent,black 20%,black 75%,transparent); transform:perspective(650px) rotateX(58deg) scale(1.65) translateY(20%); transform-origin:bottom; }
+.stage-orbit { position:absolute; width:74%; height:28%; left:14%; top:43%; border:1px solid rgba(0,160,130,.28); border-radius:50%; transform:rotate(-23deg) rotateX(63deg); box-shadow:0 0 35px rgba(0,160,130,.08); }
+.orbit-two { width:88%; height:37%; left:5%; top:40%; border-color:rgba(255,194,68,.18); transform:rotate(24deg) rotateX(66deg); }
+.skyline { position:absolute; display:flex; align-items:flex-end; gap:8px; bottom:27%; left:5%; right:5%; height:33%; opacity:.6; }
+.skyline i { display:block; flex:1; height:45%; border:1px solid rgba(99,161,139,.28); background:linear-gradient(140deg,rgba(29,68,53,.8),rgba(9,28,21,.4)); clip-path:polygon(0 8%,100% 0,100% 100%,0 100%); }
+.skyline i:nth-child(2n) { height:70%; flex:1.2; }
+.skyline i:nth-child(3n) { height:88%; clip-path:polygon(0 12%,50% 0,100% 12%,100% 100%,0 100%); }
+.skyline i:nth-child(4n) { height:54%; }
+.skyline-front { bottom:22%; left:0; right:0; opacity:.35; transform:scaleY(.65); transform-origin:bottom; filter:blur(1px); }
+.stage-road { position:absolute; bottom:-5%; left:7%; width:86%; height:40%; transform:perspective(350px) rotateX(58deg); transform-origin:bottom; border:1px solid rgba(255,194,68,.25); background:linear-gradient(90deg,transparent 0%,rgba(12,29,22,.88) 25%,rgba(12,29,22,.88) 75%,transparent 100%); clip-path:polygon(36% 0,64% 0,100% 100%,0 100%); }
+.stage-road span { position:absolute; top:0; bottom:0; left:49%; width:2px; background:repeating-linear-gradient(to bottom,rgba(255,194,68,.9) 0 13px,transparent 13px 27px); transform:scaleX(1.2); }
+.stage-road span:nth-child(2) { left:28%; opacity:.18; transform:rotate(13deg); }
+.stage-road span:nth-child(3) { left:71%; opacity:.18; transform:rotate(-13deg); }
+.vehicle-plinth { position:absolute; z-index:2; width:49%; height:18%; left:4%; bottom:18%; border-radius:50%; background:radial-gradient(ellipse,rgba(0,160,130,.25),rgba(0,0,0,.7) 66%,transparent 72%); border:1px solid rgba(0,160,130,.26); }
+.moto-scene { position:absolute; z-index:4; left:7%; bottom:24%; width:50%; height:38%; transform-style:preserve-3d; transition:transform 180ms ease-out; filter:drop-shadow(0 24px 18px rgba(0,0,0,.42)); }
+.wheel { position:absolute; width:24%; aspect-ratio:1; border-radius:50%; bottom:7%; border:9px solid #101916; background:radial-gradient(circle,#9aa79f 0 9%,#26372f 10% 22%,#111b16 24% 60%,#33463c 62% 66%,#101714 68%); box-shadow:0 0 0 2px rgba(165,196,177,.35),inset 0 0 0 3px #283b31; }
+.wheel span { position:absolute; inset:18%; border:1px dashed rgba(202,220,208,.55); border-radius:50%; }
+.wheel-back { left:7%; } .wheel-front { right:5%; }
+.moto-frame { position:absolute; left:23%; bottom:21%; width:42%; height:24%; border-bottom:8px solid #c1c9c1; border-left:6px solid #66796d; transform:skew(-29deg) rotate(-9deg); }
+.moto-body { position:absolute; left:23%; bottom:36%; width:42%; height:27%; background:linear-gradient(145deg,#1ed1ad 0%,#00a082 42%,#075b49 100%); clip-path:polygon(14% 38%,38% 4%,87% 0,100% 35%,85% 100%,16% 100%,0 64%); border-radius:10px; box-shadow:inset -8px -4px 0 rgba(0,0,0,.22); }
+.moto-mark { position:absolute; top:26%; left:36%; color:#f6fff9; font-size:clamp(18px,2.1vw,29px); font-weight:900; font-style:italic; text-shadow:0 2px 0 rgba(0,0,0,.25); }
+.moto-seat { position:absolute; left:18%; bottom:62%; width:31%; height:7%; border-radius:8px 13px 2px 2px; background:linear-gradient(#202a24,#080d0a); transform:rotate(-5deg); }
+.moto-fork { position:absolute; right:13%; bottom:23%; height:35%; width:5px; background:linear-gradient(90deg,#d3d9d3,#68766d); transform:rotate(-14deg); transform-origin:bottom; }
+.moto-handle { position:absolute; right:5%; bottom:57%; width:22%; height:5px; background:#7e9084; transform:rotate(-9deg); border-radius:4px; }
+.moto-light { position:absolute; right:9%; bottom:55%; width:12px; height:9px; border-radius:50%; background:#ffe7a2; box-shadow:0 0 16px #ffc244; }
+.moto-rider { position:absolute; left:27%; bottom:60%; width:27%; height:36%; transform:rotate(-13deg); }
+.moto-rider span { position:absolute; width:33%; aspect-ratio:1; left:33%; top:0; border-radius:50%; background:linear-gradient(135deg,#d7a47c,#81543b); border:4px solid #17231b; }
+.moto-rider i { position:absolute; top:26%; left:19%; width:63%; height:65%; border-radius:45% 45% 18% 18%; background:linear-gradient(120deg,#202b24,#0c120e); transform:skew(-13deg); }
+.moto-rider b { position:absolute; top:29%; left:13%; width:72%; height:15%; border-radius:10px; background:#ffc244; transform:rotate(10deg); }
+.moto-shadow { position:absolute; left:2%; right:0; bottom:0; height:12%; border-radius:50%; background:#000; filter:blur(15px); }
+.phone-float { position:absolute; z-index:6; width:35%; max-width:245px; min-width:190px; right:9%; top:15%; transform-style:preserve-3d; transition:transform 180ms ease-out; animation:phone-hover 6s ease-in-out infinite; }
+.phone-frame { position:relative; padding:7px; border-radius:35px; background:linear-gradient(125deg,#b7c5bd,#25372d 20%,#09110d 48%,#7b8d81 80%,#101914); box-shadow:0 24px 55px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.5); }
+.phone-screen { position:relative; min-height:440px; padding:20px 13px 14px; overflow:hidden; border-radius:29px; background:#f5f8f5; color:#14231b; }
+.phone-island { position:absolute; z-index:2; width:27%; height:15px; top:12px; left:36.5%; border-radius:20px; background:#07110c; }
+.phone-status { display:flex; justify-content:space-between; font-size:8px; font-weight:800; padding:0 2px 19px; }
+.phone-brand { display:flex; align-items:center; gap:6px; font-weight:800; font-size:13px; }
+.phone-logo { display:grid; place-items:center; width:24px; height:24px; border-radius:8px; background:#00a082; color:white; font-weight:900; }
+.phone-brand b { margin-left:auto; font-size:15px; }
+.phone-greeting { margin-top:18px; font-size:10px; color:#68776e; }
+.phone-screen h3 { font-size:25px; line-height:1.1; letter-spacing:-1px; margin:0 0 13px; }
+.phone-search { display:flex; align-items:center; gap:7px; padding:10px 8px; border-radius:10px; background:#e9efea; color:#68776e; font-size:9px; }
+.phone-search b { margin-left:auto; color:#00a082; font-size:17px; }
+.search-dot { width:7px; height:7px; border:2px solid #00a082; border-radius:50%; }
+.phone-map { position:relative; height:130px; margin:12px 0; border-radius:12px; overflow:hidden; background:linear-gradient(28deg,transparent 46%,#d4e1d7 47% 51%,transparent 52%),linear-gradient(112deg,transparent 38%,#d4e1d7 39% 43%,transparent 44%),#eaf1e8; }
+.map-road { position:absolute; height:5px; width:140%; left:-15%; background:#fff; border:1px solid #dce5dc; border-width:1px 0; }
+.map-road-a { top:35%; transform:rotate(-17deg); }.map-road-b { top:64%; transform:rotate(22deg); }.map-road-c { top:50%; transform:rotate(72deg); }
+.map-route { position:absolute; left:30%; top:29%; width:39%; height:46%; border:3px solid #00a082; border-left-color:transparent; border-bottom-color:transparent; border-radius:0 20px 0 0; transform:rotate(19deg); }
+.map-pin { position:absolute; z-index:1; width:12px; height:12px; border:3px solid white; border-radius:50%; background:#00a082; box-shadow:0 1px 4px #8b9b8e; }
+.pin-start { left:27%; top:68%; }.pin-end { left:64%; top:26%; background:#ffc244; }
+.phone-options { display:grid; gap:6px; }
+.phone-option { display:flex; align-items:center; gap:6px; padding:7px 6px; border-radius:10px; border:1px solid #e3e9e3; font-size:8px; }
+.phone-option.active { border-color:#00a082; background:#eaf7f1; }
+.option-icon { display:grid; place-items:center; width:26px; height:26px; border-radius:8px; font-weight:900; }
+.moto-icon { background:#d0f0e3; color:#00866d; }.car-icon { background:#e9ecea; color:#384d40; }
+.phone-option span:nth-child(2) { display:grid; gap:1px; }.phone-option b { font-size:10px; }.phone-option small { display:block; color:#758278; font-size:7px; font-weight:500; }
+.phone-option strong { margin-left:auto; font-size:9px; white-space:nowrap; }.phone-option strong small { display:inline; font-size:6px; }
+.phone-book { display:flex; justify-content:space-between; align-items:center; margin-top:9px; padding:11px 12px; border-radius:10px; color:#06261b; background:#ffc244; font-size:10px; font-weight:900; }
+.phone-book span { font-size:16px; }
+.phone-glow { position:absolute; inset:20% -20% -12%; z-index:-1; background:rgba(0,160,130,.18); filter:blur(28px); border-radius:50%; }
+.float-chip { position:absolute; z-index:8; display:flex; align-items:center; gap:10px; padding:12px 15px; border:1px solid rgba(199,230,213,.17); border-radius:15px; background:rgba(11,28,21,.82); backdrop-filter:blur(18px); box-shadow:0 12px 30px rgba(0,0,0,.23); animation:chip-hover 5s ease-in-out infinite; }
+.float-chip span:last-child { display:grid; gap:1px; }.float-chip b { font-size:11px; color:#e8f4ec; }.float-chip small { font-size:9px; color:#90a79a; }
+.chip-live { top:21%; left:5%; }.chip-delivery { bottom:14%; right:4%; animation-delay:-2.5s; }
+.live-dot { width:8px; height:8px; border-radius:50%; background:#00d0a8; box-shadow:0 0 12px #00a082; }
+.chip-icon { display:grid; place-items:center; width:28px; height:28px; border-radius:9px; background:rgba(255,194,68,.13); color:#ffc244; font-size:19px; }
+.stage-caption { position:absolute; bottom:20px; left:24px; display:flex; align-items:center; gap:9px; color:#769386; font-size:9px; font-weight:700; letter-spacing:.16em; }
+.caption-line { width:24px; height:1px; background:#00a082; }.caption-dot { color:#ffc244; }
+@keyframes phone-hover { 0%,100% { margin-top:0; } 50% { margin-top:-11px; } }
+@keyframes chip-hover { 0%,100% { translate:0 0; } 50% { translate:0 -7px; } }
+@media(max-width:1050px) { .hero { grid-template-columns:minmax(0,1fr) minmax(360px,.95fr); gap:1rem; }.hero .d-hero { font-size:clamp(4rem,8vw,6.8rem); }.phone-float { right:5%; }.chip-live { left:2%; }.moto-scene { left:0; width:57%; }.float-chip { padding:10px 11px; } }
+@media(max-width:760px) { .hero { display:flex; flex-direction:column; align-items:stretch; justify-content:center; gap:2.3rem; padding-top:7rem; padding-bottom:4rem; }.hero .d-hero { font-size:clamp(4.2rem,17vw,6.4rem); }.hero .lockup { margin-bottom:1.7rem; }.immersive-stage { height:560px; min-height:500px; max-height:70vh; border-radius:24px; }.phone-float { width:36%; min-width:0; right:8%; top:11%; }.phone-screen { min-height:0; padding:18px 9px 10px; border-radius:24px; }.phone-frame { padding:5px; border-radius:29px; }.phone-status { padding-bottom:13px; }.phone-map { height:95px; }.phone-greeting { margin-top:13px; }.phone-screen h3 { font-size:20px; }.phone-option { padding:5px 4px; gap:4px; }.option-icon { width:21px; height:21px; }.phone-option strong { font-size:8px; }.phone-book { padding:9px; }.moto-scene { width:57%; left:2%; bottom:23%; }.vehicle-plinth { left:0; width:58%; }.chip-live { top:17%; left:3%; }.chip-delivery { bottom:13%; right:2%; }.float-chip b { font-size:9px; }.float-chip small { font-size:8px; }.stage-caption { left:15px; bottom:14px; font-size:7px; }.skyline { bottom:25%; } }
+@media(max-width:420px) { .immersive-stage { height:500px; min-height:470px; }.phone-float { width:40%; right:5%; top:12%; }.phone-screen { padding-left:7px; padding-right:7px; }.phone-options { gap:4px; }.phone-option span:nth-child(2) { max-width:62px; }.phone-option strong { font-size:7px; }.chip-live { top:8%; }.chip-delivery { bottom:10%; }.moto-scene { width:62%; bottom:22%; }.float-chip { gap:6px; padding:8px; }.float-chip small { max-width:105px; } }
+@media(prefers-reduced-motion:reduce) { .phone-float,.float-chip { animation:none; }.moto-scene,.phone-float { transition:none; } }
