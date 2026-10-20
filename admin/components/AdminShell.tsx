@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react';
 import { ZanaMark, ZanaWordmark } from './ZanaLogo';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Users, Car, Store, Package, MapPin, Crosshair, UserCheck, TrendingUp, LogOut, Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send, Sun, Moon, Smartphone, ClipboardList, Bell, Settings, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Users, Car, Store, Package, MapPin, Crosshair, UserCheck, TrendingUp, LogOut, Truck, BarChart2, ShieldCheck, DollarSign, ShoppingBag, Headset, Menu, X, Search, Send, Sun, Moon, Smartphone, ClipboardList, Bell, Settings, Sparkles } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
 import { getMyProfile } from '../lib/api/admin';
 import { useTheme } from '../lib/ThemeContext';
 import GlobalSearch from './GlobalSearch';
 
 const SENIOR_NAV = [
-  { label: 'Overview', href: '/dashboard', icon: LayoutDashboard }, { label: 'Financial', href: '/dashboard/financial', icon: DollarSign },
+  { label: 'Overview', href: '/dashboard', icon: LayoutDashboard }, { label: 'Support', href: '/dashboard/support', icon: Headset }, { label: 'Financial', href: '/dashboard/financial', icon: DollarSign },
   { label: 'Staff & Payroll', href: '/dashboard/staff', icon: Users }, { label: 'Users', href: '/dashboard/users', icon: Users },
   { label: 'Drivers', href: '/dashboard/drivers', icon: Car }, { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
   { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send }, { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
@@ -24,6 +24,7 @@ const SENIOR_NAV = [
   { label: 'Settings', href: '/dashboard/settings', icon: Settings }, { label: 'AI Settings', href: '/dashboard/settings/ai', icon: Sparkles },
 ];
 const WORKER_NAV = [
+  { label: 'Customer Support', href: '/dashboard/support', icon: Headset },
   { label: 'Pending Drivers', href: '/dashboard/drivers', icon: Car }, { label: 'Pending Products', href: '/dashboard/products', icon: Package },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag }, { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
   { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send }, { label: 'Tracking', href: '/dashboard/tracking', icon: Search }, { label: 'Active Deliveries', href: '/dashboard/deliveries', icon: Truck },
