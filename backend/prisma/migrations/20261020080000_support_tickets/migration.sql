@@ -1,3 +1,4 @@
+-- Support cases intentionally retain textual references rather than cascading foreign keys.
 CREATE TABLE "SupportTicket" (
     "id" TEXT NOT NULL,
     "ticketNumber" TEXT NOT NULL,
