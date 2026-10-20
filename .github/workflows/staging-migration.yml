@@ -19,6 +19,7 @@ jobs:
       run:
         working-directory: backend
     steps:
+      - uses: actions/checkout@v4
       - name: Check required staging configuration
         env:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
@@ -32,9 +33,9 @@ jobs:
             *) echo "::error::STAGING_API_URL must use HTTPS."; exit 1 ;;
           esac
           case "$STAGING_API_URL" in
-            *prod*|*production*) echo "::error::Refusing to run against a URL that appears to be production."; exit 1 ;;
+            *staging*|*stage*|*test*) ;;
+            *) echo "::error::Refusing to run unless the API URL clearly identifies a staging/test environment."; exit 1 ;;
           esac
-      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
