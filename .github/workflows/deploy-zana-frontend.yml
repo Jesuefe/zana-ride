@@ -1,0 +1,71 @@
+name: Deploy ZANA frontend to Cloudflare Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Frontend to deploy
+        required: true
+        type: choice
+        options:
+          - admin
+          - customer
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zana-pages-production-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy ${{ inputs.target }} frontend
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ inputs.target == 'admin' && 'admin/package-lock.json' || 'customer-web/package-lock.json' }}
+      - name: Select project and working directory
+        id: target
+        env:
+          TARGET: ${{ inputs.target }}
+          ADMIN_PROJECT: ${{ vars.CLOUDFLARE_ADMIN_PAGES_PROJECT }}
+          CUSTOMER_PROJECT: ${{ vars.CLOUDFLARE_CUSTOMER_PAGES_PROJECT }}
+        run: |
+          set -eu
+          if [ "$TARGET" = "admin" ]; then
+            echo "directory=admin" >> "$GITHUB_OUTPUT"
+            echo "project=$ADMIN_PROJECT" >> "$GITHUB_OUTPUT"
+          else
+            echo "directory=customer-web" >> "$GITHUB_OUTPUT"
+            echo "project=$CUSTOMER_PROJECT" >> "$GITHUB_OUTPUT"
+          fi
+          test -n "${ADMIN_PROJECT:-}" -a -n "${CUSTOMER_PROJECT:-}" || {
+            echo "::error::Configure repository variables CLOUDFLARE_ADMIN_PAGES_PROJECT and CLOUDFLARE_CUSTOMER_PAGES_PROJECT."; exit 1;
+          }
+      - name: Check Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -eu
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Add CLOUDFLARE_API_TOKEN as a repository/environment secret."; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Add CLOUDFLARE_ACCOUNT_ID as a repository/environment secret."; exit 1; }
+      - name: Install frontend dependencies
+        working-directory: ${{ steps.target.outputs.directory }}
+        run: npm ci
+      - name: Build static frontend
+        working-directory: ${{ steps.target.outputs.directory }}
+        run: npm run build
+      - name: Deploy production branch to Cloudflare Pages
+        working-directory: ${{ steps.target.outputs.directory }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PAGES_PROJECT: ${{ steps.target.outputs.project }}
+        run: npx --yes wrangler pages deploy out --project-name "$PAGES_PROJECT" --branch main
