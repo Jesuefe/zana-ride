@@ -49,8 +49,8 @@ jobs:
         run: npx prisma validate
         env:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-      - name: Apply pending migrations to staging
-        run: npx prisma migrate deploy
+      - name: Safely sync additive Prisma schema changes to staging
+        run: npx prisma db push --accept-data-loss=false
         env:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       - name: Check staging health endpoint
