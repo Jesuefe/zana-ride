@@ -32,16 +32,71 @@ const WORKER_NAV = [
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter(); const pathname = usePathname();
-  const [mode, setMode] = useState<'senior' | 'worker'>('senior');
+  const [accountRole, setAccountRole] = useState('');
+  const [accessRole, setAccessRole] = useState('OPERATIONS');
   const { choice, setChoice } = useTheme(); const [mobileOpen, setMobileOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    if (!getToken()) { router.replace('/login'); return; }
+    const token = getToken();
+    if (!token) { router.replace('/login'); return; }
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      const role = payload?.role;
+      if (role !== 'ADMIN' && role !== 'STAFF') {
+        clearToken();
+        router.replace('/login');
+        return;
+      }
+      const staffAccess = String(payload?.accessRole || 'OPERATIONS');
+      setAccountRole(role);
+      setAccessRole(staffAccess);
+      const adminOnly = ['/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/invites', '/dashboard/audit-log', '/dashboard/fares', '/dashboard/settings/ai'];
+      if (role === 'STAFF' && adminOnly.some(path => pathname === path || pathname.startsWith(path + '/'))) {
+        router.replace(staffAccess === 'CUSTOMER_SUPPORT' ? '/dashboard/support' : '/dashboard');
+      }
+    } catch {
+      clearToken();
+      router.replace('/login');
+      return;
+    }
     getMyProfile().then(setProfile).catch(() => undefined);
-  }, [router]);
+  }, [router, pathname]);
 
-  const nav = mode === 'senior' ? SENIOR_NAV : WORKER_NAV;
+  const supportNav = [
+    { label: 'Customer Support', href: '/dashboard/support', icon: Headset },
+    { label: 'Customers', href: '/dashboard/users', icon: Users },
+    { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
+    { label: 'Deliveries', href: '/dashboard/deliveries', icon: Truck },
+    { label: 'Rides', href: '/dashboard/rides', icon: TrendingUp },
+    { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
+  ];
+  const driverNav = [
+    { label: 'Drivers', href: '/dashboard/drivers', icon: Car },
+    { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
+    { label: 'Deliveries', href: '/dashboard/deliveries', icon: Truck },
+    { label: 'Rides', href: '/dashboard/rides', icon: TrendingUp },
+    { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send },
+    { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
+  ];
+  const marketNav = [
+    { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
+    { label: 'Deliveries', href: '/dashboard/deliveries', icon: Truck },
+    { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
+    { label: 'Markets', href: '/dashboard/markets', icon: MapPin },
+    { label: 'Agents', href: '/dashboard/agents', icon: UserCheck },
+  ];
+  const operationsNav = [
+    { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
+    { label: 'Deliveries', href: '/dashboard/deliveries', icon: Truck },
+    { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
+    { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send },
+    { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
+  ];
+  const nav = accountRole === 'ADMIN' ? SENIOR_NAV :
+    accessRole === 'CUSTOMER_SUPPORT' ? supportNav :
+    accessRole === 'DRIVER_OPERATIONS' ? driverNav :
+    accessRole === 'MARKET_OPERATIONS' ? marketNav : operationsNav;
   const handleLogout = () => { clearToken(); router.push('/login'); };
   const initials = (String(profile?.firstName?.[0] ?? '') + String(profile?.lastName?.[0] ?? '')).toUpperCase() || 'A';
 
@@ -49,7 +104,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     <Link href="/dashboard/settings" className="flex items-center gap-2.5 mb-3 p-2 -mx-2 rounded-xl hover:bg-white/10 transition-colors">
       {profile?.photoUrl ? <img src={profile.photoUrl} alt="Admin profile" className="w-9 h-9 rounded-full object-cover border border-white/30 shrink-0" /> :
         <div className="w-9 h-9 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white text-xs font-bold shrink-0">{initials}</div>}
-      <div className="min-w-0"><div className="text-white text-sm font-semibold truncate">{[profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Administrator'}</div><div className="text-white/50 text-[10px]">Admin profile</div></div>
+      <div className="min-w-0"><div className="text-white text-sm font-semibold truncate">{[profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Administrator'}</div><div className="text-white/50 text-[10px]">{accountRole === 'STAFF' ? 'Staff workspace' : 'Admin profile'}</div></div>
     </Link>
   );
 
@@ -58,9 +113,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <div className="px-4 py-5 border-b border-white/10">
         <div className="flex items-center gap-2 mb-3"><ZanaMark size={32} /><span className="flex items-center gap-2"><ZanaWordmark size={16} color="#FFFFFF" /><span className="text-white font-bold text-sm">Admin</span></span></div>
         <Profile />
-        <div className="flex rounded-lg overflow-hidden border border-white/20">
-          <button onClick={() => setMode('senior')} className={`flex-1 text-[10px] font-semibold py-1.5 ${mode === 'senior' ? 'bg-white text-zana-primary-dark' : 'text-white/70'}`}>Senior</button>
-          <button onClick={() => setMode('worker')} className={`flex-1 text-[10px] font-semibold py-1.5 ${mode === 'worker' ? 'bg-white text-zana-primary-dark' : 'text-white/70'}`}>Worker</button>
+        <div className="rounded-lg border border-white/20 px-3 py-2 text-[10px] font-semibold text-white/80 text-center">
+          {accountRole === 'ADMIN' ? 'ADMIN CONTROL CENTER' : `STAFF · ${accessRole.replaceAll('_', ' ')}`}
         </div>
       </div>
       <nav className="flex-1 py-4 overflow-y-auto">
