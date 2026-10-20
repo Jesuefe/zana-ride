@@ -47,7 +47,7 @@ export default function LoginPage() {
           Staff login
         </button>
         <button
-          onClick={() => router.push('/forgot-password')
+          onClick={() => router.push('/forgot-password')}
           className="w-full text-sm text-gray-500 py-2.5 mt-1"
         >
           Forgot your password?
