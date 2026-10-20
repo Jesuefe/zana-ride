@@ -1,0 +1,31 @@
+name: Customer Web CI
+
+on:
+  push:
+    paths:
+      - 'customer-web/**'
+      - '.github/workflows/customer-web-ci.yml'
+  pull_request:
+    paths:
+      - 'customer-web/**'
+      - '.github/workflows/customer-web-ci.yml'
+
+concurrency:
+  group: customer-web-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: customer-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: customer-web/package-lock.json
+      - run: npm ci
+      - run: npm run build
