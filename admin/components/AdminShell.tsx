@@ -51,6 +51,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       const staffAccess = String(payload?.accessRole || 'OPERATIONS');
       setAccountRole(role);
       setAccessRole(staffAccess);
+      if (role === 'STAFF' && pathname === '/dashboard') router.replace(staffAccess === 'CUSTOMER_SUPPORT' ? '/dashboard/support' : staffAccess === 'DRIVER_OPERATIONS' ? '/dashboard/drivers' : staffAccess === 'MARKET_OPERATIONS' ? '/dashboard/markets' : '/dashboard/orders');
       const adminOnly = ['/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/invites', '/dashboard/audit-log', '/dashboard/fares', '/dashboard/settings/ai'];
       if (role === 'STAFF' && adminOnly.some(path => pathname === path || pathname.startsWith(path + '/'))) {
         router.replace(staffAccess === 'CUSTOMER_SUPPORT' ? '/dashboard/support' : staffAccess === 'DRIVER_OPERATIONS' ? '/dashboard/drivers' : staffAccess === 'MARKET_OPERATIONS' ? '/dashboard/markets' : '/dashboard/orders');
