@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { TrendingUp, TrendingDown, DollarSign, Users, Plus, Trash2 } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
-import { getFinancial, getCommissionSummary, getExpenses, createExpense, deleteExpense, getSettlementOverview, getDriverSettlements } from '../../../lib/api/admin';
+import { getFinancial, getCommissionSummary, getExpenses, createExpense, deleteExpense, getSettlementOverview, getDriverSettlements, getFinancialReconciliation } from '../../../lib/api/admin';
 
 function Card({ label, value, sub, color = 'green' }: any) {
   const colors: Record<string, string> = { green: 'bg-green-50 text-green-700', red: 'bg-red-50 text-red-700', blue: 'bg-blue-50 text-blue-700', amber: 'bg-amber-50 text-amber-700' };
@@ -21,6 +22,8 @@ export default function FinancialPage() {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [settlement, setSettlement] = useState<any>(null);
   const [driverSettlements, setDriverSettlements] = useState<any[]>([]);
+  const [reconciliation, setReconciliation] = useState<any>(null);
+  const [reconciliationError, setReconciliationError] = useState('');
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [form, setForm] = useState({ title: '', amount: '', category: 'Office', description: '' });
   const CATEGORIES = ['Office', 'Fuel', 'Marketing', 'Software', 'Salaries', 'Equipment', 'Other'];
@@ -31,6 +34,7 @@ export default function FinancialPage() {
     getExpenses().then(setExpenses).catch(() => {});
     getSettlementOverview().then(setSettlement).catch(() => {});
     getDriverSettlements().then(setDriverSettlements).catch(() => {});
+    getFinancialReconciliation().then((data) => { setReconciliation(data); setReconciliationError(''); }).catch((e) => setReconciliationError(e instanceof Error ? e.message : 'Reconciliation data could not be loaded.'));
   };
   useEffect(() => { load(); }, []);
 
@@ -75,6 +79,35 @@ export default function FinancialPage() {
             ))}
           </div>
         )}
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 mt-8">
+          <div><h2 className="text-lg font-bold text-gray-900">Payment & accounting reconciliation</h2><p className="text-xs text-gray-500 mt-1">Read-only diagnostics from ZANA's current wallet, paid-order and settlement records.</p></div>
+          <button onClick={load} className="inline-flex items-center justify-center gap-2 border border-gray-200 bg-white rounded-lg px-3 py-2 text-xs font-semibold hover:bg-gray-50"><RefreshCw size={14}/> Refresh checks</button>
+        </div>
+        {reconciliationError && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 text-sm mb-4">{reconciliationError}</div>}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
+          <Card label="Paid orders checked" value={reconciliation?.orders?.summary?.paidOrders ?? '—'} sub="All recorded paid orders" color="blue"/>
+          <Card label="Order total mismatches" value={reconciliation?.orders?.summary?.totalMismatches ?? '—'} sub="Recorded vs expected" color={reconciliation?.orders?.summary?.totalMismatches > 0 ? 'red' : 'green'}/>
+          <Card label="Missing settlements" value={reconciliation?.orders?.summary?.settlementMissing ?? '—'} sub="Merchant or agent" color={reconciliation?.orders?.summary?.settlementMissing > 0 ? 'amber' : 'green'}/>
+          <Card label="Wallet balance mismatches" value={reconciliation?.wallet?.balanceMismatches?.length ?? '—'} sub="Wallet vs latest ledger balance" color={reconciliation?.wallet?.balanceMismatches?.length > 0 ? 'red' : 'green'}/>
+        </div>
+        {reconciliation && <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2"><AlertTriangle size={16} className="text-amber-600"/><h3 className="font-semibold text-sm text-gray-900">Order exceptions</h3></div>
+            <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50 text-xs text-gray-500"><tr><th className="text-left px-3 py-2">Order</th><th className="text-left px-3 py-2">Reference</th><th className="text-right px-3 py-2">Variance</th><th className="text-left px-3 py-2">Issue</th></tr></thead><tbody className="divide-y divide-gray-100">
+              {[...(reconciliation.orders.totalMismatches || []), ...(reconciliation.orders.paidWithoutSettlement || [])].filter((v,i,a)=>a.findIndex(x=>x.id===v.id)===i).slice(0,12).map((o:any)=><tr key={o.id}><td className="px-3 py-2 font-medium">{String(o.id).slice(0,8)}…</td><td className="px-3 py-2 text-xs text-gray-500">{o.momoRef || o.paymentMethod || '—'}</td><td className="px-3 py-2 text-right font-semibold">{fmt(Number(o.variance || 0))}</td><td className="px-3 py-2"><span className={'text-[10px] rounded-full px-2 py-1 font-semibold '+(o.totalStatus==='MISMATCH'?'bg-red-50 text-red-700':'bg-amber-50 text-amber-700')}>{o.totalStatus==='MISMATCH'?'Total mismatch':!o.settlement?.complete?'Settlement missing':o.accountingStatus}</span></td></tr>)}
+              {!(reconciliation.orders.totalMismatches?.length || reconciliation.orders.paidWithoutSettlement?.length) && <tr><td colSpan={4} className="px-3 py-6 text-center text-xs text-gray-400">No order exceptions returned.</td></tr>}
+            </tbody></table></div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2"><AlertTriangle size={16} className="text-red-600"/><h3 className="font-semibold text-sm text-gray-900">Wallet & pending-payment exceptions</h3></div>
+            <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50 text-xs text-gray-500"><tr><th className="text-left px-3 py-2">Type</th><th className="text-left px-3 py-2">Account / transaction</th><th className="text-right px-3 py-2">Amount / balance</th></tr></thead><tbody className="divide-y divide-gray-100">
+              {(reconciliation.wallet.balanceMismatches || []).slice(0,6).map((w:any)=><tr key={'w'+w.walletId}><td className="px-3 py-2"><span className="text-[10px] rounded-full px-2 py-1 font-semibold bg-red-50 text-red-700">Balance mismatch</span></td><td className="px-3 py-2 text-xs">{String(w.userId || w.walletId).slice(0,14)}…</td><td className="px-3 py-2 text-right text-xs">{fmt(Number(w.walletBalance))} / {w.latestTransactionBalance == null ? 'No ledger row' : fmt(Number(w.latestTransactionBalance))}</td></tr>)}
+              {(reconciliation.wallet.pendingOver24h || []).slice(0,6).map((p:any)=><tr key={'p'+p.id}><td className="px-3 py-2"><span className="text-[10px] rounded-full px-2 py-1 font-semibold bg-amber-50 text-amber-700">Pending 24h+</span></td><td className="px-3 py-2 text-xs">{String(p.reference || p.id).slice(0,18)}…</td><td className="px-3 py-2 text-right text-xs">{fmt(Number(p.amount || 0))}</td></tr>)}
+              {!(reconciliation.wallet.balanceMismatches?.length || reconciliation.wallet.pendingOver24h?.length) && <tr><td colSpan={3} className="px-3 py-6 text-center text-xs text-gray-400">No wallet exceptions returned.</td></tr>}
+            </tbody></table></div>
+          </div>
+        </div>}
 
         {/* Driver Settlement Monitor — reads the same existing
             Commission/CommissionDebt/DebtSettlement records, not a
