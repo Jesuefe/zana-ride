@@ -1,0 +1,73 @@
+name: Staging migration and smoke test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zana-staging-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate-and-smoke-test:
+    name: Apply forward migrations and smoke test staging
+    runs-on: ubuntu-latest
+    environment: staging
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Check required staging configuration
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          STAGING_API_URL: ${{ vars.STAGING_API_URL }}
+        run: |
+          set -eu
+          test -n "$DATABASE_URL" || { echo "::error::Configure STAGING_DATABASE_URL as a staging environment secret."; exit 1; }
+          test -n "$STAGING_API_URL" || { echo "::error::Configure STAGING_API_URL as a staging environment variable (origin only, e.g. https://staging-api.example.com)."; exit 1; }
+          case "$STAGING_API_URL" in
+            https://*) ;;
+            *) echo "::error::STAGING_API_URL must use HTTPS."; exit 1 ;;
+          esac
+          case "$STAGING_API_URL" in
+            *prod*|*production*) echo "::error::Refusing to run against a URL that appears to be production."; exit 1 ;;
+          esac
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend dependencies
+        run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Validate schema
+        run: npx prisma validate
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      - name: Apply pending migrations to staging
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      - name: Check staging health endpoint
+        env:
+          STAGING_API_URL: ${{ vars.STAGING_API_URL }}
+        run: |
+          set -eu
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-connrefused "$STAGING_API_URL/api/v1/health" -o /tmp/zana-health.json
+          cat /tmp/zana-health.json
+      - name: Verify support endpoint requires authentication
+        env:
+          STAGING_API_URL: ${{ vars.STAGING_API_URL }}
+        run: |
+          set -eu
+          status=$(curl --silent --show-error -o /tmp/zana-support-response.txt -w '%{http_code}' "$STAGING_API_URL/api/v1/admin/support/tickets")
+          if [ "$status" != "401" ] && [ "$status" != "403" ]; then
+            echo "::error::Expected unauthenticated support request to be rejected with 401/403, got HTTP $status."
+            cat /tmp/zana-support-response.txt
+            exit 1
+          fi
+          echo "Unauthenticated support endpoint correctly rejected request (HTTP $status)."
