@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, Loader2 } from 'lucide-react';
 import { login } from '../../lib/api/admin';
-import { ApiError } from '../../lib/api/client';
+import { ApiError, clearToken } from '../../lib/api/client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function LoginPage() {
     setLoading(true); setError('');
     try {
       const result = await login(identifier, password);
-      if (result.user.role !== 'ADMIN') { setError('Not an admin account.'); setLoading(false); return; }
+      if (result.user.role !== 'ADMIN') { clearToken(); setError('This login is for administrator accounts only.'); setLoading(false); return; }
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed.');
@@ -43,8 +43,11 @@ export default function LoginPage() {
           {loading ? <><Loader2 size={15} className="animate-spin" /> Signing in…</> : 'Sign In'}
         </button>
 
+        <button onClick={() => router.push('/staff-login')} className="w-full text-xs text-zana-primary py-2 mt-1">
+          Staff login
+        </button>
         <button
-          onClick={() => router.push('/forgot-password')}
+          onClick={() => router.push('/forgot-password')
           className="w-full text-sm text-gray-500 py-2.5 mt-1"
         >
           Forgot your password?
