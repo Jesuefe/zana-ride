@@ -39,15 +39,16 @@ jobs:
         run: |
           set -eu
           if [ "$TARGET" = "admin" ]; then
+            PROJECT="$ADMIN_PROJECT"
             echo "directory=admin" >> "$GITHUB_OUTPUT"
-            echo "project=$ADMIN_PROJECT" >> "$GITHUB_OUTPUT"
           else
+            PROJECT="$CUSTOMER_PROJECT"
             echo "directory=customer-web" >> "$GITHUB_OUTPUT"
-            echo "project=$CUSTOMER_PROJECT" >> "$GITHUB_OUTPUT"
           fi
-          test -n "${ADMIN_PROJECT:-}" -a -n "${CUSTOMER_PROJECT:-}" || {
-            echo "::error::Configure repository variables CLOUDFLARE_ADMIN_PAGES_PROJECT and CLOUDFLARE_CUSTOMER_PAGES_PROJECT."; exit 1;
+          test -n "${PROJECT:-}" || {
+            echo "::error::Configure the matching Cloudflare Pages project repository variable for $TARGET."; exit 1;
           }
+          echo "project=$PROJECT" >> "$GITHUB_OUTPUT"
       - name: Check Cloudflare credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
