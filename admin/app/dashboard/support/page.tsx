@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock3, Headset, Plus, RefreshCw, Search, Send, X } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
 import { createSupportTicket, getSupportTickets, updateSupportTicket } from '../../../lib/api/admin';
@@ -51,6 +51,7 @@ export default function SupportPage() {
   const [error, setError] = useState('');
   const [notes, setNotes] = useState('');
   const [resolution, setResolution] = useState('');
+  const [assignedToId, setAssignedToId] = useState('');
   const [form, setForm] = useState({
     customerName: '', customerPhone: '', customerId: '', subject: '', description: '',
     category: 'GENERAL', priority: 'NORMAL', relatedType: '', relatedReference: '',
@@ -74,6 +75,7 @@ export default function SupportPage() {
   useEffect(() => {
     setNotes(selected?.internalNotes || '');
     setResolution(selected?.resolution || '');
+    setAssignedToId(selected?.assignedToId || '');
   }, [selected?.id, selected?.internalNotes, selected?.resolution]);
 
   const openCount = useMemo(() => tickets.filter(t => !['RESOLVED', 'CLOSED'].includes(t.status)).length, [tickets]);
@@ -99,7 +101,7 @@ export default function SupportPage() {
     } finally { setSaving(false); }
   }
 
-  async function changeTicket(id: string, patch: { status?: string; priority?: string; internalNotes?: string; resolution?: string }) {
+  async function changeTicket(id: string, patch: { status?: string; priority?: string; assignedToId?: string | null; internalNotes?: string; resolution?: string }) {
     setSaving(true); setError('');
     try {
       const updated = await updateSupportTicket(id, patch);
@@ -175,6 +177,7 @@ export default function SupportPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><div className="rounded-xl bg-gray-50 p-3"><p className="text-xs text-gray-500">Category</p><p className="font-semibold mt-1">{label(selected.category)}</p></div><div className="rounded-xl bg-gray-50 p-3"><p className="text-xs text-gray-500">Related reference</p><p className="font-semibold mt-1 break-all">{selected.relatedReference || 'Not linked'}</p></div><div className="rounded-xl bg-gray-50 p-3"><p className="text-xs text-gray-500">Created</p><p className="font-semibold mt-1">{dateLabel(selected.createdAt)}</p></div></div>
           <div><h3 className="text-sm font-bold text-gray-800 mb-1">Customer report</h3><p className="text-sm text-gray-700 whitespace-pre-wrap rounded-xl border border-gray-100 p-3">{selected.description}</p></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><label className="text-sm font-semibold text-gray-700">Priority<select value={selected.priority} onChange={e => void changeTicket(selected.id,{priority:e.target.value})} className="block w-full mt-1 border border-gray-200 rounded-xl px-3 py-2.5 bg-white">{PRIORITIES.map(p=><option key={p} value={p}>{label(p)}</option>)}</select></label><label className="text-sm font-semibold text-gray-700">Resolution summary<textarea rows={3} value={resolution} onChange={e => setResolution(e.target.value)} className="block w-full mt-1 border border-gray-200 rounded-xl px-3 py-2.5 font-normal"/></label></div>
+          <label className="block text-sm font-semibold text-gray-700">Assigned staff user ID <span className="font-normal text-gray-500">(optional)</span><div className="flex gap-2 mt-1"><input value={assignedToId} onChange={e => setAssignedToId(e.target.value)} className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 font-normal" placeholder="Paste staff user ID"/><button type="button" disabled={saving} onClick={() => void changeTicket(selected.id,{assignedToId:assignedToId.trim() || null})} className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold">Assign</button></div></label>
           <label className="block text-sm font-semibold text-gray-700">Internal notes <span className="font-normal text-gray-500">(visible to staff only)</span><textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} className="block w-full mt-1 border border-gray-200 rounded-xl px-3 py-2.5 font-normal" placeholder="Investigation notes, checks performed, handoff details…"/></label>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><p className="text-xs text-gray-500">Last updated {dateLabel(selected.updatedAt)}. Payment cases are tracked here; this screen does not modify balances or issue refunds.</p><button disabled={saving} onClick={() => void changeTicket(selected.id,{internalNotes:notes,resolution})} className="rounded-xl bg-zana-primary text-white px-4 py-2.5 text-sm font-semibold disabled:opacity-50">Save notes</button></div>
         </div>}
