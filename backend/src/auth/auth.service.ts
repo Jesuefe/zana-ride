@@ -76,7 +76,7 @@ export class AuthService {
         console.log(`[OTP] Email sent to ${email}`);
         return { sent: true };
       }
-      console.log(`[OTP FALLBACK] ${phone} -> ${code} (email send failed)`);
+      console.log(`[OTP FALLBACK] Email delivery failed for ${phone}; code not logged.`);
       return { sent: false };
     }
 
@@ -97,13 +97,13 @@ export class AuthService {
         await at.SMS.send(smsPayload);
         console.log(`[OTP] SMS sent to ${phone}`);
       } catch (err) {
-        // Non-fatal — log the code as fallback so dev/test still works
+        // Non-fatal — never log verification codes; delivery can be retried safely.
         console.error(`[OTP] SMS failed for ${phone}:`, err?.message);
-        console.log(`[OTP FALLBACK] ${phone} -> ${code}`);
+        console.log(`[OTP FALLBACK] SMS provider request failed for ${phone}; code not logged.`);
       }
     } else {
       // No SMS provider configured — log for dev/test
-      console.log(`[OTP DEV] ${phone} -> ${code} (set AT_API_KEY + AT_USERNAME to enable SMS)`);
+      console.log(`[OTP DEV] SMS provider not configured for ${phone}; code not logged.`);
     }
 
     return { sent: true };
@@ -332,8 +332,15 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email/phone or password');
     }
 
-    const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role });
-    return { token, user };
+    const staffMember = user.role === 'STAFF'
+      ? await this.prisma.staffMember.findUnique({ where: { userId: user.id }, select: { accessRole: true, active: true } })
+      : null;
+    if (user.role === 'STAFF' && !staffMember?.active) {
+      throw new UnauthorizedException('STAFF_ACCOUNT_INACTIVE');
+    }
+    const accessRole = staffMember?.accessRole || undefined;
+    const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role, ...(accessRole ? { accessRole } : {}) });
+    return { token, user: { ...user, ...(accessRole ? { accessRole } : {}) } };
   }
 
   async registerMerchantViaInvite(token: string, data: {

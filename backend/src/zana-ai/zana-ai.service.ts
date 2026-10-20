@@ -434,7 +434,7 @@ export class ZanaAiService {
     let destination: { lat: number; lng: number; address: string };
     try { destination = await this.geocodeDestination(String(args.destination || '')); }
     catch (error: any) { return { action: null, message: 'I could not locate that destination. Please give me the place name or address.' }; }
-    const quote = this.trips.estimate({ lat: location.lat, lng: location.lng }, destination, serviceType);
+    const quote = await this.trips.estimate({ lat: location.lat, lng: location.lng }, destination, serviceType);
     const draftId = `ride_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
     const draft: RideDraft = {
       id: draftId, customerId, serviceType,

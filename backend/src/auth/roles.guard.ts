@@ -36,6 +36,7 @@ export class RolesGuard implements CanActivate {
     const operationReads = ['/admin/operations/live', '/admin/delivery-kpis', '/admin/trips', '/admin/deliveries', '/admin/orders', '/admin/orders/'];
     const marketReads = ['/admin/markets', '/admin/markets/', '/admin/agents', '/admin/agents/'];
     const peopleReads = ['/admin/users', '/admin/users/', '/admin/merchants', '/admin/merchants/', '/admin/orders', '/admin/orders/', '/admin/deliveries', '/admin/trips'];
+    const supportReads = ['/admin/support/tickets', '/admin/support/tickets/'];
 
     const matches = (prefixes: string[]) => prefixes.some(p => path === p || path.startsWith(p));
 
@@ -54,8 +55,8 @@ export class RolesGuard implements CanActivate {
     }
 
     if (accessRole === 'CUSTOMER_SUPPORT') {
-      return (readOnly && (matches(commonReads) || matches(peopleReads))) ||
-        (!readOnly && matches(['/admin/notifications']));
+      return (readOnly && (matches(commonReads) || matches(peopleReads) || matches(supportReads))) ||
+        ((!readOnly) && (matches(['/admin/notifications']) || matches(['/admin/support/tickets', '/admin/support/tickets/'])));
     }
 
     return false;

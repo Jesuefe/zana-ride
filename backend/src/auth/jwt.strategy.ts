@@ -42,6 +42,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user || user.status !== 'ACTIVE') {
       throw new UnauthorizedException('ACCOUNT_NOT_ACTIVE');
     }
-    if (payload.role === 'STAFF') {\n      if (!user.staffMember?.active) throw new UnauthorizedException('STAFF_ACCOUNT_INACTIVE');\n      return { ...payload, accessRole: user.staffMember.accessRole || 'OPERATIONS' };\n    }\n    return payload;
+    if (payload.role === 'STAFF') {
+      if (!user.staffMember?.active) {
+        throw new UnauthorizedException('STAFF_ACCOUNT_INACTIVE');
+      }
+      return { ...payload, accessRole: user.staffMember.accessRole || 'OPERATIONS' };
+    }
+    return payload;
   }
 }

@@ -1089,6 +1089,7 @@ export class AdminService {
         effectiveItemSubtotal: effectiveItems,
         expectedTotal,
         variance,
+        deliveryFeeRefundRequired,
         totalStatus,
         settlement: {
           merchant: order.merchantSettlement ? {
@@ -1180,4 +1181,89 @@ export class AdminService {
     const actorById = new Map(actors.map(a => [a.id, a]));
     return rows.map(r => ({ ...r, actor: r.actorId ? actorById.get(r.actorId) || null : null }));
   }
+
+  // ─── CUSTOMER SUPPORT ──────────────────────────────────────────────────
+
+  async getSupportTickets(status?: string, search?: string) {
+    const allowedStatuses = ['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'ESCALATED', 'RESOLVED', 'CLOSED'];
+    const cleanStatus = status && status !== 'ALL' ? status : undefined;
+    if (cleanStatus && !allowedStatuses.includes(cleanStatus)) {
+      throw new BadRequestException('Invalid support ticket status');
+    }
+    const q = (search ?? '').trim().slice(0, 120);
+    return this.prisma.supportTicket.findMany({
+      where: {
+        ...(cleanStatus ? { status: cleanStatus } : {}),
+        ...(q ? { OR: [
+          { ticketNumber: { contains: q, mode: 'insensitive' } },
+          { customerName: { contains: q, mode: 'insensitive' } },
+          { customerPhone: { contains: q, mode: 'insensitive' } },
+          { subject: { contains: q, mode: 'insensitive' } },
+          { relatedReference: { contains: q, mode: 'insensitive' } },
+        ] } : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }],
+      take: 250,
+    });
+  }
+
+  async createSupportTicket(body: any, actorId: string) {
+    const customerName = String(body?.customerName ?? '').trim().slice(0, 120);
+    const subject = String(body?.subject ?? '').trim().slice(0, 180);
+    const description = String(body?.description ?? '').trim().slice(0, 5000);
+    if (!customerName || !subject || !description) {
+      throw new BadRequestException('Customer name, subject and description are required');
+    }
+    const categories = ['GENERAL', 'RIDE', 'DELIVERY', 'ORDER', 'PAYMENT', 'DRIVER', 'MERCHANT', 'SAFETY', 'ACCOUNT'];
+    const priorities = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
+    const relatedTypes = ['RIDE', 'DELIVERY', 'ORDER', 'PAYMENT', 'ACCOUNT', 'OTHER'];
+    const category = String(body.category ?? 'GENERAL').toUpperCase();
+    const priority = String(body.priority ?? 'NORMAL').toUpperCase();
+    const relatedType = body.relatedType ? String(body.relatedType).toUpperCase() : undefined;
+    if (!categories.includes(category)) throw new BadRequestException('Invalid support category');
+    if (!priorities.includes(priority)) throw new BadRequestException('Invalid support priority');
+    if (relatedType && !relatedTypes.includes(relatedType)) throw new BadRequestException('Invalid related record type');
+
+    return this.prisma.supportTicket.create({
+      data: {
+        customerName,
+        customerPhone: body.customerPhone ? String(body.customerPhone).trim().slice(0, 40) : null,
+        customerId: body.customerId ? String(body.customerId).slice(0, 80) : null,
+        subject,
+        description,
+        category,
+        priority,
+        relatedType: relatedType ?? null,
+        relatedReference: body.relatedReference ? String(body.relatedReference).trim().slice(0, 160) : null,
+        assignedToId: body.assignedToId ? String(body.assignedToId).slice(0, 80) : null,
+        createdById: actorId,
+        lastUpdatedById: actorId,
+      },
+    });
+  }
+
+  async updateSupportTicket(id: string, body: any, actorId: string) {
+    const current = await this.prisma.supportTicket.findUnique({ where: { id } });
+    if (!current) throw new NotFoundException('Support ticket not found');
+    const data: any = { lastUpdatedById: actorId };
+    const statuses = ['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'ESCALATED', 'RESOLVED', 'CLOSED'];
+    const priorities = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
+    if (body.status !== undefined) {
+      const status = String(body.status).toUpperCase();
+      if (!statuses.includes(status)) throw new BadRequestException('Invalid support ticket status');
+      data.status = status;
+      data.resolvedAt = ['RESOLVED', 'CLOSED'].includes(status) ? (current.resolvedAt ?? new Date()) : null;
+    }
+    if (body.priority !== undefined) {
+      const priority = String(body.priority).toUpperCase();
+      if (!priorities.includes(priority)) throw new BadRequestException('Invalid support priority');
+      data.priority = priority;
+    }
+    if (body.assignedToId !== undefined) data.assignedToId = body.assignedToId ? String(body.assignedToId).slice(0, 80) : null;
+    if (body.internalNotes !== undefined) data.internalNotes = String(body.internalNotes).trim().slice(0, 5000) || null;
+    if (body.resolution !== undefined) data.resolution = String(body.resolution).trim().slice(0, 3000) || null;
+    return this.prisma.supportTicket.update({ where: { id }, data });
+  }
+
+
 }

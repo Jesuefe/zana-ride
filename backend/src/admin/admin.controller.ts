@@ -33,6 +33,28 @@ export class AdminController {
   @Get('search')
   search(@Query('q') q: string) { return this.adminService.globalSearch(q ?? ''); }
 
+
+  // Customer support tickets. Financial changes are deliberately not exposed
+  // through these routes; payment issues are recorded and escalated as cases.
+  @Roles('ADMIN', 'STAFF')
+  @Get('support/tickets')
+  getSupportTickets(@Query('status') status?: string, @Query('search') search?: string) {
+    return this.adminService.getSupportTickets(status, search);
+  }
+
+  @Roles('ADMIN', 'STAFF')
+  @Post('support/tickets')
+  createSupportTicket(@CurrentUser() user: JwtPayload, @Body() body: any) {
+    return this.adminService.createSupportTicket(body, user.sub);
+  }
+
+  @Roles('ADMIN', 'STAFF')
+  @Patch('support/tickets/:id')
+  updateSupportTicket(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() body: any) {
+    return this.adminService.updateSupportTicket(id, body, user.sub);
+  }
+
+
   @Post('notifications')
   sendNotification(@Body() body: { audience: string; channel: string; targetId?: string; title?: string; message: string }) {
     return this.adminService.sendNotification(body);
