@@ -57,19 +57,21 @@ export default function SupportPage() {
     category: 'GENERAL', priority: 'NORMAL', relatedType: '', relatedReference: '',
   });
 
+  const selectedId = selected?.id;
+
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
       const rows = await getSupportTickets({ status, search });
       setTickets(rows);
-      if (selected) {
-        const latest = rows.find((t: Ticket) => t.id === selected.id);
+      if (selectedId) {
+        const latest = rows.find((t: Ticket) => t.id === selectedId);
         if (latest) setSelected(latest);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load support tickets.');
     } finally { setLoading(false); }
-  }, [status, search, selected?.id]);
+  }, [status, search, selectedId]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
