@@ -332,8 +332,15 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email/phone or password');
     }
 
-    const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role });
-    return { token, user };
+    const staffMember = user.role === 'STAFF'
+      ? await this.prisma.staffMember.findUnique({ where: { userId: user.id }, select: { accessRole: true, active: true } })
+      : null;
+    if (user.role === 'STAFF' && !staffMember?.active) {
+      throw new UnauthorizedException('STAFF_ACCOUNT_INACTIVE');
+    }
+    const accessRole = staffMember?.accessRole || undefined;
+    const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role, ...(accessRole ? { accessRole } : {}) });
+    return { token, user: { ...user, ...(accessRole ? { accessRole } : {}) } };
   }
 
   async registerMerchantViaInvite(token: string, data: {
