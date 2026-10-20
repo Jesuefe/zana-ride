@@ -9,7 +9,7 @@ type Ticket = {
   id: string; ticketNumber: string; customerName: string; customerPhone?: string | null;
   customerId?: string | null; subject: string; description: string; category: string;
   priority: string; status: string; relatedType?: string | null; relatedReference?: string | null;
-  internalNotes?: string | null; resolution?: string | null; createdAt: string; updatedAt: string;
+  internalNotes?: string | null; resolution?: string | null; assignedToId?: string | null; createdAt: string; updatedAt: string;
 };
 
 const STATUSES = [
