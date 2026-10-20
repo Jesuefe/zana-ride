@@ -23,7 +23,7 @@ export default function StaffLoginPage() {
         setLoading(false);
         return;
       }
-      router.push(result.user.accessRole === 'CUSTOMER_SUPPORT' ? '/dashboard/support' : '/dashboard');
+      router.push(result.user.accessRole === 'CUSTOMER_SUPPORT' ? '/dashboard/support' : result.user.accessRole === 'DRIVER_OPERATIONS' ? '/dashboard/drivers' : result.user.accessRole === 'MARKET_OPERATIONS' ? '/dashboard/markets' : '/dashboard/orders');
     } catch (err) {
       clearToken();
       setError(err instanceof ApiError ? err.message : 'Login failed.');
