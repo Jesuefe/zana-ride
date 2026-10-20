@@ -160,3 +160,24 @@ export async function updateMyPhoto(photoDataUrl: string) { return api.post<any>
 export async function getAiSettings() { return api.get<any>('/admin/settings/ai'); }
 export async function saveAiSettings(data: any) { return api.patch<any>('/admin/settings/ai', data); }
 export async function testAiConnection() { return api.post<any>('/admin/settings/ai/test', {}); }
+
+export async function getSupportTickets(params?: { status?: string; search?: string }) {
+  const clean: Record<string, string> = {};
+  if (params?.status && params.status !== 'ALL') clean.status = params.status;
+  if (params?.search?.trim()) clean.search = params.search.trim();
+  const q = new URLSearchParams(clean).toString();
+  return api.get<any[]>(`/admin/support/tickets${q ? `?${q}` : ''}`);
+}
+
+export async function createSupportTicket(data: {
+  customerName: string; customerPhone?: string; customerId?: string; subject: string;
+  description: string; category: string; priority: string; relatedType?: string; relatedReference?: string;
+}) {
+  return api.post<any>('/admin/support/tickets', data);
+}
+
+export async function updateSupportTicket(id: string, data: {
+  status?: string; priority?: string; assignedToId?: string | null; internalNotes?: string; resolution?: string;
+}) {
+  return api.patch<any>(`/admin/support/tickets/${id}`, data);
+}
