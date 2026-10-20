@@ -181,3 +181,7 @@ export async function updateSupportTicket(id: string, data: {
 }) {
   return api.patch<any>(`/admin/support/tickets/${id}`, data);
 }
+
+export async function getFinancialReconciliation() {
+  return api.get<any>('/admin/financial/reconciliation');
+}
