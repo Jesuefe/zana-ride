@@ -34,4 +34,5 @@ jobs:
       - run: npx prisma validate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/zana_test
+      - run: npm test -- --runInBand
       - run: npm run build
