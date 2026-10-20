@@ -1089,6 +1089,7 @@ export class AdminService {
         effectiveItemSubtotal: effectiveItems,
         expectedTotal,
         variance,
+        deliveryFeeRefundRequired,
         totalStatus,
         settlement: {
           merchant: order.merchantSettlement ? {
