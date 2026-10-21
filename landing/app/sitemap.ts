@@ -1,5 +1,7 @@
 import type { MetadataRoute } from 'next';
 
+export const dynamic = 'force-static';
+
 const siteUrl = 'https://zanaride.rw';
 
 export default function sitemap(): MetadataRoute.Sitemap {

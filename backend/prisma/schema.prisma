@@ -25,48 +25,48 @@ enum UserStatus {
 
 model User {
   pushTokens    PushToken[]
-  reviewsGiven  Review[] @relation("ReviewsGiven")
-  callsMade     Call[]   @relation("CallsMade")
-  callsReceived Call[]   @relation("CallsReceived")
-  id          String     @id @default(uuid())
-  phone       String     @unique
+  reviewsGiven  Review[]    @relation("ReviewsGiven")
+  callsMade     Call[]      @relation("CallsMade")
+  callsReceived Call[]      @relation("CallsReceived")
+  id            String      @id @default(uuid())
+  phone         String      @unique
   // Defaults true so existing users are automatically, safely treated
   // as verified the moment this column is added — register() is what
   // explicitly sets this false for a genuinely new signup, not the
   // column default, so nobody already using the app gets locked out
   // by a schema change.
-  phoneVerified Boolean  @default(true)
-  email       String?    @unique
-  password    String?
-  firstName   String?
-  lastName    String?
-  role        UserRole   @default(CUSTOMER)
-  status      UserStatus @default(ACTIVE)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  phoneVerified Boolean     @default(true)
+  email         String?     @unique
+  password      String?
+  firstName     String?
+  lastName      String?
+  role          UserRole    @default(CUSTOMER)
+  status        UserStatus  @default(ACTIVE)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  driver      Driver?
-  merchant    Merchant?
-  agent       Agent?
-  wallet      Wallet?
-  staffMember StaffMember?
-  tripsAsCustomer Trip[]  @relation("CustomerTrips")
-  deliveries      Delivery[] @relation("CustomerDeliveries")
-  orders          Order[]    @relation("CustomerOrders")
-  ratingsGiven    Rating[] @relation("RatingsGiven")
-  ratingsReceived Rating[] @relation("RatingsReceived")
+  driver          Driver?
+  merchant        Merchant?
+  agent           Agent?
+  wallet          Wallet?
+  staffMember     StaffMember?
+  tripsAsCustomer Trip[]               @relation("CustomerTrips")
+  deliveries      Delivery[]           @relation("CustomerDeliveries")
+  orders          Order[]              @relation("CustomerOrders")
+  ratingsGiven    Rating[]             @relation("RatingsGiven")
+  ratingsReceived Rating[]             @relation("RatingsReceived")
   tripReports     TripReport[]
-  language        String   @default("en")
-  testOverrideLat  Float?
-  testOverrideLng  Float?
-  sentMessages    ChatMessage[] @relation("SentMessages")
-  sosAlerts       SosAlert[]  @relation("SosAlerts")
-  savedPlaces     SavedPlace[] @relation("SavedPlaces")
-  points          ZanaPoints?  @relation("UserPoints")
-  scheduledRides  ScheduledRide[] @relation("ScheduledRides")
+  language        String               @default("en")
+  testOverrideLat Float?
+  testOverrideLng Float?
+  sentMessages    ChatMessage[]        @relation("SentMessages")
+  sosAlerts       SosAlert[]           @relation("SosAlerts")
+  savedPlaces     SavedPlace[]         @relation("SavedPlaces")
+  points          ZanaPoints?          @relation("UserPoints")
+  scheduledRides  ScheduledRide[]      @relation("ScheduledRides")
   cancellations   CancellationRecord[] @relation("Cancellations")
-  reportsMade     CustomerReport[] @relation("ReportsMade")
-  reportsReceived CustomerReport[] @relation("ReportsReceived")
+  reportsMade     CustomerReport[]     @relation("ReportsMade")
+  reportsReceived CustomerReport[]     @relation("ReportsReceived")
 }
 
 enum DriverApprovalStatus {
@@ -95,22 +95,22 @@ enum DriverMode {
 }
 
 model Driver {
-  id               String                @id @default(uuid())
-  userId           String                @unique
-  user             User                  @relation(fields: [userId], references: [id])
+  id               String               @id @default(uuid())
+  userId           String               @unique
+  user             User                 @relation(fields: [userId], references: [id])
   rideOffers       RideOffer[]
   vehicle          String
   plate            String
   serviceType      ServiceType
-  approvalStatus   DriverApprovalStatus  @default(PENDING)
-  onlineStatus     DriverOnlineStatus    @default(OFFLINE)
-  driverMode       DriverMode            @default(BOTH)
-  commissionDebts  CommissionDebt[]      @relation("DriverDebts")
-  debtSettlements  DebtSettlement[]      @relation("DriverSettlements")
-  rating           Float                 @default(0)
-  totalTrips       Int                   @default(0)
-  acceptanceRate   Float                 @default(0)
-  cancellationRate Float                 @default(0)
+  approvalStatus   DriverApprovalStatus @default(PENDING)
+  onlineStatus     DriverOnlineStatus   @default(OFFLINE)
+  driverMode       DriverMode           @default(BOTH)
+  commissionDebts  CommissionDebt[]     @relation("DriverDebts")
+  debtSettlements  DebtSettlement[]     @relation("DriverSettlements")
+  rating           Float                @default(0)
+  totalTrips       Int                  @default(0)
+  acceptanceRate   Float                @default(0)
+  cancellationRate Float                @default(0)
   lastLat          Float?
   lastLng          Float?
   lastLocationAt   DateTime?
@@ -123,11 +123,11 @@ model Driver {
   activeSessionId  String?
   testOverrideLat  Float?
   testOverrideLng  Float?
-  createdAt        DateTime              @default(now())
+  createdAt        DateTime             @default(now())
 
-  trips            Trip[]                @relation("DriverTrips")
-  deliveries       Delivery[]            @relation("DriverDeliveries")
-  documents        DriverDocument[]
+  trips      Trip[]           @relation("DriverTrips")
+  deliveries Delivery[]       @relation("DriverDeliveries")
+  documents  DriverDocument[]
 }
 
 model DriverDocument {
@@ -153,28 +153,28 @@ enum MerchantStatus {
 }
 
 model Merchant {
-  reviews            Review[]
-  logoUrl            String?
-  coverUrl           String?
-  prepMinutes        Int      @default(20)
-  deliveryMinutes    Int      @default(25)
-  id            String           @id @default(uuid())
-  userId        String           @unique
-  user          User             @relation(fields: [userId], references: [id])
-  businessName  String
-  branch        String?
-  category      MerchantCategory @default(GOODS)
-  status        MerchantStatus   @default(PENDING)
-  whatsappPhone String?
-  businessLat   Float?
-  businessLng   Float?
+  reviews         Review[]
+  logoUrl         String?
+  coverUrl        String?
+  prepMinutes     Int              @default(20)
+  deliveryMinutes Int              @default(25)
+  id              String           @id @default(uuid())
+  userId          String           @unique
+  user            User             @relation(fields: [userId], references: [id])
+  businessName    String
+  branch          String?
+  category        MerchantCategory @default(GOODS)
+  status          MerchantStatus   @default(PENDING)
+  whatsappPhone   String?
+  businessLat     Float?
+  businessLng     Float?
   businessAddress String?
-  createdAt     DateTime         @default(now())
+  createdAt       DateTime         @default(now())
 
-  deliveries    Delivery[]
-  products      Product[]
-  orders        Order[]    @relation("MerchantOrders")
-  settlements   MerchantSettlement[]
+  deliveries  Delivery[]
+  products    Product[]
+  orders      Order[]              @relation("MerchantOrders")
+  settlements MerchantSettlement[]
 }
 
 enum ProductStatus {
@@ -185,29 +185,29 @@ enum ProductStatus {
 }
 
 model Product {
-  id           String         @id @default(uuid())
-  merchantId   String?
-  merchant     Merchant?      @relation(fields: [merchantId], references: [id])
-  marketId     String?
-  market       Market?        @relation(fields: [marketId], references: [id])
-  name         String
-  description  String?
-  price        Int
+  id            String               @id @default(uuid())
+  merchantId    String?
+  merchant      Merchant?            @relation(fields: [merchantId], references: [id])
+  marketId      String?
+  market        Market?              @relation(fields: [marketId], references: [id])
+  name          String
+  description   String?
+  price         Int
   // The normal stall price — what the agent would expect to pay before
   // any negotiation. Only meaningful for market/agent items; the
   // Zana/agent margin is calculated against this, not against whatever
   // the agent actually ends up paying.
   referenceCost Int?
-  imageUrl     String?
-  category     MerchantCategory
-  status       ProductStatus  @default(PENDING)
-  stock        Int            @default(0)
-  available    Boolean        @default(true)
-  adminNote    String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  orderItems   OrderItem[]
-  priceHistory MarketPriceHistory[]
+  imageUrl      String?
+  category      MerchantCategory
+  status        ProductStatus        @default(PENDING)
+  stock         Int                  @default(0)
+  available     Boolean              @default(true)
+  adminNote     String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  orderItems    OrderItem[]
+  priceHistory  MarketPriceHistory[]
 
   @@index([merchantId])
   @@index([marketId])
@@ -215,36 +215,36 @@ model Product {
 
 // Markets are admin-only — agents and riders operate within them.
 model Market {
-  id          String    @id @default(uuid())
-  name        String
-  description String?
-  address     String
-  lat         Float
-  lng         Float
+  id                String   @id @default(uuid())
+  name              String
+  description       String?
+  address           String
+  lat               Float
+  lng               Float
   pickupContactName String?
-  pickupPhone String?
-  imageUrl    String?
-  coverUrl    String?
-  prepMinutes Int       @default(30)
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
+  pickupPhone       String?
+  imageUrl          String?
+  coverUrl          String?
+  prepMinutes       Int      @default(30)
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
 
-  agents      Agent[]
-  products    Product[]
-  orders      Order[]
-  reviews     Review[]
+  agents   Agent[]
+  products Product[]
+  orders   Order[]
+  reviews  Review[]
 }
 
 // Agents are created by admin only. They operate inside markets and handle
 // the physical purchasing leg of market orders.
 model Agent {
-  id         String    @id @default(uuid())
-  userId     String    @unique
-  user       User      @relation(fields: [userId], references: [id])
-  marketId   String?
-  market     Market?   @relation(fields: [marketId], references: [id])
-  active     Boolean   @default(true)
-  createdAt  DateTime  @default(now())
+  id          String            @id @default(uuid())
+  userId      String            @unique
+  user        User              @relation(fields: [userId], references: [id])
+  marketId    String?
+  market      Market?           @relation(fields: [marketId], references: [id])
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
   settlements AgentSettlement[]
   orders      Order[]
 }
@@ -263,15 +263,15 @@ enum TripStatus {
 }
 
 model Trip {
-  calls         Call[]
-  id                 String     @id @default(uuid())
-  customerId         String
-  customer           User       @relation("CustomerTrips", fields: [customerId], references: [id])
-  driverId           String?
-  driver             Driver?    @relation("DriverTrips", fields: [driverId], references: [id])
-  serviceType        ServiceType
-  groupId            String?
-  groupSeatIndex     Int?
+  calls          Call[]
+  id             String      @id @default(uuid())
+  customerId     String
+  customer       User        @relation("CustomerTrips", fields: [customerId], references: [id])
+  driverId       String?
+  driver         Driver?     @relation("DriverTrips", fields: [driverId], references: [id])
+  serviceType    ServiceType
+  groupId        String?
+  groupSeatIndex Int?
 
   pickupAddress      String
   pickupLat          Float
@@ -280,32 +280,32 @@ model Trip {
   destinationLat     Float
   destinationLng     Float
 
-  distanceKm         Float?
-  estimatedFare      Int
-  finalFare          Int?
-  status             TripStatus @default(REQUESTED)
+  distanceKm    Float?
+  estimatedFare Int
+  finalFare     Int?
+  status        TripStatus @default(REQUESTED)
 
-  paymentMethod      String     @default("CASH")
-  momoRef            String?
-  commissionDebt     Int        @default(0)
+  paymentMethod  String  @default("CASH")
+  momoRef        String?
+  commissionDebt Int     @default(0)
 
   // Set when a driver cancels — the customer side has no equivalent field
   // because "report a problem" (TripReport, below) is how a customer flags
   // an issue with a ride that's already in progress; a customer cancelling
   // before pickup needs no explanation.
-  cancelReason       String?
+  cancelReason String?
 
-  requestedAt        DateTime   @default(now())
-  acceptedAt         DateTime?
-  arrivedAt          DateTime?
-  startedAt          DateTime?
-  completedAt        DateTime?
+  requestedAt DateTime  @default(now())
+  acceptedAt  DateTime?
+  arrivedAt   DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
 
-  ratings            Rating[]
-  messages           ChatMessage[]
-  sosAlerts          SosAlert[]
-  reports            TripReport[]
-  offers             RideOffer[]
+  ratings   Rating[]
+  messages  ChatMessage[]
+  sosAlerts SosAlert[]
+  reports   TripReport[]
+  offers    RideOffer[]
 }
 
 // A real, individual offer to one specific driver for one specific ride —
@@ -326,9 +326,9 @@ model RideOffer {
   expiresAt   DateTime
   respondedAt DateTime?
 
+  @@unique([tripId, driverId])
   @@index([tripId])
   @@index([driverId, status])
-  @@unique([tripId, driverId])
 }
 
 // A customer's report on a ride already in progress or completed — the
@@ -336,24 +336,24 @@ model RideOffer {
 // Kept as its own table, not a text field, so admin can actually list open
 // reports and resolve them rather than the detail living nowhere queryable.
 model TripReport {
-  id          String    @id @default(uuid())
-  tripId      String
-  trip        Trip      @relation(fields: [tripId], references: [id])
-  reporterId  String
-  reporter    User      @relation(fields: [reporterId], references: [id])
-  reason      String    // 'safety' | 'route' | 'behavior' | 'other' — matches ReportModal's existing options
-  details     String?
-  status      String    @default("OPEN") // OPEN | RESOLVED
-  resolvedAt  DateTime?
-  resolvedBy  String?
-  createdAt   DateTime  @default(now())
+  id         String    @id @default(uuid())
+  tripId     String
+  trip       Trip      @relation(fields: [tripId], references: [id])
+  reporterId String
+  reporter   User      @relation(fields: [reporterId], references: [id])
+  reason     String // 'safety' | 'route' | 'behavior' | 'other' — matches ReportModal's existing options
+  details    String?
+  status     String    @default("OPEN") // OPEN | RESOLVED
+  resolvedAt DateTime?
+  resolvedBy String?
+  createdAt  DateTime  @default(now())
 }
 
 model SavedPlace {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation("SavedPlaces", fields: [userId], references: [id])
-  label     String   // "Home", "Work", or custom
+  label     String // "Home", "Work", or custom
   address   String
   lat       Float
   lng       Float
@@ -361,13 +361,13 @@ model SavedPlace {
 }
 
 model MerchantInvite {
-  id        String   @id @default(uuid())
-  token     String   @unique @default(uuid())
+  id        String    @id @default(uuid())
+  token     String    @unique @default(uuid())
   createdBy String
   usedBy    String?
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
 
 model CommissionDebt {
@@ -383,7 +383,7 @@ model CommissionDebt {
   // actively settled it via Pay Now. The admin reconciliation view needs
   // this distinction; the two mean genuinely different things
   // operationally.
-  settledVia String?   // "AUTO" | "MANUAL"
+  settledVia String? // "AUTO" | "MANUAL"
   createdAt  DateTime  @default(now())
 }
 
@@ -395,13 +395,13 @@ model CommissionDebt {
 // directly, and conflating the two would make "what does this amount
 // actually mean" ambiguous in the one place that most needs to be clear.
 model DebtSettlement {
-  id           String   @id @default(uuid())
-  driverId     String
-  driver       Driver   @relation("DriverSettlements", fields: [driverId], references: [id])
-  amount       Int
-  providerRef  String   @unique
-  status       String   @default("PENDING") // PENDING | COMPLETED | FAILED
-  createdAt    DateTime @default(now())
+  id          String   @id @default(uuid())
+  driverId    String
+  driver      Driver   @relation("DriverSettlements", fields: [driverId], references: [id])
+  amount      Int
+  providerRef String   @unique
+  status      String   @default("PENDING") // PENDING | COMPLETED | FAILED
+  createdAt   DateTime @default(now())
 
   @@index([driverId])
 }
@@ -421,17 +421,17 @@ model Rating {
 }
 
 model FareConfig {
-  id                  String      @id @default(uuid())
-  serviceType         ServiceType @unique
-  base                Int
-  perKm               Int
-  perMin              Int
-  bookingFee          Int
-  minimum             Int
-  commissionRate      Float       @default(15)
-  freeWaitingMinutes  Int         @default(10)
-  waitingPerMinute    Int         @default(100)
-  updatedAt           DateTime    @updatedAt
+  id                 String      @id @default(uuid())
+  serviceType        ServiceType @unique
+  base               Int
+  perKm              Int
+  perMin             Int
+  bookingFee         Int
+  minimum            Int
+  commissionRate     Float       @default(15)
+  freeWaitingMinutes Int         @default(10)
+  waitingPerMinute   Int         @default(100)
+  updatedAt          DateTime    @updatedAt
 }
 
 model Wallet {
@@ -481,85 +481,85 @@ enum PackageWeight {
 }
 
 model Delivery {
-  calls         Call[]
-  id                 String         @id @default(uuid())
+  calls Call[]
+  id    String @id @default(uuid())
 
   // A delivery is created either by a merchant (business sending to their
   // customer) or directly by a Zana customer. Exactly one of these is set.
-  merchantId         String?
-  merchant           Merchant?      @relation(fields: [merchantId], references: [id])
-  orderId            String?        @unique
-  order              Order?         @relation(fields: [orderId], references: [id])
-  customerId         String?
-  customer           User?          @relation("CustomerDeliveries", fields: [customerId], references: [id])
+  merchantId String?
+  merchant   Merchant? @relation(fields: [merchantId], references: [id])
+  orderId    String?   @unique
+  order      Order?    @relation(fields: [orderId], references: [id])
+  customerId String?
+  customer   User?     @relation("CustomerDeliveries", fields: [customerId], references: [id])
 
-  driverId           String?
-  driver             Driver?        @relation("DriverDeliveries", fields: [driverId], references: [id])
+  driverId String?
+  driver   Driver? @relation("DriverDeliveries", fields: [driverId], references: [id])
 
-  itemDescription    String
-  weight             PackageWeight
-  imageUrl           String?
+  itemDescription String
+  weight          PackageWeight
+  imageUrl        String?
 
-  pickupAddress      String
-  pickupLat          Float
-  pickupLng          Float
+  pickupAddress String
+  pickupLat     Float
+  pickupLng     Float
 
-  dropoffAddress     String
-  dropoffLat         Float
-  dropoffLng         Float
+  dropoffAddress String
+  dropoffLat     Float
+  dropoffLng     Float
 
-  reviews            Review[]
-  trackingCode       String?        @unique
-  pickupPhotoUrl     String?
-  dropoffPhotoUrl    String?
+  reviews         Review[]
+  trackingCode    String?  @unique
+  pickupPhotoUrl  String?
+  dropoffPhotoUrl String?
 
-  paymentMethod      String         @default("WALLET")
-  paid               Boolean        @default(false)
-  momoRef            String?
+  paymentMethod String  @default("WALLET")
+  paid          Boolean @default(false)
+  momoRef       String?
 
-  routeSequence      Int?
-  acceptDeadline     DateTime?
+  routeSequence  Int?
+  acceptDeadline DateTime?
 
-  receiverName       String?
-  receiverPhone      String
+  receiverName  String?
+  receiverPhone String
 
-  distanceKm         Float
-  fee                Int
-  status             DeliveryStatus @default(REQUESTED)
+  distanceKm Float
+  fee        Int
+  status     DeliveryStatus @default(REQUESTED)
 
-  createdAt          DateTime       @default(now())
-  assignedAt         DateTime?
-  pickedUpAt         DateTime?
-  deliveredAt        DateTime?
+  createdAt   DateTime  @default(now())
+  assignedAt  DateTime?
+  pickedUpAt  DateTime?
+  deliveredAt DateTime?
 
   // Set when the delivery is confirmed; a scheduled cleanup removes the
   // stored image from Bunny.net once this is more than 7 days old.
-  imageDeleteAfter   DateTime?
-  messages           ChatMessage[]
+  imageDeleteAfter DateTime?
+  messages         ChatMessage[]
 }
 
 // A short, shareable code that stands in for someone's exact GPS position —
 // built for places where street addresses aren't practical. The receiver
 // generates one, sends it over WhatsApp/SMS, and the sender redeems it.
 model LocationCode {
-  id         String    @id @default(uuid())
-  code       String    @unique
-  lat        Float
-  lng        Float
-  address    String?
-  createdBy  String?
-  expiresAt  DateTime
-  usedAt     DateTime?
-  createdAt  DateTime  @default(now())
+  id        String    @id @default(uuid())
+  code      String    @unique
+  lat       Float
+  lng       Float
+  address   String?
+  createdBy String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }
 
 // Commission earned by Zana on each completed ride or delivery.
 model Commission {
-  id                 String   @id @default(uuid())
-  tripId             String?  @unique
-  deliveryId         String?  @unique
-  amount             Int
-  ratePercent        Float
+  id                  String   @id @default(uuid())
+  tripId              String?  @unique
+  deliveryId          String?  @unique
+  amount              Int
+  ratePercent         Float
   // Recorded at the exact moment a cash ride is processed, rather than
   // reconstructed later from debt totals — a derived approximation
   // ("commission minus debt ever created") isn't the same thing as a
@@ -567,9 +567,9 @@ model Commission {
   // for approximations. Both stay 0 for a digital ride, where nothing
   // is "covered from wallet" at all — the driver is simply credited
   // directly.
-  walletCoveredAmount Int     @default(0)
-  debtCreatedAmount   Int     @default(0)
-  createdAt          DateTime @default(now())
+  walletCoveredAmount Int      @default(0)
+  debtCreatedAmount   Int      @default(0)
+  createdAt           DateTime @default(now())
 }
 
 // Operating expenses recorded by admin.
@@ -577,7 +577,7 @@ model Expense {
   id          String   @id @default(uuid())
   title       String
   amount      Int
-  category    String   // e.g. "Fuel", "Office", "Marketing", "Software"
+  category    String // e.g. "Fuel", "Office", "Marketing", "Software"
   description String?
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
@@ -598,7 +598,7 @@ model StaffMember {
   startDate  DateTime @default(now())
   createdAt  DateTime @default(now())
 
-  payments   SalaryPayment[]
+  payments SalaryPayment[]
 }
 
 model SalaryPayment {
@@ -606,7 +606,7 @@ model SalaryPayment {
   staffMemberId String
   staff         StaffMember @relation(fields: [staffMemberId], references: [id])
   amount        Int
-  month         String      // "2026-08"
+  month         String // "2026-08"
   paid          Boolean     @default(false)
   paidAt        DateTime?
   note          String?
@@ -623,7 +623,7 @@ model Order {
   marketId    String?
   market      Market?     @relation(fields: [marketId], references: [id])
   agentId     String?
-  agent       Agent?     @relation(fields: [agentId], references: [id])
+  agent       Agent?      @relation(fields: [agentId], references: [id])
   delivery    Delivery?
   items       OrderItem[]
   total       Int
@@ -636,8 +636,8 @@ model Order {
   paid          Boolean @default(false)
   momoRef       String?
 
-  prepMinutes   Int?
-  trackingCode  String?  @unique
+  prepMinutes     Int?
+  trackingCode    String? @unique
   pickupPhotoUrl  String?
   dropoffPhotoUrl String?
 
@@ -646,14 +646,14 @@ model Order {
   dropoffLng     Float?
   receiverPhone  String?
 
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  merchantSettlement MerchantSettlement?
+  agentSettlement    AgentSettlement?
+
   @@index([merchantId, status, createdAt])
   @@index([marketId, status, createdAt])
   @@index([agentId, status, createdAt])
-
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  merchantSettlement MerchantSettlement?
-  agentSettlement AgentSettlement?
 }
 
 enum PaymentMethod {
@@ -673,83 +673,83 @@ enum OrderStatus {
 }
 
 model OrderItem {
-  id        String  @id @default(uuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  quantity  Int
-  price     Int
+  id                   String    @id @default(uuid())
+  orderId              String
+  order                Order     @relation(fields: [orderId], references: [id])
+  productId            String
+  product              Product   @relation(fields: [productId], references: [id])
+  quantity             Int
+  price                Int
   // What the agent actually paid at the stall — only meaningful for
   // market/agent items, where the customer price and the true buying
   // price genuinely differ and the gap between them is exactly what
   // gets split. Left null for merchant orders, where this distinction
   // doesn't apply at all.
-  actualPurchasePrice Int?
+  actualPurchasePrice  Int?
   referenceCostAtOrder Int?
   // AVAILABLE | UNAVAILABLE_PENDING | REFUNDED | REMOVED | REPLACED — market item resolution is customer-driven.
-  status      String   @default("AVAILABLE")
-  refundedAmount Int   @default(0)
-  unavailableAt DateTime?
+  status               String    @default("AVAILABLE")
+  refundedAmount       Int       @default(0)
+  unavailableAt        DateTime?
 }
 
 // Chat messages tied to a ride or delivery. After the ride ends the messages
 // are hidden from users but kept permanently for admin review.
 model ChatMessage {
-  id               String    @id @default(uuid())
-  tripId           String?
-  trip             Trip?     @relation(fields: [tripId], references: [id])
-  deliveryId       String?
-  delivery         Delivery? @relation(fields: [deliveryId], references: [id])
-  senderId         String
-  sender           User      @relation("SentMessages", fields: [senderId], references: [id])
-  content          String
-  originalLang     String    @default("en")
-  translatedEn     String?
-  translatedFr     String?
-  translatedRw     String?
-  hiddenFromUsers  Boolean   @default(false)
-  createdAt        DateTime  @default(now())
+  id              String    @id @default(uuid())
+  tripId          String?
+  trip            Trip?     @relation(fields: [tripId], references: [id])
+  deliveryId      String?
+  delivery        Delivery? @relation(fields: [deliveryId], references: [id])
+  senderId        String
+  sender          User      @relation("SentMessages", fields: [senderId], references: [id])
+  content         String
+  originalLang    String    @default("en")
+  translatedEn    String?
+  translatedFr    String?
+  translatedRw    String?
+  hiddenFromUsers Boolean   @default(false)
+  createdAt       DateTime  @default(now())
 }
 
 model SosAlert {
-  id          String    @id @default(uuid())
-  tripId      String?
-  trip        Trip?     @relation(fields: [tripId], references: [id])
-  customerId  String
-  customer    User      @relation("SosAlerts", fields: [customerId], references: [id])
-  lat         Float?
-  lng         Float?
-  status      String    @default("ACTIVE") // ACTIVE, ACKNOWLEDGED, RESOLVED
-  createdAt   DateTime  @default(now())
+  id             String    @id @default(uuid())
+  tripId         String?
+  trip           Trip?     @relation(fields: [tripId], references: [id])
+  customerId     String
+  customer       User      @relation("SosAlerts", fields: [customerId], references: [id])
+  lat            Float?
+  lng            Float?
+  status         String    @default("ACTIVE") // ACTIVE, ACKNOWLEDGED, RESOLVED
+  createdAt      DateTime  @default(now())
   acknowledgedAt DateTime?
 }
 
 model ZanaPoints {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  user        User     @relation("UserPoints", fields: [userId], references: [id])
-  balance     Int      @default(0)
-  totalEarned Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String             @id @default(uuid())
+  userId       String             @unique
+  user         User               @relation("UserPoints", fields: [userId], references: [id])
+  balance      Int                @default(0)
+  totalEarned  Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
   transactions PointTransaction[]
 }
 
 model PointTransaction {
-  id          String   @id @default(uuid())
-  pointsId    String
-  points      ZanaPoints @relation(fields: [pointsId], references: [id])
-  amount      Int      // positive = earned, negative = redeemed
-  reason      String   // "ride", "delivery", "rating_bonus", "first_ride", "redemption"
-  tripId      String?
-  createdAt   DateTime @default(now())
+  id        String     @id @default(uuid())
+  pointsId  String
+  points    ZanaPoints @relation(fields: [pointsId], references: [id])
+  amount    Int // positive = earned, negative = redeemed
+  reason    String // "ride", "delivery", "rating_bonus", "first_ride", "redemption"
+  tripId    String?
+  createdAt DateTime   @default(now())
 }
 
 model ScheduledRide {
-  id                 String     @id @default(uuid())
+  id                 String      @id @default(uuid())
   customerId         String
-  customer           User       @relation("ScheduledRides", fields: [customerId], references: [id])
+  customer           User        @relation("ScheduledRides", fields: [customerId], references: [id])
   pickupAddress      String
   pickupLat          Float
   pickupLng          Float
@@ -759,10 +759,10 @@ model ScheduledRide {
   serviceType        ServiceType
   scheduledFor       DateTime
   specialRequest     String?
-  paymentMethod      String     @default("CASH")
-  status             String     @default("PENDING") // PENDING, NOTIFYING, ACCEPTED, CANCELLED, COMPLETED
+  paymentMethod      String      @default("CASH")
+  status             String      @default("PENDING") // PENDING, NOTIFYING, ACCEPTED, CANCELLED, COMPLETED
   tripId             String?
-  createdAt          DateTime   @default(now())
+  createdAt          DateTime    @default(now())
 }
 
 model CancellationRecord {
@@ -775,15 +775,15 @@ model CancellationRecord {
 }
 
 model CustomerReport {
-  id           String   @id @default(uuid())
-  reporterId   String   // driver userId
-  reporter     User     @relation("ReportsMade", fields: [reporterId], references: [id])
-  reportedId   String   // customer userId
-  reported     User     @relation("ReportsReceived", fields: [reportedId], references: [id])
-  tripId       String?
-  reason       String
-  details      String?
-  createdAt    DateTime @default(now())
+  id         String   @id @default(uuid())
+  reporterId String // driver userId
+  reporter   User     @relation("ReportsMade", fields: [reporterId], references: [id])
+  reportedId String // customer userId
+  reported   User     @relation("ReportsReceived", fields: [reportedId], references: [id])
+  tripId     String?
+  reason     String
+  details    String?
+  createdAt  DateTime @default(now())
 }
 
 enum CallStatus {
@@ -830,28 +830,27 @@ enum ReviewTarget {
 }
 
 model Review {
-  id          String       @id @default(uuid())
-  target      ReviewTarget
-  rating      Int
-  comment     String?
+  id      String       @id @default(uuid())
+  target  ReviewTarget
+  rating  Int
+  comment String?
 
-  fromUserId  String
-  fromUser    User         @relation("ReviewsGiven", fields: [fromUserId], references: [id])
+  fromUserId String
+  fromUser   User   @relation("ReviewsGiven", fields: [fromUserId], references: [id])
 
-  deliveryId  String?
-  delivery    Delivery?    @relation(fields: [deliveryId], references: [id])
-  merchantId  String?
-  merchant    Merchant?    @relation(fields: [merchantId], references: [id])
-  marketId    String?
-  market      Market?      @relation(fields: [marketId], references: [id])
-  orderId     String?
+  deliveryId String?
+  delivery   Delivery? @relation(fields: [deliveryId], references: [id])
+  merchantId String?
+  merchant   Merchant? @relation(fields: [merchantId], references: [id])
+  marketId   String?
+  market     Market?   @relation(fields: [marketId], references: [id])
+  orderId    String?
 
-  createdAt   DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@index([merchantId])
   @@index([deliveryId])
 }
-
 
 model PushToken {
   id         String   @id @default(uuid())
@@ -871,84 +870,83 @@ model PushToken {
 // did it retry. No relations, no cascading concerns, safe to prune old
 // rows later without touching anything else.
 model RecoveryEvent {
-  id        String   @id @default(uuid())
-  driverId  String
-  rideId    String?
-  event     String
+  id         String   @id @default(uuid())
+  driverId   String
+  rideId     String?
+  event      String
   rideStatus String?
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   @@index([driverId])
 }
 
-
 model MerchantSettlement {
-  id             String   @id @default(uuid())
-  orderId        String   @unique
-  order          Order    @relation(fields: [orderId], references: [id])
-  merchantId     String
-  merchant       Merchant @relation(fields: [merchantId], references: [id])
-  grossAmount    Int
-  commissionRate Float
+  id               String   @id @default(uuid())
+  orderId          String   @unique
+  order            Order    @relation(fields: [orderId], references: [id])
+  merchantId       String
+  merchant         Merchant @relation(fields: [merchantId], references: [id])
+  grossAmount      Int
+  commissionRate   Float
   commissionAmount Int
-  merchantNet    Int
-  status         String   @default("SETTLED")
-  createdAt      DateTime @default(now())
-  settledAt      DateTime @default(now())
+  merchantNet      Int
+  status           String   @default("SETTLED")
+  createdAt        DateTime @default(now())
+  settledAt        DateTime @default(now())
 
   @@index([merchantId, createdAt])
 }
 
 model AgentSettlement {
-  id                   String   @id @default(uuid())
-  orderId              String   @unique
-  order                Order    @relation(fields: [orderId], references: [id])
-  agentId              String
-  agent                Agent   @relation(fields: [agentId], references: [id])
+  id                 String   @id @default(uuid())
+  orderId            String   @unique
+  order              Order    @relation(fields: [orderId], references: [id])
+  agentId            String
+  agent              Agent    @relation(fields: [agentId], references: [id])
   // Kept for compatibility with settlements created before the markup ledger.
-  grossMargin          Int?
-  underlyingAmount     Int?
-  customerAmount       Int?
-  markupAmount         Int?
-  markupPercent        Float?
-  agentRate            Float?
-  zanaRate             Float?
-  agentEarning         Int
-  zanaEarning          Int
-  actualPurchaseCost   Int
-  status               String   @default("SETTLED")
-  createdAt            DateTime @default(now())
-  settledAt            DateTime @default(now())
+  grossMargin        Int?
+  underlyingAmount   Int?
+  customerAmount     Int?
+  markupAmount       Int?
+  markupPercent      Float?
+  agentRate          Float?
+  zanaRate           Float?
+  agentEarning       Int
+  zanaEarning        Int
+  actualPurchaseCost Int
+  status             String   @default("SETTLED")
+  createdAt          DateTime @default(now())
+  settledAt          DateTime @default(now())
 
   @@index([agentId, createdAt])
 }
 
 model MarketPriceConfig {
-  id                    String   @id @default(uuid())
-  autoApprovePercent    Float    @default(15)
-  hardRejectPercent     Float    @default(100)
-  markupPercent         Float    @default(20)
-  agentEarningRate      Float    @default(40)
-  zanaMarkupShare       Float    @default(60)
-  agentMarkupShare      Float    @default(40)
-  updatedAt             DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  autoApprovePercent Float    @default(15)
+  hardRejectPercent  Float    @default(100)
+  markupPercent      Float    @default(20)
+  agentEarningRate   Float    @default(40)
+  zanaMarkupShare    Float    @default(60)
+  agentMarkupShare   Float    @default(40)
+  updatedAt          DateTime @updatedAt
 }
 
 model MarketPriceHistory {
-  id                String   @id @default(uuid())
-  productId         String
-  product            Product  @relation(fields: [productId], references: [id])
-  marketId          String
-  oldPrice          Int?
-  newPrice          Int
-  oldReferenceCost  Int?
-  newReferenceCost  Int?
-  changedBy         String
-  reason            String?
-  status            String   @default("APPROVED")
-  approvedBy        String?
-  approvedAt        DateTime?
-  createdAt         DateTime @default(now())
+  id               String    @id @default(uuid())
+  productId        String
+  product          Product   @relation(fields: [productId], references: [id])
+  marketId         String
+  oldPrice         Int?
+  newPrice         Int
+  oldReferenceCost Int?
+  newReferenceCost Int?
+  changedBy        String
+  reason           String?
+  status           String    @default("APPROVED")
+  approvedBy       String?
+  approvedAt       DateTime?
+  createdAt        DateTime  @default(now())
 
   @@index([productId, createdAt])
   @@index([marketId, status])
@@ -998,3 +996,19 @@ model SupportTicket {
   @@index([relatedReference])
 }
 
+// Public driver recruitment enquiries; these are leads, not active driver accounts.
+model RiderRegistration {
+  id          String   @id @default(uuid())
+  fullName    String
+  phone       String
+  email       String?
+  vehicleType String
+  powerType   String
+  location    String
+  status      String   @default("NEW")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([phone])
+}

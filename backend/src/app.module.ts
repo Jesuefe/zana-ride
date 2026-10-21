@@ -26,6 +26,7 @@ import { FinanceModule } from './finance/finance.module';
 import { ZanaAiModule } from './zana-ai/zana-ai.module';
 import { DownloadsModule } from './downloads/downloads.module';
 import { CustomerSupportController } from './support.controller';
+import { RiderRegistrationController } from './rider-registration.controller';
 
 @Module({
   imports: [
@@ -57,6 +58,6 @@ import { CustomerSupportController } from './support.controller';
     ZanaAiModule,
     DownloadsModule,
   ],
-  controllers: [HealthController, CustomerSupportController],
+  controllers: [HealthController, CustomerSupportController, RiderRegistrationController],
 })
 export class AppModule {}

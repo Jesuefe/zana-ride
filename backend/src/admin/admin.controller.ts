@@ -27,6 +27,45 @@ export class AdminController {
   ) {}
 
   @Roles('ADMIN')
+  @Get('rider-registrations')
+  async getRiderRegistrations(@Query('status') status?: string, @Query('search') search?: string) {
+    const where: any = {};
+    if (status && ['NEW', 'CONTACTED', 'APPROVED', 'REJECTED'].includes(status)) where.status = status;
+    if (search?.trim()) {
+      const q = search.trim();
+      where.OR = [
+        { fullName: { contains: q, mode: 'insensitive' } },
+        { phone: { contains: q } },
+        { email: { contains: q, mode: 'insensitive' } },
+        { location: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+    return this.prisma.riderRegistration.findMany({ where, orderBy: { createdAt: 'desc' }, take: 500 });
+  }
+
+  @Roles('ADMIN')
+  @Get('rider-registrations/daily')
+  async getRiderRegistrationDailyStats() {
+    return this.prisma.$queryRaw<Array<{ day: string; count: number }>>`
+      SELECT TO_CHAR(("createdAt" AT TIME ZONE 'Africa/Kigali')::date, 'YYYY-MM-DD') AS day,
+             COUNT(*)::int AS count
+      FROM "RiderRegistration"
+      WHERE "createdAt" >= NOW() - INTERVAL '30 days'
+      GROUP BY ("createdAt" AT TIME ZONE 'Africa/Kigali')::date
+      ORDER BY ("createdAt" AT TIME ZONE 'Africa/Kigali')::date ASC
+    `;
+  }
+
+  @Roles('ADMIN')
+  @Patch('rider-registrations/:id/status')
+  async updateRiderRegistrationStatus(@Param('id') id: string, @Body() body: { status?: string }) {
+    if (!body.status || !['NEW', 'CONTACTED', 'APPROVED', 'REJECTED'].includes(body.status)) {
+      throw new BadRequestException('Status must be NEW, CONTACTED, APPROVED, or REJECTED.');
+    }
+    return this.prisma.riderRegistration.update({ where: { id }, data: { status: body.status } });
+  }
+
+  @Roles('ADMIN')
   @Get('overview')
   overview() { return this.adminService.getOverview(); }
 
