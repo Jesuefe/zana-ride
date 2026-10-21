@@ -13,7 +13,7 @@ import GlobalSearch from './GlobalSearch';
 const SENIOR_NAV = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard }, { label: 'Support', href: '/dashboard/support', icon: Headset }, { label: 'Financial', href: '/dashboard/financial', icon: DollarSign },
   { label: 'Staff & Payroll', href: '/dashboard/staff', icon: Users }, { label: 'Users', href: '/dashboard/users', icon: Users },
-  { label: 'Drivers', href: '/dashboard/drivers', icon: Car }, { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
+  { label: 'Drivers', href: '/dashboard/drivers', icon: Car }, { label: 'Rider Applications', href: '/dashboard/rider-registrations', icon: ClipboardList }, { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
   { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send }, { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
   { label: 'Products', href: '/dashboard/products', icon: Package }, { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
   { label: 'Deliveries', href: '/dashboard/deliveries', icon: Truck }, { label: 'Rides', href: '/dashboard/rides', icon: TrendingUp },
@@ -52,7 +52,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       setAccountRole(role);
       setAccessRole(staffAccess);
       if (role === 'STAFF' && pathname === '/dashboard') router.replace(staffAccess === 'CUSTOMER_SUPPORT' ? '/dashboard/support' : staffAccess === 'DRIVER_OPERATIONS' ? '/dashboard/drivers' : staffAccess === 'MARKET_OPERATIONS' ? '/dashboard/markets' : '/dashboard/orders');
-      const adminOnly = ['/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/invites', '/dashboard/audit-log', '/dashboard/fares', '/dashboard/settings/ai'];
+      const adminOnly = ['/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/invites', '/dashboard/audit-log', '/dashboard/fares', '/dashboard/settings/ai', '/dashboard/rider-registrations'];
       if (role === 'STAFF' && adminOnly.some(path => pathname === path || pathname.startsWith(path + '/'))) {
         router.replace(staffAccess === 'CUSTOMER_SUPPORT' ? '/dashboard/support' : staffAccess === 'DRIVER_OPERATIONS' ? '/dashboard/drivers' : staffAccess === 'MARKET_OPERATIONS' ? '/dashboard/markets' : '/dashboard/orders');
       }

@@ -185,3 +185,15 @@ export async function updateSupportTicket(id: string, data: {
 export async function getFinancialReconciliation() {
   return api.get<any>('/admin/financial/reconciliation');
 }
+
+
+export async function getRiderRegistrations(params?: { status?: string; search?: string }) {
+  const query = new URLSearchParams();
+  if (params?.status) query.set('status', params.status);
+  if (params?.search) query.set('search', params.search);
+  const q = query.toString();
+  return api.get<any[]>(`/admin/rider-registrations${q ? `?${q}` : ''}`);
+}
+export async function updateRiderRegistrationStatus(id: string, status: 'NEW' | 'CONTACTED' | 'APPROVED' | 'REJECTED') {
+  return api.patch<any>(`/admin/rider-registrations/${id}/status`, { status });
+}
