@@ -1,50 +1,28 @@
 name: Deploy ZANA frontend to Cloudflare Pages
-
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'admin/**'
-      - 'landing/**'
-      - '.github/workflows/deploy-zana-frontend.yml'
   workflow_dispatch:
     inputs:
       target:
         description: Frontend to deploy
         required: true
         type: choice
-        options:
-          - admin
-          - customer
-          - landing
-
+        options: [admin, customer, landing]
 permissions:
   contents: read
-
-concurrency:
-  group: zana-pages-production-${{ matrix.target }}
-  cancel-in-progress: false
-
 jobs:
   deploy:
-    name: Build and deploy ${{ matrix.target }} frontend
+    name: Build and deploy selected frontend
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        target: ${{ github.event_name == 'push' && fromJSON('["admin","landing"]') || fromJSON(format('["{0}"]', inputs.target)) }}
     environment: production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: ${{ matrix.target == 'admin' && 'admin/package-lock.json' || (matrix.target == 'landing' && 'landing/package-lock.json' || 'customer-web/package-lock.json') }}
-      - name: Select project and working directory
+      - name: Select project and directory
         id: target
         env:
-          TARGET: ${{ matrix.target }}
+          TARGET: ${{ inputs.target }}
           ADMIN_PROJECT: ${{ vars.CLOUDFLARE_ADMIN_PAGES_PROJECT }}
           CUSTOMER_PROJECT: ${{ vars.CLOUDFLARE_CUSTOMER_PAGES_PROJECT }}
           LANDING_PROJECT: ${{ vars.CLOUDFLARE_LANDING_PAGES_PROJECT }}
@@ -54,25 +32,25 @@ jobs:
             admin) PROJECT="${ADMIN_PROJECT:-zana-admin}"; DIRECTORY=admin ;;
             customer) PROJECT="${CUSTOMER_PROJECT:-zana-ride}"; DIRECTORY=customer-web ;;
             landing) PROJECT="${LANDING_PROJECT:-zana-landing}"; DIRECTORY=landing ;;
-            *) echo "::error::Unknown target $TARGET"; exit 1 ;;
+            *) exit 1 ;;
           esac
-          echo "directory=$DIRECTORY" >> "$GITHUB_OUTPUT"
           echo "project=$PROJECT" >> "$GITHUB_OUTPUT"
+          echo "directory=$DIRECTORY" >> "$GITHUB_OUTPUT"
       - name: Check Cloudflare credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -eu
-          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Add CLOUDFLARE_API_TOKEN as a repository/environment secret."; exit 1; }
-          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Add CLOUDFLARE_ACCOUNT_ID as a repository/environment secret."; exit 1; }
-      - name: Install frontend dependencies
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Install dependencies
         working-directory: ${{ steps.target.outputs.directory }}
         run: npm ci
       - name: Build static frontend
         working-directory: ${{ steps.target.outputs.directory }}
         run: npm run build
-      - name: Deploy production branch to Cloudflare Pages
+      - name: Deploy to Cloudflare Pages
         working-directory: ${{ steps.target.outputs.directory }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
