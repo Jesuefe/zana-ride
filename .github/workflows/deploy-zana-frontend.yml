@@ -1,11 +1,6 @@
 name: Deploy ZANA frontend to Cloudflare Pages
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'admin/**'
-      - '.github/workflows/deploy-zana-frontend.yml'
   workflow_dispatch:
     inputs:
       target:
@@ -20,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: zana-pages-production-${{ github.event_name == 'push' && 'admin' || inputs.target }}
+  group: zana-pages-production-${{ inputs.target }}
   cancel-in-progress: false
 
 jobs:
@@ -38,7 +33,7 @@ jobs:
       - name: Select project and working directory
         id: target
         env:
-          TARGET: ${{ github.event_name == 'push' && 'admin' || inputs.target }}
+          TARGET: ${{ inputs.target }}
           ADMIN_PROJECT: ${{ vars.CLOUDFLARE_ADMIN_PAGES_PROJECT }}
           CUSTOMER_PROJECT: ${{ vars.CLOUDFLARE_CUSTOMER_PAGES_PROJECT }}
         run: |
