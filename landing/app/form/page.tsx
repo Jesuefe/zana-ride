@@ -10,6 +10,7 @@ export default function RiderFormPage() {
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [step, setStep] = useState(0);
   const change = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setValues(v => ({ ...v, [e.target.name]: e.target.value }));
     setSuccess(false);
@@ -20,13 +21,26 @@ export default function RiderFormPage() {
       const response = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || 'We could not submit your registration. Please try again.');
-      setValues(initial); setSuccess(true);
+      setSuccess(true); setStep(6);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Connection error. Please try again.');
     } finally { setBusy(false); }
   }
 
   const field = 'rider-field';
+  const steps = [
+    { key: 'fullName', label: 'First things first.', question: 'What should we call you?', hint: 'Your full name', placeholder: 'Type your full name', type: 'text', required: true, auto: 'name' },
+    { key: 'phone', label: 'Let’s stay connected.', question: 'What’s your phone number?', hint: 'So our team can reach you', placeholder: '+250 7xx xxx xxx', type: 'tel', required: true, auto: 'tel' },
+    { key: 'email', label: 'One more way to reach you.', question: 'What’s your email?', hint: 'This one is optional', placeholder: 'you@example.com', type: 'email', required: false, auto: 'email' },
+    { key: 'location', label: 'Where are you based?', question: 'Where do you ride from?', hint: 'City, district or neighbourhood', placeholder: 'e.g. Kigali, Gasabo', type: 'text', required: true, auto: 'address-level2' },
+  ] as const;
+  function nextStep() {
+    if (step === 0 && !values.fullName.trim()) { setError('Please enter your name to continue.'); return; }
+    if (step === 1 && !values.phone.trim()) { setError('Please enter your phone number to continue.'); return; }
+    if (step === 3 && !values.location.trim()) { setError('Please enter your location to continue.'); return; }
+    setError('');
+    setStep(s => Math.min(s + 1, 5));
+  }
   return (
     <main className="rider-page">
       <div className="rider-wrap">
@@ -52,22 +66,51 @@ export default function RiderFormPage() {
           </div>
         </section>
 
-        <section className="form-section">
-          <div className="form-heading"><div><p className="section-kicker">LET’S GET TO KNOW YOU</p><h2>Register your interest</h2><p className="section-copy">Complete the form below. It only takes a minute.</p></div><div className="step-count"><span>STEP</span><strong>01 <i>/ 01</i></strong></div></div>
-          <form onSubmit={submit} className="rider-form">
-            <div className="field-block"><label htmlFor="fullName">Full name <span>*</span></label><input className={field} id="fullName" name="fullName" autoComplete="name" maxLength={100} required value={values.fullName} onChange={change} placeholder="e.g. Jean Uwimana" /></div>
-            <div className="field-block"><label htmlFor="phone">Phone number <span>*</span></label><input className={field} id="phone" name="phone" type="tel" autoComplete="tel" maxLength={25} required value={values.phone} onChange={change} placeholder="+250 7xx xxx xxx" /></div>
-            <div className="field-block"><label htmlFor="email">Email address <small>OPTIONAL</small></label><input className={field} id="email" name="email" type="email" autoComplete="email" maxLength={150} value={values.email} onChange={change} placeholder="you@example.com" /></div>
-            <div className="field-block"><label htmlFor="location">Current location <span>*</span></label><input className={field} id="location" name="location" maxLength={150} required value={values.location} onChange={change} placeholder="e.g. Kigali, Gasabo" /></div>
-            <div className="field-block"><label htmlFor="vehicleType">What do you ride? <span>*</span></label><select className={field} id="vehicleType" name="vehicleType" required value={values.vehicleType} onChange={change}><option value="">Select vehicle type</option><option value="Motorcycle">Motorcycle</option><option value="Bicycle">Bicycle</option><option value="Car">Car</option><option value="Other">Other</option></select></div>
-            <div className="field-block"><label htmlFor="powerType">Vehicle power type <span>*</span></label><select className={field} id="powerType" name="powerType" required value={values.powerType} onChange={change}><option value="">Select power type</option><option value="Electric">Electric</option><option value="Petrol">Petrol</option><option value="Not applicable">Not applicable</option><option value="Other">Other</option></select></div>
-            <div className="privacy-note"><span className="privacy-icon">✓</span><p><strong>Your information stays with our team.</strong><br />We’ll use your details to follow up about rider registration. Submitting this form does not automatically activate a rider account.</p></div>
-            {success && <div role="status" className="form-message success-message"><strong>Registration received.</strong><br />Thank you — the Zana team will contact you about next steps.</div>}
-            {error && <div role="alert" className="form-message error-message">{error}</div>}
-            <button type="submit" disabled={busy} className="submit-button">{busy ? <><span className="button-spinner" /> Sending your details…</> : <>Submit registration <span aria-hidden="true">↗</span></>}</button>
-            <p className="required-note"><span>*</span> Required fields</p>
-          </form>
-        </section>
+        {success ? (
+          <section className="success-panel" role="status" aria-live="polite">
+            <div className="success-check"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 25.5 20 33l16-18" /></svg></div>
+            <p className="section-kicker">YOU’RE ALL SET</p>
+            <h2>That’s you, registered.</h2>
+            <p className="success-copy">Thanks for your interest in joining the Zana rider network. We’ve received your details, and our team will be in touch about the next steps.</p>
+            <div className="success-reassurance"><span>✓</span> Registration submitted successfully</div>
+            <a className="back-home" href="/">Back to home <span>↗</span></a>
+          </section>
+        ) : (
+          <section className="form-section">
+            <div className="form-heading"><div><p className="section-kicker">A FEW QUICK QUESTIONS</p><h2>Let’s get you moving.</h2><p className="section-copy">One small step at a time. You’re in control.</p></div><div className="step-count"><span>YOUR PROGRESS</span><strong>0{step + 1} <i>/ 06</i></strong></div></div>
+            <div className="progress-track" aria-label={`Step ${step + 1} of 6`}><span style={{ width: `${((step + 1) / 6) * 100}%` }} /></div>
+            <form onSubmit={submit} className="rider-form wizard-form">
+              {step < 4 ? (
+                <div className="wizard-question" key={step}>
+                  <p className="question-eyebrow">{steps[step].label}</p>
+                  <label className="question-title" htmlFor={steps[step].key}>{steps[step].question}</label>
+                  <p className="question-hint">{steps[step].hint}</p>
+                  <input autoFocus className={field + ' wizard-input'} id={steps[step].key} name={steps[step].key} autoComplete={steps[step].auto} maxLength={steps[step].key === 'phone' ? 25 : 150} required={steps[step].required} type={steps[step].type} value={values[steps[step].key]} onChange={change} placeholder={steps[step].placeholder} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); nextStep(); } }} />
+                </div>
+              ) : step === 4 ? (
+                <div className="wizard-question" key="vehicleType">
+                  <p className="question-eyebrow">What’s your ride?</p><label className="question-title" htmlFor="vehicleType">Which vehicle do you have?</label><p className="question-hint">Choose the option that fits you best.</p>
+                  <div className="choice-grid">
+                    {([{value:'Motorcycle',title:'Motorcycle',sub:'Moto / motorbike',symbol:'↗'},{value:'Car',title:'Car',sub:'Four wheels',symbol:'▰'},{value:'Bicycle',title:'Bicycle',sub:'Pedal bike',symbol:'◎'},{value:'Other',title:'Other',sub:'Something else',symbol:'＋'}]).map(o => <button type="button" key={o.value} className={'choice-card ' + (values.vehicleType === o.value ? 'selected' : '')} onClick={() => { setValues(v => ({...v, vehicleType:o.value})); setError(''); }}><span className="choice-symbol">{o.symbol}</span><span className="choice-title">{o.title}</span><span className="choice-sub">{o.sub}</span>{values.vehicleType === o.value && <span className="choice-selected">✓</span>}</button>)}
+                  </div>
+                </div>
+              ) : (
+                <div className="wizard-question" key="powerType">
+                  <p className="question-eyebrow">Last quick question</p><label className="question-title" htmlFor="powerType">What powers your vehicle?</label><p className="question-hint">This helps us understand your ride.</p>
+                  <div className="choice-grid power-grid">
+                    {([{value:'Electric',title:'Electric',sub:'Battery powered',symbol:'ϟ'},{value:'Petrol',title:'Petrol',sub:'Fuel powered',symbol:'◉'},{value:'Not applicable',title:'Not applicable',sub:'No motor / other',symbol:'—'}]).map(o => <button type="button" key={o.value} className={'choice-card ' + (values.powerType === o.value ? 'selected' : '')} onClick={() => { setValues(v => ({...v, powerType:o.value})); setError(''); }}><span className="choice-symbol">{o.symbol}</span><span className="choice-title">{o.title}</span><span className="choice-sub">{o.sub}</span>{values.powerType === o.value && <span className="choice-selected">✓</span>}</button>)}
+                  </div>
+                </div>
+              )}
+              {error && <div role="alert" className="form-message error-message">{error}</div>}
+              <div className="wizard-actions">
+                {step > 0 && <button type="button" className="back-button" onClick={() => { setStep(s => s - 1); setError(''); }}>← Back</button>}
+                {step < 5 ? <button type="button" className="submit-button" onClick={() => { if (step === 4 && !values.vehicleType) { setError('Choose the vehicle you ride to continue.'); return; } nextStep(); }}>Continue <span aria-hidden="true">→</span></button> : <button type="submit" disabled={busy || !values.powerType} className="submit-button">{busy ? <><span className="button-spinner" /> Sending…</> : <>Finish registration <span aria-hidden="true">↗</span></>}</button>}
+              </div>
+              <p className="required-note">Your details are only used to follow up on your registration.</p>
+            </form>
+          </section>
+        )}
         <footer className="rider-footer"><span>© Zana Rider Recruitment</span><span>Made for the roads ahead <b>↗</b></span></footer>
       </div>
       <style jsx>{`
@@ -136,6 +179,39 @@ export default function RiderFormPage() {
         @keyframes spin { to { transform:rotate(360deg); } }
         @media (max-width:760px) { .rider-page { padding:0 14px 20px; } .rider-header { height:72px; } .header-chip { font-size:8px; padding:9px 10px; } .rider-hero { grid-template-columns:1fr; padding:32px 25px 20px; border-radius:22px; } .hero-art { min-height:220px; margin-top:6px; } .ring-one { width:235px; } .ring-two { width:180px; } .art-card { width:190px; min-height:180px; padding:19px; } .art-card-label { margin-top:17px; } .art-card strong { font-size:23px; } .form-section { margin-top:16px; padding:24px 20px; border-radius:22px; } .rider-form { grid-template-columns:1fr; gap:18px; } .privacy-note, .form-message, .submit-button, .required-note { grid-column:1; } }
         @media (max-width:380px) { .brand-sub { font-size:7px; } .rider-wordmark { font-size:18px; } .header-chip { max-width:125px; line-height:1.4; } .form-heading { gap:10px; } .step-count { padding:8px; } }
+
+        .progress-track { width:100%; height:4px; background:#edf1ea; border-radius:99px; overflow:hidden; margin:-12px 0 24px; }
+        .progress-track span { display:block; height:100%; background:#48a36b; border-radius:99px; transition:width .3s ease; }
+        .wizard-form { grid-template-columns:1fr; min-height:350px; align-content:space-between; gap:22px; }
+        .wizard-question { min-height:245px; padding:18px 0 8px; animation:question-in .28s ease both; }
+        .question-eyebrow { margin:0 0 14px; color:#39875d; font-size:11px; font-weight:850; letter-spacing:.13em; text-transform:uppercase; }
+        .question-title { display:block; color:#193a2b; font-size:clamp(28px,5vw,43px); line-height:1.1; font-weight:850; letter-spacing:-.065em; }
+        .question-hint { margin:12px 0 27px; color:#7e8a80; font-size:14px; line-height:1.6; }
+        .wizard-input { min-height:65px; padding:0 19px; font-size:clamp(16px,2vw,19px); border-radius:15px; background:#fbfcfa; }
+        .wizard-actions { display:flex; gap:12px; align-items:center; }
+        .wizard-actions .submit-button { flex:1; grid-column:auto; }
+        .back-button { min-height:57px; padding:0 20px; border:1px solid #dfe6de; border-radius:14px; background:white; color:#375444; font-weight:800; cursor:pointer; }
+        .choice-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+        .choice-card { position:relative; min-height:115px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:6px; padding:17px; border:1px solid #dfe6de; border-radius:15px; background:#fbfcfa; color:#244335; text-align:left; cursor:pointer; transition:border-color .15s,background .15s,transform .15s; }
+        .choice-card:hover { transform:translateY(-1px); border-color:#8cb89b; }
+        .choice-card.selected { border:1.5px solid #2f8d59; background:#f0f8ed; box-shadow:0 0 0 3px #2f8d5912; }
+        .choice-symbol { display:grid; place-items:center; width:30px; height:30px; border-radius:9px; background:#eaf3e6; color:#2b7950; font-size:20px; font-weight:800; }
+        .choice-title { font-size:14px; font-weight:850; }
+        .choice-sub { color:#839087; font-size:11px; }
+        .choice-selected { position:absolute; top:12px; right:12px; display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:#2f8d59; color:white; font-size:12px; font-weight:900; }
+        .success-panel { margin-top:26px; min-height:440px; padding:clamp(32px,7vw,76px) 24px; border:1px solid #e2e8df; border-radius:26px; background:white; box-shadow:0 18px 60px #19382a08; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+        .success-check { display:grid; place-items:center; width:88px; height:88px; margin-bottom:27px; border-radius:50%; background:#e7f8e9; border:1px solid #c3ebca; box-shadow:0 0 0 10px #f4fbf2; animation:check-pop .5s cubic-bezier(.2,.8,.2,1) both; }
+        .success-check svg { width:48px; height:48px; fill:none; stroke:#258849; stroke-width:4; stroke-linecap:round; stroke-linejoin:round; }
+        .success-panel h2 { margin:7px 0 0; font-size:clamp(30px,5vw,46px); }
+        .success-copy { max-width:460px; margin:17px auto 0; color:#77857c; font-size:15px; line-height:1.8; }
+        .success-reassurance { display:flex; align-items:center; gap:9px; margin-top:25px; padding:12px 16px; border-radius:99px; background:#f0f8ed; color:#36774c; font-size:12px; font-weight:800; }
+        .success-reassurance span { display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:#cfeecf; }
+        .back-home { display:inline-flex; align-items:center; gap:12px; margin-top:28px; color:#244b39; font-size:13px; font-weight:850; text-decoration:none; }
+        .back-home span { display:grid; place-items:center; width:27px; height:27px; border-radius:50%; background:#b8f36c; }
+        @keyframes question-in { from { opacity:0; transform:translateX(12px); } to { opacity:1; transform:translateX(0); } }
+        @keyframes check-pop { from { opacity:0; transform:scale(.7); } to { opacity:1; transform:scale(1); } }
+        @media (max-width:760px) { .wizard-form { min-height:365px; } .wizard-question { min-height:250px; padding-top:12px; } .choice-card { min-height:105px; padding:13px; } .success-panel { margin-top:16px; min-height:400px; border-radius:22px; } }
+        @media (prefers-reduced-motion:reduce) { .progress-track span,.choice-card { transition:none; } .wizard-question,.success-check { animation:none; } }
         @media (prefers-reduced-motion: reduce) { .rider-field, .submit-button { transition:none; } .button-spinner { animation:none; } }
       `}</style>
     </main>
