@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, MapPin, Loader2, Minus, Plus, Users, Move } from 'lucide-react';
+import { ArrowLeft, MapPin, Loader2, Minus, Plus, Users, Move, Wallet, Smartphone, Banknote } from 'lucide-react';
 import { getStoredPickup, setStoredPickup, requestLiveLocation } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
@@ -10,14 +10,15 @@ import { createRide, createRideGroup, fetchNearbyDrivers, NearbyDriver, estimate
 import { fetchWallet } from '../../lib/api/trips';
 
 const MOTO_PAYMENT_OPTIONS = [
-  { id: 'WALLET' as const, label: 'Zana Wallet', icon: '💳' },
-  { id: 'MOBILE_MONEY' as const, label: 'Mobile Money', icon: '📱' },
-  { id: 'CASH' as const, label: 'Cash', icon: '💵' },
+  { id: 'WALLET' as const, label: 'Zana Wallet', icon: Wallet },
+  { id: 'MOBILE_MONEY' as const, label: 'Mobile Money', icon: Smartphone },
+  { id: 'CASH' as const, label: 'Cash', icon: Banknote },
 ];
 import { resolveLocationCode } from '../../lib/api/deliveries';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 import { useLang } from '../../lib/LangContext';
+import ZanaLoading from '../../components/ZanaLoading';
 
 function SearchContent() {
   const { t } = useLang();
@@ -164,7 +165,7 @@ function SearchContent() {
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in zana-page-enter zana-ride-search">
       <div className="relative">
         <BrandedMap origin={pickup} nearbyDrivers={nearby} vehicleType={vehicleType} draggablePickup onPickupChange={handlePickupDrag} height={200} />
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/95 px-3 py-1 rounded-full text-[11px] text-zana-muted shadow">
@@ -202,7 +203,7 @@ function SearchContent() {
         return <div className="fixed inset-0 z-50 flex items-end bg-black/50"><div className="w-full bg-white rounded-t-3xl p-5"><div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
           <div className="flex items-center justify-between mb-4"><div><h2 className="font-black text-lg text-gray-900">{t('How will you pay?')}</h2><p className="text-xs text-gray-400">{motoCount > 1 ? `${motoCount} ${t('seats')}` : `1 ${t('seat')}`} · {t('Moto ride')}</p></div><div className="text-right bg-zana-primary-light rounded-2xl px-4 py-2">{fetchingFare ? <div className="w-4 h-4 border-2 border-zana-primary border-t-transparent rounded-full animate-spin" /> : totalFare ? <><p className="text-xl font-black text-zana-primary">{totalFare.toLocaleString()}</p><p className="text-[10px] text-gray-500">{t('RWF total')}</p></> : <p className="text-xs text-gray-400">{t('Calculating...')}</p>}</div></div>
           {walletInsufficient && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2"><span className="text-red-500 shrink-0">⚠️</span><p className="text-xs text-red-700"><strong>{t('Insufficient balance.')}</strong> {t('Your wallet has')} {walletBalance?.toLocaleString()} RWF but this ride costs {totalFare?.toLocaleString()} RWF. {t('Choose another payment method or top up.')}</p></div>}
-          <div className="space-y-2 mb-5">{MOTO_PAYMENT_OPTIONS.map(({ id, label, icon }) => { const isWallet = id === 'WALLET'; const insufficient = isWallet && walletInsufficient; return <button key={id} onClick={() => setPaymentMethod(id)} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all ${paymentMethod === id ? insufficient ? 'border-red-400 bg-red-50' : 'border-zana-primary bg-zana-primary-light' : 'border-gray-100 bg-white'}`}><span className="text-2xl">{icon}</span><div className="flex-1 text-left"><p className={`font-semibold text-sm ${paymentMethod === id ? insufficient ? 'text-red-600' : 'text-zana-primary' : 'text-gray-800'}`}>{t(label)}</p>{isWallet && walletBalance !== null && <p className={`text-xs ${insufficient ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>{t('Balance:')} {walletBalance.toLocaleString()} RWF{insufficient && totalFare ? ` · ${t('need')} ${(totalFare - walletBalance).toLocaleString()} ${t('more')}` : ''}</p>}</div>{paymentMethod === id && !insufficient && <div className="w-5 h-5 rounded-full bg-zana-primary flex items-center justify-center shrink-0"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg></div>}</button>; })}</div>
+          <div className="space-y-2 mb-5">{MOTO_PAYMENT_OPTIONS.map(({ id, label, icon }) => { const Icon = icon; const isWallet = id === 'WALLET'; const insufficient = isWallet && walletInsufficient; return <button key={id} onClick={() => setPaymentMethod(id)} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all ${paymentMethod === id ? insufficient ? 'border-red-400 bg-red-50' : 'border-zana-primary bg-zana-primary-light' : 'border-gray-100 bg-white'}`}><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zana-primary-light text-zana-primary"><Icon size={20} strokeWidth={2} /></span><div className="flex-1 text-left"><p className={`font-semibold text-sm ${paymentMethod === id ? insufficient ? 'text-red-600' : 'text-zana-primary' : 'text-gray-800'}`}>{t(label)}</p>{isWallet && walletBalance !== null && <p className={`text-xs ${insufficient ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>{t('Balance:')} {walletBalance.toLocaleString()} RWF{insufficient && totalFare ? ` · ${t('need')} ${(totalFare - walletBalance).toLocaleString()} ${t('more')}` : ''}</p>}</div>{paymentMethod === id && !insufficient && <div className="w-5 h-5 rounded-full bg-zana-primary flex items-center justify-center shrink-0"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg></div>}</button>; })}</div>
           <button onClick={bookMoto} disabled={booking || walletInsufficient || fetchingFare} className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 disabled:opacity-50">{booking ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : `${t('Confirm & Book')}${totalFare ? ` · ${totalFare.toLocaleString()} RWF` : ''}`}</button>
           <button onClick={() => { setShowPaymentPicker(false); setEstimatedFare(null); }} className="w-full text-center text-sm text-gray-400 mt-3 py-1">{t('Cancel')}</button>
         </div></div>;
@@ -211,4 +212,4 @@ function SearchContent() {
   );
 }
 
-export default function SearchPage() { return <Suspense fallback={null}><SearchContent /></Suspense>; }
+export default function SearchPage() { return <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}><SearchContent /></Suspense>; }

@@ -36,10 +36,10 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex flex-col items-center gap-1 mb-6">
-        <div className="w-16 h-16 rounded-full bg-zana-primary-light flex items-center justify-center mb-2">
-          <User size={26} className="text-zana-primary" />
+    <div className="zana-profile-page zana-page-enter min-h-screen bg-gray-50 p-4 pb-28 sm:p-6">
+      <div className="zana-profile-hero mb-6 flex flex-col items-center gap-1 rounded-[28px] px-5 py-8">
+        <div className="mb-2 flex h-20 w-20 items-center justify-center rounded-[26px] bg-white/15 text-white shadow-lg">
+          <User size={30} className="text-[#FFC244]" />
         </div>
         <p className="font-semibold text-gray-900">
           {user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.phone : '…'}
@@ -47,9 +47,9 @@ export default function ProfilePage() {
         <p className="text-xs text-zana-muted">{user?.phone}</p>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
+      <div className="zana-profile-menu divide-y divide-gray-100 overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm">
         {menuItems.map((item, i) => (
-          <Link key={i} href={item.href} className="w-full flex items-center gap-3 px-4 py-3.5 text-left bg-white rounded-xl shadow-sm">
+          <Link key={i} href={item.href} className="zana-profile-menu-item w-full flex items-center gap-3 px-4 py-4 text-left bg-white transition-colors hover:bg-gray-50">
             <item.icon size={18} className="text-gray-700" />
             <span className="flex-1 text-sm text-gray-900">{t(item.label)}</span>
             <ChevronRight size={15} className="text-zana-muted" />
@@ -57,7 +57,7 @@ export default function ProfilePage() {
         ))}
         <button
           onClick={() => setShowLangPicker(true)}
-          className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+          className="zana-profile-menu-item w-full flex items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-gray-50"
         >
           <Globe size={18} className="text-gray-700" />
           <span className="flex-1 text-sm text-gray-900">{t('Language')}</span>
@@ -92,7 +92,7 @@ export default function ProfilePage() {
 
       <button
         onClick={handleLogout}
-        className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3.5 mt-4 text-zana-error"
+        className="zana-logout-button mt-4 w-full flex items-center gap-3 rounded-2xl border border-red-100 bg-white px-4 py-4 text-zana-error shadow-sm transition-colors hover:bg-red-50"
       >
         <LogOut size={18} />
         <span className="text-sm font-medium">{t('Log out')}</span>

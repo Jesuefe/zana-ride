@@ -118,7 +118,7 @@ export default function SavedPlacesPage() {
   };
 
   return (
-    <div className="p-4">
+    <div className="zana-page-enter zana-places-page p-4">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
           <ArrowLeft size={16} />

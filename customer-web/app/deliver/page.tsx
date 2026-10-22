@@ -266,7 +266,7 @@ export default function DeliverPage() {
   };
 
   return (
-    <div className="animate-fade-in pb-6">
+    <div className="animate-fade-in zana-page-enter zana-delivery-page pb-6">
       <BrandedMap
         origin={pickup}
         destination={dropoff ? { lat: dropoff.lat, lng: dropoff.lng } : undefined}

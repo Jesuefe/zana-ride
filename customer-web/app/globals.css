@@ -198,3 +198,1028 @@ button, a, input, textarea, select {
     overflow-x: hidden;
   }
 }
+
+
+/* ── ZANA premium customer experience ─────────────────────────────────── */
+.zana-home {
+  background: #f5f7f6;
+  color: #111b18;
+}
+.zana-home-top {
+  position: relative;
+  padding-top: max(1.75rem, env(safe-area-inset-top));
+  padding-bottom: 2.25rem;
+  border-radius: 0 0 34px 34px;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(255,194,68,.20), transparent 36%),
+    radial-gradient(ellipse at 0% 55%, rgba(91,220,184,.17), transparent 45%),
+    linear-gradient(145deg, #073d32 0%, #006d58 54%, #00a082 100%);
+}
+.zana-home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 1.25rem 1.25rem;
+}
+.zana-brand-mark {
+  display: inline-flex;
+  width: 25px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #ffc244;
+  color: #123e33;
+  font-size: 14px;
+  font-weight: 950;
+  box-shadow: 0 3px 10px rgba(0,0,0,.1);
+}
+.zana-wallet-chip {
+  max-width: 100%;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.10);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  transition: background .2s ease, transform .2s ease;
+}
+.zana-wallet-chip:active { transform: scale(.98); }
+.zana-destination-wrap {
+  position: relative;
+  z-index: 2;
+  max-width: 760px;
+  margin: 0 auto;
+  margin-top: 0;
+}
+.zana-destination-card {
+  background: #fff;
+  border-color: rgba(255,255,255,.75);
+  box-shadow: 0 18px 50px rgba(0,40,31,.16), 0 2px 8px rgba(0,0,0,.035);
+}
+.zana-search-trigger {
+  min-height: 64px;
+  border: 1px solid #e5ece9;
+  background: #f7faf9;
+  transition: border-color .2s ease, background .2s ease, transform .2s ease;
+}
+.zana-search-trigger:hover { border-color: #9bd8ca; background: #f1faf7; }
+.zana-search-trigger:active { transform: scale(.99); }
+.zana-place-chip {
+  min-width: 0;
+  border: 1px solid #edf1ef;
+  background: #fbfcfc;
+  border-radius: 18px;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.zana-place-chip:hover {
+  border-color: #c5e8de;
+  box-shadow: 0 7px 18px rgba(0,90,72,.06);
+}
+.zana-place-chip:active { transform: scale(.97); }
+.zana-home-section {
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.zana-service-tile {
+  position: relative;
+  min-width: 0;
+  min-height: 150px;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid #e9efec;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15,45,35,.025);
+  text-align: left;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.zana-service-tile:hover {
+  transform: translateY(-3px);
+  border-color: #c4e8de;
+  box-shadow: 0 12px 26px rgba(0,90,72,.08);
+}
+.zana-service-tile:active { transform: scale(.985); }
+.zana-service-tile-warm { background: linear-gradient(145deg,#fff 60%,#fffbf0); }
+.zana-service-icon { box-shadow: inset 0 0 0 1px rgba(20,70,55,.025); }
+.zana-promo-panel {
+  isolation: isolate;
+  max-width: 1120px;
+  min-height: 205px;
+  margin-left: auto;
+  margin-right: auto;
+  background: linear-gradient(120deg,#006e59 0%,#008a70 54%,#00a082 100%);
+  box-shadow: 0 12px 28px rgba(0,115,91,.16);
+}
+.zana-promo-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255,255,255,.15) .8px, transparent .8px);
+  background-size: 14px 14px;
+  mask-image: linear-gradient(90deg,transparent 15%,black 100%);
+  opacity: .35;
+}
+.zana-promo-orb {
+  position: absolute;
+  right: 0;
+  top: -52px;
+  z-index: -1;
+  width: 190px;
+  height: 190px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 50%;
+  box-shadow: 0 0 0 24px rgba(255,255,255,.035), 0 0 0 48px rgba(255,255,255,.025);
+}
+.zana-wallet-tip {
+  border: 1px solid #e2eee9;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(15,45,35,.035);
+}
+.zana-ride-sheet {
+  background: #fff;
+  box-shadow: 0 -18px 60px rgba(0,0,0,.12);
+  animation: zanaSheetUp .28s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes zanaSheetUp {
+  from { opacity: .6; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (min-width: 768px) {
+  .zana-home-top { padding-bottom: 3.5rem; }
+  .zana-home-header { padding-left: 2rem; padding-right: 2rem; padding-bottom: 1.5rem; }
+  .zana-destination-wrap { margin-top: 0; padding-left: 1rem; padding-right: 1rem; }
+  .zana-destination-card { padding: 1.75rem; }
+  .zana-home-section { padding-left: 2rem; padding-right: 2rem; }
+  .zana-service-tile { min-height: 172px; padding: 18px; }
+  .zana-promo-panel { min-height: 225px; padding: 1.75rem; }
+}
+@media (max-width: 390px) {
+  .zana-wallet-chip { gap: .45rem; padding-left: .5rem; padding-right: .5rem; }
+  .zana-service-tile { min-height: 137px; padding: 11px; border-radius: 21px; }
+  .zana-service-icon { width: 54px; height: 54px; }
+  .zana-destination-card { padding: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zana-home *, .zana-home *::before, .zana-home *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+.zana-bottom-nav {
+  left: 50%;
+  bottom: 0;
+  width: min(100%, 900px);
+  transform: translateX(-50%);
+  border: 1px solid rgba(226,235,231,.9);
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 -8px 32px rgba(16,47,37,.08);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+}
+.zana-bottom-nav-item {
+  position: relative;
+  padding-top: .55rem;
+  padding-bottom: .45rem;
+  font-weight: 600;
+  transition: color .18s ease, transform .18s ease;
+}
+.zana-bottom-nav-item svg { transition: transform .18s ease; }
+.zana-bottom-nav-item:active svg { transform: scale(.9); }
+.zana-bottom-nav-active { font-weight: 800; }
+.zana-bottom-nav-active::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 30px;
+  height: 3px;
+  border-radius: 0 0 8px 8px;
+  background: #00a082;
+}
+.dark .zana-bottom-nav {
+  background: rgba(23,32,32,.94);
+  border-color: #253130;
+}
+
+.zana-wallet-chip .text-gray-900 { color: #fff !important; }
+.zana-home-top .text-zana-primary { color: #7ce0c5 !important; }
+.zana-home-top .bg-zana-primary-light { background: rgba(255,255,255,.14) !important; }
+
+
+/* ── Shared premium surfaces: marketplace, wallet and profile ──────────── */
+.zana-marketplace-page,
+.zana-wallet-page,
+.zana-profile-page {
+  color: #12211c;
+}
+.zana-marketplace-header {
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+  box-shadow: 0 4px 18px rgba(18,45,35,.025);
+}
+.zana-marketplace-list {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.zana-merchant-card {
+  box-shadow: 0 5px 20px rgba(15,45,35,.045);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.zana-merchant-card:hover {
+  transform: translateY(-2px);
+  border-color: #c4e8de;
+  box-shadow: 0 14px 30px rgba(0,90,72,.08);
+}
+.zana-wallet-page { max-width: 900px; margin: 0 auto; }
+.zana-wallet-balance {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(255,194,68,.25), transparent 42%),
+    linear-gradient(135deg,#063e33 0%,#00765f 60%,#00a082 100%);
+  box-shadow: 0 16px 36px rgba(0,105,82,.18);
+}
+.zana-wallet-balance::after {
+  content: "";
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  right: -75px;
+  top: -105px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 50%;
+  box-shadow: 0 0 0 22px rgba(255,255,255,.045), 0 0 0 46px rgba(255,255,255,.025);
+  pointer-events: none;
+}
+.zana-wallet-balance > * { position: relative; z-index: 1; }
+.zana-transaction-row { transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+.zana-transaction-row:hover {
+  border-color: #cde8df;
+  box-shadow: 0 8px 20px rgba(15,45,35,.045);
+}
+.zana-topup-modal { box-shadow: 0 -18px 60px rgba(0,0,0,.12); }
+.zana-profile-page { max-width: 850px; margin: 0 auto; }
+.zana-profile-hero {
+  color: #fff;
+  background:
+    radial-gradient(ellipse at 100% 0%,rgba(255,194,68,.20),transparent 45%),
+    linear-gradient(135deg,#073d32 0%,#00836a 100%);
+  box-shadow: 0 14px 30px rgba(0,105,82,.12);
+}
+.zana-profile-hero .text-gray-900 { color: #fff; }
+.zana-profile-hero .text-zana-muted { color: rgba(255,255,255,.7); }
+.zana-profile-menu-item { min-height: 58px; }
+.zana-profile-menu-item + .zana-profile-menu-item { border-top: 1px solid #f0f3f1; }
+.zana-profile-menu-item:active { background: #f1faf7; }
+.zana-logout-button { min-height: 56px; }
+.dark .zana-marketplace-page,
+.dark .zana-wallet-page,
+.dark .zana-profile-page { color: var(--foreground); }
+.dark .zana-marketplace-header { background: var(--zana-surface) !important; border-color: var(--zana-border) !important; }
+.dark .zana-merchant-card,
+.dark .zana-transaction-row,
+.dark .zana-profile-menu,
+.dark .zana-profile-menu-item,
+.dark .zana-logout-button,
+.dark .zana-topup-modal { background: var(--zana-surface) !important; border-color: var(--zana-border) !important; }
+.dark .zana-profile-menu-item + .zana-profile-menu-item { border-color: var(--zana-border); }
+@media (min-width: 768px) {
+  .zana-marketplace-page { padding-bottom: 3rem; }
+  .zana-marketplace-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; gap: 1rem; }
+  .zana-merchant-card { margin-bottom: 0; }
+}
+@media (min-width: 1100px) {
+  .zana-marketplace-list { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+
+
+/* ── ZANA clean motion system — quiet, spacious, ride-first ─────────────── */
+:root {
+  --background: #f8faf9;
+  --foreground: #17211e;
+  --zana-border: #e8eeeb;
+}
+html { scroll-behavior: smooth; }
+body { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+.zana-home {
+  background: #f8faf9;
+  color: #17211e;
+}
+.zana-home-top {
+  padding-top: max(1.1rem, env(safe-area-inset-top));
+  padding-bottom: .65rem;
+  border-radius: 0;
+  background: #f8faf9;
+}
+.zana-home-top .text-white { color: #17211e !important; }
+.zana-home-top .text-white\/70,
+.zana-home-top .text-white\/75 { color: #75827d !important; }
+.zana-home-top .text-white\/\[.*\] { color: #75827d !important; }
+.zana-home-top .zana-brand-mark {
+  width: 29px;
+  height: 29px;
+  border-radius: 10px;
+  background: #00a082;
+  color: #fff;
+  box-shadow: none;
+}
+.zana-home-top .text-\[10px\] { letter-spacing: .14em; color: #687770 !important; }
+.zana-home-top .text-3xl {
+  margin-top: .15rem;
+  font-size: clamp(1.55rem, 5vw, 1.9rem);
+  font-weight: 750;
+  letter-spacing: -.045em;
+}
+.zana-home-top .text-zana-primary { color: #00a082 !important; }
+.zana-wallet-chip {
+  border: 1px solid #e4ebe7;
+  background: #fff;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.zana-wallet-chip .text-gray-900 { color: #17211e !important; }
+.zana-wallet-chip .bg-zana-primary-light { background: #e8f7f2; }
+.zana-destination-wrap { max-width: 780px; padding-inline: 1rem; }
+.zana-destination-card {
+  padding: 1.1rem 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.zana-destination-card h2 {
+  margin-bottom: .85rem;
+  font-size: clamp(1.45rem, 4.5vw, 1.8rem);
+  font-weight: 750;
+  letter-spacing: -.045em;
+}
+.zana-search-trigger {
+  min-height: 58px;
+  padding: .65rem .8rem;
+  border: 1px solid #e3eae6;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(24,48,38,.025);
+}
+.zana-search-trigger:hover { background: #fff; border-color: #a8dccc; }
+.zana-search-trigger > div {
+  border: 0;
+  background: #f1f5f3;
+  border-radius: 11px;
+}
+.zana-place-chip {
+  padding: .7rem .65rem;
+  border: 1px solid #e8eeeb;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: none;
+}
+.zana-place-chip:hover { box-shadow: none; background: #f2faf7; }
+.zana-place-chip > div { box-shadow: none !important; }
+.zana-home-section { padding-inline: 1rem; margin-top: 2rem; }
+.zana-home-section h2 {
+  font-size: 1.2rem;
+  font-weight: 750;
+  letter-spacing: -.035em;
+}
+.zana-service-grid { gap: .7rem !important; }
+.zana-service-tile {
+  min-height: 126px;
+  padding: .85rem;
+  gap: .6rem;
+  border: 1px solid #e8eeeb;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: none;
+}
+.zana-service-tile:hover {
+  transform: translateY(-2px);
+  border-color: #c8e7dc;
+  box-shadow: 0 7px 18px rgba(0,90,72,.045);
+}
+.zana-service-icon {
+  width: 47px;
+  height: 47px;
+  border-radius: 14px;
+  box-shadow: none;
+}
+.zana-service-tile p.text-sm { font-weight: 700; letter-spacing: -.015em; }
+.zana-service-tile p.text-\[11px\] { color: #7a8781; }
+.zana-promo-panel {
+  min-height: 148px;
+  border-radius: 20px;
+  background: #006f5b !important;
+  box-shadow: none;
+}
+.zana-promo-panel::after { opacity: .12; }
+.zana-promo-panel button { background: rgba(255,255,255,.16); transition: background .2s ease, transform .2s ease; }
+.zana-promo-panel button:hover { background: rgba(255,255,255,.24); }
+.zana-wallet-tip { border-color: #e8eeeb; border-radius: 16px; box-shadow: none; }
+.zana-bottom-nav {
+  width: 100%;
+  border: 1px solid #e9efec;
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -4px 20px rgba(16,47,37,.045);
+}
+.zana-bottom-nav-active::before { top: -7px; width: 22px; }
+.zana-merchant-card,
+.zana-transaction-row,
+.zana-profile-menu-item,
+.zana-search-trigger,
+.zana-service-tile,
+.zana-place-chip,
+.zana-wallet-chip,
+button, a {
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(.2,.75,.25,1);
+}
+.zana-home-section,
+.zana-destination-wrap,
+.zana-promo-panel,
+.zana-wallet-tip {
+  animation: zanaContentEnter .42s cubic-bezier(.2,.75,.25,1) both;
+}
+.zana-home-section { animation-delay: .04s; }
+.zana-promo-panel { animation-delay: .08s; }
+.zana-wallet-tip { animation-delay: .1s; }
+@keyframes zanaContentEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(0,160,130,.32);
+  outline-offset: 3px;
+}
+.dark .zana-home { background: #101816; color: #eff5f2; }
+.dark .zana-home-top { background: #101816; }
+.dark .zana-home-top .text-white { color: #eff5f2 !important; }
+.dark .zana-home-top .text-white\/70,
+.dark .zana-home-top .text-white\/75 { color: #9aa9a2 !important; }
+.dark .zana-wallet-chip,
+.dark .zana-search-trigger,
+.dark .zana-place-chip,
+.dark .zana-service-tile,
+.dark .zana-wallet-tip {
+  background: #17211e;
+  border-color: #2a3832;
+}
+.dark .zana-wallet-chip .text-gray-900,
+.dark .zana-place-chip .text-gray-900,
+.dark .zana-service-tile .text-gray-900 { color: #eff5f2 !important; }
+@media (min-width: 768px) {
+  .zana-home-top { padding-bottom: .75rem; }
+  .zana-destination-wrap { margin-top: 0; }
+  .zana-destination-card { padding-top: 1.25rem; }
+  .zana-home-section { margin-top: 2.5rem; }
+  .zana-service-tile { min-height: 140px; padding: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .zana-home-section, .zana-destination-wrap, .zana-promo-panel, .zana-wallet-tip {
+    animation: none !important;
+  }
+}
+
+
+/* ── Contrast-safe theme tokens + refined motion (preview branch) ────────
+   Keep text readable on both light and dark surfaces, including legacy
+   Tailwind utility classes that pre-date the theme tokens. */
+:root {
+  color-scheme: light;
+  --zana-canvas: #f7faf8;
+  --zana-card: #ffffff;
+  --zana-card-raised: #ffffff;
+  --zana-text: #14221d;
+  --zana-text-secondary: #53635c;
+  --zana-text-muted: #6c7b74;
+  --zana-line: #e2ebe6;
+  --zana-focus: rgba(0,160,130,.34);
+  --zana-elevation-1: 0 2px 8px rgba(20,50,38,.035);
+  --zana-elevation-2: 0 10px 28px rgba(20,50,38,.07);
+}
+.dark {
+  color-scheme: dark;
+  --background: #0c1210;
+  --foreground: #f2f7f4;
+  --zana-canvas: #0c1210;
+  --zana-card: #151e1a;
+  --zana-card-raised: #1a2520;
+  --zana-text: #f2f7f4;
+  --zana-text-secondary: #c0cec6;
+  --zana-text-muted: #9aaba1;
+  --zana-line: #2b3931;
+  --zana-border: #2b3931;
+  --zana-focus: rgba(70,218,179,.45);
+  --zana-elevation-1: 0 2px 8px rgba(0,0,0,.18);
+  --zana-elevation-2: 0 12px 30px rgba(0,0,0,.25);
+}
+html, body { background-color: var(--background); color: var(--foreground); }
+::selection { background: rgba(0,160,130,.2); color: inherit; }
+:where(button,a,input,textarea,select,[role="button"]):focus-visible {
+  outline: 3px solid var(--zana-focus);
+  outline-offset: 3px;
+}
+/* Readable legacy utility text and borders in dark mode. */
+.dark .text-black,
+.dark .text-gray-950,
+.dark .text-gray-900 { color: var(--foreground) !important; }
+.dark .text-gray-800 { color: #e0e9e4 !important; }
+.dark .text-gray-700 { color: #d0dbd4 !important; }
+.dark .text-gray-600 { color: #b8c7be !important; }
+.dark .text-gray-500 { color: #a5b5ab !important; }
+.dark .text-gray-400 { color: #91a197 !important; }
+.dark .text-gray-300 { color: #83948a !important; }
+.dark .bg-gray-50 { background-color: #111a16 !important; }
+.dark .bg-gray-100 { background-color: #1a2520 !important; }
+.dark .bg-gray-200 { background-color: #29372f !important; }
+.dark .bg-white { background-color: var(--zana-card) !important; }
+.dark .border-gray-50,
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 { border-color: var(--zana-line) !important; }
+.dark input, .dark textarea, .dark select {
+  color: var(--foreground);
+  background-color: var(--zana-card);
+  border-color: var(--zana-line);
+}
+.dark input::placeholder, .dark textarea::placeholder { color: #91a197; opacity: 1; }
+.dark .zana-home { background: var(--zana-canvas); color: var(--zana-text); }
+.dark .zana-home-top { background: var(--zana-canvas); }
+.dark .zana-destination-card { color: var(--zana-text); }
+.dark .zana-search-trigger > div { background: #202c26; }
+.dark .zana-service-tile p.text-\\[11px\\],
+.dark .zana-place-chip p.text-\\[10px\\] { color: var(--zana-text-muted) !important; }
+.dark .zana-promo-panel { color: #fff; }
+.dark .zana-profile-menu-item:active { background: #1d3028 !important; }
+.dark .zana-ride-sheet,
+.dark .zana-topup-modal { background: var(--zana-card) !important; color: var(--foreground); }
+.dark .zana-ride-sheet .text-gray-900,
+.dark .zana-topup-modal .text-gray-900 { color: var(--foreground) !important; }
+.dark .zana-ride-sheet .border-gray-100,
+.dark .zana-ride-sheet .border-gray-200 { border-color: var(--zana-line) !important; }
+.dark .zana-wallet-tip { background: var(--zana-card); border-color: var(--zana-line); }
+.dark .zana-bottom-nav-item { color: #b8c7be; }
+.dark .zana-bottom-nav-active { color: #55d9b5; }
+.dark .zana-profile-menu-item + .zana-profile-menu-item { border-color: var(--zana-line); }
+.dark .fixed.inset-0.z-\\[80\\] { background: rgba(12,18,16,.97) !important; }
+.dark .fixed.inset-0.z-50 > .w-full.bg-white { background: var(--zana-card) !important; color: var(--foreground); }
+/* Ensure contrast even when an old component uses muted text on a white card. */
+.zana-home, .zana-marketplace-page, .zana-wallet-page, .zana-profile-page {
+  color: var(--zana-text);
+}
+.zana-wallet-chip, .zana-search-trigger, .zana-place-chip,
+.zana-service-tile, .zana-wallet-tip, .zana-merchant-card,
+.zana-transaction-row, .zana-profile-menu, .zana-profile-menu-item {
+  transition:
+    transform 220ms cubic-bezier(.2,.75,.25,1),
+    box-shadow 220ms cubic-bezier(.2,.75,.25,1),
+    border-color 220ms ease,
+    background-color 220ms ease,
+    color 180ms ease;
+}
+.zana-service-tile:hover, .zana-merchant-card:hover {
+  box-shadow: var(--zana-elevation-2);
+}
+.zana-search-trigger:focus-visible, .zana-place-chip:focus-visible,
+.zana-service-tile:focus-visible, .zana-wallet-chip:focus-visible {
+  outline: 3px solid var(--zana-focus);
+  outline-offset: 3px;
+}
+/* Subtle, intentional entrance motion: staggered without delaying interaction. */
+@keyframes zanaPremiumEnter {
+  0% { opacity: 0; transform: translate3d(0,10px,0); }
+  100% { opacity: 1; transform: translate3d(0,0,0); }
+}
+.zana-home .zana-destination-wrap { animation: zanaPremiumEnter 420ms cubic-bezier(.2,.75,.25,1) both; }
+.zana-home .zana-home-section { animation: zanaPremiumEnter 480ms cubic-bezier(.2,.75,.25,1) both; }
+.zana-home .zana-home-section:nth-of-type(2) { animation-delay: 45ms; }
+.zana-home .zana-promo-panel { animation: zanaPremiumEnter 520ms cubic-bezier(.2,.75,.25,1) 70ms both; }
+.zana-home .zana-wallet-tip { animation: zanaPremiumEnter 520ms cubic-bezier(.2,.75,.25,1) 100ms both; }
+.zana-service-tile:active, .zana-place-chip:active, .zana-wallet-chip:active {
+  transform: scale(.985);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* ── Wallet refinement: clear hierarchy, premium tactility ─────────────── */
+.zana-wallet-screen { max-width: 920px; margin-inline: auto; }
+.zana-wallet-heading { padding-top: max(.35rem, env(safe-area-inset-top)); }
+.zana-wallet-balance-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(1.35rem, 4vw, 2rem);
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 28px;
+  background:
+    radial-gradient(ellipse at 92% 0%, rgba(255,194,68,.24), transparent 36%),
+    linear-gradient(135deg, #073d32 0%, #00765f 58%, #00a082 100%);
+  box-shadow: 0 18px 38px rgba(0,105,82,.16), inset 0 1px 0 rgba(255,255,255,.13);
+  animation: zanaWalletReveal 460ms cubic-bezier(.2,.75,.25,1) both;
+}
+.zana-wallet-balance-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 240px;
+  height: 240px;
+  top: -145px;
+  right: -50px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 50%;
+  box-shadow: 0 0 0 22px rgba(255,255,255,.035), 0 0 0 46px rgba(255,255,255,.025);
+  pointer-events: none;
+}
+.zana-wallet-balance-card::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 120px;
+  height: 120px;
+  bottom: -78px;
+  right: 18%;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.zana-wallet-card-topline { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.zana-wallet-eyebrow { color:rgba(255,255,255,.76); font-size:.82rem; font-weight:650; }
+.zana-wallet-card-mark {
+  display:grid; place-items:center; width:34px; height:34px; border-radius:12px;
+  color:#153e33; background:#ffc244; font-size:16px; font-weight:950;
+  box-shadow:0 4px 12px rgba(0,0,0,.12);
+}
+.zana-wallet-amount { color:#fff; font-variant-numeric:tabular-nums; letter-spacing:-.055em; line-height:1.08; overflow-wrap:anywhere; }
+.zana-wallet-amount span { font-size:.43em; letter-spacing:-.01em; opacity:.86; font-weight:750; }
+.zana-wallet-card-note { margin-top:.75rem; color:rgba(255,255,255,.76); font-size:.78rem; line-height:1.45; max-width:28rem; }
+.zana-wallet-actions { display:flex; gap:.65rem; margin-top:1.3rem; }
+.zana-wallet-primary-action {
+  min-height:48px; min-width:124px; padding:.8rem 1.15rem; border-radius:15px;
+  color:#173d32; background:#ffc244; box-shadow:0 4px 12px rgba(0,0,0,.08);
+  transition:transform 180ms cubic-bezier(.2,.75,.25,1), background-color 180ms ease, box-shadow 180ms ease;
+}
+.zana-wallet-primary-action:hover { background:#ffd06b; box-shadow:0 8px 18px rgba(0,0,0,.13); transform:translateY(-1px); }
+.zana-transactions-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.zana-transaction-count {
+  display:grid; place-items:center; min-width:32px; height:32px; padding:0 .5rem;
+  border:1px solid var(--zana-border); border-radius:11px; color:var(--zana-text-secondary);
+  background:var(--zana-card); font-size:.75rem; font-weight:800; font-variant-numeric:tabular-nums;
+}
+.zana-transactions-list { display:flex; flex-direction:column; gap:.65rem; }
+.zana-transaction-row {
+  min-height:76px; border-color:var(--zana-line, #e2ebe6) !important;
+  border-radius:18px !important; box-shadow:var(--zana-elevation-1) !important;
+  animation: zanaWalletReveal 380ms cubic-bezier(.2,.75,.25,1) both;
+}
+.zana-transaction-row:hover { transform:translateY(-1px); box-shadow:var(--zana-elevation-2) !important; }
+.zana-wallet-modal { border:1px solid var(--zana-line, #e2ebe6); box-shadow:0 -20px 70px rgba(0,0,0,.18); }
+.zana-wallet-modal input { min-height:48px; border-radius:13px; }
+@keyframes zanaWalletReveal {
+  from { opacity:0; transform:translate3d(0,9px,0); }
+  to { opacity:1; transform:translate3d(0,0,0); }
+}
+.dark .zana-wallet-screen { color:var(--foreground); }
+.dark .zana-wallet-screen .zana-wallet-heading .text-gray-950,
+.dark .zana-wallet-screen .zana-transactions-heading .text-gray-900 { color:var(--foreground) !important; }
+.dark .zana-wallet-screen .zana-transaction-row { background:var(--zana-card) !important; border-color:var(--zana-line) !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-gray-900 { color:var(--foreground) !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-gray-400 { color:var(--zana-text-muted, #9aaba1) !important; }
+.dark .zana-wallet-screen .zana-transaction-row .bg-green-50 { background:#16372b !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-green-600 { color:#63dfa7 !important; }
+.dark .zana-wallet-screen .zana-transaction-row .bg-red-50 { background:#3b2220 !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-red-500 { color:#ff8c82 !important; }
+.dark .zana-wallet-modal { background:var(--zana-card) !important; border-color:var(--zana-line) !important; }
+.dark .zana-wallet-modal h2,
+.dark .zana-wallet-modal .text-gray-900 { color:var(--foreground) !important; }
+.dark .zana-wallet-modal .bg-gray-100 { background:#25332c !important; }
+.dark .zana-wallet-modal input { color:var(--foreground); background:#111a16; border-color:var(--zana-line); }
+@media (max-width: 390px) {
+  .zana-wallet-screen { padding-inline:1rem; }
+  .zana-wallet-balance-card { padding:1.25rem; border-radius:24px; }
+  .zana-wallet-amount { font-size:clamp(2rem, 10vw, 2.6rem); }
+  .zana-wallet-card-note { max-width:17rem; }
+  .zana-transaction-row { padding:.85rem !important; gap:.65rem !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zana-wallet-balance-card, .zana-transaction-row { animation:none !important; }
+}
+
+
+/* ── Shared ZANA loading language: route transitions, data waits and skeletons ── */
+.zana-loading {
+  --loading-green: #00a082;
+  --loading-yellow: #ffc244;
+  color: #17211e;
+}
+.zana-loading-page {
+  min-height: min(76vh, 760px);
+  width: min(100% - 2rem, 560px);
+  margin: 0 auto;
+  padding: max(3rem, env(safe-area-inset-top)) 0 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+}
+.zana-loading-brand {
+  width: 58px;
+  height: 58px;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.zana-loading-mark {
+  position: relative;
+  z-index: 2;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--loading-green);
+  color: #fff;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: -.08em;
+  box-shadow: 0 8px 20px rgba(0,160,130,.2);
+  animation: zanaLoadingLift 1.5s ease-in-out infinite;
+}
+.zana-loading-orbit {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid rgba(0,160,130,.25);
+  border-radius: 18px;
+  transform: rotate(0);
+  animation: zanaLoadingOrbit 2.4s linear infinite;
+}
+.zana-loading-orbit-a { border-top-color: var(--loading-yellow); border-right-color: transparent; }
+.zana-loading-orbit-b { inset: 5px; border-bottom-color: var(--loading-green); border-left-color: transparent; animation-direction: reverse; animation-duration: 3.2s; }
+.zana-loading-copy { width: 100%; display: flex; flex-direction: column; align-items: center; gap: .8rem; }
+.zana-loading-title { color: #53635c; font-size: .86rem; font-weight: 650; letter-spacing: -.01em; }
+.zana-loading-track { display: block; width: 116px; height: 3px; overflow: hidden; border-radius: 999px; background: #e4efeb; }
+.zana-loading-track > span { display: block; width: 42%; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--loading-green),var(--loading-yellow)); animation: zanaLoadingProgress 1.15s cubic-bezier(.4,0,.2,1) infinite; }
+.zana-loading-skeletons { width: 100%; display: grid; gap: .75rem; margin-top: 1rem; }
+.zana-loading-skeleton { position: relative; overflow: hidden; background: #edf2ef; border: 1px solid rgba(224,233,228,.7); border-radius: 16px; }
+.zana-loading-skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(100deg,transparent 15%,rgba(255,255,255,.8) 48%,transparent 80%); animation: zanaLoadingShimmer 1.5s ease-in-out infinite; }
+.zana-loading-skeleton-wide { height: 88px; }
+.zana-loading-skeleton-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; }
+.zana-loading-skeleton-card { height: 112px; }
+.zana-loading-skeleton-line { height: 54px; }
+.zana-loading-skeleton-short { width: 68%; }
+.zana-loading-inline { display: inline-flex; align-items: center; gap: .65rem; min-height: 30px; }
+.zana-loading-inline .zana-loading-brand { width: 30px; height: 30px; }
+.zana-loading-inline .zana-loading-mark { width: 24px; height: 24px; border-radius: 8px; font-size: 14px; box-shadow: none; }
+.zana-loading-inline .zana-loading-orbit { border-radius: 10px; }
+.zana-loading-inline .zana-loading-copy { width: auto; align-items: flex-start; gap: .35rem; }
+.zana-loading-inline .zana-loading-title { font-size: .8rem; }
+.zana-loading-inline .zana-loading-track { width: 84px; height: 2px; }
+.zana-loading-inline .zana-loading-skeletons { display: none; }
+.zana-page-enter { animation: zanaPageEnter .32s cubic-bezier(.2,.75,.25,1) both; }
+.zana-skeleton-block { position: relative; overflow: hidden; background: var(--zana-card, #edf2ef); border: 1px solid var(--zana-border, #e5ece8); border-radius: 16px; }
+.zana-skeleton-block::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(100deg,transparent 10%,rgba(255,255,255,.7) 50%,transparent 90%); animation: zanaLoadingShimmer 1.5s ease-in-out infinite; }
+@keyframes zanaLoadingLift { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-3px) scale(1.025); } }
+@keyframes zanaLoadingOrbit { to { transform: rotate(360deg); } }
+@keyframes zanaLoadingProgress { 0% { transform: translateX(-120%); } 100% { transform: translateX(300%); } }
+@keyframes zanaLoadingShimmer { 100% { transform: translateX(100%); } }
+@keyframes zanaPageEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.dark .zana-loading { color: #eef5f1; }
+.dark .zana-loading-title { color: #aab8b1; }
+.dark .zana-loading-track { background: #2b3933; }
+.dark .zana-loading-skeleton, .dark .zana-skeleton-block { background: #1b2822; border-color: #2a3932; }
+.dark .zana-loading-skeleton::after, .dark .zana-skeleton-block::after { background: linear-gradient(100deg,transparent 10%,rgba(255,255,255,.055) 50%,transparent 90%); }
+@media (prefers-reduced-motion: reduce) {
+  .zana-loading *, .zana-loading *::before, .zana-loading *::after, .zana-skeleton-block::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* Micro-interactions for the main app navigation */
+.zana-bottom-nav-item { -webkit-tap-highlight-color: transparent; }
+.zana-bottom-nav-active svg { animation: zanaNavArrive 260ms cubic-bezier(.2,.9,.3,1.25) both; }
+.zana-bottom-nav-active span { animation: zanaNavLabel 220ms ease both; }
+.zana-bottom-nav a:focus-visible { outline-offset: -2px; border-radius: 12px; }
+@keyframes zanaNavArrive { from { transform: translateY(2px) scale(.86); } to { transform: translateY(0) scale(1); } }
+@keyframes zanaNavLabel { from { opacity: .65; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .zana-bottom-nav-active svg, .zana-bottom-nav-active span { animation: none !important; }
+}
+
+
+/* ── Screen-by-screen polish for the remaining customer journey ────────── */
+.zana-ride-search { isolation: isolate; }
+.zana-ride-search input,
+.zana-delivery-page input,
+.zana-schedule-page input,
+.zana-share-page input,
+.zana-auth-page input {
+  min-height: 46px;
+  border-radius: 13px;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.zana-ride-search input:focus,
+.zana-delivery-page input:focus,
+.zana-schedule-page input:focus,
+.zana-share-page input:focus,
+.zana-auth-page input:focus {
+  border-color: rgba(0,160,130,.65);
+  box-shadow: 0 0 0 4px rgba(0,160,130,.09);
+}
+.zana-ride-options { background: #f7faf8; }
+.zana-ride-options .rounded-t-3xl {
+  border: 1px solid #e8eeeb;
+  border-bottom: 0;
+  box-shadow: 0 -12px 38px rgba(18,45,35,.09);
+}
+.zana-tracking-page { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.zana-tracking-page .rounded-2xl,
+.zana-tracking-page .rounded-xl {
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.zana-orders-page { max-width: 960px; margin-inline: auto; }
+.zana-orders-page .rounded-2xl.bg-white {
+  border: 1px solid #e7eeea;
+  box-shadow: 0 4px 18px rgba(17,43,33,.035);
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.zana-orders-page .rounded-2xl.bg-white:hover {
+  border-color: #cce7dd;
+  box-shadow: 0 10px 24px rgba(17,43,33,.055);
+}
+.zana-schedule-page { max-width: 860px; margin-inline: auto; }
+.zana-schedule-page > div:first-child { box-shadow: 0 3px 14px rgba(17,43,33,.035); }
+.zana-share-page { min-height: calc(100dvh - 5rem); background: #f8faf9; }
+.zana-share-page > div.p-4 { width: min(100%, 680px); margin-inline: auto; }
+.zana-delivery-page { width: min(100%, 960px); margin-inline: auto; }
+.zana-places-page { width: min(100%, 760px); margin-inline: auto; }
+.zana-places-page .rounded-2xl,
+.zana-places-page .rounded-xl { transition: border-color .18s ease, box-shadow .18s ease; }
+.zana-auth-page { width: min(100%, 540px); margin-inline: auto; }
+.zana-auth-page input { min-height: 49px; }
+.zana-auth-page button { transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
+.zana-auth-page button:active { transform: scale(.985); }
+.zana-store-page { width: min(100%, 1040px); margin-inline: auto; }
+.zana-store-page > .bg-white { border: 1px solid #e7eeea; box-shadow: 0 5px 22px rgba(17,43,33,.045); }
+.dark .zana-ride-options { background: #101816; }
+.dark .zana-ride-options .rounded-t-3xl,
+.dark .zana-orders-page .rounded-2xl.bg-white,
+.dark .zana-store-page > .bg-white {
+  border-color: #2a3932;
+  box-shadow: 0 -8px 30px rgba(0,0,0,.18);
+}
+.dark .zana-share-page { background: #101816; }
+.dark .zana-orders-page .rounded-2xl.bg-white:hover { border-color: #37584a; }
+@media (min-width: 768px) {
+  .zana-orders-page { padding-top: 2rem; }
+  .zana-schedule-page > div:first-child { border-radius: 0 0 20px 20px; }
+}
+
+
+.zana-settings-page { width: min(100%, 800px); margin-inline: auto; }
+.zana-settings-page .bg-white.rounded-2xl {
+  border: 1px solid #e7eeea;
+  box-shadow: 0 5px 20px rgba(17,43,33,.035);
+}
+.zana-settings-page input { min-height: 36px; }
+.dark .zana-settings-page .bg-white.rounded-2xl { border-color: #2a3932; }
+
+
+/* ── ZANA liquid glass: restrained, readable, touch-friendly ────────────── */
+.zana-bottom-nav {
+  left: 50%;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  width: min(calc(100% - 24px), 640px);
+  transform: translateX(-50%);
+  padding-top: .45rem;
+  padding-bottom: .45rem;
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 26px;
+  background: rgba(250,253,251,.82);
+  box-shadow: 0 12px 36px rgba(12,43,32,.14), inset 0 1px 0 rgba(255,255,255,.92);
+  backdrop-filter: blur(28px) saturate(175%);
+  -webkit-backdrop-filter: blur(28px) saturate(175%);
+  isolation: isolate;
+}
+.zana-bottom-nav::before {
+  content: "";
+  position: absolute;
+  inset: 1px 12% auto;
+  height: 1px;
+  border-radius: 100%;
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);
+  pointer-events: none;
+}
+.zana-bottom-nav-item {
+  min-height: 48px;
+  justify-content: center;
+  border-radius: 18px;
+  gap: 3px;
+  padding-inline: .5rem;
+}
+.zana-bottom-nav-active {
+  color: #007c65 !important;
+}
+.zana-bottom-nav-active::before {
+  top: 2px;
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(0,160,130,.22);
+}
+.zana-bottom-nav-item:active {
+  background: rgba(0,160,130,.07);
+}
+.dark .zana-bottom-nav {
+  background: rgba(18,29,24,.84);
+  border-color: rgba(180,218,201,.16);
+  box-shadow: 0 12px 36px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.09);
+}
+.dark .zana-bottom-nav::before {
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+}
+.dark .zana-bottom-nav-active { color: #70e2c1 !important; }
+.dark .zana-bottom-nav-item:active { background: rgba(112,226,193,.09); }
+
+/* Frosted ride details stay opaque enough to keep prices and actions legible. */
+.zana-glass-sheet {
+  background: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(255,255,255,.78);
+  border-bottom: 0;
+  box-shadow: 0 -16px 46px rgba(10,44,32,.16), inset 0 1px 0 rgba(255,255,255,.9) !important;
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+.zana-glass-control,
+.zana-glass-status {
+  border: 1px solid rgba(255,255,255,.68);
+  box-shadow: 0 8px 24px rgba(10,40,30,.12), inset 0 1px 0 rgba(255,255,255,.85);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+.zana-glass-status:not(.bg-red-50) { background: rgba(255,255,255,.78) !important; }
+.zana-glass-info {
+  background: rgba(232,250,243,.78) !important;
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+}
+.zana-wallet-screen .fixed.inset-0.z-50 > .absolute.inset-0 {
+  background: rgba(7,20,15,.42) !important;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+.zana-wallet-modal {
+  background: rgba(255,255,255,.94) !important;
+  backdrop-filter: blur(26px) saturate(155%);
+  -webkit-backdrop-filter: blur(26px) saturate(155%);
+}
+.dark .zana-glass-sheet {
+  background: rgba(20,31,26,.94) !important;
+  border-color: rgba(190,220,205,.12);
+  box-shadow: 0 -16px 46px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+.dark .zana-glass-control,
+.dark .zana-glass-status {
+  border-color: rgba(190,220,205,.16);
+  box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.dark .zana-glass-status:not(.bg-red-50) { background: rgba(20,31,26,.82) !important; color: #eef8f2 !important; }
+.dark .zana-glass-info { background: rgba(15,75,55,.68) !important; }
+@media (max-width: 360px) {
+  .zana-bottom-nav { width: calc(100% - 16px); bottom: calc(6px + env(safe-area-inset-bottom)); }
+  .zana-bottom-nav-item { padding-inline: .25rem; }
+  .zana-bottom-nav-item span { font-size: 10px; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .zana-bottom-nav { background: rgba(250,253,251,.97); }
+  .zana-glass-sheet, .zana-wallet-modal { background: #fff !important; }
+  .zana-glass-control, .zana-glass-status { background: rgba(255,255,255,.97); }
+  .dark .zana-bottom-nav, .dark .zana-glass-sheet, .dark .zana-wallet-modal { background: #141f1a !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zana-bottom-nav, .zana-glass-sheet, .zana-glass-control, .zana-glass-status {
+    transition: none !important;
+    animation: none !important;
+  }
+}
