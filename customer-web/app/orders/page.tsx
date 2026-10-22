@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Package, MapPin, Navigation, ShoppingBag, Star, Clock3, ChevronRight, X } from 'lucide-react';
+import { Package, MapPin, Navigation, ShoppingBag, Star, Clock3, ChevronRight, X, Search, ArrowUpRight, PackageCheck } from 'lucide-react';
 import ReviewSheet from '../../components/ReviewSheet';
 import DeliveryTracker from '../../components/DeliveryTracker';
 import { fetchMyDeliveries, Delivery } from '../../lib/api/deliveries';
@@ -63,6 +63,7 @@ function OrdersContent() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [tab, setTab] = useState<'orders' | 'deliveries'>('orders');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [resolvingItem, setResolvingItem] = useState<string | null>(null);
@@ -79,7 +80,15 @@ function OrdersContent() {
     return () => clearInterval(interval);
   }, []);
 
-  const activeOrders = useMemo(() => orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status)), [orders]);
+  const matchesSearch = (value: unknown) => String(value ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase());
+  const matchesOrder = (o: any) => !searchQuery.trim() || [
+    o.id, o.trackingCode, o.merchant?.businessName, o.status,
+    ...(o.items ?? []).map((i: any) => i.product?.name),
+  ].some(matchesSearch);
+  const activeOrders = useMemo(() => orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status) && matchesOrder(o)), [orders, searchQuery]);
+  const filteredDeliveries = useMemo(() => deliveries.filter(d => !searchQuery.trim() || [
+    d.id, d.itemDescription, d.status, d.pickupAddress, d.dropoffAddress,
+  ].some(matchesSearch)), [deliveries, searchQuery]);
 
   const resolveItem = async (orderId: string, itemId: string, action: 'REFUND' | 'REPLACE' | 'REMOVE', replacementProductId?: string) => {
     setResolvingItem(itemId);
@@ -109,7 +118,7 @@ function OrdersContent() {
       setResolvingItem(null);
     }
   };
-  const historyOrders = useMemo(() => orders.filter(o => !ACTIVE_ORDER_STATUSES.includes(o.status)), [orders]);
+  const historyOrders = useMemo(() => orders.filter(o => !ACTIVE_ORDER_STATUSES.includes(o.status) && matchesOrder(o)), [orders, searchQuery]);
 
   const renderOrder = (o: any, active: boolean) => {
     const delivery = o.delivery;
@@ -203,13 +212,48 @@ function OrdersContent() {
   };
 
   return (
-    <div className="p-4 pb-8">
-      <div className="mb-4">
-        <h1 className="text-xl font-black text-gray-900">{t('My Orders')}</h1>
-        <p className="text-xs text-zana-muted mt-1">{t('Track your orders and deliveries in one place.')}</p>
-      </div>
+    <div className="min-h-screen bg-[#F4F7F6] px-4 py-5 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6 overflow-hidden rounded-[28px] bg-[#102B24] p-5 text-white shadow-sm sm:p-8">
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+            <div>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE4CE]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#FFC244]" /> {t('YOUR ZANA JOURNEY')}
+              </div>
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">{t('Everything,')} <span className="text-[#FFC244]">{t('on the way.')}</span></h1>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">{t('Track your orders and deliveries in one place.')}</p>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-white/70">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><PackageCheck size={17} /></span>
+              {t('Your activity, all in one place')}
+            </div>
+          </div>
+        </div>
 
-      <div className="flex gap-2 mb-5">
+        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E2F5EF] text-[#008B71]"><Clock3 size={20}/></span>
+            <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">{t('In progress')}</p><p className="mt-0.5 text-2xl font-black text-gray-900">{orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status)).length}</p></div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF3D7] text-[#9A6A00]"><PackageCheck size={20}/></span>
+            <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">{t('Completed orders')}</p><p className="mt-0.5 text-2xl font-black text-gray-900">{orders.filter(o => o.status === 'DELIVERED').length}</p></div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E8EDFF] text-[#4A5BB1]"><ShoppingBag size={20}/></span>
+            <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">{t('Total orders')}</p><p className="mt-0.5 text-2xl font-black text-gray-900">{orders.length}</p></div>
+          </div>
+        </div>
+
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-md">
+            <Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"/>
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t('Search orders, shops or tracking code…')} aria-label={t('Search orders, shops or tracking code')} className="w-full rounded-2xl border border-gray-200 bg-white py-3.5 pl-11 pr-4 text-sm text-gray-900 shadow-sm outline-none transition focus:border-[#00A082] focus:ring-4 focus:ring-[#00A082]/10"/>
+          </div>
+          <p className="text-xs text-gray-500">{t('Orders and deliveries update automatically')}</p>
+        </div>
+
+      <div className="mb-5 flex gap-2">
         {(['orders', 'deliveries'] as const).map(tabName => (
           <button
             key={tabName}
@@ -254,7 +298,7 @@ function OrdersContent() {
 
       {tab === 'deliveries' && (
         <div className="space-y-3">
-          {deliveries.length === 0 && (
+          {filteredDeliveries.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-14 h-14 rounded-full bg-zana-primary-light flex items-center justify-center mb-3">
                 <Package size={22} className="text-zana-primary" />
@@ -262,7 +306,7 @@ function OrdersContent() {
               <p className="text-sm text-zana-muted">{t('Your deliveries will show up here.')}</p>
             </div>
           )}
-          {deliveries.map(d => (
+          {filteredDeliveries.map(d => (
             <div key={d.id} className={`bg-white rounded-2xl p-4 shadow-sm ${d.id === highlightId ? 'ring-2 ring-zana-primary animate-fade-slide-up' : ''}`}>
               <div className="flex items-start gap-3">
                 {d.imageUrl
@@ -431,6 +475,7 @@ function OrdersContent() {
           onDone={() => setReview(null)}
         />
       )}
+      </div>
     </div>
   );
 }
