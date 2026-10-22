@@ -133,7 +133,7 @@ function OrdersContent() {
     return (
       <div
         key={o.id}
-        className={`overflow-hidden rounded-2xl bg-white shadow-sm ${o.id === highlightId ? 'ring-2 ring-zana-primary' : ''}`}
+        className={`overflow-hidden rounded-2xl border border-gray-100 bg-white ${o.id === highlightId ? 'ring-2 ring-zana-primary' : ''}`}
       >
         {active && hasMap && (
           <div className="p-2 pb-0">
@@ -212,26 +212,26 @@ function OrdersContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F7F6] px-4 py-5 sm:px-6 sm:py-8">
+    <div className="min-h-screen bg-white px-4 py-5 sm:px-6 sm:py-8">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-6 overflow-hidden rounded-[28px] bg-[#102B24] p-5 text-white shadow-sm sm:p-8">
+        <div className="mb-6 border-b border-gray-100 bg-white pb-6 pt-2 sm:pb-7">
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE4CE]">
+              <div className="mb-3 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#008C73]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#FFC244]" /> {t('YOUR ZANA JOURNEY')}
               </div>
-              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">{t('Everything,')} <span className="text-[#FFC244]">{t('on the way.')}</span></h1>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">{t('Track your orders and deliveries in one place.')}</p>
+              <h1 className="text-3xl font-black tracking-tight text-gray-900 sm:text-4xl">{t('Your orders,')} <span className="text-[#00A082]">{t('in motion.')}</span></h1>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-gray-500">{t('Follow each delivery from confirmation to your door.')}</p>
             </div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-white/70">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><PackageCheck size={17} /></span>
+            <div className="hidden items-center gap-2 text-xs font-semibold text-gray-500 sm:flex">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E2F5EF] text-[#008B71]"><PackageCheck size={17} /></span>
               {t('Your activity, all in one place')}
             </div>
           </div>
         </div>
 
         <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E2F5EF] text-[#008B71]"><Clock3 size={20}/></span>
             <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">{t('In progress')}</p><p className="mt-0.5 text-2xl font-black text-gray-900">{orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status)).length}</p></div>
           </div>
@@ -307,7 +307,7 @@ function OrdersContent() {
             </div>
           )}
           {filteredDeliveries.map(d => (
-            <div key={d.id} className={`bg-white rounded-2xl p-4 shadow-sm ${d.id === highlightId ? 'ring-2 ring-zana-primary animate-fade-slide-up' : ''}`}>
+            <div key={d.id} className={`bg-white rounded-2xl border border-gray-100 p-4 ${d.id === highlightId ? 'ring-2 ring-zana-primary animate-fade-slide-up' : ''}`}>
               <div className="flex items-start gap-3">
                 {d.imageUrl
                   ? <img src={d.imageUrl} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
