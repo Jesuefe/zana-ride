@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 const APP = 'https://app.zanaride.rw';
 const DRIVER = 'https://driver.zanaride.rw';
-const MERCHANT = 'https://merchant.zanaride.rw';
+const MERCHANT = '/merchants';
 
 const SERVICES = [
   { number: '01', icon: '↗', title: 'Ride across town', text: 'Book a moto or car, see your fare before you go, and follow your driver on the map.', tag: 'Moto + car', href: APP, tone: 'mint' },

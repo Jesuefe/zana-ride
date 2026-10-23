@@ -343,6 +343,51 @@ export class AuthService {
     return { token, user: { ...user, ...(accessRole ? { accessRole } : {}) } };
   }
 
+  async registerMerchantPublic(data: {
+    email: string; password: string; businessName: string; category: string; phone: string;
+    contactName?: string; branch?: string; whatsappPhone?: string; businessAddress?: string;
+  }) {
+    const email = data.email?.trim().toLowerCase();
+    const phone = data.phone?.trim();
+    const businessName = data.businessName?.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new BadRequestException('Enter a valid email address.');
+    if (!phone || phone.length < 7 || phone.length > 24) throw new BadRequestException('Enter a valid phone number with country code.');
+    if (!businessName || businessName.length < 2 || businessName.length > 120) throw new BadRequestException('Business name must be between 2 and 120 characters.');
+    if (!data.password || data.password.length < 8) throw new BadRequestException('Password must be at least 8 characters.');
+    if (!['FOOD', 'GIFTS', 'GOODS'].includes(data.category)) throw new BadRequestException('Choose a valid business category.');
+
+    const [existingPhone, existingEmail] = await Promise.all([
+      this.prisma.user.findUnique({ where: { phone } }),
+      this.prisma.user.findUnique({ where: { email } }),
+    ]);
+    if (existingPhone) throw new ConflictException('An account with this phone number already exists.');
+    if (existingEmail) throw new ConflictException('An account with this email already exists.');
+
+    const passwordHash = await bcrypt.hash(data.password, 10);
+    const result = await this.prisma.$transaction(async tx => {
+      const user = await tx.user.create({
+        data: {
+          phone, email, password: passwordHash, role: 'MERCHANT' as any,
+          firstName: data.contactName?.trim() || businessName, phoneVerified: false,
+          wallet: { create: { balance: 0 } },
+        },
+      });
+      const merchant = await tx.merchant.create({
+        data: {
+          userId: user.id, businessName, category: data.category as any,
+          branch: data.branch?.trim() || undefined,
+          whatsappPhone: data.whatsappPhone?.trim() || phone,
+          businessAddress: data.businessAddress?.trim() || undefined,
+          status: 'PENDING' as any,
+        },
+      });
+      return { user, merchant };
+    });
+    const token = this.jwt.sign({ sub: result.user.id, phone: result.user.phone, role: result.user.role });
+    const { password: _password, ...safeUser } = result.user;
+    return { token, user: safeUser, merchant: result.merchant, status: 'PENDING_REVIEW' };
+  }
+
   async registerMerchantViaInvite(token: string, data: {
     email: string; password: string; businessName: string; category: string; phone: string;
   }) {
