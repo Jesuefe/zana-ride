@@ -23,7 +23,6 @@ const SENIOR_NAV = [
   { label: 'Users', href: '/dashboard/users', icon: Users },
   { label: 'Drivers', href: '/dashboard/drivers', icon: Car },
   { label: 'Rider Applications', href: '/dashboard/rider-registrations', icon: ClipboardList },
-  { label: 'Merchant Registrations', href: '/dashboard/merchant-registrations', icon: ClipboardList },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
   { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send },
   { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
