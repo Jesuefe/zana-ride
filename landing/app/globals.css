@@ -117,3 +117,43 @@ button{font:inherit}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 /* Legible standalone legal pages */
 .legal{background:#f7f8f3;color:#14161a;min-height:100vh}.legal-head{border-bottom:1px solid #e3e8e4;padding:1.4rem 6vw}.legal-back{text-decoration:none}.legal-mark{display:inline-flex;align-items:center;gap:.4rem;font-size:1.35rem;font-weight:700;color:#14161a;line-height:1}.legal-mark img{display:block}.legal-body{max-width:68ch;margin:0 auto;padding:3.5rem 6vw 5rem;font-size:1rem;line-height:1.7}.legal-body h1{font-size:clamp(2rem,5vw,2.9rem);line-height:1.05;letter-spacing:-.03em;margin-bottom:.4rem}.legal-updated{color:#7a7f86;font-size:.88rem;margin-bottom:2.4rem}
+
+/* Merchant recruitment page — warm, editorial, deliberately unlike a generic SaaS template. */
+.merchant-page{background:#f7f8f3;color:#10221d;min-height:100vh}
+.merchant-nav{height:78px;padding:0 6.5vw;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e1e8e1}
+.merchant-logo{font-size:26px;font-weight:850;letter-spacing:-1.8px}.merchant-logo span{color:#00a082}
+.merchant-nav-link{font-size:14px;font-weight:700;color:#51645b}
+.merchant-hero{padding:76px 6.5vw 80px;display:grid;grid-template-columns:1.02fr .98fr;gap:6vw;align-items:center;background:radial-gradient(ellipse at 76% 40%,rgba(0,160,130,.12),transparent 36%),#f7f8f3}
+.merchant-kicker{font-size:11px;font-weight:800;letter-spacing:2px;color:#008f73;text-transform:uppercase}
+.merchant-hero h1{font-size:clamp(48px,6.3vw,86px);line-height:.98;letter-spacing:-.075em;font-weight:850;margin:22px 0}
+.merchant-hero h1 em{font-style:normal;color:#00a082}
+.merchant-lede{max-width:500px;color:#63746b;font-size:18px;line-height:1.7}
+.merchant-primary{margin-top:28px;display:inline-flex;align-items:center;gap:22px;padding:16px 22px;border-radius:999px;background:#00a082;color:#fff;font-size:14px;font-weight:750;box-shadow:0 12px 26px rgba(0,160,130,.17)}
+.merchant-micro{margin-top:20px;color:#7a8981;font-size:12px}
+.merchant-art{min-height:440px;position:relative;border-radius:30px;background:#e0f1e7;overflow:hidden;padding:34px;display:flex;align-items:flex-end}
+.merchant-art:before{content:"";position:absolute;width:330px;height:330px;border:1px solid rgba(0,128,102,.22);border-radius:50%;right:-28px;top:-55px}
+.merchant-art:after{content:"";position:absolute;width:240px;height:240px;border:1px dashed rgba(0,128,102,.32);border-radius:50%;right:17px;top:-10px}
+.merchant-store{position:absolute;left:12%;right:12%;bottom:0;height:260px;background:#fff;border-radius:12px 12px 0 0;box-shadow:0 24px 50px rgba(16,54,40,.13);z-index:1}
+.merchant-awning{height:54px;background:repeating-linear-gradient(90deg,#00a082 0 45px,#f8fcf7 45px 90px);border-radius:12px 12px 0 0}
+.merchant-store-sign{margin:25px auto 0;width:74%;padding:16px;text-align:center;border:1px solid #dce7df;font-size:20px;font-weight:850;letter-spacing:-.7px}
+.merchant-store-sign small{display:block;font-size:9px;letter-spacing:2px;color:#00a082;margin-top:4px}
+.merchant-door{position:absolute;bottom:0;left:40%;height:90px;width:22%;border:6px solid #e4eee7;border-bottom:0;background:#d9f0e5;border-radius:8px 8px 0 0}
+.merchant-order{position:absolute;z-index:3;top:64px;left:0;background:#fff;border-radius:17px;padding:16px 19px;box-shadow:0 16px 40px rgba(16,54,40,.12);display:flex;align-items:center;gap:12px}
+.merchant-order-icon{height:42px;width:42px;border-radius:13px;background:#fff0c8;color:#6b4a00;display:grid;place-items:center;font-size:22px}
+.merchant-order strong,.merchant-order small{display:block}.merchant-order strong{font-size:13px}.merchant-order small{font-size:11px;color:#7b8982;margin-top:3px}
+.merchant-order-check{margin-left:8px;color:#00a082;font-size:20px}
+.merchant-proof{padding:30px 6.5vw;background:#102b23;color:#fff;display:grid;grid-template-columns:repeat(3,1fr);gap:25px}
+.merchant-proof strong{font-size:15px;display:block}.merchant-proof p{font-size:12px;line-height:1.6;color:#b4c9bf;margin-top:6px}
+.merchant-steps{padding:88px 6.5vw}
+.merchant-section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;margin-bottom:34px}
+.merchant-section-head h2{font-size:clamp(34px,4.5vw,55px);line-height:1;letter-spacing:-.065em;max-width:500px}
+.merchant-section-head p{max-width:350px;color:#718078;line-height:1.7;font-size:14px}
+.merchant-step-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.merchant-step{padding:25px;border:1px solid #dce5df;border-radius:22px;background:#fff;min-height:190px}
+.merchant-step span{color:#00a082;font-size:11px;font-weight:850;letter-spacing:1.5px}
+.merchant-step h3{font-size:20px;letter-spacing:-.5px;margin:24px 0 9px}.merchant-step p{font-size:13px;line-height:1.7;color:#718078}
+.merchant-bottom{margin:0 6.5vw 70px;padding:48px;border-radius:28px;background:#ffc244;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.merchant-bottom h2{font-size:clamp(32px,4vw,52px);line-height:1;letter-spacing:-.065em;max-width:540px}.merchant-bottom p{margin-top:12px;color:#5e4b20;font-size:14px}
+.merchant-bottom a{white-space:nowrap;background:#102b23;color:#fff;border-radius:999px;padding:16px 22px;font-size:14px;font-weight:750}
+.merchant-footer{padding:25px 6.5vw;border-top:1px solid #dce5df;display:flex;justify-content:space-between;color:#77857d;font-size:12px}
+@media(max-width:760px){.merchant-nav{height:68px;padding:0 22px}.merchant-hero{padding:48px 22px 38px;grid-template-columns:1fr;gap:34px}.merchant-hero h1{font-size:clamp(48px,14vw,72px)}.merchant-lede{font-size:16px}.merchant-art{min-height:330px;padding:20px}.merchant-store{height:220px;left:9%;right:9%}.merchant-awning{height:44px}.merchant-store-sign{margin-top:18px;padding:12px;font-size:16px}.merchant-order{top:28px;padding:12px}.merchant-proof{padding:26px 22px;grid-template-columns:1fr;gap:18px}.merchant-steps{padding:58px 22px}.merchant-section-head{display:block}.merchant-section-head p{margin-top:18px}.merchant-step-grid{grid-template-columns:1fr}.merchant-step{min-height:0}.merchant-step h3{margin-top:15px}.merchant-bottom{margin:0 22px 45px;padding:28px;display:block}.merchant-bottom a{margin-top:24px;display:inline-flex}.merchant-footer{padding:22px;gap:15px;flex-wrap:wrap}}
