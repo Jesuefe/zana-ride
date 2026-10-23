@@ -350,7 +350,7 @@ export class AuthService {
     const email = data.email?.trim().toLowerCase();
     const phone = data.phone?.trim();
     const businessName = data.businessName?.trim();
-    if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw new BadRequestException('Enter a valid email address.');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new BadRequestException('Enter a valid email address.');
     if (!phone || phone.length < 7 || phone.length > 24) throw new BadRequestException('Enter a valid phone number with country code.');
     if (!businessName || businessName.length < 2 || businessName.length > 120) throw new BadRequestException('Business name must be between 2 and 120 characters.');
     if (!data.password || data.password.length < 8) throw new BadRequestException('Password must be at least 8 characters.');
