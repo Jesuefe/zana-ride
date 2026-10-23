@@ -440,7 +440,7 @@ export class AdminService {
   async getMerchants(status?: MerchantStatus) {
     return this.prisma.merchant.findMany({
       where: status ? { status } : {},
-      include: { user: true, products: { take: 5 } },
+      include: { user: true, products: { take: 5 }, _count: { select: { products: true, orders: true } } },
       orderBy: { createdAt: 'desc' },
     });
   }

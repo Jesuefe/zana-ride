@@ -13,7 +13,7 @@ import GlobalSearch from './GlobalSearch';
 const SENIOR_NAV = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard }, { label: 'Support', href: '/dashboard/support', icon: Headset }, { label: 'Financial', href: '/dashboard/financial', icon: DollarSign },
   { label: 'Staff & Payroll', href: '/dashboard/staff', icon: Users }, { label: 'Users', href: '/dashboard/users', icon: Users },
-  { label: 'Drivers', href: '/dashboard/drivers', icon: Car }, { label: 'Rider Applications', href: '/dashboard/rider-registrations', icon: ClipboardList }, { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
+  { label: 'Drivers', href: '/dashboard/drivers', icon: Car }, { label: 'Rider Applications', href: '/dashboard/rider-registrations', icon: ClipboardList }, { label: 'Merchant Registrations', href: '/dashboard/merchant-registrations', icon: ClipboardList }, { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
   { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send }, { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
   { label: 'Products', href: '/dashboard/products', icon: Package }, { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
   { label: 'Deliveries', href: '/dashboard/deliveries', icon: Truck }, { label: 'Rides', href: '/dashboard/rides', icon: TrendingUp },
