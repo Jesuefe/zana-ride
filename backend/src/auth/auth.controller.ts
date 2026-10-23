@@ -61,6 +61,12 @@ export class AuthController {
     return this.authService.registerMerchantViaInvite(body.token, body);
   }
 
+  // Open self-service onboarding. All new stores remain pending until reviewed.
+  @Post('register-merchant-public')
+  registerMerchantPublic(@Body() body: { email: string; password: string; businessName: string; category: string; phone: string; contactName?: string; branch?: string; whatsappPhone?: string; businessAddress?: string }) {
+    return this.authService.registerMerchantPublic(body);
+  }
+
 
   // ── Sign in with a code instead of a password ─────────────────────────────
 
