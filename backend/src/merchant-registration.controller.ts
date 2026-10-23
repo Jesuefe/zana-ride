@@ -16,8 +16,9 @@ export class MerchantRegistrationController {
     const phone = body.phone?.trim();
     const businessAddress = body.businessAddress?.trim();
     const category = body.category?.trim();
-    const deliveryPreference = body.deliveryPreference?.trim();
-    if (!businessName || !contactName || !phone || !businessAddress || !category || !deliveryPreference) {
+    // Delivery is coordinated by Zana; the public enquiry form intentionally does not ask merchants to choose a delivery arrangement.
+    const deliveryPreference = body.deliveryPreference?.trim() || 'Zana delivery support';
+    if (!businessName || !contactName || !phone || !businessAddress || !category) {
       throw new BadRequestException('Please complete all required fields.');
     }
     if (businessName.length > 150 || contactName.length > 120 || phone.length > 30 || businessAddress.length > 250) {
