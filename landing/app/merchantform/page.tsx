@@ -3,7 +3,7 @@
 import { FormEvent, useState } from 'react';
 
 const API = 'https://zana.ajumalink.com/api/v1/merchant-registration';
-const initial = { businessName: '', contactName: '', category: '', phone: '', whatsappPhone: '', businessAddress: '', locationsCount: '1', deliveryPreference: 'Zana delivery support' };
+const initial = { businessName: '', contactName: '', category: '', phone: '', whatsappPhone: '', businessAddress: '', locationsCount: '1', notes: '' };
 
 export default function MerchantFormPage() {
   const [values, setValues] = useState(initial);
@@ -32,7 +32,7 @@ export default function MerchantFormPage() {
         <label>Business type *<select className={field} name="category" value={values.category} onChange={change} required><option value="">Choose a category</option><option value="FOOD">Food & drinks</option><option value="GOODS">Shop & everyday goods</option><option value="GIFTS">Gifts & flowers</option><option value="OTHER">Other</option></select></label><label>Phone number *<input className={field} name="phone" type="tel" value={values.phone} onChange={change} required maxLength={30} placeholder="+250 7xx xxx xxx"/></label>
         <label>WhatsApp number <span>(optional)</span><input className={field} name="whatsappPhone" type="tel" value={values.whatsappPhone} onChange={change} maxLength={30} placeholder="If different from your phone"/></label><label>Number of locations<select className={field} name="locationsCount" value={values.locationsCount} onChange={change}><option value="1">1 location</option><option value="2–3">2–3 locations</option><option value="4–10">4–10 locations</option><option value="10+">More than 10</option></select></label>
         <label className="mf-full">Business location / address *<input className={field} name="businessAddress" value={values.businessAddress} onChange={change} required maxLength={250} placeholder="Neighbourhood, street or landmark"/></label>
-        <fieldset className="mf-full"><legend>What delivery arrangement would you like to discuss? *</legend>{['Zana delivery support','I currently use my own delivery','I would like to discuss the options'].map(v=><label className="mf-radio" key={v}><input type="radio" name="deliveryPreference" value={v} checked={values.deliveryPreference===v} onChange={change}/><span>{v}</span></label>)}</fieldset>
+        <label className="mf-full">Anything else we should know? <span>(optional)</span><textarea className={field} name="notes" value={values.notes} onChange={change} rows={4} maxLength={1500} placeholder="Tell us about your products, opening hours, or any special delivery needs."/></label>
         </div>
         {error && <p className="mf-error" role="alert">{error}</p>}
         <div className="mf-submit-row"><p>Your information is shared with Zana’s team for follow-up about partnership and delivery support.</p><button className="mf-submit" type="submit" disabled={busy}>{busy ? 'Sending…' : 'Send business details ↗'}</button></div>
