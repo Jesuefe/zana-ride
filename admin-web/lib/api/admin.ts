@@ -210,3 +210,7 @@ export async function getRiderRegistrations(params?: { status?: string; search?:
 export async function updateRiderRegistrationStatus(id: string, status: 'NEW' | 'CONTACTED' | 'APPROVED' | 'REJECTED') {
   return api.patch<any>(`/admin/rider-registrations/${id}/status`, { status });
 }
+
+export async function getRiderRegistrationDailyStats() {
+  return api.get<Array<{ day: string; count: number }>>('/admin/rider-registrations/daily');
+}
