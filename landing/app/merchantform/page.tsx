@@ -10,36 +10,229 @@ export default function MerchantFormPage() {
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const change = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setValues(v => ({ ...v, [e.target.name]: e.target.value }));
+  const [step, setStep] = useState(0);
+  const change = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setValues(v => ({ ...v, [e.target.name]: e.target.value }));
+    setError('');
+  };
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setBusy(true); setError('');
     try {
       const response = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || 'We could not send your details. Please try again.');
-      setSuccess(true);
+      setSuccess(true); setStep(8);
     } catch (err) { setError(err instanceof Error ? err.message : 'Connection error. Please try again.'); }
     finally { setBusy(false); }
   }
-  const field = 'merchant-input';
-  return <main className="merchant-form-page">
-    <header className="mf-header"><a href="/" className="mf-logo" aria-label="Zana home"><img src="/zana-mark.png" alt="Zana Ride" width="42" height="34" /></a><span className="mf-tag">MERCHANT PARTNERSHIPS · KIGALI</span></header>
-    <section className="mf-hero"><div><p className="mf-eyebrow">LOCAL BUSINESS. MORE REACH.</p><h1>Let’s get your<br/><em>business moving.</em></h1><p>Tell us about your shop, restaurant or business. Zana takes responsibility for delivery support, and our team will personally reach out to discuss how we can work together.</p><div className="mf-points"><span><b>01</b> You tell us about your business</span><span><b>02</b> Our team calls you</span><span><b>03</b> We discuss delivery support</span></div></div><div className="mf-art"><div className="mf-art-ring"/><div className="mf-card"><small>ZANA PARTNER NETWORK</small><strong>Your products.<br/>More doorsteps.</strong><span>DELIVERY SUPPORT BY ZANA</span><i/></div></div></section>
-    {success ? <section className="mf-success"><div className="mf-check">✓</div><p className="mf-eyebrow">DETAILS RECEIVED</p><h2>Thank you for reaching out.</h2><p>Your business details have been sent to the Zana partnerships team. We’ll contact you using the phone number you provided to discuss next steps and delivery support.</p><a href="/" className="mf-submit">Back to Zana ↗</a></section> :
-    <section className="mf-form-wrap"><div className="mf-form-heading"><div><p className="mf-eyebrow">PARTNER ENQUIRY</p><h2>Tell us a little about your business.</h2><p>There’s no account to create and no commitment at this stage. Just share your details so our team can reach you.</p></div><span className="mf-step">ABOUT 2 MINUTES</span></div>
-      <form onSubmit={submit} className="mf-form">
-        <div className="mf-grid"><label>Business name *<input className={field} name="businessName" value={values.businessName} onChange={change} required maxLength={150} placeholder="e.g. Kigali Fresh Kitchen"/></label><label>Your name *<input className={field} name="contactName" value={values.contactName} onChange={change} required maxLength={120} placeholder="Owner or main contact"/></label>
-        <label>Business type *<select className={field} name="category" value={values.category} onChange={change} required><option value="">Choose a category</option><option value="FOOD">Food & drinks</option><option value="GOODS">Shop & everyday goods</option><option value="GIFTS">Gifts & flowers</option><option value="OTHER">Other</option></select></label><label>Phone number *<input className={field} name="phone" type="tel" value={values.phone} onChange={change} required maxLength={30} placeholder="+250 7xx xxx xxx"/></label>
-        <label>WhatsApp number <span>(optional)</span><input className={field} name="whatsappPhone" type="tel" value={values.whatsappPhone} onChange={change} maxLength={30} placeholder="If different from your phone"/></label><label>Number of locations<select className={field} name="locationsCount" value={values.locationsCount} onChange={change}><option value="1">1 location</option><option value="2–3">2–3 locations</option><option value="4–10">4–10 locations</option><option value="10+">More than 10</option></select></label>
-        <label className="mf-full">Business location / address *<input className={field} name="businessAddress" value={values.businessAddress} onChange={change} required maxLength={250} placeholder="Neighbourhood, street or landmark"/></label>
-        <label className="mf-full">Anything else we should know? <span>(optional)</span><textarea className={field} name="notes" value={values.notes} onChange={change} rows={4} maxLength={1500} placeholder="Tell us about your products, opening hours, or any special delivery needs."/></label>
-        </div>
-        {error && <p className="mf-error" role="alert">{error}</p>}
-        <div className="mf-submit-row"><p>Your information is shared with Zana’s team for follow-up about partnership and delivery support.</p><button className="mf-submit" type="submit" disabled={busy}>{busy ? 'Sending…' : 'Send business details ↗'}</button></div>
-      </form></section>}
-    <footer className="mf-footer"><span>© Zana Ride · MOVE KIGALI</span><span>Rides. Deliveries. Shopping.</span><a href="mailto:hello@zanaride.rw">Questions? Contact us</a></footer>
-    <style jsx>{`
-      *{box-sizing:border-box}.merchant-form-page{min-height:100vh;background:#f5f7f2;color:#17372c;padding:0 22px 30px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.merchant-form-page :global(input),.merchant-form-page :global(select),.merchant-form-page :global(textarea){font:inherit}.mf-header{max-width:1120px;height:82px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:12px}.mf-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#17372c;font-weight:950;letter-spacing:.12em}.mf-logo img{display:block;width:42px;height:34px;object-fit:contain}.mf-tag,.mf-eyebrow{font-size:10px;font-weight:900;letter-spacing:.15em;color:#37816b}.mf-tag{border:1px solid #dce7df;border-radius:99px;padding:10px 13px}.mf-hero{max-width:1120px;margin:auto;background:#123b2e;color:white;border-radius:28px;padding:clamp(28px,5vw,62px);display:grid;grid-template-columns:1.15fr .85fr;gap:24px;overflow:hidden;position:relative}.mf-eyebrow{margin:0 0 17px}.mf-hero .mf-eyebrow{color:#b7e6ce}.mf-hero h1{font-size:clamp(42px,6vw,70px);line-height:.98;letter-spacing:-.075em;margin:0;font-weight:850}.mf-hero h1 em{color:#ffc244;font-style:normal}.mf-hero p:not(.mf-eyebrow){max-width:530px;color:#d3e3da;font-size:15px;line-height:1.8;margin:22px 0}.mf-points{display:grid;gap:12px;margin-top:24px;font-size:12px;color:#f5f8f5}.mf-points span{display:flex;gap:10px;align-items:center}.mf-points b{color:#ffc244}.mf-art{display:grid;place-items:center;position:relative;min-height:270px}.mf-art-ring{position:absolute;width:min(30vw,330px);aspect-ratio:1;border:1px solid #ffffff26;border-radius:50%}.mf-card{z-index:1;transform:rotate(4deg);width:min(100%,270px);min-height:240px;border-radius:22px;padding:26px;background:#ffc244;color:#17372c;display:flex;flex-direction:column;box-shadow:0 25px 65px #071b1438}.mf-card small{font-size:9px;letter-spacing:.15em;font-weight:900}.mf-card strong{font-size:31px;line-height:1.02;letter-spacing:-.06em;margin-top:45px}.mf-card span{font-size:9px;font-weight:900;letter-spacing:.1em;margin-top:auto}.mf-card i{height:3px;background:#17372c2b;border-radius:9px;margin-top:18px}.mf-form-wrap,.mf-success{max-width:1120px;margin:24px auto 0;padding:clamp(24px,4vw,44px);border:1px solid #e1e8e0;border-radius:24px;background:#fff;box-shadow:0 16px 48px #17372c08}.mf-form-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:28px}.mf-form-heading h2,.mf-success h2{font-size:clamp(27px,4vw,38px);letter-spacing:-.06em;line-height:1.1;margin:0}.mf-form-heading p:not(.mf-eyebrow),.mf-success p:not(.mf-eyebrow){max-width:650px;color:#74847a;line-height:1.7;font-size:14px}.mf-step{white-space:nowrap;padding:10px 12px;border-radius:99px;background:#f0f6f1;color:#567365;font-size:9px;font-weight:900;letter-spacing:.1em}.mf-grid{display:grid;grid-template-columns:1fr 1fr;gap:19px}.mf-grid>label{display:flex;flex-direction:column;gap:8px;font-size:12px;font-weight:800;color:#304b3d}.mf-grid label span{color:#89958d;font-weight:500}.merchant-input{width:100%;min-height:48px;padding:12px 13px;border:1px solid #dce5dc;border-radius:11px;background:#fbfcfa;color:#17372c;outline:none}.merchant-input:focus{border-color:#00a082;box-shadow:0 0 0 3px #00a08217}.mf-full{grid-column:1/-1}.mf-grid fieldset{border:1px solid #e0e8df;border-radius:13px;padding:14px;display:flex;flex-wrap:wrap;gap:12px}.mf-grid legend{font-size:12px;font-weight:800;padding:0 5px}.mf-radio{display:flex;align-items:center;gap:8px;font-size:12px;color:#4c6155;padding:5px 8px}.mf-radio input{accent-color:#00a082}.mf-submit-row{display:flex;align-items:center;justify-content:space-between;gap:22px;border-top:1px solid #edf1ec;margin-top:25px;padding-top:22px}.mf-submit-row p{max-width:520px;color:#849087;font-size:11px;line-height:1.6}.mf-submit{border:0;background:#00a082;color:white;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;padding:15px 22px;min-height:50px;border-radius:99px;font-size:13px;font-weight:850;white-space:nowrap;cursor:pointer}.mf-submit:disabled{opacity:.65;cursor:wait}.mf-error{background:#fff0f0;color:#9b2424;border-radius:10px;padding:12px;font-size:13px}.mf-success{padding:55px;text-align:center}.mf-success .mf-check{width:55px;height:55px;border-radius:50%;display:grid;place-items:center;background:#dff5e9;color:#008565;font-size:28px;margin:0 auto 20px}.mf-success p:not(.mf-eyebrow){margin:15px auto 24px}.mf-footer{max-width:1120px;margin:28px auto 0;display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;color:#7c8b80;font-size:11px}.mf-footer a{color:#276d58;text-decoration:none;font-weight:700}@media(max-width:760px){.mf-hero{grid-template-columns:1fr}.mf-art{min-height:230px}.mf-art-ring{width:220px}.mf-form-heading{display:block}.mf-step{display:inline-flex;margin-top:8px}.mf-grid{grid-template-columns:1fr}.mf-full{grid-column:auto}.mf-submit-row{align-items:stretch;flex-direction:column}.mf-submit{width:100%}.mf-tag{font-size:8px;padding:8px}.mf-success{padding:30px 20px}}
-    `}</style>
-  </main>;
+  const required = [
+    { key: 'businessName', message: 'Please enter your business name.' },
+    { key: 'contactName', message: 'Please enter your name.' },
+    { key: 'category', message: 'Please choose your business type.' },
+    { key: 'phone', message: 'Please enter your phone number.' },
+    { key: 'whatsappPhone', message: '' },
+    { key: 'locationsCount', message: '' },
+    { key: 'businessAddress', message: 'Please enter your business location.' },
+    { key: 'notes', message: '' },
+  ] as const;
+  const advance = () => {
+    const field = required[step];
+    if (field?.message && !values[field.key].trim()) { setError(field.message); return; }
+    setError('');
+    setStep(s => Math.min(s + 1, 7));
+  };
+  const field = 'rider-field wizard-input';
+  const steps = [
+    { key: 'businessName', label: 'First things first.', question: 'What is your business called?', hint: 'The name customers know you by', placeholder: 'e.g. Kigali Fresh Kitchen', type: 'text', auto: 'organization' },
+    { key: 'contactName', label: 'Let’s meet the person behind it.', question: 'What is your name?', hint: 'Owner or main person we should contact', placeholder: 'Your full name', type: 'text', auto: 'name' },
+    { key: 'category', label: 'Tell us what you do.', question: 'What kind of business is it?', hint: 'Choose the closest match.', placeholder: '', type: 'choice', auto: '' },
+    { key: 'phone', label: 'Let’s stay connected.', question: 'What is your phone number?', hint: 'So our partnerships team can reach you', placeholder: '+250 7xx xxx xxx', type: 'tel', auto: 'tel' },
+    { key: 'whatsappPhone', label: 'A handy alternative.', question: 'Do you use WhatsApp for business?', hint: 'Optional — leave blank if it is the same as your phone or you do not use WhatsApp.', placeholder: 'WhatsApp number (optional)', type: 'tel', auto: 'tel' },
+    { key: 'locationsCount', label: 'How far does your business reach?', question: 'How many locations do you have?', hint: 'Choose the option that best describes your business.', placeholder: '', type: 'choice', auto: '' },
+    { key: 'businessAddress', label: 'Where can we find you?', question: 'Where is your business based?', hint: 'A neighbourhood, street or nearby landmark is helpful.', placeholder: 'e.g. Kimironko, Kigali', type: 'text', auto: 'street-address' },
+    { key: 'notes', label: 'Anything else?', question: 'What should we know about your business?', hint: 'Optional — products, opening hours or delivery needs.', placeholder: 'A little more about your business…', type: 'textarea', auto: '' },
+  ] as const;
+  const progressStep = step === 8 ? 8 : step + 1;
+  return (
+    <main className="rider-page">
+      <div className="rider-wrap">
+        <header className="rider-header">
+          <a href="/" className="rider-wordmark" aria-label="Zana home"><span className="brand-mark">z</span><span>ZANA<span className="brand-sub">MERCHANT NETWORK</span></span></a>
+          <span className="header-chip"><span className="live-dot" /> MERCHANT PARTNERSHIPS · KIGALI</span>
+        </header>
+        <section className="rider-hero">
+          <div className="hero-copy">
+            <p className="eyebrow"><span /> LOCAL BUSINESS. MORE REACH.</p>
+            <h1>Let’s get your<br /><em>business moving.</em></h1>
+            <p className="hero-intro">Tell us about your shop, restaurant or business. Our team will personally reach out to discuss how Zana can support your delivery needs and help you reach more customers.</p>
+            <div className="hero-points">
+              <span><b>01</b> Quick registration</span>
+              <span><b>02</b> Personal follow-up</span>
+              <span><b>03</b> Delivery support</span>
+            </div>
+          </div>
+          <div className="hero-art" aria-hidden="true">
+            <div className="art-ring ring-one" /><div className="art-ring ring-two" />
+            <div className="art-card"><span className="art-icon">↗</span><span className="art-card-label">ZANA PARTNER NETWORK</span><strong>Your products.<br />More doorsteps.</strong><span className="art-line" /></div>
+            <span className="art-spark spark-one">✳</span><span className="art-spark spark-two">✳</span>
+          </div>
+        </section>
+        {success ? (
+          <section className="success-panel" role="status" aria-live="polite">
+            <div className="success-check"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 25.5 20 33l16-18" /></svg></div>
+            <p className="section-kicker">DETAILS RECEIVED</p>
+            <h2>Thank you for reaching out.</h2>
+            <p className="success-copy">Your business details have been sent to the Zana partnerships team. We’ll contact you using the phone number you provided to discuss next steps and delivery support.</p>
+            <div className="success-reassurance"><span>✓</span> Enquiry submitted successfully</div>
+            <a className="back-home" href="/">Back to Zana <span>↗</span></a>
+          </section>
+        ) : (
+          <section className="form-section">
+            <div className="form-heading">
+              <div><p className="section-kicker">A FEW QUICK QUESTIONS</p><h2>Let’s grow your business.</h2><p className="section-copy">One small step at a time. You’re in control.</p></div>
+              <div className="step-count"><span>YOUR PROGRESS</span><strong>{String(progressStep).padStart(2, '0')} <i>/ 08</i></strong></div>
+            </div>
+            <div className="progress-track" aria-label={`Step ${progressStep} of 8`}><span style={{ width: `${(progressStep / 8) * 100}%` }} /></div>
+            <form onSubmit={submit} className="rider-form wizard-form">
+              <div className="wizard-question" key={step}>
+                <p className="question-eyebrow">{steps[step].label}</p>
+                <label className="question-title" htmlFor={steps[step].key}>{steps[step].question}</label>
+                <p className="question-hint">{steps[step].hint}</p>
+                {step === 2 ? (
+                  <div className="choice-grid">
+                    {([{value:'FOOD',title:'Food & drinks',sub:'Restaurants, cafés, groceries',symbol:'✳'},{value:'GOODS',title:'Shop & everyday goods',sub:'Retail and essentials',symbol:'▰'},{value:'GIFTS',title:'Gifts & flowers',sub:'Special items and occasions',symbol:'✿'},{value:'OTHER',title:'Other business',sub:'Tell us what you offer',symbol:'＋'}]).map(o => <button type="button" key={o.value} className={'choice-card ' + (values.category === o.value ? 'selected' : '')} onClick={() => { setValues(v => ({...v, category:o.value})); setError(''); }}><span className="choice-symbol">{o.symbol}</span><span className="choice-title">{o.title}</span><span className="choice-sub">{o.sub}</span>{values.category === o.value && <span className="choice-selected">✓</span>}</button>)}
+                  </div>
+                ) : step === 5 ? (
+                  <div className="choice-grid">
+                    {([{value:'1',title:'One location',sub:'A single shop or branch',symbol:'01'},{value:'2–3',title:'2–3 locations',sub:'A small local network',symbol:'03'},{value:'4–10',title:'4–10 locations',sub:'Several branches',symbol:'10'},{value:'10+',title:'More than 10',sub:'A larger network',symbol:'+'}]).map(o => <button type="button" key={o.value} className={'choice-card ' + (values.locationsCount === o.value ? 'selected' : '')} onClick={() => { setValues(v => ({...v, locationsCount:o.value})); setError(''); }}><span className="choice-symbol">{o.symbol}</span><span className="choice-title">{o.title}</span><span className="choice-sub">{o.sub}</span>{values.locationsCount === o.value && <span className="choice-selected">✓</span>}</button>)}
+                  </div>
+                ) : step === 7 ? (
+                  <textarea className={field} id={steps[step].key} name={steps[step].key} value={values[steps[step].key]} onChange={change} rows={5} maxLength={1500} placeholder={steps[step].placeholder} />
+                ) : (
+                  <input autoFocus={step !== 4} className={field} id={steps[step].key} name={steps[step].key} type={steps[step].type} autoComplete={steps[step].auto} maxLength={step === 0 || step === 6 ? 250 : 150} required={step !== 4} value={values[steps[step].key]} onChange={change} placeholder={steps[step].placeholder} onKeyDown={e => { if (e.key === 'Enter' && step < 7) { e.preventDefault(); advance(); } }} />
+                )}
+              </div>
+              {error && <div role="alert" className="form-message error-message">{error}</div>}
+              <div className="wizard-actions">
+                {step > 0 && <button type="button" className="back-button" onClick={() => { setStep(s => s - 1); setError(''); }}>← Back</button>}
+                {step < 7 ? <button type="button" className="submit-button" onClick={advance}>Continue <span aria-hidden="true">→</span></button> : <button type="submit" disabled={busy} className="submit-button">{busy ? <><span className="button-spinner" /> Sending…</> : <>Send business details <span aria-hidden="true">↗</span></>}</button>}
+              </div>
+              <p className="required-note">Your details are only used by Zana’s team to follow up on your partnership enquiry.</p>
+            </form>
+          </section>
+        )}
+        <footer className="rider-footer"><span>© Zana Merchant Partnerships</span><span>MOVE KIGALI <b>↗</b></span></footer>
+      </div>
+      <style jsx>{`
+        :global(*) { box-sizing: border-box; }
+        .rider-page { min-height: 100vh; background: #f5f6f1; color: #152c25; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 0 24px 28px; }
+        .rider-wrap { width: min(1120px, 100%); margin: 0 auto; }
+        .rider-header { height: 86px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+        .rider-wordmark { display:flex; align-items:center; gap:10px; text-decoration:none; color:#123b2e; font-size:21px; font-weight:950; letter-spacing:-.07em; }
+        .brand-mark { display:grid; place-items:center; width:36px; height:36px; border-radius:12px 12px 12px 4px; background:#b8f36c; color:#153c2e; font-size:26px; font-weight:950; font-style:italic; }
+        .brand-sub { display:block; margin-top:2px; font-size:9px; letter-spacing:.16em; font-weight:800; color:#7b8b82; }
+        .header-chip { display:flex; align-items:center; gap:8px; border:1px solid #dce4da; border-radius:100px; padding:10px 14px; color:#496459; font-size:10px; font-weight:850; letter-spacing:.1em; background:#ffffff80; }
+        .live-dot { width:7px; height:7px; background:#2f9d68; border-radius:50%; box-shadow:0 0 0 4px #2f9d681c; }
+        .rider-hero { position:relative; overflow:hidden; display:grid; grid-template-columns:1.15fr .85fr; min-height:380px; background:#123b2e; border-radius:28px; color:#fff; padding:clamp(30px,5.3vw,68px); isolation:isolate; }
+        .hero-copy { position:relative; z-index:2; max-width:560px; }
+        .eyebrow { display:flex; align-items:center; gap:10px; margin:0 0 24px; color:#c3e8b1; font-size:10px; font-weight:900; letter-spacing:.17em; }
+        .eyebrow span { width:23px; height:2px; background:#b8f36c; }
+        h1 { margin:0; font-size:clamp(42px,6.5vw,76px); line-height:.98; letter-spacing:-.075em; font-weight:850; }
+        h1 em { color:#b8f36c; font-style:normal; }
+        .hero-intro { max-width:440px; margin:22px 0 0; color:#d0dfd5; font-size:15px; line-height:1.8; }
+        .hero-points { display:flex; flex-wrap:wrap; gap:22px; margin-top:27px; color:#f3f8f3; font-size:11px; font-weight:700; }
+        .hero-points span { display:flex; align-items:center; gap:9px; }
+        .hero-points b { color:#b8f36c; font-size:10px; letter-spacing:.05em; }
+        .hero-art { position:relative; min-height:230px; display:grid; place-items:center; }
+        .art-ring { position:absolute; border:1px solid #ffffff19; border-radius:50%; aspect-ratio:1; }
+        .ring-one { width:min(31vw,340px); }
+        .ring-two { width:min(23vw,250px); border-style:dashed; }
+        .art-card { position:relative; z-index:1; width:230px; min-height:220px; border-radius:22px; padding:24px; transform:rotate(5deg); background:#b8f36c; color:#153b2d; box-shadow:0 24px 70px #061b1538; display:flex; flex-direction:column; align-items:flex-start; }
+        .art-icon { display:grid; place-items:center; width:34px; height:34px; border-radius:11px; background:#123b2e; color:#b8f36c; font-size:22px; }
+        .art-card-label { margin-top:24px; font-size:9px; letter-spacing:.16em; font-weight:900; }
+        .art-card strong { margin-top:9px; font-size:26px; line-height:1.03; letter-spacing:-.06em; }
+        .art-line { margin-top:auto; width:100%; height:3px; background:#153b2d25; border-radius:8px; }
+        .art-spark { position:absolute; color:#b8f36c; font-size:26px; }
+        .spark-one { top:14%; right:13%; } .spark-two { bottom:11%; left:8%; font-size:17px; }
+        .form-section { margin-top:26px; padding:clamp(24px,4.4vw,48px); border:1px solid #e2e8df; border-radius:26px; background:#fff; box-shadow:0 18px 60px #19382a08; }
+        .form-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:30px; }
+        .section-kicker { margin:0 0 9px; color:#37835b; font-size:10px; font-weight:900; letter-spacing:.16em; }
+        h2 { margin:0; font-size:clamp(27px,4vw,38px); line-height:1.1; letter-spacing:-.06em; font-weight:850; }
+        .section-copy { margin:10px 0 0; color:#77857c; font-size:14px; }
+        .step-count { display:flex; flex-direction:column; gap:4px; align-items:flex-end; padding:10px 13px; border-radius:13px; background:#f3f7f0; }
+        .step-count span { color:#77857c; font-size:9px; font-weight:900; letter-spacing:.13em; }
+        .step-count strong { font-size:15px; color:#244b39; } .step-count i { color:#9ba79e; font-size:12px; font-style:normal; }
+        .rider-form { display:grid; grid-template-columns:1fr 1fr; gap:22px 20px; }
+        .field-block { min-width:0; display:flex; flex-direction:column; gap:9px; }
+        .field-block label { color:#2c4338; font-size:12px; font-weight:800; }
+        .field-block label span, .required-note span { color:#239363; }
+        .field-block label small { margin-left:7px; color:#99a49b; font-size:9px; letter-spacing:.1em; }
+        .rider-field { width:100%; min-height:52px; border:1px solid #dfe6de; border-radius:13px; background:#fbfcfa; padding:0 15px; color:#1d3328; font:inherit; font-size:14px; outline:none; transition:border-color .18s, box-shadow .18s, background .18s; }
+        .rider-field::placeholder { color:#a0aaa2; }
+        .rider-field:focus { border-color:#27865a; background:#fff; box-shadow:0 0 0 4px #27865a14; }
+        select.rider-field { cursor:pointer; }
+        .privacy-note { grid-column:1 / -1; display:flex; align-items:flex-start; gap:12px; padding:15px 16px; border:1px solid #e2ebdd; border-radius:14px; background:#f7faf4; }
+        .privacy-icon { display:grid; place-items:center; flex:0 0 23px; width:23px; height:23px; border-radius:50%; background:#dff2d4; color:#24704a; font-size:13px; font-weight:900; }
+        .privacy-note p { margin:0; color:#748078; font-size:11px; line-height:1.7; }
+        .privacy-note strong { color:#2d4a39; font-size:12px; }
+        .form-message { grid-column:1 / -1; padding:15px 17px; border-radius:13px; font-size:13px; line-height:1.6; }
+        .success-message { border:1px solid #bce6c9; background:#f0fbf2; color:#23633c; }
+        .error-message { border:1px solid #f2c9c5; background:#fff5f4; color:#a22f2b; }
+        .submit-button { grid-column:1 / -1; display:flex; align-items:center; justify-content:center; gap:14px; width:100%; min-height:57px; border:0; border-radius:14px; background:#123b2e; color:#fff; font-size:14px; font-weight:850; cursor:pointer; transition:transform .15s, background .15s, box-shadow .15s; box-shadow:0 8px 18px #123b2e18; }
+        .submit-button span[aria-hidden] { display:grid; place-items:center; width:27px; height:27px; border-radius:50%; background:#b8f36c; color:#123b2e; font-size:18px; }
+        .submit-button:hover:not(:disabled) { transform:translateY(-1px); background:#1b523f; box-shadow:0 12px 25px #123b2e25; }
+        .submit-button:disabled { opacity:.65; cursor:wait; }
+        .button-spinner { width:15px; height:15px; border:2px solid #ffffff55; border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+        .required-note { grid-column:1 / -1; margin:-12px 0 0; color:#98a29a; font-size:10px; }
+        .rider-footer { display:flex; justify-content:space-between; gap:14px; padding:24px 4px 0; color:#89958c; font-size:10px; font-weight:700; letter-spacing:.02em; }
+        .rider-footer b { color:#39875d; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        @media (max-width:760px) { .rider-page { padding:0 14px 20px; } .rider-header { height:72px; } .header-chip { font-size:8px; padding:9px 10px; } .rider-hero { grid-template-columns:1fr; padding:32px 25px 20px; border-radius:22px; } .hero-art { min-height:220px; margin-top:6px; } .ring-one { width:235px; } .ring-two { width:180px; } .art-card { width:190px; min-height:180px; padding:19px; } .art-card-label { margin-top:17px; } .art-card strong { font-size:23px; } .form-section { margin-top:16px; padding:24px 20px; border-radius:22px; } .rider-form { grid-template-columns:1fr; gap:18px; } .privacy-note, .form-message, .submit-button, .required-note { grid-column:1; } }
+        @media (max-width:380px) { .brand-sub { font-size:7px; } .rider-wordmark { font-size:18px; } .header-chip { max-width:125px; line-height:1.4; } .form-heading { gap:10px; } .step-count { padding:8px; } }
+
+        .progress-track { width:100%; height:4px; background:#edf1ea; border-radius:99px; overflow:hidden; margin:-12px 0 24px; }
+        .progress-track span { display:block; height:100%; background:#48a36b; border-radius:99px; transition:width .3s ease; }
+        .wizard-form { grid-template-columns:1fr; min-height:350px; align-content:space-between; gap:22px; }
+        .wizard-question { min-height:245px; padding:18px 0 8px; animation:question-in .28s ease both; }
+        .question-eyebrow { margin:0 0 14px; color:#39875d; font-size:11px; font-weight:850; letter-spacing:.13em; text-transform:uppercase; }
+        .question-title { display:block; color:#193a2b; font-size:clamp(28px,5vw,43px); line-height:1.1; font-weight:850; letter-spacing:-.065em; }
+        .question-hint { margin:12px 0 27px; color:#7e8a80; font-size:14px; line-height:1.6; }
+        .wizard-input { min-height:65px; padding:0 19px; font-size:clamp(16px,2vw,19px); border-radius:15px; background:#fbfcfa; }
+        .wizard-actions { display:flex; gap:12px; align-items:center; }
+        .wizard-actions .submit-button { flex:1; grid-column:auto; }
+        .back-button { min-height:57px; padding:0 20px; border:1px solid #dfe6de; border-radius:14px; background:white; color:#375444; font-weight:800; cursor:pointer; }
+        .choice-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+        .choice-card { position:relative; min-height:115px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:6px; padding:17px; border:1px solid #dfe6de; border-radius:15px; background:#fbfcfa; color:#244335; text-align:left; cursor:pointer; transition:border-color .15s,background .15s,transform .15s; }
+        .choice-card:hover { transform:translateY(-1px); border-color:#8cb89b; }
+        .choice-card.selected { border:1.5px solid #2f8d59; background:#f0f8ed; box-shadow:0 0 0 3px #2f8d5912; }
+        .choice-symbol { display:grid; place-items:center; width:30px; height:30px; border-radius:9px; background:#eaf3e6; color:#2b7950; font-size:20px; font-weight:800; }
+        .choice-title { font-size:14px; font-weight:850; }
+        .choice-sub { color:#839087; font-size:11px; }
+        .choice-selected { position:absolute; top:12px; right:12px; display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:#2f8d59; color:white; font-size:12px; font-weight:900; }
+        .success-panel { margin-top:26px; min-height:440px; padding:clamp(32px,7vw,76px) 24px; border:1px solid #e2e8df; border-radius:26px; background:white; box-shadow:0 18px 60px #19382a08; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+        .success-check { display:grid; place-items:center; width:88px; height:88px; margin-bottom:27px; border-radius:50%; background:#e7f8e9; border:1px solid #c3ebca; box-shadow:0 0 0 10px #f4fbf2; animation:check-pop .5s cubic-bezier(.2,.8,.2,1) both; }
+        .success-check svg { width:48px; height:48px; fill:none; stroke:#258849; stroke-width:4; stroke-linecap:round; stroke-linejoin:round; }
+        .success-panel h2 { margin:7px 0 0; font-size:clamp(30px,5vw,46px); }
+        .success-copy { max-width:460px; margin:17px auto 0; color:#77857c; font-size:15px; line-height:1.8; }
+        .success-reassurance { display:flex; align-items:center; gap:9px; margin-top:25px; padding:12px 16px; border-radius:99px; background:#f0f8ed; color:#36774c; font-size:12px; font-weight:800; }
+        .success-reassurance span { display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:#cfeecf; }
+        .back-home { display:inline-flex; align-items:center; gap:12px; margin-top:28px; color:#244b39; font-size:13px; font-weight:850; text-decoration:none; }
+        .back-home span { display:grid; place-items:center; width:27px; height:27px; border-radius:50%; background:#b8f36c; }
+        @keyframes question-in { from { opacity:0; transform:translateX(12px); } to { opacity:1; transform:translateX(0); } }
+        @keyframes check-pop { from { opacity:0; transform:scale(.7); } to { opacity:1; transform:scale(1); } }
+        @media (max-width:760px) { .wizard-form { min-height:365px; } .wizard-question { min-height:250px; padding-top:12px; } .choice-card { min-height:105px; padding:13px; } .success-panel { margin-top:16px; min-height:400px; border-radius:22px; } }
+        @media (prefers-reduced-motion:reduce) { .progress-track span,.choice-card { transition:none; } .wizard-question,.success-check { animation:none; } }
+        @media (prefers-reduced-motion: reduce) { .rider-field, .submit-button { transition:none; } .button-spinner { animation:none; } }
+      
+        .wizard-form { grid-template-columns:1fr; }
+        .wizard-question textarea.wizard-input { width:100%; min-height:140px; padding:16px 19px; resize:vertical; }
+        .merchant-choice-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+        .merchant-choice-grid .choice-card { min-height:105px; }
+        .merchant-optional { color:#8b988e; font-size:11px; font-weight:500; margin-left:7px; }
+        .merchant-summary { border:1px solid #e2ebdd; border-radius:14px; background:#f7faf4; padding:16px; color:#456252; font-size:13px; line-height:1.8; }
+        .merchant-summary strong { color:#193a2b; }
+        @media(max-width:520px){ .merchant-choice-grid { grid-template-columns:1fr; } }
+`}</style>
+    </main>
+  );
 }
