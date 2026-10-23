@@ -65,6 +65,39 @@ export class AdminController {
     return this.prisma.riderRegistration.update({ where: { id }, data: { status: body.status } });
   }
 
+  @Roles('ADMIN', 'STAFF')
+  @Get('merchant-leads')
+  async getMerchantLeads(@Query('status') status?: string, @Query('search') search?: string) {
+    const where: any = {};
+    const allowed = ['NEW', 'CONTACTED', 'INTERESTED', 'MEETING_SCHEDULED', 'ONBOARDED', 'NOT_INTERESTED'];
+    if (status && allowed.includes(status)) where.status = status;
+    if (search?.trim()) {
+      const q = search.trim();
+      where.OR = [
+        { businessName: { contains: q, mode: 'insensitive' } },
+        { contactName: { contains: q, mode: 'insensitive' } },
+        { phone: { contains: q } },
+        { whatsappPhone: { contains: q } },
+        { businessAddress: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+    return this.prisma.merchantLead.findMany({ where, orderBy: { createdAt: 'desc' }, take: 500 });
+  }
+
+  @Roles('ADMIN', 'STAFF')
+  @Patch('merchant-leads/:id')
+  async updateMerchantLead(@Param('id') id: string, @Body() body: { status?: string; internalNotes?: string }) {
+    const allowed = ['NEW', 'CONTACTED', 'INTERESTED', 'MEETING_SCHEDULED', 'ONBOARDED', 'NOT_INTERESTED'];
+    if (body.status && !allowed.includes(body.status)) throw new BadRequestException('Invalid merchant lead status.');
+    return this.prisma.merchantLead.update({
+      where: { id },
+      data: {
+        ...(body.status ? { status: body.status, ...(body.status === 'CONTACTED' ? { contactedAt: new Date() } : {}) } : {}),
+        ...(body.internalNotes !== undefined ? { internalNotes: body.internalNotes.slice(0, 3000) } : {}),
+      },
+    });
+  }
+
   @Roles('ADMIN')
   @Get('overview')
   overview() { return this.adminService.getOverview(); }

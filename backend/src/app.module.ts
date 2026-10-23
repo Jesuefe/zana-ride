@@ -27,6 +27,7 @@ import { ZanaAiModule } from './zana-ai/zana-ai.module';
 import { DownloadsModule } from './downloads/downloads.module';
 import { CustomerSupportController } from './support.controller';
 import { RiderRegistrationController } from './rider-registration.controller';
+import { MerchantRegistrationController } from './merchant-registration.controller';
 
 @Module({
   imports: [
@@ -58,6 +59,6 @@ import { RiderRegistrationController } from './rider-registration.controller';
     ZanaAiModule,
     DownloadsModule,
   ],
-  controllers: [HealthController, CustomerSupportController, RiderRegistrationController],
+  controllers: [HealthController, CustomerSupportController, RiderRegistrationController, MerchantRegistrationController],
 })
 export class AppModule {}

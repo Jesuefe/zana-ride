@@ -1012,3 +1012,26 @@ model RiderRegistration {
   @@index([status, createdAt])
   @@index([phone])
 }
+
+// Public merchant interest submissions are leads only; they never create merchant accounts.
+model MerchantLead {
+  id                  String   @id @default(uuid())
+  businessName        String
+  contactName         String
+  category            String
+  phone               String
+  whatsappPhone       String?
+  businessAddress     String
+  locationsCount      String   @default("1")
+  deliveryPreference  String
+  notes               String?
+  status              String   @default("NEW")
+  internalNotes       String?
+  contactedAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([phone])
+  @@index([businessName])
+}
