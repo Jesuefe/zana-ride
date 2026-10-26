@@ -32,41 +32,31 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-html {
-  min-height: 100%;
-  min-height: 100dvh;
-  scroll-padding-top: env(safe-area-inset-top, 0px);
-  scroll-padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
 body {
-  min-height: 100%;
-  min-height: 100dvh;
-  margin: 0;
   background: var(--background);
   color: var(--foreground);
-  overscroll-behavior-y: contain;
-  -webkit-text-size-adjust: 100%;
 }
 
 /* Phone-width by default; grows on larger screens instead of staying
    locked to a narrow column, so the app feels native on tablet/desktop too. */
 .app-shell {
-  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
   min-height: 100vh;
-  min-height: 100dvh;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  box-sizing: border-box;
   background: var(--zana-surface);
   position: relative;
-  isolation: isolate;
 }
 
 @media (min-width: 768px) {
   .app-shell {
-    width: 100%;
-    box-shadow: none;
+    max-width: 640px;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    max-width: 760px;
   }
 }
 
@@ -192,27 +182,4 @@ body > .skiptranslate {
 .goog-text-highlight {
   background: none !important;
   box-shadow: none !important;
-}
-
-/* Responsive helpers: keep the established phone layout intact while making
-   controls and media safe on very narrow and notched mobile screens. */
-img, video, canvas, svg {
-  max-width: 100%;
-}
-
-button, a, input, textarea, select {
-  -webkit-tap-highlight-color: transparent;
-}
-
-@supports (padding: max(0px)) {
-  .app-shell {
-    padding-top: max(0px, env(safe-area-inset-top));
-    padding-bottom: max(0px, env(safe-area-inset-bottom));
-  }
-}
-
-@media (max-width: 359px) {
-  .app-shell {
-    overflow-x: hidden;
-  }
 }
