@@ -2,10 +2,9 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MessageCircle, Mail, Send, CheckCircle2, Ticket, User, Minimize2 } from 'lucide-react';
+import { ArrowLeft, Mail, Send, CheckCircle2, Ticket } from 'lucide-react';
 import { useLang } from '../../../lib/LangContext';
 import { api, ApiError } from '../../../lib/api/client';
-import { fetchMe, ApiUser } from '../../../lib/api/auth';
 
 type SupportTicket = {
   id: string;
@@ -53,81 +52,14 @@ export default function HelpPage() {
   const [submitted, setSubmitted] = useState<SupportTicket | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [supportUser, setSupportUser] = useState<ApiUser | null>(null);
+
 
   const loadTickets = async () => {
     try { setTickets(await api.get<SupportTicket[]>('/support/tickets/mine')); } catch { /* User may be signed out; they can still use email support. */ }
   };
   useEffect(() => {
     void loadTickets();
-    fetchMe().then(setSupportUser).catch(() => {});
-
-    // Keep the live-chat launcher available, but start minimized so it never
-    // traps the customer on the support screen or covers the page by default.
-    const w = window as typeof window & { Tawk_API?: any; Tawk_LoadStart?: Date };
-    w.Tawk_API = w.Tawk_API || {};
-    w.Tawk_LoadStart = w.Tawk_LoadStart || new Date();
-    w.Tawk_API.onLoad = () => {
-      w.Tawk_API?.minimize?.();
-      w.Tawk_API?.showWidget?.();
-    };
-    const scriptId = 'zana-tawk-to-script';
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.async = true;
-      script.src = 'https://embed.tawk.to/6adf04cde2a6103471ed01ec/1k5rilh6r';
-      script.charset = 'UTF-8';
-      script.setAttribute('crossorigin', '*');
-      document.head.appendChild(script);
-    } else {
-      w.Tawk_API?.minimize?.();
-      w.Tawk_API?.showWidget?.();
-    }
-    return () => {
-      const api = (window as typeof window & { Tawk_API?: any }).Tawk_API;
-      api?.hideWidget?.();
-    };
   }, []);
-
-  // Attach the signed-in customer's verified profile details to the chat.
-  // Tawk receives only the customer name, phone, email and account reference.
-  useEffect(() => {
-    if (!supportUser) return;
-    const w = window as typeof window & { Tawk_API?: any };
-    const applyAttributes = () => {
-      w.Tawk_API?.setAttributes?.({
-        name: [supportUser.firstName, supportUser.lastName].filter(Boolean).join(' ') || 'Zana customer',
-        email: supportUser.email || '',
-        phone: supportUser.phone || '',
-        user_id: supportUser.id,
-      }, (error: unknown) => {
-        if (error) console.warn('Zana support chat profile attributes could not be set.');
-      });
-    };
-    if (w.Tawk_API?.setAttributes) applyAttributes();
-    else {
-      const timer = window.setInterval(() => {
-        if (w.Tawk_API?.setAttributes) {
-          window.clearInterval(timer);
-          applyAttributes();
-        }
-      }, 500);
-      const timeout = window.setTimeout(() => window.clearInterval(timer), 10000);
-      return () => { window.clearInterval(timer); window.clearTimeout(timeout); };
-    }
-  }, [supportUser]);
-
-  const openLiveChat = () => {
-    const w = window as typeof window & { Tawk_API?: any };
-    w.Tawk_API?.showWidget?.();
-    w.Tawk_API?.maximize?.();
-  };
-
-  const minimizeLiveChat = () => {
-    const w = window as typeof window & { Tawk_API?: any };
-    w.Tawk_API?.minimize?.();
-  };
 
   const submitTicket = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -147,24 +79,11 @@ export default function HelpPage() {
   };
 
   return (
-    <div className="p-4 pb-32">
+    <div className="p-4 pb-8">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.back()} aria-label={t('Go back')} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><ArrowLeft size={16} /></button>
         <h1 className="text-lg font-bold text-gray-900">{t('Help & Support')}</h1>
       </div>
-
-      {supportUser && <section className="mb-5 rounded-2xl border border-zana-primary/15 bg-white p-4 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zana-primary/10 text-zana-primary"><User size={19} /></div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('Your support profile')}</p>
-            <p className="mt-0.5 truncate text-sm font-semibold text-gray-900">{[supportUser.firstName, supportUser.lastName].filter(Boolean).join(' ') || t('Zana customer')}</p>
-            <p className="mt-1 text-xs text-gray-600">{supportUser.phone}</p>
-            {supportUser.email && <p className="mt-0.5 break-all text-xs text-gray-500">{supportUser.email}</p>}
-            <p className="mt-1 text-[11px] text-gray-400">{t('Your account details are shared with support to help identify your account.')}</p>
-          </div>
-        </div>
-      </section>}
 
       {submitted && <div role="status" className="mb-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-green-900">
         <div className="flex items-center gap-2 font-semibold"><CheckCircle2 size={20} /> {t('Support request sent')}</div>
@@ -215,12 +134,6 @@ export default function HelpPage() {
 
       <div className="rounded-2xl bg-zana-primary-light p-5">
         <p className="mb-3 font-semibold text-gray-900">{t('Still need help?')}</p>
-        <button type="button" onClick={openLiveChat} className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-zana-primary px-4 py-3.5 text-sm font-semibold text-white">
-          <MessageCircle size={17} /> {t('Chat with Zana Support')}
-        </button>
-        <button type="button" onClick={minimizeLiveChat} className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700">
-          <Minimize2 size={16} /> {t('Minimize live chat')}
-        </button>
         <a href="mailto:support@zana.rw" className="mb-2 flex items-center gap-2 text-sm font-semibold text-zana-primary"><Mail size={15} /> support@zana.rw</a>
         <a href="https://wa.me/250700000000" className="flex items-center gap-2 text-sm font-semibold text-zana-primary"><MessageCircle size={15} /> {t('WhatsApp Support')}</a>
       </div>
