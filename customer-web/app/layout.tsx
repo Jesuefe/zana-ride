@@ -17,7 +17,6 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -26,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="overflow-x-hidden bg-gray-50">
         <LangProvider>
           <AuthGuard>
-            <div className="app-shell w-full pb-20 relative overflow-x-hidden">
+            <div className="min-h-screen pb-16 w-full max-w-[480px] mx-auto relative overflow-x-hidden">
               <SplashGate><ThemeProvider>{children}</ThemeProvider></SplashGate>
             </div>
             <BottomNav />
