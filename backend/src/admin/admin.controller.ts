@@ -7,8 +7,7 @@ import { CommissionService } from './commission.service';
 import { FinancialService } from './financial.service';
 import { createCipheriv, createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { EversendService } from '../wallet/eversend.service';
-import { WooshPayService } from '../wallet/wooshpay.service';
+import { PaypackService } from '../wallet/paypack.service';
 import { ZanaAiService } from '../zana-ai/zana-ai.service';
 import { UserRole, UserStatus, DriverApprovalStatus, MerchantStatus, ProductStatus } from '@prisma/client';
 
@@ -21,8 +20,7 @@ export class AdminController {
     private commissionService: CommissionService,
     private financialService: FinancialService,
     private prisma: PrismaService,
-    private eversendService: EversendService,
-    private wooshPayService: WooshPayService,
+    private paypackService: PaypackService,
     private zanaAiService: ZanaAiService,
   ) {}
 
@@ -89,6 +87,7 @@ export class AdminController {
   async updateMerchantLead(@Param('id') id: string, @Body() body: { status?: string; internalNotes?: string }) {
     const allowed = ['NEW', 'CONTACTED', 'INTERESTED', 'MEETING_SCHEDULED', 'ONBOARDED', 'NOT_INTERESTED'];
     if (body.status && !allowed.includes(body.status)) throw new BadRequestException('Invalid merchant lead status.');
+    if (body.internalNotes !== undefined && typeof body.internalNotes !== 'string') throw new BadRequestException('Internal notes must be text.');
     return this.prisma.merchantLead.update({
       where: { id },
       data: {
@@ -534,157 +533,19 @@ export class AdminController {
 
 
   @Roles('ADMIN')
-  @Get('settings/payments/eversend')
-  async getEversendSettings() {
-    const row = await this.prisma.auditLog.findFirst({
-      where: { entityType: 'PAYMENT_SETTINGS', entityId: 'EVERSEND', action: 'EVERSEND_SETTINGS_UPDATED' },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (!row?.afterJson) {
-      return { enabled: false, environment: 'sandbox', baseUrl: 'https://api.eversend.co/v1', rail: 'mtn_momo', minWithdrawal: 1000, configured: false, webhookConfigured: false };
-    }
-    const data = JSON.parse(row.afterJson);
-    return {
-      enabled: Boolean(data.enabled),
-      environment: data.environment === 'production' ? 'production' : 'sandbox',
-      baseUrl: data.baseUrl || 'https://api.eversend.co/v1',
-      rail: data.rail === 'airtel_money' ? 'airtel_money' : 'mtn_momo',
-      minWithdrawal: Number(data.minWithdrawal || 1000),
-      configured: Boolean(data.apiKeyEncrypted),
-      apiKeyHint: data.apiKeyHint || null,
-      webhookConfigured: Boolean(data.webhookSecretEncrypted),
-    };
+  @Get('settings/payments/paypack')
+  async getPaypackSettings() {
+    try { return await this.paypackService.getPublicSettings(); }
+    catch { return { enabled: false, configured: false, provider: 'PAYPACK', environment: 'production', baseUrl: 'https://payments.paypack.rw/api', mobileMoney: ['mtn', 'airtel'], cashin: true, cashout: true, webhookConfigured: false }; }
   }
 
-  @Roles('ADMIN')
-  @Patch('settings/payments/eversend')
-  async saveEversendSettings(
-    @Body() body: { enabled?: boolean; environment?: 'sandbox'|'production'; apiKey?: string; webhookSecret?: string; baseUrl?: string; rail?: 'mtn_momo'|'airtel_money'; minWithdrawal?: number },
-    @CurrentUser() user: JwtPayload,
-  ) {
-    const master = process.env.SETTINGS_ENCRYPTION_KEY || process.env.JWT_SECRET;
-    if (!master) throw new BadRequestException('SETTINGS_ENCRYPTION_KEY_NOT_CONFIGURED');
-    const key = createHash('sha256').update(master).digest();
-    const encrypt = (value: string) => {
-      const iv = randomBytes(12);
-      const cipher = createCipheriv('aes-256-gcm', key, iv);
-      const ciphertext = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
-      return iv.toString('hex') + ':' + cipher.getAuthTag().toString('hex') + ':' + ciphertext.toString('hex');
-    };
-    const previous = await this.prisma.auditLog.findFirst({
-      where: { entityType: 'PAYMENT_SETTINGS', entityId: 'EVERSEND', action: 'EVERSEND_SETTINGS_UPDATED' },
-      orderBy: { createdAt: 'desc' },
-    });
-    const old = previous?.afterJson ? JSON.parse(previous.afterJson) : {};
-    const keyChanged = Boolean(body.apiKey?.trim());
-    const record = {
-      enabled: body.enabled ?? old.enabled ?? false,
-      environment: body.environment === 'production' ? 'production' : (old.environment === 'production' ? 'production' : 'sandbox'),
-      apiKeyEncrypted: keyChanged ? encrypt(body.apiKey!.trim()) : old.apiKeyEncrypted || null,
-      webhookSecretEncrypted: body.webhookSecret?.trim() ? encrypt(body.webhookSecret.trim()) : old.webhookSecretEncrypted || null,
-      baseUrl: String(body.baseUrl || old.baseUrl || 'https://api.eversend.co/v1').replace(/\/$/, ''),
-      rail: body.rail === 'airtel_money' ? 'airtel_money' : (old.rail === 'airtel_money' ? 'airtel_money' : 'mtn_momo'),
-      minWithdrawal: Math.max(1000, Number(body.minWithdrawal || old.minWithdrawal || 1000)),
-      apiKeyHint: keyChanged ? body.apiKey!.trim().slice(0, 8) + '…' + body.apiKey!.trim().slice(-4) : old.apiKeyHint || null,
-    };
-    await this.prisma.auditLog.create({
-      data: { actorId: user.sub, action: 'EVERSEND_SETTINGS_UPDATED', entityType: 'PAYMENT_SETTINGS', entityId: 'EVERSEND', afterJson: JSON.stringify(record) },
-    });
-    return { saved: true, enabled: record.enabled, environment: record.environment, baseUrl: record.baseUrl, rail: record.rail, minWithdrawal: record.minWithdrawal, configured: Boolean(record.apiKeyEncrypted), apiKeyHint: record.apiKeyHint, webhookConfigured: Boolean(record.webhookSecretEncrypted) };
-  }
-
-  @Roles('ADMIN')
-  @Get('settings/payments/wooshpay')
-  async getWooshPaySettings() {
-    return this.wooshPayService.getPublicSettings();
-  }
-
-  @Roles('ADMIN')
-  @Patch('settings/payments/wooshpay')
-  async saveWooshPaySettings(
-    @Body() body: { enabled?: boolean; environment?: 'sandbox'|'production'; apiKey?: string; webhookSecret?: string; baseUrl?: string; provider?: 'mtn_rw'|'airtel_rw'; minPayout?: number },
-    @CurrentUser() user: JwtPayload,
-  ) {
-    const master = process.env.SETTINGS_ENCRYPTION_KEY || process.env.JWT_SECRET;
-    if (!master) throw new BadRequestException('SETTINGS_ENCRYPTION_KEY_NOT_CONFIGURED');
-    const key = createHash('sha256').update(master).digest();
-    const encrypt = (value: string) => {
-      const iv = randomBytes(12);
-      const cipher = createCipheriv('aes-256-gcm', key, iv);
-      const ciphertext = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
-      return iv.toString('hex') + ':' + cipher.getAuthTag().toString('hex') + ':' + ciphertext.toString('hex');
-    };
-    const previous = await this.prisma.auditLog.findFirst({
-      where: { entityType: 'PAYMENT_SETTINGS', entityId: 'WOOSHPAY', action: 'WOOSHPAY_SETTINGS_UPDATED' },
-      orderBy: { createdAt: 'desc' },
-    });
-    const old = previous?.afterJson ? JSON.parse(previous.afterJson) : {};
-    const keyChanged = Boolean(body.apiKey?.trim());
-    const environment = body.environment === 'production' ? 'production' : (old.environment === 'production' ? 'production' : 'sandbox');
-    const defaultBaseUrl = environment === 'production' ? 'https://api.wooshpay.com/v1' : 'https://apitest.wooshpay.com/v1';
-    const minPayout = Math.max(980, Number(body.minPayout || old.minPayout || 980));
-    const record = {
-      enabled: body.enabled ?? old.enabled ?? false,
-      environment,
-      apiKeyEncrypted: keyChanged ? encrypt(body.apiKey!.trim()) : old.apiKeyEncrypted || null,
-      webhookSecretEncrypted: body.webhookSecret?.trim() ? encrypt(body.webhookSecret.trim()) : old.webhookSecretEncrypted || null,
-      baseUrl: String(body.baseUrl || old.baseUrl || defaultBaseUrl).replace(/\/$/, ''),
-      provider: body.provider === 'airtel_rw' ? 'airtel_rw' : (old.provider === 'airtel_rw' ? 'airtel_rw' : 'mtn_rw'),
-      minPayout,
-      apiKeyHint: keyChanged ? body.apiKey!.trim().slice(0, 8) + '…' + body.apiKey!.trim().slice(-4) : old.apiKeyHint || null,
-    };
-    await this.prisma.auditLog.create({
-      data: { actorId: user.sub, action: 'WOOSHPAY_SETTINGS_UPDATED', entityType: 'PAYMENT_SETTINGS', entityId: 'WOOSHPAY', afterJson: JSON.stringify(record) },
-    });
-    return { saved: true, enabled: record.enabled, environment: record.environment, baseUrl: record.baseUrl, provider: record.provider, minPayout: record.minPayout, configured: Boolean(record.apiKeyEncrypted), apiKeyHint: record.apiKeyHint, webhookConfigured: Boolean(record.webhookSecretEncrypted) };
-  }
-
-  @Roles('ADMIN')
-  @Post('settings/payments/wooshpay/test')
-  async testWooshPay(@CurrentUser() user: JwtPayload) {
-    const result = await this.wooshPayService.testConnection();
-    await this.prisma.auditLog.create({
-      data: { actorId: user.sub, action: 'WOOSHPAY_CONNECTION_TESTED', entityType: 'PAYMENT_SETTINGS', entityId: 'WOOSHPAY', afterJson: JSON.stringify({ ok: true, at: new Date().toISOString(), environment: result.environment }) },
-    });
+  @Post('settings/payments/paypack/test')
+  async testPaypack(@CurrentUser() user: JwtPayload) {
+    const result = await this.paypackService.testConnection();
+    await this.prisma.auditLog.create({ data: { actorId: user.sub, action: 'PAYPACK_CONNECTION_TESTED', entityType: 'PAYMENT_SETTINGS', entityId: 'PAYPACK', afterJson: JSON.stringify({ ok: true, at: new Date().toISOString(), environment: result.environment }) } });
     return result;
   }
 
-  @Roles('ADMIN')
-  @Post('settings/payments/wooshpay/test-collection')
-  async testWooshPayCollection(
-    @Body() body: { phone: string; amount: number; provider?: 'mtn_rw'|'airtel_rw'; reference?: string },
-  ) {
-    const settings = await this.wooshPayService.getPublicSettings();
-    if (settings.environment !== 'sandbox') throw new BadRequestException('WOOSHPAY_TEST_TRANSACTIONS_REQUIRE_SANDBOX');
-    const reference = body.reference?.trim() || 'ZANA-WOOSHPAY-TEST-' + Date.now();
-    return this.wooshPayService.collectMobileMoney(body.phone, Number(body.amount), reference, body.provider);
-  }
-
-  @Roles('ADMIN')
-  @Post('settings/payments/wooshpay/test-payout')
-  async testWooshPayPayout(
-    @Body() body: { phone: string; amount: number; provider?: 'mtn_rw'|'airtel_rw'; name?: string; reference?: string },
-  ) {
-    const settings = await this.wooshPayService.getPublicSettings();
-    if (settings.environment !== 'sandbox') throw new BadRequestException('WOOSHPAY_TEST_TRANSACTIONS_REQUIRE_SANDBOX');
-    const reference = body.reference?.trim() || 'ZANA-WOOSHPAY-PAYOUT-TEST-' + Date.now();
-    return this.wooshPayService.payout(body.phone, Number(body.amount), reference, body.provider, body.name || 'ZANA Test Recipient');
-  }
-
-  @Roles('ADMIN')
-  @Get('settings/payments/wooshpay/collection/:ref')
-  getWooshPayCollectionStatus(@Param('ref') ref: string) {
-    return this.wooshPayService.getCollectionStatus(ref);
-  }
-
-  @Roles('ADMIN')
-  @Get('settings/payments/wooshpay/payout/:ref')
-  getWooshPayPayoutStatus(@Param('ref') ref: string) {
-    return this.wooshPayService.getPayoutStatus(ref);
-  }
-
-
-  @Roles('ADMIN')
   @Get('settings/ai')
   async getAiSettings() {
     const providers = ['gemini', 'groq', 'openrouter'] as const;
@@ -733,16 +594,5 @@ export class AdminController {
     await this.prisma.auditLog.create({ data: { actorId: user.sub, action: 'ZANA_AI_CONNECTION_TESTED', entityType: 'AI_SETTINGS', entityId: 'PRIMARY', afterJson: JSON.stringify({ ok: true, provider: result.provider, model: result.model, at: new Date().toISOString() }) } });
     return result;
   }
-
-  @Roles('ADMIN')
-  @Post('settings/payments/eversend/test')
-  async testEversend(@CurrentUser() user: JwtPayload) {
-    const result = await this.eversendService.testConnection();
-    await this.prisma.auditLog.create({
-      data: { actorId: user.sub, action: 'EVERSEND_CONNECTION_TESTED', entityType: 'PAYMENT_SETTINGS', entityId: 'EVERSEND', afterJson: JSON.stringify({ ok: true, at: new Date().toISOString() }) },
-    });
-    return result;
-  }
-
 
 }

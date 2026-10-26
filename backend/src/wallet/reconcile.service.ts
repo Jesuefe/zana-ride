@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
-import { EversendService } from './eversend.service';
-import { WooshPayService } from './wooshpay.service';
+import { PaypackPaymentAdapter } from './paypack-payment.adapter';
 import { PaypackService } from './paypack.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
 
@@ -23,8 +22,7 @@ export class ReconcileService {
 
   constructor(
     private prisma: PrismaService,
-    private eversend: EversendService,
-    private wooshPay: WooshPayService,
+    private paypackPayments: PaypackPaymentAdapter,
     private paypack: PaypackService,
     private gateway: ZanaGateway,
   ) {}
@@ -187,7 +185,7 @@ export class ReconcileService {
 
     for (const order of pending) {
       try {
-        const res = await this.eversend.getCollectionStatus((order as any).momoRef);
+        const res = await this.paypackPayments.getCollectionStatus((order as any).momoRef);
         if ((res?.status ?? '').toLowerCase() !== 'successful') continue;
 
         await this.prisma.order.update({
@@ -214,7 +212,7 @@ export class ReconcileService {
 
     for (const d of pending) {
       try {
-        const res = await this.eversend.getCollectionStatus((d as any).momoRef);
+        const res = await this.paypackPayments.getCollectionStatus((d as any).momoRef);
         if ((res?.status ?? '').toLowerCase() !== 'successful') continue;
 
         await this.prisma.delivery.update({

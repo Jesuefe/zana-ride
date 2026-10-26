@@ -7,14 +7,13 @@ import { StorageService } from '../deliveries/storage.service';
 import { EmailModule } from '../email/email.module';
 import { SmsModule } from '../sms/sms.module';
 import { DriversModule } from '../drivers/drivers.module';
-import { EversendService } from '../wallet/eversend.service';
-import { WooshPayService } from '../wallet/wooshpay.service';
+import { PaypackService } from '../wallet/paypack.service';
 import { ZanaAiModule } from '../zana-ai/zana-ai.module';
 
 @Module({
   imports: [EmailModule, SmsModule, DriversModule, ZanaAiModule],
   controllers: [AdminController],
-  providers: [AdminService, CommissionService, FinancialService, StorageService, EversendService, WooshPayService],
+  providers: [AdminService, CommissionService, FinancialService, StorageService, PaypackService],
   exports: [CommissionService],
 })
 export class AdminModule {}

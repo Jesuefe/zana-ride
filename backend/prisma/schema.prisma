@@ -970,26 +970,26 @@ model AuditLog {
 // Customer support case management. Related records are stored as references so
 // support cases can be created for legacy rides, orders and provider payments.
 model SupportTicket {
-  id                String   @id @default(uuid())
-  ticketNumber      String   @unique @default(cuid())
-  customerId        String?
-  customerName      String
-  customerPhone     String?
-  subject           String
-  description       String
-  category          String   @default("GENERAL")
-  priority          String   @default("NORMAL")
-  status            String   @default("OPEN")
-  relatedType       String?
-  relatedReference  String?
-  assignedToId      String?
-  internalNotes     String?
-  resolution        String?
-  createdById       String?
-  lastUpdatedById   String?
-  resolvedAt        DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String    @id @default(uuid())
+  ticketNumber     String    @unique @default(cuid())
+  customerId       String?
+  customerName     String
+  customerPhone    String?
+  subject          String
+  description      String
+  category         String    @default("GENERAL")
+  priority         String    @default("NORMAL")
+  status           String    @default("OPEN")
+  relatedType      String?
+  relatedReference String?
+  assignedToId     String?
+  internalNotes    String?
+  resolution       String?
+  createdById      String?
+  lastUpdatedById  String?
+  resolvedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([status, priority, createdAt])
   @@index([customerPhone])

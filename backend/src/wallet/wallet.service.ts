@@ -1,20 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { EversendService } from './eversend.service';
-import { WooshPayService } from './wooshpay.service';
 import { PaypackService } from './paypack.service';
 import { WalletTransactionStatus } from '@prisma/client';
 
 @Injectable()
 export class WalletService {
-  static readonly EVERSEND_MIN_WITHDRAWAL = 1000;
-  static readonly WOOSHPAY_MIN_WITHDRAWAL = 980;
   static readonly PAYPACK_MIN_WITHDRAWAL = 1000;
 
   constructor(
     private prisma: PrismaService,
-    private eversend: EversendService,
-    private wooshPay: WooshPayService,
     private paypack: PaypackService,
   ) {}
 

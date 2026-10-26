@@ -18,7 +18,7 @@ function calcMarketDeliveryFee(distKm: number): number {
 
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { EversendService } from '../wallet/eversend.service';
+import { PaypackPaymentAdapter } from '../wallet/paypack-payment.adapter';
 import { ZanaGateway } from '../gateway/zana.gateway';
 import { OrderStatus } from '@prisma/client';
 import { DeliveriesService } from '../deliveries/deliveries.service';
@@ -29,7 +29,7 @@ export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private deliveriesService: DeliveriesService,
-    private eversend: EversendService,
+    private paypackPayments: PaypackPaymentAdapter,
     private gateway: ZanaGateway,
     private finance: FinanceService,
   ) {}
@@ -194,7 +194,7 @@ export class OrdersService {
       });
       if (customer?.phone) {
         try {
-          const res = await this.eversend.collectMobileMoney(customer.phone, grandTotal, `ZANA-ORDER-${order.id}`);
+          const res = await this.paypackPayments.collectMobileMoney(customer.phone, grandTotal, `ZANA-ORDER-${order.id}`);
           await this.prisma.order.update({
             where: { id: order.id }, data: { momoRef: res.ref } as any,
           });
@@ -285,7 +285,7 @@ export class OrdersService {
     if (!ref) return { paid: false, status: 'NOT_STARTED' };
 
     try {
-      const res = await this.eversend.getCollectionStatus(ref);
+      const res = await this.paypackPayments.getCollectionStatus(ref);
       if (res.status === 'successful') {
         await this.prisma.order.update({
           where: { id: orderId }, data: { paid: true } as any,

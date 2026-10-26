@@ -4,7 +4,7 @@ import { DeliveryStatus, PackageWeight } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from './storage.service';
 import { ZanaGateway } from '../gateway/zana.gateway';
-import { EversendService } from '../wallet/eversend.service';
+import { PaypackPaymentAdapter } from '../wallet/paypack-payment.adapter';
 import { LocationCodeService } from './location-code.service';
 import { haversineKm, estimateDurationMinutes } from '../trips/fare.util';
 import { CommissionDebtService } from '../trips/commission-debt.service';
@@ -57,7 +57,7 @@ export class DeliveriesService {
     private prisma: PrismaService,
     private storage: StorageService,
     private gateway: ZanaGateway,
-    private eversend: EversendService,
+    private paypackPayments: PaypackPaymentAdapter,
     private locationCodes: LocationCodeService,
     private commissionDebt: CommissionDebtService,
     private finance: FinanceService,
@@ -180,7 +180,7 @@ export class DeliveriesService {
           throw new BadRequestException('NO_PHONE_NUMBER');
         }
         try {
-            const res = await this.eversend.collectMobileMoney(chargePhone, fee, `ZANA-DELIVERY-${delivery.id}`);
+            const res = await this.paypackPayments.collectMobileMoney(chargePhone, fee, `ZANA-DELIVERY-${delivery.id}`);
             await this.prisma.delivery.update({
               where: { id: delivery.id }, data: { momoRef: res.ref } as any,
             });
@@ -221,7 +221,7 @@ export class DeliveriesService {
     const ref = (delivery as any).momoRef;
     if (!ref) return { status: 'pending' };
 
-    const remote = await this.eversend.getCollectionStatus(ref);
+    const remote = await this.paypackPayments.getCollectionStatus(ref);
     const remoteStatus = remote.status?.toLowerCase();
     const isFailed = remoteStatus === 'failed' || remoteStatus === 'cancelled' || remoteStatus === 'canceled';
     const isStillPending = remoteStatus === 'pending';
@@ -909,7 +909,7 @@ export class DeliveriesService {
     const ref = (d as any).momoRef;
     if (!ref) return { paid: false, status: 'NOT_STARTED' };
     try {
-      const res = await this.eversend.getCollectionStatus(ref);
+      const res = await this.paypackPayments.getCollectionStatus(ref);
       if (res.status === 'successful') {
         await this.prisma.delivery.update({
           where: { id: deliveryId }, data: { paid: true } as any,
