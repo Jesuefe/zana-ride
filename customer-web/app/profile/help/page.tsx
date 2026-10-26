@@ -56,7 +56,30 @@ export default function HelpPage() {
   const loadTickets = async () => {
     try { setTickets(await api.get<SupportTicket[]>('/support/tickets/mine')); } catch { /* User may be signed out; they can still use email support. */ }
   };
-  useEffect(() => { void loadTickets(); }, []);
+  useEffect(() => {
+    void loadTickets();
+
+    // Load Zana's Tawk.to live chat widget on the Contact Support screen.
+    const w = window as typeof window & { Tawk_API?: any; Tawk_LoadStart?: Date };
+    w.Tawk_API = w.Tawk_API || {};
+    w.Tawk_LoadStart = new Date();
+    const scriptId = 'zana-tawk-to-script';
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.async = true;
+      script.src = 'https://embed.tawk.to/6adf04cde2a6103471ed01ec/1k5rilh6r';
+      script.charset = 'UTF-8';
+      script.setAttribute('crossorigin', '*');
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  const openLiveChat = () => {
+    const w = window as typeof window & { Tawk_API?: { maximize?: () => void; showWidget?: () => void } };
+    if (w.Tawk_API?.showWidget) w.Tawk_API.showWidget();
+    if (w.Tawk_API?.maximize) w.Tawk_API.maximize();
+  };
 
   const submitTicket = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -131,6 +154,9 @@ export default function HelpPage() {
 
       <div className="rounded-2xl bg-zana-primary-light p-5">
         <p className="mb-3 font-semibold text-gray-900">{t('Still need help?')}</p>
+        <button type="button" onClick={openLiveChat} className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-zana-primary px-4 py-3.5 text-sm font-semibold text-white">
+          <MessageCircle size={17} /> {t('Chat with Zana Support')}
+        </button>
         <a href="mailto:support@zana.rw" className="mb-2 flex items-center gap-2 text-sm font-semibold text-zana-primary"><Mail size={15} /> support@zana.rw</a>
         <a href="https://wa.me/250700000000" className="flex items-center gap-2 text-sm font-semibold text-zana-primary"><MessageCircle size={15} /> {t('WhatsApp Support')}</a>
       </div>
