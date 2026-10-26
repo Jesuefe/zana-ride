@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Car, Store, Package, MapPin,
   UserCheck, TrendingUp, LogOut, ChevronRight,
   Truck, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
-  Sun, Moon, Smartphone, Settings, Image as ImageIcon, ClipboardList } from 'lucide-react';
+  Sun, Moon, Smartphone, Settings, Image as ImageIcon, ClipboardList, MessageCircle } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
 import { useTheme } from '../lib/ThemeContext';
 
@@ -25,6 +25,7 @@ const SENIOR_NAV = [
   { label: 'Rider Applications', href: '/dashboard/rider-registrations', icon: ClipboardList },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
   { label: 'Merchant Registrations', href: '/dashboard/merchant-registrations', icon: ClipboardList },
+  { label: 'Support', href: '/dashboard/support', icon: MessageCircle },
   { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send },
   { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
   { label: 'Test Lab', href: '/dashboard/test-locations', icon: Smartphone },
@@ -46,6 +47,7 @@ const WORKER_NAV = [
   { label: 'Pending Products', href: '/dashboard/products', icon: Package },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store },
+  { label: 'Support', href: '/dashboard/support', icon: MessageCircle },
   { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send },
   { label: 'Tracking', href: '/dashboard/tracking', icon: Search },
   { label: 'Active Deliveries', href: '/dashboard/deliveries', icon: Truck },

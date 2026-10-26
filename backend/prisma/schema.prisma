@@ -67,6 +67,8 @@ model User {
   cancellations   CancellationRecord[] @relation("Cancellations")
   reportsMade     CustomerReport[]     @relation("ReportsMade")
   reportsReceived CustomerReport[]     @relation("ReportsReceived")
+  supportChats    SupportChat[]         @relation("SupportChatCustomer")
+  assignedSupportChats SupportChat[]   @relation("SupportChatAssignedStaff")
 }
 
 enum DriverApprovalStatus {
@@ -969,6 +971,34 @@ model AuditLog {
 
 // Customer support case management. Related records are stored as references so
 // support cases can be created for legacy rides, orders and provider payments.
+
+model SupportChat {
+  id               String           @id @default(uuid())
+  userId           String
+  user             User             @relation("SupportChatCustomer", fields: [userId], references: [id], onDelete: Cascade)
+  status           String           @default("open")
+  assignedStaffId  String?
+  assignedStaff    User?            @relation("SupportChatAssignedStaff", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  createdAt        DateTime         @default(now())
+  closedAt         DateTime?
+  messages         SupportMessage[]
+
+  @@index([status, createdAt])
+  @@index([assignedStaffId, status, createdAt])
+  @@index([userId, status])
+}
+
+model SupportMessage {
+  id        String     @id @default(uuid())
+  chatId    String
+  chat      SupportChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender    String
+  text      String
+  createdAt DateTime   @default(now())
+
+  @@index([chatId, createdAt])
+}
+
 model SupportTicket {
   id               String    @id @default(uuid())
   ticketNumber     String    @unique @default(cuid())

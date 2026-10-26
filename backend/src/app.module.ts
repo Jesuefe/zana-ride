@@ -26,6 +26,7 @@ import { FinanceModule } from './finance/finance.module';
 import { ZanaAiModule } from './zana-ai/zana-ai.module';
 import { DownloadsModule } from './downloads/downloads.module';
 import { CustomerSupportController } from './support.controller';
+import { CustomerSupportChatsController, AdminSupportChatsController, AdminCustomerSummaryController } from './support-chats.controller';
 import { RiderRegistrationController } from './rider-registration.controller';
 import { MerchantRegistrationController } from './merchant-registration.controller';
 
@@ -59,6 +60,6 @@ import { MerchantRegistrationController } from './merchant-registration.controll
     ZanaAiModule,
     DownloadsModule,
   ],
-  controllers: [HealthController, CustomerSupportController, RiderRegistrationController, MerchantRegistrationController],
+  controllers: [HealthController, CustomerSupportController, CustomerSupportChatsController, AdminSupportChatsController, AdminCustomerSummaryController, RiderRegistrationController, MerchantRegistrationController],
 })
 export class AppModule {}

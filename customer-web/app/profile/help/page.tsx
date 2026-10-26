@@ -2,9 +2,12 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MessageCircle, Mail, Send, CheckCircle2, Ticket } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Mail, Send, CheckCircle2, Ticket, X, Headphones } from 'lucide-react';
 import { useLang } from '../../../lib/LangContext';
 import { api, ApiError } from '../../../lib/api/client';
+
+type LiveSupportMessage = { id: string; sender: 'customer' | 'staff' | 'note'; text: string; createdAt: string };
+type LiveSupportChat = { id: string; status: string; messages?: LiveSupportMessage[] };
 
 type SupportTicket = {
   id: string;
@@ -52,11 +55,50 @@ export default function HelpPage() {
   const [submitted, setSubmitted] = useState<SupportTicket | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [liveChat, setLiveChat] = useState<LiveSupportChat | null>(null);
+  const [liveMessages, setLiveMessages] = useState<LiveSupportMessage[]>([]);
+  const [liveDraft, setLiveDraft] = useState('');
+  const [liveChatOpen, setLiveChatOpen] = useState(false);
+  const [liveChatLoading, setLiveChatLoading] = useState(false);
+  const [liveChatSending, setLiveChatSending] = useState(false);
+  const [liveChatError, setLiveChatError] = useState('');
 
   const loadTickets = async () => {
     try { setTickets(await api.get<SupportTicket[]>('/support/tickets/mine')); } catch { /* User may be signed out; they can still use email support. */ }
   };
   useEffect(() => { void loadTickets(); }, []);
+
+  const refreshLiveMessages = async (chatId: string) => {
+    try {
+      const rows = await api.get<LiveSupportMessage[]>(`/support/chats/${chatId}/messages`);
+      setLiveMessages(rows); setLiveChatError('');
+    } catch (e) { setLiveChatError(e instanceof Error ? e.message : t('Could not load your conversation.')); }
+  };
+
+  useEffect(() => {
+    if (!liveChat?.id || !liveChatOpen) return;
+    void refreshLiveMessages(liveChat.id);
+    const timer = window.setInterval(() => void refreshLiveMessages(liveChat.id), 3000);
+    return () => window.clearInterval(timer);
+  }, [liveChat?.id, liveChatOpen]);
+
+  const openLiveChat = async () => {
+    setLiveChatOpen(true); setLiveChatLoading(true); setLiveChatError('');
+    try {
+      const chat = await api.post<LiveSupportChat>('/support/chats');
+      setLiveChat(chat); setLiveMessages(chat.messages || []); await refreshLiveMessages(chat.id);
+    } catch (e) { setLiveChatError(e instanceof ApiError && e.status === 401 ? t('Please log in to chat with support.') : e instanceof Error ? e.message : t('Could not open live chat. Please try again.')); }
+    finally { setLiveChatLoading(false); }
+  };
+
+  const sendLiveMessage = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); const text = liveDraft.trim();
+    if (!text || !liveChat?.id || liveChatSending) return;
+    setLiveChatSending(true); setLiveChatError('');
+    try { await api.post(`/support/chats/${liveChat.id}/messages`, { text }); setLiveDraft(''); await refreshLiveMessages(liveChat.id); }
+    catch (e) { setLiveChatError(e instanceof Error ? e.message : t('Could not send your message.')); }
+    finally { setLiveChatSending(false); }
+  };
 
   const submitTicket = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -131,9 +173,25 @@ export default function HelpPage() {
 
       <div className="rounded-2xl bg-zana-primary-light p-5">
         <p className="mb-3 font-semibold text-gray-900">{t('Still need help?')}</p>
+        <button type="button" onClick={openLiveChat} className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-zana-primary px-4 py-3.5 text-sm font-semibold text-white">
+          <MessageCircle size={17} /> {t('Chat with Zana Support')}
+        </button>
         <a href="mailto:support@zana.rw" className="mb-2 flex items-center gap-2 text-sm font-semibold text-zana-primary"><Mail size={15} /> support@zana.rw</a>
         <a href="https://wa.me/250700000000" className="flex items-center gap-2 text-sm font-semibold text-zana-primary"><MessageCircle size={15} /> {t('WhatsApp Support')}</a>
       </div>
+
+      {liveChatOpen && <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t('Live chat with Zana Support')}>
+        <section className="flex h-[82dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:h-[min(680px,85dvh)] sm:rounded-3xl">
+          <header className="flex items-center justify-between bg-zana-primary px-4 py-4 text-white"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15"><Headphones size={21}/></div><div><h2 className="font-bold">{t('Zana Support')}</h2><p className="text-xs text-white/80">{t('We are here to help')}</p></div></div><button onClick={()=>setLiveChatOpen(false)} aria-label={t('Close live chat')} className="rounded-full p-2 hover:bg-white/15"><X size={20}/></button></header>
+          <div className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4">
+            {liveChatLoading && <p className="py-8 text-center text-sm text-gray-500">{t('Connecting you to support…')}</p>}
+            {!liveChatLoading && liveMessages.length===0 && <div className="mx-auto mt-10 max-w-xs text-center"><MessageCircle className="mx-auto mb-3 text-zana-primary" size={32}/><p className="font-semibold text-gray-900">{t('How can we help you today?')}</p><p className="mt-1 text-sm text-gray-500">{t('Send a message and our team will reply here.')}</p></div>}
+            {liveMessages.filter(m=>m.sender!=='note').map(m=><div key={m.id} className={`flex ${m.sender==='customer'?'justify-end':'justify-start'}`}><div className={`max-w-[85%] rounded-2xl px-3 py-2.5 ${m.sender==='customer'?'bg-zana-primary text-white':'border border-gray-200 bg-white text-gray-800'}`}><p className="whitespace-pre-wrap break-words text-sm">{m.text}</p><p className={`mt-1 text-[10px] ${m.sender==='customer'?'text-white/70':'text-gray-400'}`}>{new Date(m.createdAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</p></div></div>)}
+            {liveChatError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{liveChatError}</p>}
+          </div>
+          <form onSubmit={sendLiveMessage} className="flex items-end gap-2 border-t bg-white p-3 pb-[max(12px,env(safe-area-inset-bottom))]"><textarea value={liveDraft} onChange={e=>setLiveDraft(e.target.value)} rows={2} maxLength={4000} placeholder={t('Type your message…')} className="min-w-0 flex-1 resize-none rounded-2xl border border-gray-200 px-3 py-3 text-sm outline-none focus:border-zana-primary"/><button type="submit" disabled={!liveDraft.trim()||liveChatSending||!liveChat?.id} aria-label={t('Send message')} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zana-primary text-white disabled:opacity-40"><Send size={17}/></button></form>
+        </section>
+      </div>}
     </div>
   );
 }

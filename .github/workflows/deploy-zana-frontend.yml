@@ -29,7 +29,7 @@ jobs:
         run: |
           set -eu
           case "$TARGET" in
-            admin) PROJECT="${ADMIN_PROJECT:-zana-admin}"; DIRECTORY=admin ;;
+            admin) PROJECT="${ADMIN_PROJECT:-zana-admin}"; DIRECTORY=admin-web ;;
             customer) PROJECT="${CUSTOMER_PROJECT:-zana-ride}"; DIRECTORY=customer-web ;;
             landing) PROJECT="${LANDING_PROJECT:-zana-landing}"; DIRECTORY=landing ;;
             *) exit 1 ;;
