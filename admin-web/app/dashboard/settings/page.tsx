@@ -1,6 +1,7 @@
 'use client';
 
 // Production deployment trigger: keep Admin Pages aligned with current main.
+// Paypack is the sole supported payment provider.
 
 import { useEffect, useState } from 'react';
 import AdminShell from '../../../components/AdminShell';
