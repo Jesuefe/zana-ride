@@ -981,9 +981,17 @@ model SupportChat {
   assignedStaff    User?            @relation("SupportChatAssignedStaff", fields: [assignedStaffId], references: [id], onDelete: SetNull)
   createdAt        DateTime         @default(now())
   closedAt         DateTime?
+  category         String           @default("GENERAL")
+  priority         String           @default("NORMAL")
+  lastCustomerMessageAt DateTime?
+  lastStaffMessageAt DateTime?
+  lastStaffReadAt  DateTime?
+  firstResponseAt  DateTime?
+  resolvedAt       DateTime?
   messages         SupportMessage[]
 
-  @@index([status, createdAt])
+  @@index([status, priority, createdAt])
+  @@index([lastCustomerMessageAt, lastStaffReadAt])
   @@index([assignedStaffId, status, createdAt])
   @@index([userId, status])
 }

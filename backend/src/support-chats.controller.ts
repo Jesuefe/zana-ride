@@ -44,7 +44,7 @@ export class CustomerSupportChatsController {
     const chat = await this.prisma.supportChat.findFirst({ where: { id, userId: user.sub } });
     if (!chat) throw new NotFoundException('Support chat not found');
     return this.prisma.$transaction(async tx => {
-      if (chat.status === 'completed') await tx.supportChat.update({ where: { id }, data: { status: 'open', closedAt: null } });
+      await tx.supportChat.update({ where: { id }, data: { lastCustomerMessageAt: new Date(), ...(chat.status === 'completed' ? { status: 'open', closedAt: null, resolvedAt: null } : {}) } });
       return tx.supportMessage.create({ data: { chatId: id, sender: 'customer', text } });
     });
   }
@@ -57,18 +57,21 @@ export class AdminSupportChatsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  async list(@CurrentUser() user: JwtPayload, @Query('tab') tab = 'open', @Query('search') search = '') {
+  async list(@CurrentUser() user: JwtPayload, @Query('tab') tab = 'open', @Query('search') search = '', @Query('priority') priority = '', @Query('category') category = '') {
     const where: any = {};
     if (tab === 'mine') { where.assignedStaffId = user.sub; where.status = { in: ['open', 'assigned'] }; }
     else if (tab === 'completed') where.status = 'completed';
     else where.status = { in: ['open', 'assigned'] };
+    if (['LOW', 'NORMAL', 'HIGH', 'URGENT'].includes(priority.toUpperCase())) where.priority = priority.toUpperCase();
+    if (category.trim() && /^[A-Z_]{2,40}$/.test(category.toUpperCase())) where.category = category.toUpperCase();
     if (search.trim()) where.user = { OR: [
       { firstName: { contains: search.trim(), mode: 'insensitive' } },
       { lastName: { contains: search.trim(), mode: 'insensitive' } },
       { phone: { contains: search.trim() } },
     ] };
     const chats = await this.prisma.supportChat.findMany({ where, include: chatInclude, orderBy: [{ createdAt: 'desc' }], take: 150 });
-    return chats.map(chat => ({ ...chat, lastMessage: chat.messages[0] ?? null, unread: chat.messages[0]?.sender === 'customer' }));
+    return chats.map(chat => ({ ...chat, lastMessage: chat.messages[0] ?? null, unread: Boolean(chat.lastCustomerMessageAt && (!chat.lastStaffReadAt || chat.lastCustomerMessageAt > chat.lastStaffReadAt) && (!chat.lastStaffMessageAt || chat.lastCustomerMessageAt > chat.lastStaffMessageAt)) }))
+      .sort((a, b) => (['URGENT','HIGH','NORMAL','LOW'].indexOf(a.priority) - ['URGENT','HIGH','NORMAL','LOW'].indexOf(b.priority)) || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
   @Get(':id/messages')
@@ -83,26 +86,58 @@ export class AdminSupportChatsController {
     const text = String(body?.text ?? '').trim();
     const sender = body?.sender === 'note' ? 'note' : 'staff';
     if (!text || text.length > 4000) throw new BadRequestException('Message must contain 1–4000 characters');
-    const chat = await this.prisma.supportChat.findUnique({ where: { id }, select: { id: true, status: true } });
+    const chat = await this.prisma.supportChat.findUnique({ where: { id }, select: { id: true, status: true, firstResponseAt: true } });
     if (!chat) throw new NotFoundException('Support chat not found');
     return this.prisma.$transaction(async tx => {
-      await tx.supportChat.update({ where: { id }, data: { ...(chat.status === 'completed' ? { status: 'open', closedAt: null } : {}), ...(sender === 'staff' ? { assignedStaffId: user.sub, status: 'assigned' } : {}) } });
+      await tx.supportChat.update({ where: { id }, data: {
+        ...(sender === 'staff' && chat.status === 'completed' ? { status: 'assigned', closedAt: null, resolvedAt: null } : {}),
+        ...(sender === 'staff' ? { assignedStaffId: user.sub, status: 'assigned', lastStaffMessageAt: new Date(), ...(chat.firstResponseAt ? {} : { firstResponseAt: new Date() }) } : {}),
+      } });
       return tx.supportMessage.create({ data: { chatId: id, sender, text } });
     });
+  }
+
+  @Patch(':id/read')
+  async markRead(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const chat = await this.prisma.supportChat.findUnique({ where: { id }, select: { id: true, lastCustomerMessageAt: true, lastStaffReadAt: true } });
+    if (!chat) throw new NotFoundException('Support chat not found');
+    if (chat.lastCustomerMessageAt && (!chat.lastStaffReadAt || chat.lastCustomerMessageAt > chat.lastStaffReadAt)) {
+      return this.prisma.supportChat.update({ where: { id }, data: { lastStaffReadAt: new Date() }, select: { id: true, lastStaffReadAt: true } });
+    }
+    return { id, lastStaffReadAt: chat.lastStaffReadAt };
+  }
+
+  @Patch(':id/metadata')
+  async updateMetadata(@Param('id') id: string, @Body() body: { priority?: string; category?: string }) {
+    const data: Record<string, string> = {};
+    if (body.priority !== undefined) {
+      const value = body.priority.toUpperCase();
+      if (!['LOW','NORMAL','HIGH','URGENT'].includes(value)) throw new BadRequestException('Invalid priority');
+      data.priority = value;
+    }
+    if (body.category !== undefined) {
+      const value = body.category.toUpperCase();
+      if (!['GENERAL','PAYMENT','RIDE','DELIVERY','DRIVER','MERCHANT','ACCOUNT','SAFETY','REFUND'].includes(value)) throw new BadRequestException('Invalid category');
+      data.category = value;
+    }
+    if (!Object.keys(data).length) throw new BadRequestException('Priority or category is required');
+    const chat = await this.prisma.supportChat.findUnique({ where: { id }, select: { id: true } });
+    if (!chat) throw new NotFoundException('Support chat not found');
+    return this.prisma.supportChat.update({ where: { id }, data, include: chatInclude });
   }
 
   @Patch(':id/assign')
   async assign(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     const chat = await this.prisma.supportChat.findUnique({ where: { id }, select: { id: true, status: true } });
     if (!chat) throw new NotFoundException('Support chat not found');
-    return this.prisma.supportChat.update({ where: { id }, data: { assignedStaffId: user.sub, status: 'assigned', closedAt: null }, include: chatInclude });
+    return this.prisma.supportChat.update({ where: { id }, data: { assignedStaffId: user.sub, status: 'assigned', closedAt: null, resolvedAt: null }, include: chatInclude });
   }
 
   @Patch(':id/complete')
   async complete(@Param('id') id: string) {
     const chat = await this.prisma.supportChat.findUnique({ where: { id }, select: { id: true } });
     if (!chat) throw new NotFoundException('Support chat not found');
-    return this.prisma.supportChat.update({ where: { id }, data: { status: 'completed', closedAt: new Date() }, include: chatInclude });
+    return this.prisma.supportChat.update({ where: { id }, data: { status: 'completed', closedAt: new Date(), resolvedAt: new Date() }, include: chatInclude });
   }
 }
 
