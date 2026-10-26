@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Mail, Send, CheckCircle2, Ticket } from 'lucide-react';
+import { ArrowLeft, Mail, Send, CheckCircle2, Ticket, MessageCircle } from 'lucide-react';
 import { useLang } from '../../../lib/LangContext';
 import { api, ApiError } from '../../../lib/api/client';
 
