@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Mail, Send, CheckCircle2, Ticket, MessageCircle } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Mail, Send, CheckCircle2, Ticket } from 'lucide-react';
 import { useLang } from '../../../lib/LangContext';
 import { api, ApiError } from '../../../lib/api/client';
 
@@ -53,13 +53,10 @@ export default function HelpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-
   const loadTickets = async () => {
     try { setTickets(await api.get<SupportTicket[]>('/support/tickets/mine')); } catch { /* User may be signed out; they can still use email support. */ }
   };
-  useEffect(() => {
-    void loadTickets();
-  }, []);
+  useEffect(() => { void loadTickets(); }, []);
 
   const submitTicket = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -79,7 +76,7 @@ export default function HelpPage() {
   };
 
   return (
-    <div className="p-4 pb-8">
+    <div className="p-4 pb-24">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.back()} aria-label={t('Go back')} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><ArrowLeft size={16} /></button>
         <h1 className="text-lg font-bold text-gray-900">{t('Help & Support')}</h1>
