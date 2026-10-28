@@ -41,6 +41,7 @@ export default function Landing() {
           <a href="#services" onClick={() => setMenuOpen(false)}>What we do</a>
           <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
           <a href="#business" onClick={() => setMenuOpen(false)}>For business</a>
+          <a href="/contact" onClick={() => setMenuOpen(false)}>Contact</a>
           <a className="nav-cta" href={APP}>Open Zana <span aria-hidden="true">↗</span></a>
         </nav>
       </header>
@@ -120,7 +121,7 @@ export default function Landing() {
       </section>
 
       <footer className="site-footer">
-        <div className="footer-main"><div className="footer-brand"><a className="brand brand-footer" href="/"><img src="/zana-mark.png" alt="" width="38" height="30" /><span>zana<span className="brand-dot">.</span></span></a><p>Your everyday, connected.<br />Kigali, Rwanda.</p></div><div className="footer-col"><strong>Explore</strong><a href="#services">Our services</a><a href="#how-it-works">How it works</a><a href={APP}>Open Zana</a></div><div className="footer-col"><strong>Partner with us</strong><a href={DRIVER}>Drive with Zana</a><a href={MERCHANT}>Sell with Zana</a><a href="https://zanaride.rw/form">Join the rider network</a></div><div className="footer-col"><strong>Say hello</strong><a href="mailto:hello@zanaride.rw">hello@zanaride.rw</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div></div>
+        <div className="footer-main"><div className="footer-brand"><a className="brand brand-footer" href="/"><img src="/zana-mark.png" alt="" width="38" height="30" /><span>zana<span className="brand-dot">.</span></span></a><p>Your everyday, connected.<br />Kigali, Rwanda.</p></div><div className="footer-col"><strong>Explore</strong><a href="#services">Our services</a><a href="#how-it-works">How it works</a><a href={APP}>Open Zana</a></div><div className="footer-col"><strong>Partner with us</strong><a href={DRIVER}>Drive with Zana</a><a href={MERCHANT}>Sell with Zana</a><a href="https://zanaride.rw/form">Join the rider network</a></div><div className="footer-col"><strong>Say hello</strong><a href="mailto:hello@zanaride.rw">hello@zanaride.rw</a><a href="/contact">Contact us</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div></div>
         <div className="footer-bottom"><span>© {new Date().getFullYear()} Zana Ride. Made for Kigali.</span><span>Move freely. Move with Zana. <span className="brand-dot">✳</span></span></div>
       </footer>
     </main>
