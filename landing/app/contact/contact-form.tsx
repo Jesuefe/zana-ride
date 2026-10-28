@@ -17,7 +17,7 @@ export default function ContactForm() {
       `Name: ${name.trim()}\nEmail: ${email.trim()}\nTopic: ${topic}\n\nMessage:\n${message.trim()}`
     );
     setPrepared(true);
-    window.location.href = `mailto:hello@zanaride.rw?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:support@zanaride.rw?subject=${subject}&body=${body}`;
   }
 
   return (
