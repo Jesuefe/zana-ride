@@ -61,7 +61,7 @@ export default function ContactPage() {
             <p className="contact-card-kicker">PREFER EMAIL?</p>
             <h3>Write to us directly.</h3>
             <p>For questions, partnerships, merchant enquiries or investor conversations, email our team.</p>
-            <a className="contact-email-link" href="mailto:hello@zanaride.rw">hello@zanaride.rw <span aria-hidden="true">↗</span></a>
+            <a className="contact-email-link" href="mailto:support@zanaride.rw">support@zanaride.rw <span aria-hidden="true">↗</span></a>
           </div>
           <div className="contact-topics">
             <p className="eyebrow eyebrow-dark">HOW CAN WE HELP?</p>
@@ -76,7 +76,7 @@ export default function ContactPage() {
       <footer className="contact-footer">
         <a className="brand brand-footer" href="/"><img src="/zana-mark.png" alt="" width="36" height="29" /><span>zana<span className="brand-dot">.</span></span></a>
         <span>© {new Date().getFullYear()} Zana Ride · Kigali, Rwanda</span>
-        <a href="mailto:hello@zanaride.rw">Say hello ↗</a>
+        <a href="mailto:support@zanaride.rw">Say hello ↗</a>
       </footer>
     </main>
   );
