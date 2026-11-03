@@ -6,7 +6,7 @@ import { getToken } from '../lib/api/client';
 
 const PUBLIC_PATHS = [
   '/login', '/signup', '/verify', '/onboarding',
-  '/login-code', '/forgot-password',
+  '/login-code', '/forgot-password', '/privacy', '/terms',
 ];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
