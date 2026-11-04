@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react';
 import { SERVICES } from '../lib/services';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Clock, Home, Briefcase, ChevronRight, Search, MapPin, Calendar, Package, Wallet } from 'lucide-react';
+import {
+  ArrowRight, ArrowUpRight, Bell, Briefcase, CalendarDays, CarFront,
+  ChevronRight, Clock3, Home, MapPin, Package, Search, ShieldCheck,
+  ShoppingBag, Wallet, X
+} from 'lucide-react';
 import { fetchMe, ApiUser } from '../lib/api/auth';
 import { fetchWallet, recoverActiveRide } from '../lib/api/trips';
 import { haptic } from '../lib/haptics';
@@ -12,10 +16,10 @@ import { api } from '../lib/api/client';
 import { useLang } from '../lib/LangContext';
 
 function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning,';
-  if (h < 17) return 'Good afternoon,';
-  return 'Good evening,';
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 export default function HomePage() {
@@ -26,7 +30,6 @@ export default function HomePage() {
   const [savedPlaces, setSavedPlaces] = useState<any[]>([]);
   const [recentPlace, setRecentPlace] = useState<{ address: string; lat: number; lng: number } | null>(null);
   const [ridePick, setRidePick] = useState<{ label: string; address: string; lat: number; lng: number } | null>(null);
-
   const [loadError, setLoadError] = useState(false);
   const [recoveringRide, setRecoveringRide] = useState(false);
 
@@ -36,17 +39,13 @@ export default function HomePage() {
     const noteFailure = () => { failures += 1; if (failures === 4) setLoadError(true); };
 
     fetchMe().then(setUser).catch(noteFailure);
-    fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(noteFailure);
-
-    // Saved Home / Work
+    fetchWallet().then((wallet: any) => setWalletBalance(wallet.balance)).catch(noteFailure);
     api.get<any[]>('/users/saved-places')
       .then(list => setSavedPlaces(Array.isArray(list) ? list : []))
       .catch(noteFailure);
-
-    // Most recent place the customer actually travelled to
     api.get<any[]>('/rides/history')
       .then(trips => {
-        const last = Array.isArray(trips) ? trips.find(t => t?.destinationAddress) : null;
+        const last = Array.isArray(trips) ? trips.find(trip => trip?.destinationAddress) : null;
         if (last) {
           setRecentPlace({
             address: last.destinationAddress,
@@ -58,14 +57,6 @@ export default function HomePage() {
       .catch(noteFailure);
   };
 
-  // Previously every one of these silently swallowed its own failure —
-  // on a slow or flaky connection, this being the very first screen a
-  // customer sees, the whole page would just quietly show "Welcome"
-  // with no name, a blank wallet, and empty everything, with no way to
-  // tell that from a genuinely new, empty account, and no way to retry
-  // short of reloading the entire app. Only surfaces something when
-  // every single call fails, not one flaky field — that's the actual
-  // signal of a real connectivity problem, not just normal empty data.
   useEffect(() => {
     let cancelled = false;
     const recover = async () => {
@@ -78,8 +69,7 @@ export default function HomePage() {
           ? `/tracking?groupId=${encodeURIComponent(activeRide.groupId)}`
           : `/tracking?tripId=${encodeURIComponent(activeRide.id)}`);
       } catch {
-        // Offline/temporary failure: stay on home and allow the next app
-        // lifecycle or retry to recover from the server.
+        // A temporary connection failure should not block the home screen.
       } finally {
         if (!cancelled) setRecoveringRide(false);
       }
@@ -88,298 +78,204 @@ export default function HomePage() {
     loadHomeData();
     recover();
     return () => { cancelled = true; };
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const savedHome = savedPlaces.find(place => (place?.label ?? '').toLowerCase() === 'home');
+  const savedWork = savedPlaces.find(place => (place?.label ?? '').toLowerCase() === 'work');
+  const shortcuts = [
+    { label: 'Home', icon: Home, place: savedHome ? { label: 'Home', address: savedHome.address, lat: savedHome.lat, lng: savedHome.lng } : null },
+    { label: 'Work', icon: Briefcase, place: savedWork ? { label: 'Work', address: savedWork.address, lat: savedWork.lat, lng: savedWork.lng } : null },
+    { label: 'Recent', icon: Clock3, place: recentPlace ? { label: 'Recent', address: recentPlace.address, lat: recentPlace.lat, lng: recentPlace.lng } : null },
+  ];
+
+  const openSavedPlace = (item: typeof shortcuts[number]) => {
+    if (item.place) setRidePick(item.place);
+    else router.push('/profile/places');
+  };
+
+  const goToRide = (service: 'BIKE' | 'CAR') => {
+    if (!ridePick) return;
+    const params = new URLSearchParams({
+      destLat: String(ridePick.lat),
+      destLng: String(ridePick.lng),
+      destAddress: ridePick.address,
+    });
+    if (service === 'BIKE') params.set('service', 'BIKE');
+    router.push(service === 'BIKE' ? `/search?${params.toString()}` : `/ride-options?${params.toString()}`);
+  };
+
   return (
-    <div className="zana-home zana-page-enter min-h-[100dvh] pb-28 overflow-x-hidden">
+    <main className="zana-home-v2 min-h-[100dvh] pb-28">
       {recoveringRide && (
-        <div className="fixed inset-0 z-[80] bg-white/95 flex flex-col items-center justify-center px-8">
-          <div className="w-16 h-16 rounded-full bg-zana-primary-light flex items-center justify-center mb-4 animate-pulse">
-            <span className="text-xl font-extrabold text-zana-primary">Z</span>
-          </div>
-          <p className="text-lg font-black text-gray-900 text-center">Recovering your ride…</p>
-          <p className="text-sm text-gray-500 text-center mt-1">Please wait while we reconnect you to your active trip.</p>
+        <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-white/95 px-8">
+          <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#e6f5f0] text-2xl font-black text-[#008b70]">Z</div>
+          <p className="text-center text-lg font-bold text-slate-900">{t('Recovering your ride…')}</p>
+          <p className="mt-1 text-center text-sm text-slate-500">{t('Please wait while we reconnect you to your active trip.')}</p>
         </div>
       )}
 
-      {/* ── Header ──────────────────────────────────────── */}
-      <div className="zana-home-top px-5 pt-8 pb-5">
-        <div className="flex items-start justify-between gap-3 max-[399px]:flex-col">
-          <div>
-            <div className="mb-2 flex items-center gap-2"><span className="zana-brand-mark">Z</span><span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-white/75">ZANA · MOVE KIGALI</span></div><p className="text-white/70 text-sm">{t(greeting())}</p>
-            <h1 className="text-3xl font-black tracking-tight text-white mt-0.5">
-              {user?.firstName ?? t('Welcome')}
-            </h1>
-            <div className="flex items-center gap-1.5 mt-2 text-white/75">
-              <MapPin size={12} className="text-zana-primary" />
-              <p className="text-xs font-medium text-white/75">{t('Kigali, Rwanda')}</p>
-            </div>
+      <header className="zana-v2-header">
+        <div className="zana-v2-header-inner">
+          <button onClick={() => router.push('/')} className="flex items-center gap-2.5" aria-label="Zana home">
+            <span className="zana-v2-logo">Z</span>
+            <span className="text-[17px] font-black tracking-[-0.06em] text-slate-950">zana<span className="text-[#00A082]">.</span></span>
+          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => router.push('/wallet')} className="zana-v2-wallet" aria-label={t('Wallet')}>
+              <Wallet size={16} />
+              <span>{walletBalance !== null ? `${walletBalance.toLocaleString()} RWF` : '—'}</span>
+            </button>
+            <button onClick={() => router.push('/profile')} className="zana-v2-avatar" aria-label={t('Profile')}>
+              {(user?.firstName?.[0] ?? 'U').toUpperCase()}
+            </button>
           </div>
+        </div>
+      </header>
 
-          {/* Wallet pill */}
-          <button
-            onClick={() => router.push('/wallet')}
-            className="zana-wallet-chip flex min-w-0 shrink-0 items-center gap-2 rounded-2xl px-3 py-2.5 max-[399px]:w-full max-[399px]:justify-between"
-          >
-            <div className="w-7 h-7 rounded-xl bg-zana-primary-light flex items-center justify-center">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <rect x="2" y="5" width="20" height="15" rx="3" stroke="#00A082" strokeWidth="2"/>
-                <path d="M16 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0z" fill="#00A082"/>
-                <path d="M2 9h20" stroke="#00A082" strokeWidth="2"/>
-              </svg>
+      <div className="zana-v2-container">
+        {loadError && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span>{t("Couldn't load your info. Check your connection.")}</span>
+            <button onClick={loadHomeData} className="font-bold underline">{t('Retry')}</button>
+          </div>
+        )}
+
+        <section className="zana-v2-hero">
+          <div className="zana-v2-hero-copy">
+            <div className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.16em] text-white/65">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#ffc244]" />
+              {t('Kigali, Rwanda')}
             </div>
-            <span className="text-sm font-bold text-gray-900">
-              {walletBalance !== null ? `${walletBalance.toLocaleString()} RWF` : '—'}
+            <p className="text-sm font-medium text-white/70">{t(greeting())}{user?.firstName ? `, ${user.firstName}` : ''}</p>
+            <h1>{t('Where would you like to go?')}</h1>
+            <p className="mt-3 max-w-md text-sm leading-6 text-white/70">{t('Your city, connected. Get there, send something, or get what you need.')}</p>
+          </div>
+          <div className="zana-v2-hero-mark" aria-hidden="true">
+            <div className="zana-v2-orbit zana-v2-orbit-one" />
+            <div className="zana-v2-orbit zana-v2-orbit-two" />
+            <div className="zana-v2-route-line" />
+            <div className="zana-v2-map-pin"><MapPin size={25} fill="currentColor" /></div>
+            <span className="zana-v2-map-dot zana-v2-dot-a" />
+            <span className="zana-v2-map-dot zana-v2-dot-b" />
+          </div>
+        </section>
+
+        <section className="zana-v2-search-section" aria-label={t('Book a ride')}>
+          <button onClick={() => router.push('/search')} className="zana-v2-search">
+            <span className="zana-v2-search-icon"><Search size={19} /></span>
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block text-[10px] font-bold uppercase tracking-[.12em] text-slate-400">{t('Plan your journey')}</span>
+              <span className="mt-0.5 block truncate text-[15px] font-semibold text-slate-800">{t('Enter destination')}</span>
             </span>
-            <ChevronRight size={14} className="text-gray-400" />
+            <span className="zana-v2-search-arrow"><ArrowUpRight size={18} /></span>
           </button>
-        </div>
-      </div>
-
-      {loadError && (
-        <div className="mx-4 mb-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
-          <p className="text-xs text-amber-800">{t("Couldn't load your info. Check your connection.")}</p>
-          <button onClick={loadHomeData} className="text-xs font-bold text-amber-800 shrink-0">{t('Retry')}</button>
-        </div>
-      )}
-
-      {/* ── Where to card ───────────────────────────────── */}
-      <div className="zana-destination-wrap px-4 mt-2">
-        <div className="zana-destination-card rounded-[28px] border p-5">
-          <h2 className="text-2xl font-black tracking-tight text-gray-950 mb-4">{t('Where to?')}</h2>
-
-          {/* Search bar */}
-          <button
-            onClick={() => router.push('/search')}
-            className="zana-search-trigger w-full flex items-center gap-3 rounded-2xl px-3 py-3.5 mb-3"
-          >
-            <Search size={18} className="text-gray-400 shrink-0" />
-            <span className="text-gray-400 text-sm flex-1 text-left">{t('Search destination')}</span>
-            <div className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0">
-              <Clock size={15} className="text-gray-400" />
-            </div>
-          </button>
-
-          {/* Quick places — tap a saved place to pick a ride type */}
-          <div className="grid grid-cols-3 gap-2">
-            {(() => {
-              const findSaved = (name: string) =>
-                savedPlaces.find(p => (p?.label ?? '').toLowerCase() === name);
-              const home = findSaved('home');
-              const work = findSaved('work');
-
-              const tiles = [
-                {
-                  key: 'Home',
-                  icon: <Home size={14} />,
-                  place: home
-                    ? { label: 'Home', address: home.address, lat: home.lat, lng: home.lng }
-                    : null,
-                },
-                {
-                  key: 'Work',
-                  icon: <Briefcase size={14} />,
-                  place: work
-                    ? { label: 'Work', address: work.address, lat: work.lat, lng: work.lng }
-                    : null,
-                },
-                {
-                  key: 'Recent',
-                  icon: <Clock size={14} />,
-                  place: recentPlace
-                    ? { label: 'Recent', address: recentPlace.address, lat: recentPlace.lat, lng: recentPlace.lng }
-                    : null,
-                },
-              ];
-
-              return tiles.map(tile => (
-                <button
-                  key={tile.key}
-                  onClick={() => {
-                    if (tile.place) setRidePick(tile.place);
-                    else router.push('/profile/places');
-                  }}
-                  className="zana-place-chip flex flex-col items-start gap-1.5 rounded-2xl px-3 py-3 text-left active:scale-95 transition-transform"
-                >
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-sm ${
-                    tile.place ? 'bg-zana-primary-light text-zana-primary' : 'bg-white text-gray-400'
-                  }`}>
-                    {tile.icon}
-                  </div>
-                  <p className="text-xs font-bold text-gray-900">{t(tile.key)}</p>
-                  <p className="text-[10px] text-gray-400 leading-tight line-clamp-1 w-full">
-                    {tile.place
-                      ? tile.place.address.split(',')[0]
-                      : tile.key === 'Recent' ? t('No trips yet') : t('Set location')}
-                  </p>
+          <div className="zana-v2-quick-row">
+            {shortcuts.map(item => {
+              const Icon = item.icon;
+              return (
+                <button key={item.label} onClick={() => openSavedPlace(item)} className="zana-v2-quick-place">
+                  <span className="zana-v2-quick-icon"><Icon size={15} /></span>
+                  <span className="min-w-0 text-left">
+                    <span className="block text-xs font-bold text-slate-800">{t(item.label)}</span>
+                    <span className="mt-0.5 block truncate text-[10px] text-slate-400">
+                      {item.place ? item.place.address.split(',')[0] : t(item.label === 'Recent' ? 'No trips yet' : 'Add a place')}
+                    </span>
+                  </span>
+                  <ChevronRight size={13} className="ml-auto shrink-0 text-slate-300" />
                 </button>
-              ));
-            })()}
+              );
+            })}
           </div>
-        </div>
-      </div>
+        </section>
 
-      {/* ── Services ─────────────────────────────────────── */}
-      <div className="zana-home-section px-4 mt-7">
-        <div className="mb-4">
-          <h2 className="text-xl font-black tracking-tight text-gray-950">{t('Explore services')}</h2>
-        </div>
+        <section className="zana-v2-services-section">
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <div>
+              <p className="zana-v2-eyebrow">{t('Everything in one place')}</p>
+              <h2>{t('Explore Zana')}</h2>
+            </div>
+            <span className="text-xs font-medium text-slate-400">{t('4 services')}</span>
+          </div>
+          <div className="zana-v2-services-grid">
+            {SERVICES.map((service, index) => (
+              <button key={service.id} onClick={() => router.push(service.route)} className={`zana-v2-service-card zana-v2-service-${index}`}>
+                <span className="zana-v2-service-art" style={{ background: service.bg }}>
+                  <Image src={service.image} alt={t(service.title)} width={52} height={52} className="object-contain" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-extrabold text-slate-900">{t(service.title)}</span>
+                  <span className="mt-1 block text-[11px] leading-4 text-slate-500">{t(service.sub)}</span>
+                </span>
+                <ArrowUpRight size={16} className="shrink-0 text-slate-400" />
+              </button>
+            ))}
+          </div>
+        </section>
 
-        <div className="zana-service-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {SERVICES.map(s => (
-            <button
-              key={s.id}
-              onClick={() => router.push(s.route)}
-              className="zana-service-tile flex flex-col items-start gap-2 active:scale-[0.98] transition-transform"
-            >
-              <div
-                className="zana-service-icon w-16 h-16 rounded-[20px] flex items-center justify-center overflow-hidden"
-                style={{ background: s.bg }}
-              >
-                <Image
-                  src={s.image}
-                  alt={t(s.title)}
-                  width={40}
-                  height={40}
-                  className="object-contain"
-                />
-              </div>
-
-              <p className="text-sm font-extrabold text-gray-900 text-left leading-tight">
-                {t(s.title)}
-              </p>
-
-              <p className="text-[11px] text-gray-500 text-left leading-tight">
-                {t(s.sub)}
-              </p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Promo banner ─────────────────────────────────── */}
-      <div className="px-4 mt-7">
-        <div
-          className="zana-promo-panel rounded-[28px] overflow-hidden p-5 flex items-center justify-between relative"
-          style={{ background: 'linear-gradient(135deg, #00A082 0%, #007A63 100%)' }}
-        >
-          <div className="flex-1">
-            <p className="text-white font-black text-lg leading-tight">{t('Send packages with')}<br/>{t('Zana Delivery')}</p>
-            <p className="text-white/70 text-xs mt-1">{t('Fast · Safe · Affordable')}</p>
-            <button onClick={() => router.push('/deliver')}
-              className="mt-3 flex items-center gap-1.5 bg-white/20 text-white text-xs font-bold px-4 py-2 rounded-full">
-              {t('Book now')} <ChevronRight size={12} />
+        <section className="zana-v2-promo">
+          <div className="relative z-[1] max-w-[62%]">
+            <span className="zana-v2-promo-label">{t('Zana Delivery')}</span>
+            <h2>{t('Send it across the city.')}</h2>
+            <p>{t('Packages picked up and delivered with care.')}</p>
+            <button onClick={() => router.push('/deliver')} className="zana-v2-promo-button">
+              {t('Send a package')} <ArrowRight size={15} />
             </button>
           </div>
-          <div className="w-24 h-24 relative shrink-0">
-            <Image src="/icons/package-box.png" alt={t('delivery')} fill className="object-contain" />
+          <div className="zana-v2-promo-art">
+            <Image src="/icons/package-box.png" alt={t('Package delivery')} fill className="object-contain" />
           </div>
-        </div>
-      </div>
+        </section>
 
-      {/* Encourage wallet — it is the cheapest way to pay */}
-      {walletBalance !== null && (
-        <div className="px-4 mt-4">
-          <button
-            onClick={() => router.push('/wallet')}
-            className="zana-wallet-tip w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left active:scale-[0.99] transition-transform"
-          >
-            <div className="w-9 h-9 rounded-xl bg-zana-primary-light flex items-center justify-center shrink-0">
-              <Wallet size={18} className="text-zana-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="text-xs font-black text-gray-900">{t('Pay with your Zana Wallet')}</p>
-              <p className="text-[11px] text-gray-500 leading-snug">
-                {t('Lower fees than Mobile Money, and no waiting for a payment prompt.')}
-              </p>
-            </div>
-            <ChevronRight size={16} className="text-gray-300 shrink-0" />
+        <section className="zana-v2-bottom-grid">
+          <button onClick={() => router.push('/schedule')} className="zana-v2-feature-row">
+            <span className="zana-v2-feature-icon"><CalendarDays size={19} /></span>
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block text-sm font-bold text-slate-900">{t('Schedule a ride')}</span>
+              <span className="mt-1 block text-xs text-slate-500">{t('Plan ahead and travel on your time')}</span>
+            </span>
+            <ChevronRight size={17} className="text-slate-300" />
           </button>
-        </div>
-      )}
+          <button onClick={() => router.push('/share-location')} className="zana-v2-feature-row">
+            <span className="zana-v2-feature-icon zana-v2-feature-icon-yellow"><ShieldCheck size={19} /></span>
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block text-sm font-bold text-slate-900">{t('Share your location')}</span>
+              <span className="mt-1 block text-xs text-slate-500">{t('Let someone follow your journey')}</span>
+            </span>
+            <ChevronRight size={17} className="text-slate-300" />
+          </button>
+        </section>
 
-      {/* ── Schedule & Location FABs ─────────────────────── */}
-      <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 flex flex-col gap-2.5 z-30 max-[359px]:right-2">
-        <button onClick={() => router.push('/schedule')}
-          className="w-13 h-13 min-w-[52px] min-h-[52px] rounded-2xl bg-zana-primary shadow-lg flex flex-col items-center justify-center gap-0.5 px-3 py-2.5">
-          <Calendar size={16} className="text-white" />
-          <span className="text-[8px] text-white font-bold">{t('Schedule')}</span>
-        </button>
-        <button onClick={() => router.push('/share-location')}
-          className="w-13 h-13 min-w-[52px] min-h-[52px] rounded-2xl bg-white border border-gray-200 shadow-md flex flex-col items-center justify-center gap-0.5 px-3 py-2.5">
-          <MapPin size={16} className="text-zana-primary" />
-          <span className="text-[8px] text-zana-primary font-bold">{t('Location')}</span>
-        </button>
+        <footer className="zana-v2-footer">
+          <span className="font-extrabold tracking-[-.04em] text-slate-400">zana.</span>
+          <span>{t('MOVE KIGALI')}</span>
+        </footer>
       </div>
 
-      {/* ── Ride type picker for a saved place ────────────────────────── */}
       {ridePick && (
-        <div
-          className="fixed inset-0 z-50 flex items-end bg-black/50"
-          role="presentation"
-          onClick={() => setRidePick(null)}
-        >
-          <div
-            className="w-full bg-white rounded-t-3xl p-5 pb-8"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('Choose a ride type')}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">{t('Going to')} {ridePick.label}</p>
-            <p className="text-lg font-black text-gray-900 mt-0.5 mb-5 line-clamp-2">{ridePick.address}</p>
-
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-0 sm:items-center sm:p-4" role="presentation" onClick={() => setRidePick(null)}>
+          <div className="zana-v2-ride-modal w-full max-w-md rounded-t-[28px] bg-white p-5 pb-8 sm:rounded-[28px]" role="dialog" aria-modal="true" aria-label={t('Choose a ride type')} onClick={event => event.stopPropagation()}>
+            <div className="mb-5 flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-[.12em] text-slate-400">{t('Going to')} {t(ridePick.label)}</span>
+              <button onClick={() => setRidePick(null)} className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-500" aria-label={t('Close')}><X size={17} /></button>
+            </div>
+            <h2 className="mb-5 text-xl font-extrabold tracking-tight text-slate-950">{ridePick.address}</h2>
             <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  const q = new URLSearchParams({
-                    service: 'BIKE',
-                    destLat: String(ridePick.lat),
-                    destLng: String(ridePick.lng),
-                    destAddress: ridePick.address,
-                  });
-                  router.push(`/search?${q.toString()}`);
-                }}
-                className="flex flex-col items-center gap-2 py-5 rounded-2xl border-2 border-gray-100 active:scale-95 transition-transform"
-                style={{ background: '#FDF6E3' }}
-              >
-                <Image src="/icons/motorbike.png" alt={t('Moto')} width={44} height={44} className="object-contain" />
-                <p className="text-sm font-black text-gray-900">{t('Moto')}</p>
-                <p className="text-[10px] text-gray-500 -mt-1">{t('Fast & cheap')}</p>
+              <button onClick={() => goToRide('BIKE')} className="flex flex-col items-center gap-2 rounded-2xl border border-[#f0dfb5] bg-[#fff9eb] px-4 py-5 transition-transform active:scale-[.98]">
+                <Image src="/icons/motorbike.png" alt={t('Moto')} width={48} height={48} className="object-contain" />
+                <span className="text-sm font-extrabold text-slate-900">{t('Moto')}</span>
+                <span className="text-[11px] text-slate-500">{t('Fast & affordable')}</span>
               </button>
-
-              <button
-                onClick={() => {
-                  const q = new URLSearchParams({
-                    destLat: String(ridePick.lat),
-                    destLng: String(ridePick.lng),
-                    destAddress: ridePick.address,
-                  });
-                  router.push(`/ride-options?${q.toString()}`);
-                }}
-                className="flex flex-col items-center gap-2 py-5 rounded-2xl border-2 border-gray-100 active:scale-95 transition-transform"
-                style={{ background: '#EEF9F6' }}
-              >
-                <Image src="/icons/car.png" alt={t('Car')} width={44} height={44} className="object-contain" />
-                <p className="text-sm font-black text-gray-900">{t('Car')}</p>
-                <p className="text-[10px] text-gray-500 -mt-1">{t('Comfortable')}</p>
+              <button onClick={() => goToRide('CAR')} className="flex flex-col items-center gap-2 rounded-2xl border border-[#d8eee7] bg-[#f1faf7] px-4 py-5 transition-transform active:scale-[.98]">
+                <Image src="/icons/car.png" alt={t('Car')} width={48} height={48} className="object-contain" />
+                <span className="text-sm font-extrabold text-slate-900">{t('Car')}</span>
+                <span className="text-[11px] text-slate-500">{t('Comfortable')}</span>
               </button>
             </div>
-
-            <button
-              onClick={() => { setRidePick(null); router.push('/profile/places'); }}
-              className="w-full text-center text-xs text-gray-400 mt-5 py-1"
-            >
-              {t('Change this saved place')}
-            </button>
+            <button onClick={() => { setRidePick(null); router.push('/profile/places'); }} className="mt-5 w-full py-2 text-center text-xs font-semibold text-slate-500">{t('Edit saved places')}</button>
           </div>
         </div>
       )}
-
-    </div>
+    </main>
   );
 }
