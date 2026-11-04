@@ -3,18 +3,19 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useLang } from '../../lib/LangContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ChevronRight, Clock, MapPin, Check } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Clock, MapPin, Check, Bike, CarFront } from 'lucide-react';
 import { estimateRide, createRide, ServiceType, fetchWallet } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 import { getStoredPickup } from '../../lib/location';
 import ZanaLoading from '../../components/ZanaLoading';
 
-type Option = { service: ServiceType; label: string; sub: string; icon: string };
+type Option = { service: ServiceType; label: string; sub: string; icon: 'bike' | 'car' };
 
 const OPTIONS: Option[] = [
-  { service: 'ECONOMY', label: 'Basic Car', sub: 'Comfortable · up to 4', icon: '🚗' },
-  { service: 'COMFORT', label: 'Premium Car', sub: 'Top-rated drivers · up to 4', icon: '🚙' },
+  { service: 'BIKE', label: 'Moto', sub: 'Fast and affordable · 1 passenger', icon: 'bike' },
+  { service: 'ECONOMY', label: 'Basic Car', sub: 'Comfortable · up to 4', icon: 'car' },
+  { service: 'COMFORT', label: 'Premium Car', sub: 'More comfort · up to 4', icon: 'car' },
 ];
 
 const PAYMENT_OPTIONS = [
@@ -78,7 +79,7 @@ function RideOptionsContent() {
   const [fareError, setFareError] = useState<string | null>(null);
   const [loadingFares, setLoadingFares] = useState(true);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [selected, setSelected] = useState<ServiceType | null>(preselected ?? null);
+  const [selected, setSelected] = useState<ServiceType | null>(preselected && ['BIKE', 'ECONOMY', 'COMFORT'].includes(preselected) ? preselected : null);
   const [step, setStep] = useState<'select' | 'confirm'>('select');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [booking, setBooking] = useState(false);
@@ -89,11 +90,12 @@ function RideOptionsContent() {
     setLoadingFares(true);
     (async () => {
       try {
-        const [economy, comfort] = await Promise.all([
+        const [bike, economy, comfort] = await Promise.all([
+          estimateRide(pickup, { lat: destLat, lng: destLng }, 'BIKE'),
           estimateRide(pickup, { lat: destLat, lng: destLng }, 'ECONOMY'),
           estimateRide(pickup, { lat: destLat, lng: destLng }, 'COMFORT'),
         ]);
-        setFares({ BIKE: 0, ECONOMY: economy.fare, COMFORT: comfort.fare });
+        setFares({ BIKE: bike.fare, ECONOMY: economy.fare, COMFORT: comfort.fare });
         setFareError(null);
       } catch {
         setFares({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
@@ -205,7 +207,7 @@ function RideOptionsContent() {
                 >
                   {/* Icon */}
                   <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center shrink-0 text-3xl">
-                    {opt.icon}
+                    {opt.icon === 'bike' ? <Bike size={27} strokeWidth={1.8} /> : <CarFront size={29} strokeWidth={1.8} />}
                   </div>
 
                   {/* Info */}
@@ -297,7 +299,7 @@ function RideOptionsContent() {
           <div className="bg-zana-primary-light rounded-2xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-3xl">{selectedOption?.icon}</span>
+                <span className="grid h-12 w-12 place-items-center rounded-xl bg-white text-zana-primary">{selectedOption?.icon === 'bike' ? <Bike size={27} strokeWidth={1.8} /> : <CarFront size={29} strokeWidth={1.8} />}</span>
                 <div>
                   <p className="font-bold text-gray-900">{selectedOption?.label}</p>
                   <p className="text-xs text-gray-500">{selectedOption?.sub}</p>
@@ -333,7 +335,7 @@ function RideOptionsContent() {
 
           {/* {t('Payment method')} */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">{t('💳 How will you pay?')}</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">{t('How will you pay?')}</p>
             <div className="space-y-2">
               {PAYMENT_OPTIONS.map(({ id, label, sub, icon }) => {
                 const isWallet = id === 'WALLET';
@@ -380,7 +382,7 @@ function RideOptionsContent() {
             {/* Nudge toward wallet when they've picked something else */}
             {paymentMethod !== 'WALLET' && !walletInsufficient && (
               <div className="mt-3 flex items-center gap-2 bg-zana-primary-light rounded-xl px-3 py-2.5">
-                <span className="text-sm shrink-0">💡</span>
+                <span className="text-sm shrink-0"><Check size={15} className="text-zana-primary" /></span>
                 <p className="text-[11px] text-gray-700 leading-snug">
                   {t('Paying from your Zana Wallet costs less in fees and skips the payment prompt.')}
                 </p>
@@ -390,7 +392,7 @@ function RideOptionsContent() {
             {/* Insufficient funds banner */}
             {walletInsufficient && (
               <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2">
-                <span className="text-amber-500 text-base shrink-0">⚠️</span>
+                <span className="text-amber-500 text-base shrink-0"><MapPin size={16} /></span>
                 <div>
                   <p className="text-xs font-bold text-amber-800">{t('Insufficient wallet balance')}</p>
                   <p className="text-xs text-amber-600 mt-0.5">
