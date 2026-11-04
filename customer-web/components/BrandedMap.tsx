@@ -61,7 +61,7 @@ export default function BrandedMap({
   const initDone = useRef(false);
   const routeTimerRef = useRef<any>(null);
   const routePathRef = useRef<any[]>([]);
-  const offRouteCountRef = useRef(0);
+  const offRouteCountRef = useRef(0);\n  const mapClickRef = useRef(onMapClick);\n  mapClickRef.current = onMapClick;
 
   // Keep live references so callbacks see current values
   const driverRef = useRef(driverPosition);
