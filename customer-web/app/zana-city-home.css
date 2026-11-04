@@ -266,10 +266,6 @@
   .zana-city-delivery-copy h2 {
     font-size: 15px;
   }
-body:has(.zana-city-home) .zana-bottom-nav-item {
-    min-height: 46px;
-    padding-inline: 2px;
-  }
 }
 
 @media (max-width: 350px) {
