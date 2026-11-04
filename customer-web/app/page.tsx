@@ -5,7 +5,7 @@ import type { PointerEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowRight, Briefcase, CalendarClock, ChevronDown, ChevronUp, Clock3,
-  Home, MapPin, Navigation, Search, Share2, Wallet
+  Home, Search, Share2, Wallet
 } from 'lucide-react';
 import BrandedMap from '../components/BrandedMap';
 import { SERVICES } from '../lib/services';
@@ -265,14 +265,14 @@ export default function HomePage() {
 
           <div className="zana-city-services-block">
             <div className="zana-city-service-strip">
-              <button className="zana-city-service primary" onClick={() => openRide('CAR')} aria-label={t('Book a car ride')}>
+              <button className="zana-city-service primary zana-city-service-car" onClick={() => openRide('CAR')} aria-label={t('Book a car ride')}>
                 <span className="zana-city-service-glyph"><ServiceGlyph kind="car" /></span><strong>{t('Car Ride')}</strong>
               </button>
-              <button className="zana-city-service primary" onClick={() => openRide('BIKE')} aria-label={t('Book a moto ride')}>
+              <button className="zana-city-service primary zana-city-service-moto" onClick={() => openRide('BIKE')} aria-label={t('Book a moto ride')}>
                 <span className="zana-city-service-glyph"><ServiceGlyph kind="moto" /></span><strong>{t('Moto Ride')}</strong>
               </button>
               {secondaryServices.map(item => (
-                <button key={item.id} className="zana-city-service compact" onClick={() => router.push(item.service!.route)} aria-label={t(item.label)}>
+                <button key={item.id} className={'zana-city-service compact zana-city-service-' + item.kind} onClick={() => router.push(item.service!.route)} aria-label={t(item.label)}>
                   <span className="zana-city-service-glyph"><ServiceGlyph kind={item.kind} /></span><strong>{t(item.label)}</strong>
                 </button>
               ))}
