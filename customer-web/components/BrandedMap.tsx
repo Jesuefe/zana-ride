@@ -143,7 +143,7 @@ export default function BrandedMap({
         center, zoom: 14,
         mapId: 'zana_customer_map',
         disableDefaultUI: true,
-        gestureHandling: draggablePickup ? 'greedy' : 'none',
+        gestureHandling: draggablePickup || onMapClick ? 'greedy' : 'none',
       });
 
       // Route renderer
