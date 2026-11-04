@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   ArrowRight,
+  ChevronRight,
   UserRound,
   Camera,
   MapPin,
