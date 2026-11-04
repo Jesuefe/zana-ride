@@ -149,3 +149,9 @@ body:has(.zana-city-home) .zana-bottom-nav-active:before{content:"";position:abs
  .zana-city-sheet,.zana-city-service,.zana-city-route-row{transition:none!important}
  .zana-city-signature-pin{animation:none!important}
 }
+
+.zana-city-place-copy{min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left;overflow:hidden}
+.zana-city-place-copy strong{font-size:9px;line-height:1.1;color:#34463b;font-weight:850}
+.zana-city-place-copy small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#87938a;font-size:8px;line-height:1.15}
+.dark .zana-city-place-copy strong{color:#e5eee7}
+.dark .zana-city-place-copy small{color:#9aaca0}
