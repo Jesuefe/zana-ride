@@ -2,7 +2,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, BriefcaseBusiness, Clock3, Home, MapPin, MapPinned, Plus, Search, X, Loader2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Briefcase, Clock3, Home, MapPin, MapPinned, Plus, Search, X, Loader2, ChevronRight } from 'lucide-react';
 import BrandedMap from '../../components/BrandedMap';
 import { getStoredPickup, setStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
@@ -37,7 +37,7 @@ function SearchContent(){
  useEffect(()=>{let live=true;api.get<SavedPlace[]>('/users/saved-places').then(v=>{if(live)setSaved(Array.isArray(v)?v:[])}).catch(()=>{});
  api.get<any[]>('/rides/history').then(rows=>{if(!live||!Array.isArray(rows))return;const seen=new Set<string>(),out:RecentPlace[]=[];for(const r of rows){const lat=Number(r?.destinationLat),lng=Number(r?.destinationLng),address=r?.destinationAddress;if(!address||!Number.isFinite(lat)||!Number.isFinite(lng))continue;const k=`${lat.toFixed(4)}:${lng.toFixed(4)}`;if(seen.has(k))continue;seen.add(k);out.push({id:String(r.id??k),name:String(r.destinationName??address.split(',')[0]),address,lat,lng});if(out.length===5)break;}setRecents(out);}).catch(()=>{}).finally(()=>{if(live)setLoadingHome(false)});const fallback=window.setTimeout(()=>{if(live)setLoadingHome(false)},1500);return()=>{live=false;window.clearTimeout(fallback)};},[]);
  useEffect(()=>{let live=true;reverseGeocode(pickup.lat,pickup.lng).then(a=>{if(live&&a)setPickupAddress(a)});return()=>{live=false}},[pickup.lat,pickup.lng]);
- useEffect(()=>{if(debounce.current)clearTimeout(debounce.current);const q=query.trim();if(q.length<2){setSuggestions([]);setSearching(false);return;}setSearching(true);debounce.current=setTimeout(async()=>{try{const rows=await searchPlaces(q,pickup);setSuggestions(rows);setSearching(false);}catch{setSearching(false);setSuggestions([])}},300);return()=>{if(debounce.current)clearTimeout(debounce.current)};},[query]);
+ useEffect(()=>{if(debounce.current)clearTimeout(debounce.current);const q=query.trim();if(q.length<2){setSuggestions([]);setSearching(false);return;}setSearching(true);debounce.current=setTimeout(async()=>{try{const rows=await searchPlaces(q,pickup);setSuggestions(rows);setSearching(false);}catch{setSearching(false);setSuggestions([])}},300);return()=>{if(debounce.current)clearTimeout(debounce.current)};},[query,pickup.lat,pickup.lng]);
  const home=saved.find(p=>p.label.toLowerCase()==='home'),work=saved.find(p=>p.label.toLowerCase()==='work');
  const matchingSaved=useMemo(()=>query.trim().length>=2?saved.filter(p=>`${p.label} ${p.address}`.toLowerCase().includes(query.toLowerCase())):[],[saved,query]);
  const select=useCallback((p:Destination)=>{haptic('tap');const q=new URLSearchParams({name:p.name,address:p.address,lat:String(p.lat),lng:String(p.lng),pickupLat:String(pickup.lat),pickupLng:String(pickup.lng),pickupAddress});router.push(`/ride-options?${q.toString()}`);},[pickup,pickupAddress,router]);
