@@ -11,9 +11,9 @@ import { fetchMyOrders } from '../../lib/api/trips';
 import { cancelOrder } from '../../lib/api/orders';
 import ZanaLoading from '../../components/ZanaLoading';
 
-type Filter = 'ALL' | 'DELIVERY' | 'FOOD' | 'SHOP' | 'GIFTS';
+type OrderCategory = 'DELIVERY' | 'FOOD' | 'SHOP' | 'GIFTS';
 type View = 'ACTIVE' | 'HISTORY';
-type Entry = { kind: 'delivery' | 'market'; id: string; status: string; date: string; raw: any; category: Exclude<Filter, 'ALL'>; title: string; subtitle: string; amount: number };
+type Entry = { kind: 'delivery' | 'market'; id: string; status: string; date: string; raw: any; category: OrderCategory; title: string; subtitle: string; amount: number };
 
 const DELIVERY_ACTIVE = new Set(['REQUESTED', 'COURIER_ASSIGNED', 'PICKED_UP']);
 const MARKET_ACTIVE = new Set(['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY']);
@@ -46,13 +46,13 @@ function statusTone(status: string) {
   if (status === 'REFUNDED') return 'bg-amber-50 text-amber-700';
   return 'bg-teal-50 text-teal-800';
 }
-function getCategory(order: any): Exclude<Filter, 'ALL'> {
+function getCategory(order: any): OrderCategory {
   const value = String(order.merchant?.category ?? order.category ?? order.items?.[0]?.product?.category ?? '').toLowerCase();
   if (value.includes('gift')) return 'GIFTS';
   if (value.includes('food') || value.includes('restaurant') || value.includes('meal')) return 'FOOD';
   return 'SHOP';
 }
-function iconFor(category: Exclude<Filter, 'ALL'>) {
+function iconFor(category: OrderCategory) {
   if (category === 'DELIVERY') return Package;
   if (category === 'FOOD') return Utensils;
   if (category === 'GIFTS') return Gift;
@@ -67,7 +67,6 @@ function OrdersContent() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<Filter>('ALL');
   const [view, setView] = useState<View>('HISTORY');
   const [query, setQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('ALL');
@@ -122,7 +121,6 @@ function OrdersContent() {
     ? DELIVERY_ACTIVE.has(entry.status) : MARKET_ACTIVE.has(entry.status);
 
   const filtered = useMemo(() => entries.filter(e => {
-    if (filter !== 'ALL' && e.category !== filter) return false;
     if (view === 'ACTIVE' && !isActive(e)) return false;
     if (view === 'HISTORY' && isActive(e)) return false;
     if (query.trim()) {
@@ -137,7 +135,7 @@ function OrdersContent() {
       if (dateFilter === 'MONTH' && (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear())) return false;
     }
     return true;
-  }), [entries, filter, view, query, dateFilter]);
+  }), [entries, view, query, dateFilter]);
 
   const groups = useMemo(() => {
     const result: { title: string; rows: Entry[] }[] = [];
@@ -197,9 +195,7 @@ function OrdersContent() {
       <button onClick={()=>load(true)} disabled={refreshing} className="grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white text-gray-600" aria-label={t('Refresh orders')}><RefreshCw size={17} className={refreshing?'animate-spin':''}/></button>
     </header>
     {offline && <div className="mb-4 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">{t('You are offline. Showing the last available orders.')}{lastUpdated&&<span className="mt-1 block">{t('Last updated')}: {lastUpdated.toLocaleTimeString()}</span>}</div>}
-    <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label={t('Filter orders')}>
-      {(['ALL','DELIVERY','FOOD','SHOP','GIFTS'] as Filter[]).map(value=><button key={value} onClick={()=>setFilter(value)} className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold transition ${filter===value?'bg-[#102B25] text-white':'border border-gray-200 bg-white text-gray-600'}`}>{t(value==='ALL'?'All':value==='DELIVERY'?'Delivery':value==='FOOD'?'Food':value==='SHOP'?'Shop':'Gifts')}</button>)}
-    </div>
+
     <div className="mb-4 grid grid-cols-2 rounded-2xl bg-[#E9F0ED] p-1" role="tablist">
       {(['ACTIVE','HISTORY'] as View[]).map(value=><button key={value} role="tab" aria-selected={view===value} onClick={()=>setView(value)} className={`rounded-xl py-2.5 text-sm font-bold ${view===value?'bg-white text-[#007D68] shadow-sm':'text-gray-500'}`}>{t(value==='ACTIVE'?'Active':'History')}<span className="ml-1 text-[10px]">{entries.filter(e=>value==='ACTIVE'?isActive(e):!isActive(e)).length}</span></button>)}
     </div>
@@ -208,7 +204,7 @@ function OrdersContent() {
       <select value={dateFilter} onChange={e=>setDateFilter(e.target.value)} aria-label={t('Filter by date')} className="max-w-[124px] rounded-xl border border-gray-200 bg-white px-2 text-xs font-semibold text-gray-600"><option value="ALL">{t('Any time')}</option><option value="7D">{t('Last 7 days')}</option><option value="30D">{t('Last 30 days')}</option><option value="MONTH">{t('This month')}</option></select>
     </div>}
     {view==='ACTIVE' && filtered.length===0 && <div className="rounded-3xl border border-dashed border-[#C9DDD6] bg-white px-6 py-12 text-center"><div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#E8F5F1] text-[#00A082]"><Package size={28}/></div><h2 className="mt-4 text-lg font-black">{t('No active deliveries or orders')}</h2><p className="mx-auto mt-2 max-w-[260px] text-sm text-gray-500">{t('Your active deliveries, food and shopping orders will appear here.')}</p></div>}
-    {view==='HISTORY' && filtered.length===0 && <div className="rounded-3xl bg-white px-6 py-12 text-center"><div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#E8F5F1] text-[#00A082]"><ShoppingBag size={24}/></div><h2 className="mt-4 text-base font-black">{t('No orders found')}</h2><p className="mt-1 text-sm text-gray-500">{t('Try changing your filters or search.')}</p><button onClick={()=>{setFilter('ALL');setQuery('');setDateFilter('ALL')}} className="mt-4 text-sm font-bold text-[#00866F]">{t('Clear filters')}</button></div>}
+    {view==='HISTORY' && filtered.length===0 && <div className="rounded-3xl bg-white px-6 py-12 text-center"><div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#E8F5F1] text-[#00A082]"><ShoppingBag size={24}/></div><h2 className="mt-4 text-base font-black">{t('No orders found')}</h2><p className="mt-1 text-sm text-gray-500">{t('Try changing your filters or search.')}</p><button onClick={()=>{setQuery('');setDateFilter('ALL')}} className="mt-4 text-sm font-bold text-[#00866F]">{t('Clear filters')}</button></div>}
     <div className="space-y-5">{groups.map(group=><section key={group.title}><h2 className="mb-3 text-xs font-extrabold uppercase tracking-[.12em] text-gray-400">{t(group.title)}</h2><div className="space-y-3">{group.rows.map(renderEntry)}</div></section>)}</div>
     <p className="mt-6 text-center text-[10px] text-gray-400">{t('Tap refresh to check for updates.')}</p>
 
