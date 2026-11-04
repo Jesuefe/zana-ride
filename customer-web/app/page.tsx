@@ -5,9 +5,8 @@ import { SERVICES } from '../lib/services';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
-  ArrowRight, ArrowUpRight, Bell, Briefcase, CalendarDays, CarFront,
-  ChevronRight, Clock3, Home, MapPin, Package, Search, ShieldCheck,
-  ShoppingBag, Wallet, X
+  ArrowRight, ArrowUpRight, Briefcase, CalendarDays, ChevronRight,
+  Clock3, Home, MapPin, Search, ShieldCheck, Wallet, X
 } from 'lucide-react';
 import { fetchMe, ApiUser } from '../lib/api/auth';
 import { fetchWallet, recoverActiveRide } from '../lib/api/trips';
