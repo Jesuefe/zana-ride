@@ -1868,3 +1868,63 @@ body { background-color: var(--background); color: var(--foreground); }
 @media (min-width: 640px) {
   .zana-profile-cover { border-radius: 0 0 34px 34px; }
 }
+
+
+/* ── Device-safe app frame and bottom navigation ────────────────────────
+   Reserve the real navigation height in the scrollable document so the
+   final form fields and action buttons can always scroll above the dock.
+   Keep the dock itself transparent to pointer events except its links. */
+:root {
+  --zana-bottom-nav-reserve: 4.85rem;
+}
+html,
+body {
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+  scroll-padding-bottom: calc(var(--zana-bottom-nav-reserve) + env(safe-area-inset-bottom, 0px));
+}
+.app-shell {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 100dvh;
+  padding-bottom: calc(var(--zana-bottom-nav-reserve) + env(safe-area-inset-bottom, 0px)) !important;
+  overflow-x: clip;
+}
+.zana-bottom-nav {
+  box-sizing: border-box;
+  min-height: calc(4.15rem + env(safe-area-inset-bottom, 0px));
+  padding: .35rem max(.5rem, env(safe-area-inset-left, 0px)) calc(.35rem + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+  touch-action: pan-y;
+}
+.zana-bottom-nav-item {
+  min-width: 0;
+  min-height: 3.2rem;
+  max-width: 7rem;
+  justify-content: center;
+  padding: .35rem .4rem;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+.zana-bottom-nav-item span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 380px) {
+  :root { --zana-bottom-nav-reserve: 4.55rem; }
+  .zana-bottom-nav { min-height: calc(3.9rem + env(safe-area-inset-bottom, 0px)); }
+  .zana-bottom-nav-item { min-height: 3rem; gap: .2rem; padding-inline: .2rem; }
+  .zana-bottom-nav-item svg { width: 18px; height: 18px; }
+  .zana-bottom-nav-item span { font-size: 10px; }
+}
+@media (min-width: 768px) {
+  :root { --zana-bottom-nav-reserve: 4.65rem; }
+  .zana-bottom-nav { width: min(100%, 900px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
