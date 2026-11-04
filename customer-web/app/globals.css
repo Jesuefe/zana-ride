@@ -1534,3 +1534,60 @@ html, body { background-color: var(--background); color: var(--foreground); }
 @media(max-width:380px){
  .zana-v3-service>span:nth-child(2)>span:first-child{font-size:12px}
 }
+
+
+/* ── ZANA service discovery: explain the whole platform at a glance ── */
+.zana-v3-services{margin-top:30px}
+.zana-v3-services-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:16px}
+.zana-v3-services-intro h2{color:#17251e;font-size:clamp(1.45rem,3vw,1.9rem);font-weight:880;line-height:1.06;letter-spacing:-.055em}
+.zana-v3-services-intro p{margin-top:7px;color:#718078;font-size:12px;line-height:1.5}
+.zana-v3-services-count{flex:none;margin-bottom:3px;padding:7px 10px;border:1px solid #e4ece7;border-radius:999px;background:#fff;color:#607269;font-size:10px;font-weight:750}
+.zana-v3-service-groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.zana-v3-service-group{min-width:0;padding:16px;border:1px solid #e4ece8;border-radius:18px;background:#fff;box-shadow:0 7px 22px rgba(20,50,37,.035);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.zana-v3-service-group:hover{transform:translateY(-2px);border-color:#c9e4d8;box-shadow:0 12px 28px rgba(20,50,37,.065)}
+.zana-v3-service-group-heading{display:flex;align-items:center;gap:11px;min-height:48px;margin-bottom:13px}
+.zana-v3-service-group-symbol{width:42px;height:42px;display:grid;place-items:center;flex:none;border-radius:13px;background:#eaf7f2;color:#008b70}
+.zana-v3-service-group-symbol-send{background:#fff5df;color:#956b18}
+.zana-v3-service-group-symbol-discover{background:#edf2ff;color:#536caa}
+.zana-v3-service-group-heading h3{color:#1a2b22;font-size:14px;font-weight:850;letter-spacing:-.025em}
+.zana-v3-service-group-heading p{margin-top:3px;color:#849188;font-size:10px;line-height:1.35}
+.zana-v3-service-group-items{display:grid;gap:7px}
+.zana-v3-service-option{width:100%;min-width:0;min-height:65px;display:flex;align-items:center;gap:10px;padding:8px;border:1px solid #edf1ee;border-radius:12px;background:#fbfdfc;text-align:left;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.zana-v3-service-option:hover{border-color:#c9e4d8;background:#f4faf6}
+.zana-v3-service-option:active{transform:scale(.99)}
+.zana-v3-service-option-art{width:43px;height:43px;display:grid;place-items:center;flex:none;border-radius:11px}
+.zana-v3-service-option>span:nth-child(2)>span:first-child{color:#23352b;font-size:12px;font-weight:800;line-height:1.25}
+.zana-v3-service-option>span:nth-child(2)>span:last-child{margin-top:3px;color:#87938c;font-size:10px;line-height:1.3}
+.zana-v3-service-option-arrow{flex:none;color:#a3afa8;transition:transform .18s ease,color .18s ease}
+.zana-v3-service-option:hover .zana-v3-service-option-arrow{color:#008b70;transform:translateX(2px)}
+.zana-v3-service-option:focus-visible{outline:3px solid rgba(0,160,130,.3);outline-offset:2px}
+.dark .zana-v3-services-intro h2,.dark .zana-v3-service-group-heading h3{color:#edf5f0}
+.dark .zana-v3-services-intro p,.dark .zana-v3-service-group-heading p{color:#9aaba1}
+.dark .zana-v3-services-count,.dark .zana-v3-service-group{background:#18251f;border-color:#2b3b33}
+.dark .zana-v3-service-option{background:#142019;border-color:#2b3b33}
+.dark .zana-v3-service-option>span:nth-child(2)>span:first-child{color:#edf5f0}
+.dark .zana-v3-service-option>span:nth-child(2)>span:last-child{color:#9aaba1}
+@media(max-width:900px){.zana-v3-service-groups{grid-template-columns:repeat(2,minmax(0,1fr))}.zana-v3-service-group-discover{grid-column:1/-1}.zana-v3-service-group-discover .zana-v3-service-group-items{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){
+ .zana-v3-services{margin-top:26px}
+ .zana-v3-services-intro{align-items:flex-start;margin-bottom:13px}
+ .zana-v3-services-intro h2{font-size:1.5rem}
+ .zana-v3-services-intro p{max-width:280px;font-size:11px}
+ .zana-v3-service-groups{grid-template-columns:1fr;gap:9px}
+ .zana-v3-service-group-discover{grid-column:auto}
+ .zana-v3-service-group{padding:13px;border-radius:15px}
+ .zana-v3-service-group-heading{margin-bottom:10px}
+ .zana-v3-service-group-items{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .zana-v3-service-group-discover .zana-v3-service-group-items{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .zana-v3-service-option{min-height:64px;gap:7px;padding:7px}
+ .zana-v3-service-option-art{width:36px;height:36px}
+ .zana-v3-service-option-art img{width:32px;height:32px}
+ .zana-v3-service-option>span:nth-child(2)>span:first-child{font-size:11px}
+ .zana-v3-service-option>span:nth-child(2)>span:last-child{font-size:9px}
+ .zana-v3-service-option-arrow{display:none}
+}
+@media(max-width:380px){
+ .zana-v3-service-group-items,.zana-v3-service-group-discover .zana-v3-service-group-items{grid-template-columns:1fr}
+ .zana-v3-service-option{min-height:58px}
+}
+@media(prefers-reduced-motion:reduce){.zana-v3-service-group,.zana-v3-service-option,.zana-v3-service-option-arrow{transition:none!important}}
