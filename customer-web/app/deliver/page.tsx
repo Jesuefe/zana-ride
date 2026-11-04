@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,7 +9,6 @@ import {
   Camera,
   MapPin,
   Navigation,
-  Phone,
   Package,
   X,
   Loader2,
@@ -36,7 +34,7 @@ import { useLang } from '../../lib/LangContext';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
 import { compressImage } from '../../lib/image';
-import { capturePhoto, stampPhoto } from '../../lib/photoCapture';
+import { stampPhoto } from '../../lib/photoCapture';
 import { fetchMe } from '../../lib/api/auth';
 import FastLoadingPopup from '../../components/FastLoadingPopup';
 import {
@@ -567,7 +565,7 @@ export default function DeliverPage() {
 
         {error && step !== 4 && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-3 py-3 text-xs font-semibold text-red-700">{error}</p>}
 
-        <div className="sticky bottom-3 z-20 mt-6 flex items-center gap-2 rounded-2xl border border-zana-border bg-[var(--zana-surface)] p-2 shadow-[0_12px_36px_rgba(15,35,28,.12)]">
+        <div className="sticky bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-20 mt-6 flex items-center gap-2 rounded-2xl border border-zana-border bg-[var(--zana-surface)] p-2 shadow-[0_12px_36px_rgba(15,35,28,.12)]">
           {step > 1 && <button type="button" onClick={() => { setError(null); setStep((current) => current - 1); }} className="flex min-h-12 items-center justify-center rounded-xl px-4 text-sm font-bold text-gray-600">{t('Back')}</button>}
           <button type="button" onClick={continueStep} disabled={!canContinue || submitting || awaitingMomo || (step === 4 && (!quote || quoteLoading))}
             className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-zana-primary px-5 text-sm font-extrabold text-white transition hover:brightness-95 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-40">
