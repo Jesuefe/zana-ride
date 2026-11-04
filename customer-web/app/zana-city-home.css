@@ -266,17 +266,9 @@
   .zana-city-delivery-copy h2 {
     font-size: 15px;
   }
-  body:has(.zana-city-home) .zana-bottom-nav {
-    width: calc(100vw - 24px);
-    bottom: max(8px, env(safe-area-inset-bottom, 0px));
-    padding: 5px 6px;
-  }
-  body:has(.zana-city-home) .zana-bottom-nav-item {
+body:has(.zana-city-home) .zana-bottom-nav-item {
     min-height: 46px;
     padding-inline: 2px;
-  }
-  body:has(.zana-city-home) .zana-bottom-nav-item span {
-    font-size: 9px;
   }
 }
 
@@ -306,9 +298,6 @@
   }
   .zana-city-service-strip {
     padding-inline: 12px;
-  }
-  body:has(.zana-city-home) .zana-bottom-nav-item span {
-    font-size: 8px;
   }
 }
 
@@ -425,13 +414,6 @@
   .zana-city-delivery-promo {
     min-height: 88px;
   }
-  body:has(.zana-city-home) .zana-bottom-nav {
-    left: 16px;
-    right: auto;
-    bottom: max(10px, env(safe-area-inset-bottom, 0px));
-    transform: none;
-    width: min(390px, calc(100vw - min(460px, 58vw) - 36px));
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -546,8 +528,178 @@
   .zana-city-home[data-sheet="peek"] .zana-city-services-block { display: none; }
 }
 
-/* The home screen follows the app's selected appearance instead of staying
-   white while the other customer screens switch to dark mode. */
+/* ── Unified home layout and appearance ────────────────────────────────────
+   One booking-sheet composition across phone, foldable, tablet and desktop.
+   Breakpoints describe available CSS viewport space, not device brands. */
+.zana-city-home {
+  --home-canvas: #e8ece4;
+  --home-panel: rgba(252,252,249,.97);
+  --home-card: #ffffff;
+  --home-ink: #1b2823;
+  --home-muted: #718078;
+  --home-line: #e3eae4;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: clip;
+  background: var(--home-canvas);
+  color: var(--home-ink);
+}
+.zana-city-sheet,
+.zana-city-home[data-sheet="peek"] .zana-city-sheet,
+.zana-city-home[data-sheet="full"] .zana-city-sheet {
+  left: 50%;
+  right: auto;
+  width: min(520px, calc(100vw - 24px));
+  height: 68dvh;
+  max-height: calc(100dvh - 150px);
+  min-height: 260px;
+  transform: translateX(-50%);
+  border: 1px solid var(--home-line);
+  border-bottom: 0;
+  border-radius: 26px 26px 0 0;
+  background: var(--home-panel);
+}
+.zana-city-home[data-sheet="peek"] .zana-city-sheet {
+  height: 270px;
+  max-height: calc(100dvh - 150px);
+}
+.zana-city-home[data-sheet="full"] .zana-city-sheet {
+  height: calc(100dvh - 112px);
+  max-height: calc(100dvh - 112px);
+}
+.zana-city-sheet-scroll {
+  min-height: 0;
+  padding-inline: clamp(14px, 3vw, 22px);
+  padding-bottom: max(128px, calc(88px + env(safe-area-inset-bottom, 0px)));
+  -webkit-overflow-scrolling: touch;
+}
+.zana-city-route-card,
+.zana-city-service,
+.zana-city-place-chip,
+.zana-city-shortcuts button {
+  background-color: var(--home-card);
+  border-color: var(--home-line);
+}
+.zana-city-booking-heading h1,
+.zana-city-route-text strong,
+.zana-city-place-copy strong,
+.zana-city-service strong,
+.zana-city-shortcuts button,
+.zana-city-place-chip { color: var(--home-ink); }
+.zana-city-route-text small,
+.zana-city-locating,
+.zana-city-place-copy small,
+.zana-city-recent-empty { color: var(--home-muted); }
+.zana-city-wallet,
+.zana-city-route-row,
+.zana-city-place-chip,
+.zana-city-shortcuts button,
+.zana-city-service { touch-action: manipulation; }
+.zana-city-route-row,
+.zana-city-place-chip,
+.zana-city-shortcuts button { min-height: 44px; }
+.zana-city-wallet { max-width: min(62vw, 260px); min-width: 0; }
+.zana-city-wallet strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zana-city-parcel-art {
+  max-width: 45%;
+  object-fit: contain;
+  object-position: bottom right;
+}
+
+/* Compact phones: preserve the full booking flow without squeezed controls. */
+@media (max-width: 359px) {
+  .zana-city-topbar {
+    left: max(10px, env(safe-area-inset-left, 0px));
+    right: max(10px, env(safe-area-inset-right, 0px));
+    gap: 7px;
+  }
+  .zana-city-wallet span { display: none; }
+  .zana-city-wallet { padding-inline: 9px; }
+  .zana-city-greeting { left: 14px; }
+  .zana-city-sheet-scroll { padding-inline: 12px; }
+  .zana-city-route-card { padding-inline: 9px; }
+  .zana-city-route-row { gap: 8px; }
+  .zana-city-services-block { margin-inline: -12px; }
+  .zana-city-service-strip { padding-inline: 12px; }
+}
+@media (min-width: 360px) and (max-width: 599px) {
+  .zana-city-sheet-scroll { padding-inline: 15px; }
+  .zana-city-services-block { margin-inline: -15px; }
+  .zana-city-service-strip { padding-inline: 15px; }
+}
+
+/* Large phones and unfolded compact devices. */
+@media (min-width: 600px) {
+  .zana-city-sheet,
+  .zana-city-home[data-sheet="peek"] .zana-city-sheet,
+  .zana-city-home[data-sheet="full"] .zana-city-sheet {
+    width: min(520px, calc(100vw - 40px));
+  }
+  .zana-city-sheet-scroll { padding-inline: 22px; }
+  .zana-city-booking-heading h1 { font-size: clamp(22px, 2.2vw, 27px); }
+  .zana-city-service { flex-basis: 74px; height: 80px; }
+  .zana-city-service.primary { flex-basis: 96px; height: 88px; }
+  .zana-city-services-block { margin-inline: -22px; }
+  .zana-city-service-strip { padding-inline: 22px; }
+}
+
+/* Tablet and laptop widths keep the same centred booking surface. */
+@media (min-width: 900px) {
+  .zana-city-sheet,
+  .zana-city-home[data-sheet="peek"] .zana-city-sheet,
+  .zana-city-home[data-sheet="full"] .zana-city-sheet {
+    width: min(540px, calc(100vw - 48px));
+  }
+  .zana-city-topbar { left: clamp(28px, 4vw, 64px); right: clamp(28px, 4vw, 64px); }
+  .zana-city-greeting { left: clamp(34px, 4.5vw, 72px); }
+}
+@media (min-width: 1440px) {
+  .zana-city-sheet,
+  .zana-city-home[data-sheet="peek"] .zana-city-sheet,
+  .zana-city-home[data-sheet="full"] .zana-city-sheet {
+    width: min(560px, calc(100vw - 64px));
+  }
+  .zana-city-route-row { min-height: 48px; }
+}
+
+/* Short landscape viewports need a bounded, scrollable panel, not a tall
+   portrait sheet. The shared bottom navigation remains globally positioned. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .zana-city-topbar {
+    top: max(10px, env(safe-area-inset-top, 0px));
+    left: max(14px, env(safe-area-inset-left, 0px));
+    right: max(14px, env(safe-area-inset-right, 0px));
+  }
+  .zana-city-greeting { top: 68px; left: max(16px, env(safe-area-inset-left, 0px)); }
+  .zana-city-greeting strong { font-size: 18px; }
+  .zana-city-sheet,
+  .zana-city-home[data-sheet="peek"] .zana-city-sheet,
+  .zana-city-home[data-sheet="full"] .zana-city-sheet {
+    top: auto;
+    left: 50%;
+    right: auto;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    width: min(520px, calc(100vw - 32px));
+    height: min(76dvh, 420px);
+    max-height: calc(100dvh - 16px);
+    min-height: 0;
+    transform: translateX(-50%);
+    border-radius: 22px 22px 0 0;
+  }
+  .zana-city-home[data-sheet="peek"] .zana-city-sheet { height: min(270px, 70dvh); }
+  .zana-city-home[data-sheet="full"] .zana-city-sheet { height: calc(100dvh - 16px); }
+  .zana-city-sheet-scroll { overflow-y: auto; padding-bottom: 96px; }
+}
+
+/* All home surfaces and text use the same theme tokens. */
 .dark .zana-city-home {
   --home-canvas: #101915;
   --home-panel: rgba(22,32,27,.98);
@@ -555,39 +707,68 @@
   --home-ink: #edf5ef;
   --home-muted: #a0b1a6;
   --home-line: #34463b;
-  background: var(--home-canvas);
-  color: var(--home-ink);
 }
-.dark .zana-city-map {
-  filter: brightness(.52) saturate(.65);
-}
+.dark .zana-city-map { filter: brightness(.52) saturate(.65); }
 .dark .zana-city-map-label {
   color: #c1d2c5;
   text-shadow: 0 1px 6px rgba(0,0,0,.65);
 }
 .dark .zana-city-wordmark,
 .dark .zana-city-greeting,
-.dark .zana-city-greeting span,
 .dark .zana-city-greeting strong { color: #edf5ef; text-shadow: 0 1px 8px rgba(0,0,0,.65); }
+.dark .zana-city-greeting span { color: #a0b1a6; }
 .dark .zana-city-wallet {
   border-color: #3b5145;
   background: rgba(24,39,31,.92);
   color: #b7c8bc;
 }
 .dark .zana-city-wallet strong { color: #f0f6f1; }
+.dark .zana-city-sheet { border-color: var(--home-line); }
 .dark .zana-city-sheet-handle > span { background: #65796c; }
+.dark .zana-city-booking-heading h1,
+.dark .zana-city-route-text strong,
+.dark .zana-city-place-copy strong,
+.dark .zana-city-service strong,
+.dark .zana-city-shortcuts button,
+.dark .zana-city-place-chip { color: var(--home-ink); }
+.dark .zana-city-locating,
+.dark .zana-city-route-text small,
+.dark .zana-city-place-copy small,
+.dark .zana-city-section-label strong,
+.dark .zana-city-recent-empty { color: var(--home-muted); }
+.dark .zana-city-route-card,
+.dark .zana-city-recent-row,
+.dark .zana-city-service,
+.dark .zana-city-place-chip,
+.dark .zana-city-shortcuts button {
+  background: var(--home-card);
+  border-color: var(--home-line);
+}
 .dark .zana-city-route-row { color: #c0d0c5; }
-.dark .zana-city-route-row + .zana-city-route-row { border-top-color: #34463b; }
-.dark .zana-city-route-dot { background: #1b2922; border-color: #82978a; }
+.dark .zana-city-route-row + .zana-city-route-row { border-top-color: var(--home-line); }
+.dark .zana-city-route-dot { background: var(--home-card); border-color: #82978a; }
 .dark .zana-city-route-dot.destination { background: #24b997; }
+.dark .zana-city-place-hint { background: #203b30; }
+.dark .zana-city-place-hint:before { background: #203b30; }
+.dark .zana-city-recent-icon { background: #263a30; color: #b6cbbd; }
+.dark .zana-city-recent-row strong { color: var(--home-ink); }
+.dark .zana-city-recent-row small { color: var(--home-muted); }
 .dark .zana-city-service.primary { background: #203b30; border-color: #3a6955; }
 .dark .zana-city-service-glyph { color: #6ed9b7; }
-.dark .zana-city-recent-row { background: #1b2922; border-color: #34463b; color: #edf5ef; }
-.dark .zana-city-recent-row strong { color: #edf5ef; }
-.dark .zana-city-recent-row small { color: #a0b1a6; }
+.dark .zana-city-shortcuts button > svg:last-child { color: #91a69a; }
 .dark .zana-city-error { background: #3a301c; border-color: #66542e; color: #f3d28a; }
 .dark .zana-city-error button { color: #f3d28a; }
 .dark .zana-city-sheet-snap-controls button { background: #263a30; color: #b6cbbd; }
 .dark .zana-city-recovering { background: rgba(15,24,19,.97); color: #edf5ef; }
 .dark .zana-city-recovering > span:last-child { color: #a0b1a6; }
-.dark .zana-city-shortcuts button > svg:last-child { color: #91a69a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .zana-city-home *,
+  .zana-city-home *::before,
+  .zana-city-home *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
