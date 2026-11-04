@@ -115,10 +115,6 @@ export default function HomePage() {
     .filter(item => !!item.service);
 
   const openDestination = () => router.push('/search');
-  const openRide = (mode: 'CAR' | 'BIKE') => {
-    haptic('tap');
-    router.push(mode === 'BIKE' ? '/search?service=BIKE' : '/search?service=ECONOMY');
-  };
   const openSavedPlace = (place: any, label: string) => {
     if (!place) {
       router.push('/profile/places');
@@ -265,12 +261,6 @@ export default function HomePage() {
 
           <div className="zana-city-services-block">
             <div className="zana-city-service-strip">
-              <button className="zana-city-service primary zana-city-service-car" onClick={() => openRide('CAR')} aria-label={t('Book a car ride')}>
-                <span className="zana-city-service-glyph"><ServiceGlyph kind="car" /></span><strong>{t('Car Ride')}</strong>
-              </button>
-              <button className="zana-city-service primary zana-city-service-moto" onClick={() => openRide('BIKE')} aria-label={t('Book a moto ride')}>
-                <span className="zana-city-service-glyph"><ServiceGlyph kind="moto" /></span><strong>{t('Moto Ride')}</strong>
-              </button>
               {secondaryServices.map(item => (
                 <button key={item.id} className={'zana-city-service compact zana-city-service-' + item.kind} onClick={() => router.push(item.service!.route)} aria-label={t(item.label)}>
                   <span className="zana-city-service-glyph"><ServiceGlyph kind={item.kind} /></span><strong>{t(item.label)}</strong>
