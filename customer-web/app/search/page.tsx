@@ -1,215 +1,79 @@
 'use client';
-
-import { Suspense, useEffect, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, MapPin, Loader2, Minus, Plus, Users, Move, Wallet, Smartphone, Banknote } from 'lucide-react';
-import { getStoredPickup, setStoredPickup, requestLiveLocation } from '../../lib/location';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, BriefcaseBusiness, Clock3, Home, MapPin, MapPinned, Plus, Search, X, Loader2, ChevronRight } from 'lucide-react';
+import BrandedMap from '../../components/BrandedMap';
+import { getStoredPickup, setStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
-import { createRide, createRideGroup, fetchNearbyDrivers, NearbyDriver, estimateRide } from '../../lib/api/trips';
-import { fetchWallet } from '../../lib/api/trips';
-
-const MOTO_PAYMENT_OPTIONS = [
-  { id: 'WALLET' as const, label: 'Zana Wallet', icon: Wallet },
-  { id: 'MOBILE_MONEY' as const, label: 'Mobile Money', icon: Smartphone },
-  { id: 'CASH' as const, label: 'Cash', icon: Banknote },
-];
-import { resolveLocationCode } from '../../lib/api/deliveries';
-import { ApiError } from '../../lib/api/client';
-import BrandedMap from '../../components/BrandedMap';
+import { api } from '../../lib/api/client';
+import { haptic } from '../../lib/haptics';
 import { useLang } from '../../lib/LangContext';
 import ZanaLoading from '../../components/ZanaLoading';
+import './zana-search.css';
 
-function SearchContent() {
-  const { t } = useLang();
-  const router = useRouter();
-  const params = useSearchParams();
-  const preselectedService = params.get('service');
-  const isMoto = preselectedService === 'BIKE';
-  const vehicleType = isMoto ? 'BIKE' : 'ECONOMY';
+type SavedPlace={id:string;label:string;address:string;lat:number;lng:number};
+type RecentPlace={id:string;name:string;address:string;lat:number;lng:number};
+type Destination={name:string;address:string;lat:number;lng:number};
+const POPULAR=[
+ {name:'Kigali City Centre',area:'Nyarugenge · Kigali',query:'Kigali City Centre, Rwanda'},
+ {name:'Kigali Convention Centre',area:'Kimihurura · Kigali',query:'Kigali Convention Centre, Rwanda'},
+ {name:'Kigali International Airport',area:'Kanombe · Kigali',query:'Kigali International Airport, Rwanda'},
+ {name:'Nyabugogo Taxi Park',area:'Nyabugogo · Kigali',query:'Nyabugogo Taxi Park, Kigali, Rwanda'},
+ {name:'Kimironko Market',area:'Kimironko · Kigali',query:'Kimironko Market, Kigali, Rwanda'},
+];
+const distance=(a:{lat:number;lng:number},b:{lat:number;lng:number})=>{const r=(v:number)=>v*Math.PI/180,d1=r(b.lat-a.lat),d2=r(b.lng-a.lng),x=Math.sin(d1/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(d2/2)**2;return 6371*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));};
+const distanceText=(km:number)=>km<1?`${Math.max(100,Math.round(km*1000/50)*50)} m away`:`${km.toFixed(1)} km away`;
+function Highlight({text,query}:{text:string;query:string}){const i=text.toLowerCase().indexOf(query.toLowerCase());if(i<0||!query)return <>{text}</>;return <>{text.slice(0,i)}<strong>{text.slice(i,i+query.length)}</strong>{text.slice(i+query.length)}</>;}
 
-  const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [isZanaCode, setIsZanaCode] = useState(false);
-  const [editingPickup, setEditingPickup] = useState(false);
-  const [pickup, setPickup] = useState(getStoredPickup());
-  const [pickupAddress, setPickupAddress] = useState('Locating…');
-  const [nearby, setNearby] = useState<NearbyDriver[]>([]);
-  const [booking, setBooking] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('WALLET');
-  const [showPaymentPicker, setShowPaymentPicker] = useState(false);
-  const [pendingPlace, setPendingPlace] = useState<{address:string;lat:number;lng:number}|null>(null);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [estimatedFare, setEstimatedFare] = useState<number | null>(null);
-  const [fetchingFare, setFetchingFare] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [codeInput, setCodeInput] = useState('');
-  const [codeError, setCodeError] = useState<string | null>(null);
-  const [resolvingCode, setResolvingCode] = useState(false);
-  const [motoCount, setMotoCount] = useState(1);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const manuallyMovedRef = useRef(false);
-
-  useEffect(() => {
-    requestLiveLocation().then((coords) => {
-      if (!manuallyMovedRef.current) setPickup(coords);
-    });
-  }, []);
-
-  useEffect(() => {
-    fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    reverseGeocode(pickup.lat, pickup.lng).then((address) => {
-      setPickupAddress(address ?? t('Current location'));
-    });
-  }, [pickup.lat, pickup.lng, t]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = () => {
-      fetchNearbyDrivers(pickup.lat, pickup.lng, vehicleType)
-        .then((drivers) => { if (!cancelled) setNearby(drivers); })
-        .catch(() => {});
-    };
-    load();
-    const interval = setInterval(load, 8000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [pickup.lat, pickup.lng, vehicleType]);
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!query.trim()) { setSuggestions([]); return; }
-    setSearching(true);
-    debounceRef.current = setTimeout(async () => {
-      const results = await searchPlaces(query);
-      setSuggestions(results);
-      setSearching(false);
-    }, 350);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [query]);
-
-  const handleResolveCode = async () => {
-    setResolvingCode(true);
-    setCodeError(null);
-    try {
-      const resolved = await resolveLocationCode(codeInput);
-      const urlParams = new URLSearchParams({
-        name: resolved.address ?? resolved.code,
-        address: resolved.address ?? `Shared location (${resolved.code})`,
-        lat: String(resolved.lat), lng: String(resolved.lng),
-        pickupLat: String(pickup.lat), pickupLng: String(pickup.lng),
-        pickupAddress, locationCode: codeInput,
-      });
-      if (preselectedService) urlParams.set('service', preselectedService);
-      router.push(`/ride-options?${urlParams.toString()}`);
-    } catch {
-      setCodeError(t('That code was not found or has expired.'));
-    } finally { setResolvingCode(false); }
-  };
-
-  const handlePickupDrag = (coords: { lat: number; lng: number }) => {
-    manuallyMovedRef.current = true;
-    setPickup(coords); setStoredPickup(coords);
-  };
-
-  const bookMoto = async () => {
-    if (!pendingPlace) return;
-    setShowPaymentPicker(false); setBooking(true); setError(null);
-    const tripData = {
-      serviceType: 'BIKE' as const, pickupAddress, pickupLat: pickup.lat, pickupLng: pickup.lng,
-      destinationAddress: pendingPlace.address, destinationLat: pendingPlace.lat, destinationLng: pendingPlace.lng,
-      paymentMethod,
-    };
-    try {
-      if (motoCount > 1) {
-        const trips = await createRideGroup(tripData, motoCount);
-        router.push(`/tracking?groupId=${trips[0]?.groupId}`);
-      } else {
-        const trip = await createRide(tripData);
-        router.push(`/tracking?tripId=${trip.id}`);
-      }
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('Could not reach the server.'));
-      setBooking(false);
-    }
-  };
-
-  const handleSelect = async (suggestion: PlaceSuggestion) => {
-    const place = await getPlaceCoordinates(suggestion.placeId);
-    if (!place) { setError(t("Couldn't load that location. Try another.")); return; }
-    if (editingPickup) {
-      manuallyMovedRef.current = true;
-      const coords = { lat: place.lat, lng: place.lng };
-      setPickup(coords); setStoredPickup(coords); setPickupAddress(place.address);
-      setEditingPickup(false); setQuery(''); setSuggestions([]); return;
-    }
-    if (isMoto) {
-      const pending = { address: place.address, lat: place.lat, lng: place.lng };
-      setPendingPlace(pending); setFetchingFare(true);
-      try {
-        const estimate = await estimateRide({ lat: pickup.lat, lng: pickup.lng }, { lat: place.lat, lng: place.lng }, 'BIKE');
-        setEstimatedFare((estimate as any).BIKE ?? (estimate as any).fare ?? (estimate as any).estimatedFare ?? null);
-      } catch { setEstimatedFare(null); } finally { setFetchingFare(false); }
-      setShowPaymentPicker(true); return;
-    }
-    const urlParams = new URLSearchParams({
-      name: suggestion.primaryText, address: place.address,
-      lat: String(place.lat), lng: String(place.lng),
-      pickupLat: String(pickup.lat), pickupLng: String(pickup.lng), pickupAddress,
-    });
-    if (preselectedService) urlParams.set('service', preselectedService);
-    router.push(`/ride-options?${urlParams.toString()}`);
-  };
-
-  return (
-    <div className="animate-fade-in zana-page-enter zana-ride-search">
-      <div className="relative">
-        <BrandedMap origin={pickup} nearbyDrivers={nearby} vehicleType={vehicleType} draggablePickup onPickupChange={handlePickupDrag} height={200} />
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white/95 px-3 py-1 rounded-full text-[11px] text-zana-muted shadow">
-          <Move size={11} /> {t('Drag the green pin to adjust pickup')}
-        </div>
-      </div>
-
-      <div className="p-4">
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><ArrowLeft size={16} /></button>
-          <div className="flex-1 bg-gray-100 rounded-xl px-3 py-2">
-            <button type="button" onClick={() => { setEditingPickup(true); setQuery(''); setSuggestions([]); }} className="w-full flex items-center gap-2 text-xs text-zana-muted pb-1.5 border-b border-gray-200 text-left">
-              <span className="w-2 h-2 rounded-full bg-zana-primary shrink-0" /><span className="truncate">{pickupAddress}</span>
-            </button>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={editingPickup ? t('Search pickup location') : t('Where are you going?')} className="w-full bg-transparent pt-1.5 text-sm focus:outline-none" autoFocus={!editingPickup} />
-            {editingPickup && <button type="button" onClick={() => { setEditingPickup(false); setQuery(''); setSuggestions([]); }} className="text-[11px] text-zana-primary font-semibold mt-1">{t('Cancel')}</button>}
-          </div>
-        </div>
-
-        {isMoto && <div className="flex items-center justify-between bg-zana-primary-light rounded-xl px-4 py-3 mb-4"><div className="flex items-center gap-2"><Users size={16} className="text-zana-primary" /><span className="text-sm text-gray-900">{t('How many motos?')}</span></div><div className="flex items-center gap-3"><button onClick={() => setMotoCount((c) => Math.max(1, c - 1))} disabled={motoCount <= 1} className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm disabled:opacity-40"><Minus size={13} /></button><span className="text-sm font-semibold text-gray-900 w-4 text-center">{motoCount}</span><button onClick={() => setMotoCount((c) => Math.min(8, c + 1))} disabled={motoCount >= 8} className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm disabled:opacity-40"><Plus size={13} /></button></div></div>}
-        {booking && <div className="flex items-center gap-2 text-sm text-zana-muted mb-4"><Loader2 size={16} className="animate-spin" />{motoCount > 1 ? `${t('Booking')} ${motoCount} ${t('motos')}…` : t('Booking your moto…')}</div>}
-        {error && <p className="text-xs text-zana-error mb-4">{error}</p>}
-        {nearby.length > 0 && !query && <p className="text-xs text-zana-muted mb-3">{nearby.length} {isMoto ? t('moto') : t('car')}{nearby.length === 1 ? '' : t('s')} {t('available nearby')}</p>}
-        {searching && <p className="text-xs text-zana-muted px-1 py-2">{t('Searching…')}</p>}
-        {!query && suggestions.length === 0 && <div className="bg-gray-50 rounded-xl p-3 mt-2"><p className="text-[11px] text-zana-muted mb-2">{t('Receiver shared a Zana location code? Enter it as your destination.')}</p><div className="flex gap-2"><input value={codeInput} onChange={e => setCodeInput(e.target.value.toUpperCase())} placeholder="ZANA-8XK29" className="flex-1 border border-zana-border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none" /><button onClick={handleResolveCode} disabled={!codeInput.trim() || resolvingCode} className="bg-zana-primary text-white text-xs font-semibold px-4 rounded-lg disabled:opacity-40">{resolvingCode ? '…' : t('Use')}</button></div>{codeError && <p className="text-[11px] text-zana-error mt-1.5">{codeError}</p>}</div>}
-        <div className="space-y-1">
-          {suggestions.map((s, i) => <button key={s.placeId} onClick={() => handleSelect(s)} disabled={booking} className={`animate-fade-slide-up stagger-${Math.min(i + 1, 6)} w-full flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-gray-50 text-left transition-colors disabled:opacity-50`}><div className="w-9 h-9 rounded-full bg-zana-primary-light flex items-center justify-center shrink-0"><MapPin size={15} className="text-zana-primary" /></div><div className="min-w-0"><p className="text-sm text-gray-900 truncate">{s.primaryText}</p><p className="text-xs text-zana-muted truncate">{s.secondaryText}</p></div></button>)}
-          {query && !searching && suggestions.length === 0 && <p className="text-sm text-zana-muted px-2 py-4">{t('No matching places.')}</p>}
-        </div>
-      </div>
-
-      {showPaymentPicker && (() => {
-        const totalFare = estimatedFare ? estimatedFare * motoCount : null;
-        const walletInsufficient = paymentMethod === 'WALLET' && walletBalance !== null && totalFare !== null && walletBalance < totalFare;
-        return <div className="fixed inset-0 z-50 flex items-end bg-black/50"><div className="w-full bg-white rounded-t-3xl p-5"><div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
-          <div className="flex items-center justify-between mb-4"><div><h2 className="font-black text-lg text-gray-900">{t('How will you pay?')}</h2><p className="text-xs text-gray-400">{motoCount > 1 ? `${motoCount} ${t('seats')}` : `1 ${t('seat')}`} · {t('Moto ride')}</p></div><div className="text-right bg-zana-primary-light rounded-2xl px-4 py-2">{fetchingFare ? <div className="w-4 h-4 border-2 border-zana-primary border-t-transparent rounded-full animate-spin" /> : totalFare ? <><p className="text-xl font-black text-zana-primary">{totalFare.toLocaleString()}</p><p className="text-[10px] text-gray-500">{t('RWF total')}</p></> : <p className="text-xs text-gray-400">{t('Calculating...')}</p>}</div></div>
-          {walletInsufficient && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2"><span className="text-red-500 shrink-0">⚠️</span><p className="text-xs text-red-700"><strong>{t('Insufficient balance.')}</strong> {t('Your wallet has')} {walletBalance?.toLocaleString()} RWF but this ride costs {totalFare?.toLocaleString()} RWF. {t('Choose another payment method or top up.')}</p></div>}
-          <div className="space-y-2 mb-5">{MOTO_PAYMENT_OPTIONS.map(({ id, label, icon }) => { const Icon = icon; const isWallet = id === 'WALLET'; const insufficient = isWallet && walletInsufficient; return <button key={id} onClick={() => setPaymentMethod(id)} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-all ${paymentMethod === id ? insufficient ? 'border-red-400 bg-red-50' : 'border-zana-primary bg-zana-primary-light' : 'border-gray-100 bg-white'}`}><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zana-primary-light text-zana-primary"><Icon size={20} strokeWidth={2} /></span><div className="flex-1 text-left"><p className={`font-semibold text-sm ${paymentMethod === id ? insufficient ? 'text-red-600' : 'text-zana-primary' : 'text-gray-800'}`}>{t(label)}</p>{isWallet && walletBalance !== null && <p className={`text-xs ${insufficient ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>{t('Balance:')} {walletBalance.toLocaleString()} RWF{insufficient && totalFare ? ` · ${t('need')} ${(totalFare - walletBalance).toLocaleString()} ${t('more')}` : ''}</p>}</div>{paymentMethod === id && !insufficient && <div className="w-5 h-5 rounded-full bg-zana-primary flex items-center justify-center shrink-0"><svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg></div>}</button>; })}</div>
-          <button onClick={bookMoto} disabled={booking || walletInsufficient || fetchingFare} className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 disabled:opacity-50">{booking ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : `${t('Confirm & Book')}${totalFare ? ` · ${totalFare.toLocaleString()} RWF` : ''}`}</button>
-          <button onClick={() => { setShowPaymentPicker(false); setEstimatedFare(null); }} className="w-full text-center text-sm text-gray-400 mt-3 py-1">{t('Cancel')}</button>
-        </div></div>;
-      })()}
-    </div>
-  );
+function SearchContent(){
+ const {t}=useLang(),router=useRouter(),inputRef=useRef<HTMLInputElement>(null),touch=useRef<{y:number;time:number}|null>(null),debounce=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const [pickup,setPickup]=useState(getStoredPickup()),[pickupAddress,setPickupAddress]=useState('Current location'),[pickupEditing,setPickupEditing]=useState(false),[pickupQuery,setPickupQuery]=useState('');
+ const [query,setQuery]=useState(''),[suggestions,setSuggestions]=useState<PlaceSuggestion[]>([]),[coords,setCoords]=useState<Record<string,Destination>>({});
+ const [saved,setSaved]=useState<SavedPlace[]>([]),[recents,setRecents]=useState<RecentPlace[]>([]),[loadingHome,setLoadingHome]=useState(true),[searching,setSearching]=useState(false);
+ const [mapPicker,setMapPicker]=useState(false),[mapPoint,setMapPoint]=useState<{lat:number;lng:number}|null>(null),[mapAddress,setMapAddress]=useState(''),[resolvingMap,setResolvingMap]=useState(false),[addingStop,setAddingStop]=useState(false),[error,setError]=useState('');
+ useEffect(()=>{const id=window.setTimeout(()=>inputRef.current?.focus(),80);return()=>window.clearTimeout(id);},[]);
+ useEffect(()=>{let live=true;api.get<SavedPlace[]>('/users/saved-places').then(v=>{if(live)setSaved(Array.isArray(v)?v:[])}).catch(()=>{});
+ api.get<any[]>('/rides/history').then(rows=>{if(!live||!Array.isArray(rows))return;const seen=new Set<string>(),out:RecentPlace[]=[];for(const r of rows){const lat=Number(r?.destinationLat),lng=Number(r?.destinationLng),address=r?.destinationAddress;if(!address||!Number.isFinite(lat)||!Number.isFinite(lng))continue;const k=`${lat.toFixed(4)}:${lng.toFixed(4)}`;if(seen.has(k))continue;seen.add(k);out.push({id:String(r.id??k),name:String(r.destinationName??address.split(',')[0]),address,lat,lng});if(out.length===5)break;}setRecents(out);}).catch(()=>{}).finally(()=>{if(live)setLoadingHome(false)});const fallback=window.setTimeout(()=>{if(live)setLoadingHome(false)},1500);return()=>{live=false;window.clearTimeout(fallback)};},[]);
+ useEffect(()=>{let live=true;reverseGeocode(pickup.lat,pickup.lng).then(a=>{if(live&&a)setPickupAddress(a)});return()=>{live=false}},[pickup.lat,pickup.lng]);
+ useEffect(()=>{if(debounce.current)clearTimeout(debounce.current);const q=query.trim();if(q.length<2){setSuggestions([]);setCoords({});setSearching(false);return;}setSearching(true);debounce.current=setTimeout(async()=>{try{const rows=await searchPlaces(q);setSuggestions(rows);setSearching(false);const resolved=await Promise.all(rows.slice(0,5).map(async s=>{const p=await getPlaceCoordinates(s.placeId);return p?[s.placeId,{name:s.primaryText,address:p.address,lat:p.lat,lng:p.lng} as Destination] as const:null;}));setCoords(old=>({...old,...Object.fromEntries(resolved.filter(Boolean) as [string,Destination][])}));}catch{setSearching(false);setSuggestions([])}},300);return()=>{if(debounce.current)clearTimeout(debounce.current)};},[query]);
+ const home=saved.find(p=>p.label.toLowerCase()==='home'),work=saved.find(p=>p.label.toLowerCase()==='work');
+ const matchingSaved=useMemo(()=>query.trim().length>=2?saved.filter(p=>`${p.label} ${p.address}`.toLowerCase().includes(query.toLowerCase())):[],[saved,query]);
+ const select=useCallback((p:Destination)=>{haptic('tap');const q=new URLSearchParams({name:p.name,address:p.address,lat:String(p.lat),lng:String(p.lng),pickupLat:String(pickup.lat),pickupLng:String(pickup.lng),pickupAddress});router.push(`/ride-options?${q.toString()}`);},[pickup,pickupAddress,router]);
+ const selectSaved=(p:SavedPlace)=>select({name:p.label,address:p.address,lat:p.lat,lng:p.lng});
+ const selectRecent=(p:RecentPlace)=>select({name:p.name,address:p.address,lat:p.lat,lng:p.lng});
+ const selectPrediction=async(s:PlaceSuggestion)=>{setError('');const p=coords[s.placeId]??await getPlaceCoordinates(s.placeId);if(p)select({name:s.primaryText,address:p.address,lat:p.lat,lng:p.lng});else setError(t("Couldn't load that location. Try another result."));};
+ const popular=async(p:{name:string;query:string})=>{setSearching(true);try{const rows=await searchPlaces(p.query),place=rows[0]?await getPlaceCoordinates(rows[0].placeId):null;if(place)select({name:p.name,address:place.address,lat:place.lat,lng:place.lng});else{setQuery(p.name);setSearching(false)}}catch{setSearching(false)}};
+ const searchPickup=async()=>{if(pickupQuery.trim().length<2)return;const rows=await searchPlaces(pickupQuery),p=rows[0]?await getPlaceCoordinates(rows[0].placeId):null;if(!p)return;setPickup({lat:p.lat,lng:p.lng});setStoredPickup({lat:p.lat,lng:p.lng});setPickupAddress(p.address);setPickupEditing(false);setPickupQuery('');inputRef.current?.focus();};
+ const pinOnMap=()=>{setMapPicker(true);setMapPoint(null);setMapAddress('')};
+ const resolvePin=async()=>{if(!mapPoint)return;setResolvingMap(true);const a=await reverseGeocode(mapPoint.lat,mapPoint.lng);setMapAddress(a??`${mapPoint.lat.toFixed(5)}, ${mapPoint.lng.toFixed(5)}`);setResolvingMap(false);};
+ const confirmPin=()=>{if(mapPoint)select({name:mapAddress||'Pinned location',address:mapAddress||'Pinned location',lat:mapPoint.lat,lng:mapPoint.lng})};
+ const onTouchEnd=(y:number)=>{if(!touch.current)return;const d=y-touch.current.y,ms=Date.now()-touch.current.time;touch.current=null;if(d>90||(d>45&&ms<240))router.back();};
+ const active=query.trim().length>=2;
+ const groups=[{title:t('Saved places'),items:matchingSaved},{title:t('Places & landmarks'),items:suggestions.filter(s=>!(s.types??[]).some(v=>v==='route'||v==='street_address'))},{title:t('Streets & addresses'),items:suggestions.filter(s=>(s.types??[]).some(v=>v==='route'||v==='street_address'))}];
+ const style=(i:number)=>({'--row-index':i} as CSSProperties);
+ return <main className="zana-search-screen" onTouchStart={e=>{touch.current={y:e.touches[0].clientY,time:Date.now()}}} onTouchEnd={e=>onTouchEnd(e.changedTouches[0].clientY)}>
+  <div className="zana-search-map" aria-hidden="true"><BrandedMap origin={pickup} height="100%"/></div><div className="zana-search-map-dim" aria-hidden="true"/>
+  <section className="zana-search-sheet" aria-label={t('Choose your destination')}>
+   <header className="zana-search-header"><button className="zana-search-back" onClick={()=>router.back()} aria-label={t('Back to home')}><ArrowLeft size={21}/></button><div><span className="zana-search-eyebrow">ZANA · KIGALI</span><h1>{t('Where to?')}</h1></div><button className="zana-search-close" onClick={()=>router.back()} aria-label={t('Close destination search')}><X size={18}/></button></header>
+   <div className="zana-search-fields"><div className="zana-search-route-rail" aria-hidden="true"><span className="pickup-dot"/><i/><span className="destination-square"/></div><div className="zana-search-field-stack">
+    <button className="zana-search-pickup" onClick={()=>{setPickupEditing(v=>!v);setPickupQuery('');}} aria-label={t('Edit pickup location')}><span className="zana-search-field-label">{t('PICKUP')}</span><strong>{pickupAddress}</strong><span className="zana-search-edit">{t('Edit')}</span></button>
+    {pickupEditing&&<div className="zana-search-pickup-edit"><input id="zana-pickup-edit" value={pickupQuery} onChange={e=>setPickupQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')searchPickup()}} placeholder={t('Search pickup location')}/><button onClick={searchPickup} aria-label={t('Search pickup')}><Search size={16}/></button></div>}
+    <div className="zana-search-destination-row"><div className="zana-search-destination-input"><span className="zana-search-field-label">{t('DESTINATION')}</span><input ref={inputRef} value={query} onChange={e=>setQuery(e.target.value)} placeholder={t('Search a landmark, area or address')} aria-label={t('Destination')} autoComplete="off"/></div><button className="zana-search-map-button" onClick={pinOnMap}><MapPinned size={15}/><span>{t('Choose on map')}</span></button></div>
+    <button className="zana-search-add-stop" onClick={()=>setAddingStop(v=>!v)} aria-label={t('Add a stop')}><Plus size={13}/></button>{addingStop&&<p className="zana-search-stop-note">{t('Multi-stop booking is not enabled yet. You can add stops in a future booking update.')}</p>}
+   </div></div>
+   <div className="zana-search-content" aria-live="polite">
+    {active?<>{searching&&<div className="zana-search-skeletons" aria-label={t('Loading places')}><i/><i/><i/><i/></div>}
+     {!searching&&matchingSaved.length===0&&suggestions.length===0&&<div className="zana-search-empty"><MapPin size={22}/><strong>{t('No matching places')}</strong><span>{t('Try another spelling, or pin the destination on the map.')}</span><button onClick={pinOnMap}>{t('Pin it on the map')}</button></div>}
+     {!searching&&groups.map(g=>g.items.length>0&&<section className="zana-search-result-group" key={g.title}><h2>{g.title}</h2>{g.items.map((p:any,i:number)=>p.placeId?<button key={p.placeId} className="zana-search-result" style={style(i)} onClick={()=>selectPrediction(p)}><span className="zana-search-result-icon"><MapPin size={17}/></span><span className="zana-search-result-copy"><strong><Highlight text={p.primaryText} query={query}/></strong><small>{p.secondaryText||t('Kigali, Rwanda')}</small></span><span className="zana-search-distance">{coords[p.placeId]?distanceText(distance(pickup,coords[p.placeId])):t('Nearby')}</span></button>:<button key={p.id} className="zana-search-result" style={style(i)} onClick={()=>selectSaved(p)}><span className="zana-search-result-icon"><MapPin size={17}/></span><span className="zana-search-result-copy"><strong><Highlight text={p.label} query={query}/></strong><small>{p.address}</small></span><span className="zana-search-distance">{distanceText(distance(pickup,p))}</span></button>)}</section>)}</>
+    :<><section className="zana-search-saved"><div className="zana-search-section-heading"><h2>{t('Saved places')}</h2><button onClick={()=>router.push('/profile/places')}>{t('Manage')}</button></div><div className="zana-search-saved-grid">{[{label:'Home',place:home,icon:Home},{label:'Work',place:work,icon:BriefcaseBusiness}].map(v=>{const Icon=v.icon;return <button key={v.label} className="zana-search-saved-card" onClick={()=>v.place?selectSaved(v.place):router.push('/profile/places')}><span><Icon size={18}/></span><strong>{t(v.label)}</strong><small>{v.place?.address??t('Add a place')}</small>{!v.place&&<Plus size={14} className="zana-search-saved-plus"/>}</button>})}</div></section>
+    <section className="zana-search-recents"><div className="zana-search-section-heading"><h2>{t('Recent destinations')}</h2><span>{recents.length?t('Last 5'):''}</span></div>{loadingHome?<div className="zana-search-skeletons compact"><i/><i/><i/></div>:recents.length?recents.map((p,i)=><button key={p.id} className="zana-search-result" style={style(i)} onClick={()=>selectRecent(p)}><span className="zana-search-result-icon recent"><Clock3 size={16}/></span><span className="zana-search-result-copy"><strong>{p.name}</strong><small>{p.address}</small></span><span className="zana-search-distance">{distanceText(distance(pickup,p))}</span></button>):<p className="zana-search-subtle-empty">{t('Your recent destinations will appear here.')}</p>}</section>
+    <section className="zana-search-popular"><div className="zana-search-section-heading"><h2>{t('Popular in Kigali')}</h2><span>{t('Explore the city')}</span></div>{POPULAR.map((p,i)=><button key={p.name} className="zana-search-popular-row" style={style(i)} onClick={()=>popular(p)}><span className="zana-search-popular-number">0{i+1}</span><span><strong>{t(p.name)}</strong><small>{p.area}</small></span><ChevronRight size={16}/></button>)}</section></>}
+    {error&&<p className="zana-search-error" role="alert">{error}</p>}
+   </div>
+  </section>
+  {mapPicker&&<div className="zana-search-map-modal" role="dialog" aria-modal="true" aria-label={t('Choose destination on map')}><div className="zana-search-map-modal-head"><button onClick={()=>setMapPicker(false)} aria-label={t('Back to search')}><ArrowLeft size={19}/></button><div><strong>{t('Choose on map')}</strong><small>{t('Tap the map to pin your destination')}</small></div><button onClick={()=>setMapPicker(false)} aria-label={t('Close map')}><X size={18}/></button></div><div className="zana-search-map-modal-canvas"><BrandedMap origin={pickup} height="100%" onMapClick={setMapPoint}/>{mapPoint&&<div className="zana-search-map-pin"><MapPin size={34} fill="#00A082"/></div>}</div><div className="zana-search-map-modal-footer"><div><strong>{mapAddress||(mapPoint?t('Pinned location'):t('Tap anywhere on the map'))}</strong><small>{mapPoint?t('Destination pin selected'):t('Move the map to choose a location')}</small></div><button onClick={mapAddress?confirmPin:resolvePin} disabled={!mapPoint||resolvingMap}>{resolvingMap?<Loader2 size={16} className="animate-spin"/>:t('Confirm destination')}</button></div></div>}
+ </main>;
 }
-
-export default function SearchPage() { return <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}><SearchContent /></Suspense>; }
+export default function SearchPage(){return <Suspense fallback={<ZanaLoading label="Loading your ZANA experience"/>}><SearchContent/></Suspense>;}
