@@ -2,7 +2,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Briefcase, Clock3, Home, MapPin, MapPinned, Search, X, Loader2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Briefcase, Clock3, Home, MapPin, MapPinned, Plus, Search, X, Loader2, ChevronRight } from 'lucide-react';
 import BrandedMap from '../../components/BrandedMap';
 import { getStoredPickup, setStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
