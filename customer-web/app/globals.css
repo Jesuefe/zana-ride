@@ -1524,3 +1524,13 @@ html, body { background-color: var(--background); color: var(--foreground); }
  .zana-v3-service-art{width:36px;height:36px}
  .zana-v3-service>span:nth-child(2){width:100%}
 }
+
+
+/* Correctly target service-card labels without depending on generated utility selectors. */
+@media(max-width:600px){
+ .zana-v3-service>span:nth-child(2)>span:first-child{font-size:12px}
+ .zana-v3-service>span:nth-child(2)>span:last-child{font-size:10px;line-height:1.35}
+}
+@media(max-width:380px){
+ .zana-v3-service>span:nth-child(2)>span:first-child{font-size:12px}
+}
