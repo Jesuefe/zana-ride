@@ -90,13 +90,19 @@ function RideOptionsContent() {
     setLoadingFares(true);
     (async () => {
       try {
-        const [bike, economy, comfort] = await Promise.all([
+        const estimates = await Promise.allSettled([
           estimateRide(pickup, { lat: destLat, lng: destLng }, 'BIKE'),
           estimateRide(pickup, { lat: destLat, lng: destLng }, 'ECONOMY'),
           estimateRide(pickup, { lat: destLat, lng: destLng }, 'COMFORT'),
         ]);
-        setFares({ BIKE: bike.fare, ECONOMY: economy.fare, COMFORT: comfort.fare });
-        setFareError(null);
+        const [bike, economy, comfort] = estimates;
+        const nextFares = {
+          BIKE: bike.status === 'fulfilled' ? bike.value.fare : 0,
+          ECONOMY: economy.status === 'fulfilled' ? economy.value.fare : 0,
+          COMFORT: comfort.status === 'fulfilled' ? comfort.value.fare : 0,
+        };
+        setFares(nextFares);
+        setFareError(Object.values(nextFares).some(fare => fare > 0) ? null : t('Could not calculate the ride fare. Please try again.'));
       } catch {
         setFares({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
         setFareError(t('Could not calculate the ride fare. Please try again.'));
