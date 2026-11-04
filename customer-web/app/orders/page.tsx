@@ -1,444 +1,301 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Package, MapPin, Navigation, ShoppingBag, Star, Clock3, ChevronRight, X } from 'lucide-react';
-import ReviewSheet from '../../components/ReviewSheet';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  ArrowUpRight, Bike, CalendarDays, CarFront, CheckCircle2, ChevronRight,
+  Clock3, Gift, MapPin, MessageCircle, Package, Phone, RefreshCw, Search,
+  Share2, ShoppingBag, Star, Store, Utensils, X,
+} from 'lucide-react';
+import BrandedMap from '../../components/BrandedMap';
 import DeliveryTracker from '../../components/DeliveryTracker';
-import { fetchMyDeliveries, Delivery } from '../../lib/api/deliveries';
-import { fetchMyOrders, fetchReplacementOptions, resolveUnavailableItem } from '../../lib/api/trips';
-import { cancelOrder } from '../../lib/api/orders';
+import ReviewSheet from '../../components/ReviewSheet';
 import { useLang } from '../../lib/LangContext';
+import { fetchMyDeliveries, Delivery } from '../../lib/api/deliveries';
+import { ACTIVE_RIDE_STATUSES, ApiTrip } from '../../lib/api/trips';
+import { fetchMyOrders } from '../../lib/api/trips';
+import { cancelOrder } from '../../lib/api/orders';
+import { api } from '../../lib/api/client';
 import ZanaLoading from '../../components/ZanaLoading';
 
-const DELIVERY_STATUS: Record<string, string> = {
-  REQUESTED: 'Finding courier',
-  COURIER_ASSIGNED: 'Courier assigned',
-  PICKED_UP: 'On the way',
-  DELIVERED: 'Delivered',
-  CANCELLED: 'Cancelled',
+type Filter = 'ALL' | 'RIDES' | 'DELIVERY' | 'FOOD' | 'SHOP' | 'GIFTS';
+type View = 'ACTIVE' | 'HISTORY';
+type Entry = { kind: 'ride' | 'delivery' | 'market'; id: string; status: string; date: string; raw: any; category: Filter; title: string; subtitle: string; amount: number };
+
+const RIDE_ACTIVE = ACTIVE_RIDE_STATUSES;
+const DELIVERY_ACTIVE = new Set(['REQUESTED', 'COURIER_ASSIGNED', 'PICKED_UP']);
+const MARKET_ACTIVE = new Set(['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY']);
+const STATUS_LABEL: Record<string, string> = {
+  SEARCHING_DRIVER: 'Finding your driver', DRIVER_ASSIGNED: 'Driver assigned',
+  DRIVER_EN_ROUTE: 'Driver is on the way', DRIVER_ARRIVED: 'Your driver has arrived',
+  RIDE_IN_PROGRESS: 'On the way to your destination', RIDE_COMPLETED: 'Completed',
+  NO_DRIVER_FOUND: 'No driver found', CUSTOMER_CANCELLED: 'Cancelled',
+  REQUESTED: 'Finding courier', COURIER_ASSIGNED: 'Courier assigned',
+  PICKED_UP: 'Courier picked up your package', DELIVERED: 'Delivered',
+  CANCELLED: 'Cancelled', PENDING: 'Order placed', CONFIRMED: 'Confirmed',
+  PREPARING: 'Preparing your order', READY_FOR_PICKUP: 'Ready for pickup',
+  OUT_FOR_DELIVERY: 'On the way', REFUNDED: 'Refunded',
 };
+const ACTIVE_STEPS = ['Confirmed', 'On the way', 'Arrived', 'Completed'];
 
-const ORDER_STATUS: Record<string, string> = {
-  PENDING: 'Pending',
-  CONFIRMED: 'Confirmed',
-  PREPARING: 'Preparing',
-  READY_FOR_PICKUP: 'Ready for pickup',
-  OUT_FOR_DELIVERY: 'On the way',
-  DELIVERED: 'Delivered',
-  CANCELLED: 'Cancelled',
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  REQUESTED: 'bg-amber-100 text-amber-700',
-  PENDING: 'bg-amber-100 text-amber-700',
-  COURIER_ASSIGNED: 'bg-blue-100 text-blue-700',
-  CONFIRMED: 'bg-blue-100 text-blue-700',
-  PICKED_UP: 'bg-blue-100 text-blue-700',
-  PREPARING: 'bg-blue-100 text-blue-700',
-  READY_FOR_PICKUP: 'bg-purple-100 text-purple-700',
-  OUT_FOR_DELIVERY: 'bg-blue-100 text-blue-700',
-  DELIVERED: 'bg-green-100 text-green-700',
-  CANCELLED: 'bg-gray-100 text-gray-600',
-};
-
-const ACTIVE_ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY'];
-
-function orderProgress(order: any) {
-  const deliveryStatus = order.delivery?.status;
-  if (deliveryStatus === 'PICKED_UP') return 4;
-  if (deliveryStatus === 'COURIER_ASSIGNED') return 3;
-  if (deliveryStatus === 'DELIVERED' || order.status === 'DELIVERED') return 5;
-  if (order.status === 'OUT_FOR_DELIVERY') return 4;
-  if (order.status === 'READY_FOR_PICKUP') return 3;
-  if (order.status === 'PREPARING') return 2;
-  if (order.status === 'CONFIRMED') return 1;
-  return 0;
+function money(value: unknown) {
+  return `${Number(value ?? 0).toLocaleString()} RWF`;
+}
+function dateOf(value: unknown) {
+  const d = value ? new Date(String(value)) : new Date();
+  return Number.isNaN(d.getTime()) ? new Date() : d;
+}
+function dateGroup(value: string) {
+  const d = dateOf(value), now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = Math.round((start.getTime() - day.getTime()) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  if (diff >= 2 && diff < 7) return 'This week';
+  return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+}
+function statusTone(status: string) {
+  if (['RIDE_COMPLETED', 'DELIVERED'].includes(status)) return 'bg-emerald-50 text-emerald-700';
+  if (['CANCELLED', 'CUSTOMER_CANCELLED', 'NO_DRIVER_FOUND'].includes(status)) return 'bg-gray-100 text-gray-600';
+  if (status === 'REFUNDED') return 'bg-amber-50 text-amber-700';
+  return 'bg-teal-50 text-teal-800';
+}
+function iconFor(category: Filter) {
+  if (category === 'RIDES') return Bike;
+  if (category === 'DELIVERY') return Package;
+  if (category === 'FOOD') return Utensils;
+  if (category === 'GIFTS') return Gift;
+  return Store;
+}
+function getCategory(order: any): Filter {
+  const value = String(order.merchant?.category ?? order.category ?? order.items?.[0]?.product?.category ?? '').toLowerCase();
+  if (value.includes('gift')) return 'GIFTS';
+  if (value.includes('food') || value.includes('restaurant') || value.includes('meal')) return 'FOOD';
+  return 'SHOP';
 }
 
 function OrdersContent() {
   const { t } = useLang();
-  const [review, setReview] = useState<any>(null);
+  const router = useRouter();
   const params = useSearchParams();
   const highlightId = params.get('highlight');
+  const [rides, setRides] = useState<ApiTrip[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
-  const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<any[]>([]);
-  const [tab, setTab] = useState<'orders' | 'deliveries'>('orders');
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [cancelling, setCancelling] = useState<string | null>(null);
-  const [resolvingItem, setResolvingItem] = useState<string | null>(null);
-  const [replacementOptions, setReplacementOptions] = useState<any[]>([]);
-  const [replacementItem, setReplacementItem] = useState<{ orderId: string; itemId: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState<Filter>('ALL');
+  const [view, setView] = useState<View>('HISTORY');
+  const [query, setQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState('ALL');
+  const [selected, setSelected] = useState<Entry | null>(null);
+  const [review, setReview] = useState<any>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [offline, setOffline] = useState(false);
 
-  useEffect(() => {
-    const load = () => {
-      Promise.all([
-        fetchMyDeliveries().then(setDeliveries).catch(() => {}),
-        fetchMyOrders().then(setOrders).catch(() => {}),
-      ]).finally(() => setLoading(false));
-    };
-    load();
-    const interval = setInterval(load, 8000);
-    return () => clearInterval(interval);
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
+    setRefreshing(quiet);
+    const results = await Promise.allSettled([
+      api.get<ApiTrip[]>('/rides/history'),
+      fetchMyDeliveries(),
+      fetchMyOrders(),
+    ]);
+    let failures = 0;
+    if (results[0].status === 'fulfilled') setRides(Array.isArray(results[0].value) ? results[0].value : []); else failures++;
+    if (results[1].status === 'fulfilled') setDeliveries(Array.isArray(results[1].value) ? results[1].value : []); else failures++;
+    if (results[2].status === 'fulfilled') setOrders(Array.isArray(results[2].value) ? results[2].value : []); else failures++;
+    setOffline(failures === 3);
+    setLastUpdated(new Date());
+    setLoading(false);
+    setRefreshing(false);
   }, []);
 
-  const activeOrders = useMemo(() => orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status)), [orders]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (loading) return;
+    const hasActive = rides.some(r => RIDE_ACTIVE.has(r.status))
+      || deliveries.some(d => DELIVERY_ACTIVE.has(d.status))
+      || orders.some(o => MARKET_ACTIVE.has(o.status));
+    setView(hasActive ? 'ACTIVE' : 'HISTORY');
+  }, [loading]); // initial selection only, not every background refresh
 
-  const resolveItem = async (orderId: string, itemId: string, action: 'REFUND' | 'REPLACE' | 'REMOVE', replacementProductId?: string) => {
-    setResolvingItem(itemId);
-    try {
-      await resolveUnavailableItem(orderId, itemId, action, replacementProductId);
-      const fresh = await fetchMyOrders();
-      setOrders(fresh);
-      setSelectedOrder(fresh.find((x: any) => x.id === orderId) ?? null);
-      setReplacementItem(null);
-      setReplacementOptions([]);
-    } catch (e: any) {
-      window.alert(e?.message ?? 'We could not update this item. Please try again.');
-    } finally {
-      setResolvingItem(null);
+  useEffect(() => {
+    const id = window.setInterval(() => { load(true); }, 10000);
+    return () => window.clearInterval(id);
+  }, [load]);
+
+  const entries = useMemo<Entry[]>(() => {
+    const rows: Entry[] = [];
+    rides.forEach(r => rows.push({
+      kind: 'ride', id: r.id, status: r.status, date: r.requestedAt,
+      raw: r, category: 'RIDES',
+      title: r.destinationAddress || 'Ride',
+      subtitle: `${r.pickupAddress || 'Pickup'} · ${dateOf(r.requestedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      amount: Number(r.finalFare ?? r.estimatedFare ?? 0),
+    }));
+    deliveries.forEach(d => rows.push({
+      kind: 'delivery', id: d.id, status: d.status, date: d.createdAt,
+      raw: d, category: 'DELIVERY',
+      title: d.itemDescription || 'Package delivery',
+      subtitle: `${d.pickupAddress} → ${d.dropoffAddress}`,
+      amount: Number(d.fee ?? 0),
+    }));
+    orders.forEach(o => rows.push({
+      kind: 'market', id: o.id, status: o.status, date: o.createdAt ?? o.updatedAt,
+      raw: o, category: getCategory(o),
+      title: o.merchant?.businessName ?? 'ZANA Market',
+      subtitle: (o.items ?? []).map((i: any) => `${i.product?.name ?? 'Item'} ×${i.quantity}`).join(', ') || o.dropoffAddress || 'Marketplace order',
+      amount: Number(o.total ?? 0),
+    }));
+    return rows.sort((a, b) => dateOf(b.date).getTime() - dateOf(a.date).getTime());
+  }, [rides, deliveries, orders]);
+
+  const isActive = (entry: Entry) => entry.kind === 'ride' ? RIDE_ACTIVE.has(entry.status)
+    : entry.kind === 'delivery' ? DELIVERY_ACTIVE.has(entry.status) : MARKET_ACTIVE.has(entry.status);
+
+  const filtered = useMemo(() => entries.filter(e => {
+    if (filter !== 'ALL' && e.category !== filter) return false;
+    if (view === 'ACTIVE' && !isActive(e)) return false;
+    if (view === 'HISTORY' && isActive(e)) return false;
+    if (query.trim()) {
+      const haystack = `${e.title} ${e.subtitle} ${e.status} ${e.id}`.toLowerCase();
+      if (!haystack.includes(query.toLowerCase())) return false;
     }
-  };
-
-  const openReplacement = async (orderId: string, itemId: string) => {
-    setResolvingItem(itemId);
-    try {
-      const options = await fetchReplacementOptions(orderId, itemId);
-      setReplacementOptions(options);
-      setReplacementItem({ orderId, itemId });
-    } catch (e: any) {
-      window.alert(e?.message ?? 'Replacement options are no longer available.');
-    } finally {
-      setResolvingItem(null);
+    if (dateFilter !== 'ALL') {
+      const d = dateOf(e.date), now = new Date();
+      const age = (now.getTime() - d.getTime()) / 86400000;
+      if (dateFilter === '7D' && age > 7) return false;
+      if (dateFilter === '30D' && age > 30) return false;
+      if (dateFilter === 'MONTH' && (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear())) return false;
     }
-  };
-  const historyOrders = useMemo(() => orders.filter(o => !ACTIVE_ORDER_STATUSES.includes(o.status)), [orders]);
+    return true;
+  }), [entries, filter, view, query, dateFilter]);
 
-  const renderOrder = (o: any, active: boolean) => {
-    const delivery = o.delivery;
-    const progress = orderProgress(o);
-    const hasMap = !!delivery &&
-      ['COURIER_ASSIGNED', 'PICKED_UP'].includes(delivery.status) &&
-      Number.isFinite(Number(delivery.pickupLat)) &&
-      Number.isFinite(Number(delivery.pickupLng)) &&
-      Number.isFinite(Number(delivery.dropoffLat)) &&
-      Number.isFinite(Number(delivery.dropoffLng));
+  const groups = useMemo(() => {
+    const result: { title: string; rows: Entry[] }[] = [];
+    filtered.forEach(entry => {
+      const title = dateGroup(entry.date);
+      const group = result.find(g => g.title === title);
+      if (group) group.rows.push(entry); else result.push({ title, rows: [entry] });
+    });
+    return result;
+  }, [filtered]);
 
-    return (
-      <div
-        key={o.id}
-        className={`overflow-hidden rounded-2xl bg-white shadow-sm ${o.id === highlightId ? 'ring-2 ring-zana-primary' : ''}`}
-      >
-        {active && hasMap && (
-          <div className="p-2 pb-0">
-            <DeliveryTracker
-              deliveryId={delivery.id}
-              pickup={{ lat: Number(delivery.pickupLat), lng: Number(delivery.pickupLng) }}
-              dropoff={{ lat: Number(delivery.dropoffLat), lng: Number(delivery.dropoffLng) }}
-              status={delivery.status}
-              onStatusUpdate={(id, newStatus) => {
-                setOrders(prev => prev.map(x => x.delivery?.id === id ? {
-                  ...x,
-                  delivery: { ...x.delivery, status: newStatus },
-                } : x));
-              }}
-            />
-          </div>
-        )}
-
-        <button type="button" onClick={() => setSelectedOrder(o)} className="w-full text-left p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-zana-muted">
-                {active ? t('Active order') : t('Order')}
-              </p>
-              <p className="mt-0.5 font-black text-gray-900 truncate">{o.merchant?.businessName ?? t('ZANA Market')}</p>
-              <p className="text-xs text-zana-muted mt-1 line-clamp-1">
-                {o.items?.map((i: any) => `${i.product?.name} ×${i.quantity}`).join(', ')}
-              </p>
-            </div>
-            <span className={`text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${STATUS_STYLE[delivery?.status] ?? STATUS_STYLE[o.status] ?? 'bg-gray-100 text-gray-600'}`}>
-              {t(DELIVERY_STATUS[delivery?.status] ?? ORDER_STATUS[o.status]) ?? delivery?.status ?? o.status}
-            </span>
-          </div>
-
-          {(o.items || []).filter((i: any) => i.status === 'UNAVAILABLE_PENDING').map((i: any) => (
-            <div key={i.id} className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
-              <p className="text-sm font-black text-gray-900">{i.product?.name ?? 'Item'} is currently unavailable</p>
-              <p className="text-xs text-gray-600 mt-1">What would you like us to do?</p>
-              <div className="grid grid-cols-3 gap-2 mt-3">
-                <button disabled={resolvingItem === i.id} onClick={() => resolveItem(o.id, i.id, 'REFUND')} className="rounded-xl bg-zana-primary text-white py-2 text-[11px] font-black disabled:opacity-50">Refund this item</button>
-                <button disabled={resolvingItem === i.id} onClick={() => openReplacement(o.id, i.id)} className="rounded-xl bg-white border border-gray-200 text-gray-800 py-2 text-[11px] font-black disabled:opacity-50">Replace item</button>
-                <button disabled={resolvingItem === i.id} onClick={() => resolveItem(o.id, i.id, 'REMOVE')} className="rounded-xl bg-white border border-gray-200 text-gray-800 py-2 text-[11px] font-black disabled:opacity-50">Remove item</button>
-              </div>
-            </div>
-          ))}
-
-          {active && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-[10px] font-semibold text-zana-muted mb-2">
-                <span>{t('Order placed')}</span>
-                <span>{delivery?.status === 'PICKED_UP' ? t('Rider on the way') : t(ORDER_STATUS[o.status])}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                {['Order', 'Confirmed', 'Preparing', 'Picked up', 'Delivered'].map((label, index) => (
-                  <div key={label} className="flex-1">
-                    <div className={`h-1.5 rounded-full ${index <= progress ? 'bg-zana-primary' : 'bg-gray-100'}`} />
-                    <p className={`mt-1 text-[9px] ${index <= progress ? 'font-bold text-gray-700' : 'text-gray-400'}`}>{t(label)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-black text-zana-primary">{Number(o.total ?? 0).toLocaleString()} RWF</p>
-              {o.trackingCode && <p className="text-[10px] text-zana-muted mt-0.5">{t('Tracking')} · {o.trackingCode}</p>}
-            </div>
-            <span className="flex items-center gap-1 text-xs font-bold text-zana-primary">
-              {active ? t('Track order') : t('View details')} <ChevronRight size={15} />
-            </span>
-          </div>
-        </button>
-      </div>
-    );
+  const openRide = (ride: ApiTrip) => router.push(`/tracking?tripId=${encodeURIComponent(ride.id)}`);
+  const rebookRide = (ride: ApiTrip) => {
+    const q = new URLSearchParams({
+      name: ride.destinationAddress || 'Destination',
+      address: ride.destinationAddress || '',
+      lat: String(ride.destinationLat),
+      lng: String(ride.destinationLng),
+      pickupLat: String(ride.pickupLat),
+      pickupLng: String(ride.pickupLng),
+      pickupAddress: ride.pickupAddress || 'Pickup',
+    });
+    router.push(`/ride-options?${q.toString()}`);
   };
 
-  return (
-    <div className="zana-page-enter zana-orders-page p-4 pb-8">
-      <div className="mb-4">
-        <h1 className="text-xl font-black text-gray-900">{t('My Orders')}</h1>
-        <p className="text-xs text-zana-muted mt-1">{t('Track your orders and deliveries in one place.')}</p>
-      </div>
+  const shareRide = async (entry: Entry) => {
+    const url = `${window.location.origin}/tracking?tripId=${encodeURIComponent(entry.id)}`;
+    try {
+      if (navigator.share) await navigator.share({ title: 'ZANA trip', url });
+      else await navigator.clipboard.writeText(url);
+    } catch { /* user dismissed share sheet */ }
+  };
 
-      <div className="flex gap-2 mb-5">
-        {(['orders', 'deliveries'] as const).map(tabName => (
-          <button
-            key={tabName}
-            onClick={() => setTab(tabName)}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold ${tab === tabName ? 'bg-zana-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
-          >
-            {tabName === 'orders' ? `${t('Orders')} (${orders.length})` : `${t('Deliveries')} (${deliveries.length})`}
-          </button>
-        ))}
-      </div>
+  const renderProgress = (entry: Entry) => {
+    const labels = entry.kind === 'ride'
+      ? ['Driver assigned', 'Driver en route', 'Arrived', 'Completed']
+      : entry.kind === 'delivery'
+        ? ['Confirmed', 'Courier assigned', 'Picked up', 'Delivered']
+        : ['Confirmed', 'Preparing', 'On the way', 'Delivered'];
+    const status = entry.status;
+    const step = entry.kind === 'ride'
+      ? ({ DRIVER_ASSIGNED: 0, DRIVER_EN_ROUTE: 1, DRIVER_ARRIVED: 2, RIDE_IN_PROGRESS: 2, RIDE_COMPLETED: 3 } as Record<string, number>)[status] ?? 0
+      : entry.kind === 'delivery'
+        ? ({ REQUESTED: 0, COURIER_ASSIGNED: 1, PICKED_UP: 2, DELIVERED: 3 } as Record<string, number>)[status] ?? 0
+        : ({ PENDING: 0, CONFIRMED: 0, PREPARING: 1, READY_FOR_PICKUP: 2, OUT_FOR_DELIVERY: 2, DELIVERED: 3 } as Record<string, number>)[status] ?? 0;
+    return <div className="mt-4 grid grid-cols-4 gap-1" aria-label={t('Order progress')}>{labels.map((label, i) => <div key={label}><div className={`h-1.5 rounded-full ${i <= step ? 'bg-[#00A082]' : 'bg-gray-100'}`} /><span className={`mt-1 block text-[9px] ${i <= step ? 'font-semibold text-gray-700' : 'text-gray-400'}`}>{t(label)}</span></div>)}</div>;
+  };
 
-      {tab === 'orders' && (
-        <div className="space-y-5">
-          {loading && <div className="space-y-3" role="status" aria-label={t('Loading orders')}>{[0, 1].map((item) => <div key={item} className="rounded-2xl border border-gray-100 bg-white p-4"><div className="flex items-center gap-3"><div className="zana-loading-skeleton h-11 w-11 rounded-xl" /><div className="flex-1 space-y-2"><div className="zana-loading-skeleton h-3 w-2/3 rounded-full" /><div className="zana-loading-skeleton h-2.5 w-1/3 rounded-full" /></div></div><div className="zana-loading-skeleton mt-4 h-3 w-full rounded-full" /><div className="zana-loading-skeleton mt-2 h-3 w-3/4 rounded-full" /></div>)}</div>}
-          {!loading && activeOrders.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-2 h-2 rounded-full bg-zana-primary animate-pulse" />
-                <h2 className="text-sm font-black text-gray-900">{t('Active')}</h2>
-                <span className="text-xs text-zana-muted">{activeOrders.length}</span>
-              </div>
-              <div className="space-y-3">{activeOrders.map(o => renderOrder(o, true))}</div>
-            </section>
-          )}
-
-          {!loading && historyOrders.length > 0 && (
-            <section>
-              <h2 className="text-sm font-black text-gray-900 mb-2">{t('Order history')}</h2>
-              <div className="space-y-3">{historyOrders.map(o => renderOrder(o, false))}</div>
-            </section>
-          )}
-
-          {!loading && orders.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-14 h-14 rounded-full bg-zana-primary-light flex items-center justify-center mb-3">
-                <ShoppingBag size={22} className="text-zana-primary" />
-              </div>
-              <p className="text-sm text-zana-muted">{t('No orders yet. Try Food or Gifts!')}</p>
+  const renderEntry = (entry: Entry) => {
+    const Icon = iconFor(entry.category);
+    const active = isActive(entry);
+    const ride = entry.kind === 'ride' ? entry.raw as ApiTrip : null;
+    const delivery = entry.kind === 'delivery' ? entry.raw as any : null;
+    const mapReady = entry.kind === 'ride' && Number.isFinite(Number(ride?.pickupLat)) && Number.isFinite(Number(ride?.destinationLat));
+    const driver = ride?.driver;
+    const statusText = t(STATUS_LABEL[entry.status] ?? entry.status);
+    return <article key={entry.id} className={`overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-[0_5px_24px_rgba(15,35,28,.045)] ${entry.id === highlightId ? 'ring-2 ring-[#00A082]' : ''}`}>
+      {active && entry.kind === 'ride' && mapReady && <button onClick={() => openRide(ride!)} className="block w-full text-left" aria-label={t('Open live trip tracking')}><BrandedMap origin={{lat: ride!.pickupLat, lng: ride!.pickupLng}} destination={{lat: ride!.destinationLat, lng: ride!.destinationLng}} driverPosition={driver?.lastLat != null && driver?.lastLng != null ? {lat: driver.lastLat, lng: driver.lastLng} : null} vehicleType={ride!.serviceType === 'BIKE' ? 'BIKE' : 'ECONOMY'} height={142}/></button>}
+      {active && entry.kind === 'delivery' && delivery.pickupLat != null && delivery.dropoffLat != null && <div className="p-2 pb-0"><DeliveryTracker deliveryId={entry.id} pickup={{lat:Number(delivery.pickupLat),lng:Number(delivery.pickupLng)}} dropoff={{lat:Number(delivery.dropoffLat),lng:Number(delivery.dropoffLng)}} status={entry.status}/></div>}
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#E8F5F1] text-[#00866F]"><Icon size={20}/></span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-[.12em] text-gray-400">{t(entry.category === 'RIDES' ? 'Ride' : entry.category === 'DELIVERY' ? 'Delivery' : entry.category === 'FOOD' ? 'Food order' : entry.category === 'GIFTS' ? 'Gift order' : 'Shopping order')}</span>
+              <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${statusTone(entry.status)}`}>{statusText}</span>
             </div>
-          )}
-        </div>
-      )}
-
-      {tab === 'deliveries' && (
-        <div className="space-y-3">
-          {loading && <div className="space-y-3" role="status" aria-label={t('Loading deliveries')}>{[0, 1].map((item) => <div key={item} className="rounded-2xl border border-gray-100 bg-white p-4"><div className="zana-loading-skeleton h-3 w-2/3 rounded-full" /><div className="zana-loading-skeleton mt-3 h-3 w-full rounded-full" /><div className="zana-loading-skeleton mt-2 h-3 w-1/2 rounded-full" /></div>)}</div>}
-          {!loading && deliveries.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-14 h-14 rounded-full bg-zana-primary-light flex items-center justify-center mb-3">
-                <Package size={22} className="text-zana-primary" />
-              </div>
-              <p className="text-sm text-zana-muted">{t('Your deliveries will show up here.')}</p>
-            </div>
-          )}
-          {deliveries.map(d => (
-            <div key={d.id} className={`bg-white rounded-2xl p-4 shadow-sm ${d.id === highlightId ? 'ring-2 ring-zana-primary animate-fade-slide-up' : ''}`}>
-              <div className="flex items-start gap-3">
-                {d.imageUrl
-                  ? <img src={d.imageUrl} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
-                  : <div className="w-14 h-14 rounded-xl bg-zana-primary-light flex items-center justify-center shrink-0"><Package size={20} className="text-zana-primary" /></div>}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{d.itemDescription}</p>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${STATUS_STYLE[d.status] ?? ''}`}>
-                      {t(DELIVERY_STATUS[d.status]) ?? d.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-zana-muted mt-1">{d.fee.toLocaleString()} RWF · {d.distanceKm} km</p>
-                  {d.status === 'DELIVERED' && (
-                    <button
-                      onClick={() => setReview({ target: 'DELIVERY', deliveryId: d.id, title: t('How was this delivery?'), subtitle: d.itemDescription })}
-                      className="mt-2 flex items-center gap-1 text-[11px] font-bold text-zana-primary"
-                    >
-                      <Star size={11} /> {t('Rate this delivery')}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-3 space-y-1.5 pl-1">
-                <div className="flex items-start gap-2">
-                  <MapPin size={12} className="text-zana-primary mt-0.5 shrink-0" />
-                  <p className="text-[11px] text-gray-700 truncate">{d.pickupAddress}</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Navigation size={12} className="text-zana-secondary-dark mt-0.5 shrink-0" />
-                  <p className="text-[11px] text-gray-700 truncate">{d.dropoffAddress}</p>
-                </div>
-              </div>
-
-              {['COURIER_ASSIGNED', 'PICKED_UP'].includes(d.status) && (
-                <div className="mt-3">
-                  <DeliveryTracker
-                    deliveryId={d.id}
-                    pickup={{ lat: (d as any).pickupLat, lng: (d as any).pickupLng }}
-                    dropoff={{ lat: (d as any).dropoffLat, lng: (d as any).dropoffLng }}
-                    status={d.status}
-                    onStatusUpdate={(id, newStatus) => setDeliveries(prev => prev.map(x => x.id === id ? { ...x, status: newStatus as any } : x))}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={() => setSelectedOrder(null)}>
-          <div className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-t-3xl sm:rounded-3xl p-5" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-zana-muted">{t('Order details')}</p>
-                <p className="font-black text-lg">{selectedOrder.merchant?.businessName ?? t('ZANA Market')}</p>
-              </div>
-              <button type="button" onClick={() => setSelectedOrder(null)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><X size={18} /></button>
-            </div>
-
-            {selectedOrder.delivery && ['COURIER_ASSIGNED', 'PICKED_UP'].includes(selectedOrder.delivery.status) &&
-              Number.isFinite(Number(selectedOrder.delivery.pickupLat)) &&
-              Number.isFinite(Number(selectedOrder.delivery.dropoffLat)) && (
-              <div className="mb-4">
-                <DeliveryTracker
-                  deliveryId={selectedOrder.delivery.id}
-                  pickup={{ lat: Number(selectedOrder.delivery.pickupLat), lng: Number(selectedOrder.delivery.pickupLng) }}
-                  dropoff={{ lat: Number(selectedOrder.delivery.dropoffLat), lng: Number(selectedOrder.delivery.dropoffLng) }}
-                  status={selectedOrder.delivery.status}
-                  onStatusUpdate={(id, newStatus) => setSelectedOrder((prev: any) => prev?.delivery?.id === id ? { ...prev, delivery: { ...prev.delivery, status: newStatus } } : prev)}
-                />
-              </div>
-            )}
-
-            <div className="rounded-xl bg-zana-primary-light p-3 mb-4">
-              <div className="flex items-center gap-2 text-xs font-bold text-zana-primary"><Clock3 size={14} /> {t(DELIVERY_STATUS[selectedOrder.delivery?.status] ?? ORDER_STATUS[selectedOrder.status])}</div>
-              {selectedOrder.trackingCode && <p className="text-[11px] text-zana-muted mt-1">{t('Tracking code')}: {selectedOrder.trackingCode}</p>}
-            </div>
-
-            <div className="space-y-2 mb-4">
-              {selectedOrder.items?.map((i: any) => (
-                <div key={i.id} className="flex justify-between text-sm">
-                  <span>{i.product?.name} ×{i.quantity}</span>
-                  <span className="font-semibold">{((i.product?.price ?? 0) * i.quantity).toLocaleString()} RWF</span>
-                </div>
-              ))}
-            </div>
-
-            {(() => {
-              const itemsTotal = (selectedOrder.items ?? []).reduce((sum: number, item: any) => sum + (item.product?.price ?? 0) * (item.quantity ?? 0), 0);
-              const grandTotal = Number(selectedOrder.total ?? itemsTotal);
-              const deliveryFee = Math.max(0, grandTotal - itemsTotal);
-              return (
-                <div className="rounded-2xl bg-gray-50 p-4 mb-4">
-                  <p className="text-[10px] font-black uppercase tracking-wide text-gray-400 mb-2">{t('Order summary')}</p>
-                  <div className="flex justify-between text-sm py-1"><span className="text-gray-600">{t('Items')}</span><span className="font-semibold text-gray-900">{itemsTotal.toLocaleString()} RWF</span></div>
-                  <div className="flex justify-between text-sm py-1"><span className="text-gray-600">{t('Delivery')}</span><span className="font-semibold text-gray-900">{deliveryFee.toLocaleString()} RWF</span></div>
-                  <div className="border-t border-gray-200 mt-2 pt-3 flex justify-between"><span className="font-black text-gray-900">{t('Total')}</span><span className="font-black text-lg text-zana-primary">{grandTotal.toLocaleString()} RWF</span></div>
-                </div>
-              );
-            })()}
-
-            <div className="rounded-xl bg-gray-50 p-3 mb-4 space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-wide text-gray-400">{t('Delivery recipient')}</p>
-              <p className="text-sm font-bold text-gray-900">{selectedOrder.receiverName || t('Myself')}</p>
-              {selectedOrder.receiverPhone && <p className="text-xs text-gray-600">{selectedOrder.receiverPhone}</p>}
-              {selectedOrder.dropoffAddress && <p className="text-xs text-gray-600 flex items-start gap-1"><MapPin size={12} className="text-zana-primary mt-0.5 shrink-0" />{selectedOrder.dropoffAddress}</p>}
-              {selectedOrder.note && <p className="text-xs text-gray-500">{t('Note:')} {selectedOrder.note}</p>}
-            </div>
-
-            {['PENDING', 'CONFIRMED'].includes(selectedOrder.status) && (
-              <button
-                type="button"
-                disabled={cancelling === selectedOrder.id}
-                onClick={async () => {
-                  setCancelling(selectedOrder.id);
-                  try {
-                    await cancelOrder(selectedOrder.id);
-                    const fresh = await fetchMyOrders();
-                    setOrders(fresh);
-                    setSelectedOrder(fresh.find((x: any) => x.id === selectedOrder.id) ?? { ...selectedOrder, status: 'CANCELLED' });
-                  } catch (e: any) {
-                    window.alert(e?.message === 'ORDER_CAN_NO_LONGER_BE_CANCELLED' ? 'This order can no longer be cancelled because shopping has started.' : (e?.message || 'Could not cancel this order.'));
-                  } finally { setCancelling(null); }
-                }}
-                className="w-full py-3 rounded-xl border border-red-200 text-red-600 font-bold disabled:opacity-50"
-              >
-                {cancelling === selectedOrder.id ? t('Cancelling…') : t('Cancel order')}
-              </button>
-            )}
+            <h3 className="mt-1 truncate text-[15px] font-extrabold text-gray-900">{entry.title}</h3>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">{entry.subtitle}</p>
           </div>
         </div>
-      )}
-
-      {replacementItem && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50" onClick={() => { setReplacementItem(null); setReplacementOptions([]); }}>
-          <div className="w-full sm:max-w-md max-h-[85vh] overflow-y-auto bg-white rounded-t-3xl sm:rounded-3xl p-5" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <div><p className="text-[10px] font-bold uppercase tracking-wide text-zana-muted">Replace item</p><p className="font-black text-lg">Choose an available item</p></div>
-              <button onClick={() => { setReplacementItem(null); setReplacementOptions([]); }} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><X size={18}/></button>
-            </div>
-            <div className="space-y-2">
-              {replacementOptions.map((p: any) => (
-                <button key={p.id} disabled={resolvingItem === replacementItem.itemId} onClick={() => resolveItem(replacementItem.orderId, replacementItem.itemId, 'REPLACE', p.id)} className="w-full flex items-center gap-3 p-3 rounded-2xl border border-gray-200 text-left disabled:opacity-50">
-                  {p.imageUrl ? <img src={p.imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover"/> : <div className="w-12 h-12 rounded-xl bg-zana-primary-light"/>}
-                  <span className="flex-1"><span className="block text-sm font-bold">{p.name}</span><span className="block text-xs text-zana-muted">{Number(p.price).toLocaleString()} RWF</span></span>
-                  <ChevronRight size={16} className="text-zana-muted"/>
-                </button>
-              ))}
-              {replacementOptions.length === 0 && <p className="text-sm text-zana-muted text-center py-8">No replacement items are currently available.</p>}
-            </div>
+        {active && <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#F0F8F5] px-3 py-2 text-xs font-bold text-[#007D68]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#00A082]"/>{statusText}</div>}
+        {active && renderProgress(entry)}
+        {entry.kind === 'ride' && driver && active && <div className="mt-3 flex items-center gap-3 rounded-xl bg-gray-50 p-3">
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-white text-[#00866F] font-bold">{driver.user?.firstName?.slice(0,1) ?? 'Z'}</span>
+          <div className="min-w-0 flex-1"><p className="text-sm font-bold text-gray-900">{driver.user?.firstName ?? t('Your driver')}</p><p className="text-xs text-gray-500">{driver.vehicle} · {driver.plate}</p><p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500"><Star size={11} className="fill-amber-400 text-amber-400"/>{Number(driver.rating ?? 0).toFixed(1)}</p></div>
+          {driver.user?.phone && <a href={`tel:${driver.user.phone}`} onClick={e=>e.stopPropagation()} aria-label={t('Call driver')} className="grid h-9 w-9 place-items-center rounded-full bg-white text-[#00866F]"><Phone size={16}/></a>}
+          <button onClick={()=>openRide(ride!)} aria-label={t('Message driver')} className="grid h-9 w-9 place-items-center rounded-full bg-white text-[#00866F]"><MessageCircle size={16}/></button>
+        </div>}
+        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+          <div><p className="text-sm font-black text-gray-900">{money(entry.amount)}</p><p className="mt-0.5 text-[10px] text-gray-400">{dateOf(entry.date).toLocaleString([], {dateStyle:'medium',timeStyle:'short'})}</p></div>
+          <div className="flex items-center gap-2">
+            {entry.kind === 'ride' && active && <button onClick={()=>shareRide(entry)} className="grid h-9 w-9 place-items-center rounded-full bg-gray-50 text-gray-600" aria-label={t('Share trip')}><Share2 size={15}/></button>}
+            {entry.kind === 'ride' && !active && ['RIDE_COMPLETED'].includes(entry.status) && <button onClick={()=>rebookRide(ride!)} className="rounded-full bg-[#00A082] px-4 py-2 text-xs font-bold text-white">{t('Rebook')}</button>}
+            <button onClick={()=>entry.kind==='ride'&&active?openRide(ride!):setSelected(entry)} className="flex items-center gap-1 rounded-full bg-gray-50 px-3 py-2 text-xs font-bold text-gray-700">{t(active ? 'Track' : 'Details')}<ChevronRight size={14}/></button>
           </div>
         </div>
-      )}
+      </div>
+    </article>;
+  };
 
-      {review && (
-        <ReviewSheet
-          target={review.target}
-          deliveryId={review.deliveryId}
-          merchantId={review.merchantId}
-          orderId={review.orderId}
-          title={review.title}
-          subtitle={review.subtitle}
-          onDone={() => setReview(null)}
-        />
-      )}
+  if (loading) return <div className="zana-page-enter min-h-[70vh] bg-[#F7FAF9] p-4"><div className="h-8 w-36 animate-pulse rounded-lg bg-[#E3EFEB]"/><div className="mt-5 flex gap-2">{[1,2,3].map(i=><div key={i} className="h-9 w-20 animate-pulse rounded-full bg-[#E3EFEB]"/>)}</div>{[1,2].map(i=><div key={i} className="mt-4 h-52 animate-pulse rounded-3xl bg-white shadow-sm"/>)}</div>;
+
+  return <main className="zana-page-enter min-h-screen bg-[#F7FAF9] px-4 pb-28 pt-5 text-gray-900">
+    <header className="mb-5 flex items-start justify-between gap-3">
+      <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#00A082]">ZANA · KIGALI</p><h1 className="mt-1 text-[28px] font-black tracking-tight">{t('Orders')}</h1><p className="mt-1 text-xs text-gray-500">{t('Every trip and order, all in one place.')}</p></div>
+      <button onClick={()=>load(true)} disabled={refreshing} className="grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white text-gray-600" aria-label={t('Refresh orders')}><RefreshCw size={17} className={refreshing?'animate-spin':''}/></button>
+    </header>
+    {offline && <div className="mb-4 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">{t('You are offline. Showing the last available orders.')}{lastUpdated&&<span className="block mt-1">{t('Last updated')}: {lastUpdated.toLocaleTimeString()}</span>}</div>}
+    <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label={t('Filter orders')}>
+      {(['ALL','RIDES','DELIVERY','FOOD','SHOP','GIFTS'] as Filter[]).map(value=><button key={value} onClick={()=>setFilter(value)} className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold transition ${filter===value?'bg-[#102B25] text-white':'border border-gray-200 bg-white text-gray-600'}`}>{t(value==='ALL'?'All':value==='RIDES'?'Rides':value==='DELIVERY'?'Delivery':value==='FOOD'?'Food':value==='SHOP'?'Shop':'Gifts')}</button>)}
     </div>
-  );
+    <div className="mb-4 grid grid-cols-2 rounded-2xl bg-[#E9F0ED] p-1" role="tablist">
+      {(['ACTIVE','HISTORY'] as View[]).map(value=><button key={value} role="tab" aria-selected={view===value} onClick={()=>setView(value)} className={`rounded-xl py-2.5 text-sm font-bold ${view===value?'bg-white text-[#007D68] shadow-sm':'text-gray-500'}`}>{t(value==='ACTIVE'?'Active':'History')}<span className="ml-1 text-[10px]">{entries.filter(e=>value==='ACTIVE'?isActive(e):!isActive(e)).length}</span></button>)}
+    </div>
+    {view==='HISTORY' && <div className="mb-4 flex gap-2">
+      <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3"><Search size={15} className="shrink-0 text-gray-400"/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={t('Search orders or destinations')} className="min-w-0 flex-1 bg-transparent py-3 text-xs outline-none" aria-label={t('Search order history')}/></label>
+      <select value={dateFilter} onChange={e=>setDateFilter(e.target.value)} aria-label={t('Filter by date')} className="max-w-[124px] rounded-xl border border-gray-200 bg-white px-2 text-xs font-semibold text-gray-600"><option value="ALL">{t('Any time')}</option><option value="7D">{t('Last 7 days')}</option><option value="30D">{t('Last 30 days')}</option><option value="MONTH">{t('This month')}</option></select>
+    </div>}
+    {view==='ACTIVE' && filtered.length===0 && <div className="rounded-3xl border border-dashed border-[#C9DDD6] bg-white px-6 py-12 text-center"><div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#E8F5F1] text-[#00A082]"><Bike size={28}/></div><h2 className="mt-4 text-lg font-black">{t('Nothing active right now')}</h2><p className="mx-auto mt-2 max-w-[260px] text-sm text-gray-500">{t('Your next ride or delivery will appear here as soon as it starts.')}</p><button onClick={()=>router.push('/search')} className="mt-5 rounded-full bg-[#00A082] px-6 py-3 text-sm font-bold text-white">{t('Book a ride')}</button></div>}
+    {view==='HISTORY' && filtered.length===0 && <div className="rounded-3xl bg-white px-6 py-12 text-center"><div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#E8F5F1] text-[#00A082]"><ShoppingBag size={24}/></div><h2 className="mt-4 text-base font-black">{t('No orders found')}</h2><p className="mt-1 text-sm text-gray-500">{t('Try changing your filters or search.')}</p><button onClick={()=>{setFilter('ALL');setQuery('');setDateFilter('ALL')}} className="mt-4 text-sm font-bold text-[#00866F]">{t('Clear filters')}</button></div>}
+    <div className="space-y-5">{groups.map(group=><section key={group.title}><h2 className="mb-3 text-xs font-extrabold uppercase tracking-[.12em] text-gray-400">{t(group.title)}</h2><div className="space-y-3">{group.rows.map(renderEntry)}</div></section>)}</div>
+    <p className="mt-6 text-center text-[10px] text-gray-400">{t('Pull to refresh') === 'Pull to refresh' ? t('Tap refresh to check for updates.') : t('Pull to refresh')}</p>
+
+    {selected && <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 sm:items-center" onClick={()=>setSelected(null)}><section role="dialog" aria-modal="true" aria-label={t('Order details')} className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl" onClick={e=>e.stopPropagation()}>
+      <div className="mb-4 flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-widest text-[#00A082]">{t('Order details')}</p><h2 className="mt-1 text-lg font-black">{selected.title}</h2></div><button onClick={()=>setSelected(null)} className="grid h-9 w-9 place-items-center rounded-full bg-gray-100" aria-label={t('Close details')}><X size={18}/></button></div>
+      {selected.kind==='ride' && <><BrandedMap origin={{lat:selected.raw.pickupLat,lng:selected.raw.pickupLng}} destination={{lat:selected.raw.destinationLat,lng:selected.raw.destinationLng}} height={190}/><div className="my-4 space-y-3"><div className="flex gap-3"><MapPin size={16} className="text-[#00A082]"/><div><p className="text-[10px] text-gray-400">{t('Pickup')}</p><p className="text-sm font-semibold">{selected.raw.pickupAddress}</p></div></div><div className="flex gap-3"><MapPin size={16} className="text-amber-500"/><div><p className="text-[10px] text-gray-400">{t('Drop-off')}</p><p className="text-sm font-semibold">{selected.raw.destinationAddress}</p></div></div></div><div className="rounded-2xl bg-gray-50 p-4"><div className="flex justify-between py-1 text-sm"><span className="text-gray-500">{t('Estimated fare')}</span><span>{money(selected.raw.estimatedFare)}</span></div>{selected.raw.finalFare!=null&&<div className="flex justify-between py-1 text-sm"><span className="text-gray-500">{t('Final fare')}</span><span>{money(selected.raw.finalFare)}</span></div>}<div className="mt-2 flex justify-between border-t pt-3 font-black"><span>{t('Total')}</span><span className="text-[#00866F]">{money(selected.amount)}</span></div></div><p className="mt-3 text-xs text-gray-500">{dateOf(selected.date).toLocaleString()}</p><button onClick={()=>rebookRide(selected.raw)} className="mt-4 w-full rounded-xl bg-[#00A082] py-3 text-sm font-bold text-white">{t('Rebook this ride')}</button></>}
+      {selected.kind==='delivery' && <><div className="space-y-3 rounded-2xl bg-gray-50 p-4"><p className="text-sm font-semibold">{selected.raw.itemDescription}</p><p className="text-xs text-gray-500">{t('Pickup')}: {selected.raw.pickupAddress}</p><p className="text-xs text-gray-500">{t('Drop-off')}: {selected.raw.dropoffAddress}</p><p className="text-xs text-gray-500">{dateOf(selected.date).toLocaleString()}</p></div><div className="mt-4 flex justify-between font-black"><span>{t('Delivery fee')}</span><span>{money(selected.amount)}</span></div>{selected.status==='DELIVERED'&&<button onClick={()=>{setReview({target:'DELIVERY',deliveryId:selected.id,title:t('How was this delivery?'),subtitle:selected.raw.itemDescription});setSelected(null)}} className="mt-4 w-full rounded-xl border border-[#00A082] py-3 text-sm font-bold text-[#00866F]">{t('Rate delivery')}</button>}</>}
+      {selected.kind==='market' && <><div className="space-y-2">{(selected.raw.items??[]).map((item:any)=><div key={item.id} className="flex justify-between gap-3 text-sm"><span>{item.product?.name??t('Item')} ×{item.quantity}</span><span>{money(Number(item.product?.price??0)*Number(item.quantity??0))}</span></div>)}</div><div className="mt-4 rounded-2xl bg-gray-50 p-4"><div className="flex justify-between text-sm"><span className="text-gray-500">{t('Order total')}</span><strong>{money(selected.amount)}</strong></div>{selected.raw.dropoffAddress&&<p className="mt-2 text-xs text-gray-500">{t('Delivery address')}: {selected.raw.dropoffAddress}</p>}<p className="mt-2 text-xs text-gray-500">{dateOf(selected.date).toLocaleString()}</p></div></>}
+      {selected.kind==='market' && ['PENDING','CONFIRMED'].includes(selected.status) && <button disabled={cancelling} onClick={async()=>{setCancelling(true);try{await cancelOrder(selected.id);await load(true);setSelected(null)}catch(e:any){window.alert(e?.message??t('Could not cancel this order.'))}finally{setCancelling(false)}}} className="mt-4 w-full rounded-xl border border-red-200 py-3 text-sm font-bold text-red-600 disabled:opacity-50">{cancelling?t('Cancelling…'):t('Cancel order')}</button>}
+    </section></div>}
+    {review && <ReviewSheet target={review.target} deliveryId={review.deliveryId} merchantId={review.merchantId} orderId={review.orderId} title={review.title} subtitle={review.subtitle} onDone={()=>setReview(null)}/>}
+  </main>;
 }
 
 export default function OrdersPage() {
