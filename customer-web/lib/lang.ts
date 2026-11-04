@@ -769,3 +769,24 @@ Object.assign(UI, {
   "Move the map to choose a location": { en: "Move the map to choose a location", fr: "Déplacez la carte pour choisir un lieu", rw: "Hindura ikarita kugira ngo uhitemo aho ujya" },
   "Confirm destination": { en: "Confirm destination", fr: "Confirmer la destination", rw: "Emeza aho ujya" },
 });
+
+
+// Remaining delivery, market, tracking and communication messages.
+Object.assign(UI, {
+  "Allow location access to calculate delivery from the market to your destination.": { en: "Allow location access to calculate delivery from the market to your destination.", fr: "Autorisez l’accès à votre position pour calculer la livraison depuis le marché jusqu’à votre destination.", rw: "Emera ko tubona aho uri kugira ngo tubare ikiguzi cyo kukugezaho ibiturutse ku isoko." },
+  "Could not calculate delivery.": { en: "Could not calculate delivery.", fr: "Impossible de calculer les frais de livraison.", rw: "Ntibyashobotse kubara amafaranga yo kugeza." },
+  "the market": { en: "the market", fr: "le marché", rw: "isoko" },
+  "Delivery is calculated from the market to your destination.": { en: "Delivery is calculated from the market to your destination.", fr: "La livraison est calculée du marché jusqu’à votre destination.", rw: "Amafaranga yo kugeza abarwa uhereye ku isoko kugeza aho ujya." },
+  "Calculating…": { en: "Calculating…", fr: "Calcul en cours…", rw: "Turimo kubara…" },
+  "Loading store": { en: "Loading store", fr: "Chargement du magasin", rw: "Turimo gufungura iduka" },
+  "Driver appears to be off the recommended route": { en: "Driver appears to be off the recommended route", fr: "Le chauffeur semble avoir quitté l’itinéraire recommandé", rw: "Birasa n’aho umushoferi yavuye ku nzira yasabwe" },
+  "Waiting time": { en: "Waiting time", fr: "Temps d’attente", rw: "Igihe cyo gutegereza" },
+  "Free waiting": { en: "Free waiting", fr: "Attente gratuite", rw: "Igihe cyo gutegereza ku buntu" },
+  "Paid waiting": { en: "Paid waiting", fr: "Attente payante", rw: "Igihe cyo gutegereza cyishyurwa" },
+  "min": { en: "min", fr: "min", rw: "min" },
+  "mins": { en: "mins", fr: "min", rw: "min" },
+  "Could not calculate the ride fare. Please try again.": { en: "Could not calculate the ride fare. Please try again.", fr: "Impossible de calculer le tarif de la course. Veuillez réessayer.", rw: "Ntibyashobotse kubara amafaranga y’urugendo. Ongera ugerageze." },
+  "Messages are translated into your selected language": { en: "Messages are translated into your selected language", fr: "Les messages sont traduits dans la langue que vous avez choisie", rw: "Ubutumwa buhindurwa mu rurimi wahisemo" },
+  "No messages yet. Say hello!": { en: "No messages yet. Say hello!", fr: "Aucun message pour le moment. Dites bonjour !", rw: "Nta butumwa buraza. Tangira uvuga muraho!" },
+  "Could not cancel. Try again.": { en: "Could not cancel. Try again.", fr: "Impossible d’annuler. Veuillez réessayer.", rw: "Ntibyashobotse guhagarika. Ongera ugerageze." },
+});
