@@ -24,13 +24,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="overflow-x-hidden bg-gray-50">
         <LangProvider>
-          <AuthGuard>
-            <div className="app-shell w-full pb-20 relative overflow-x-hidden">
-              <SplashGate><ThemeProvider>{children}</ThemeProvider></SplashGate>
-            </div>
-            <BottomNav />
-<RealtimeNotificationAlert />
-          </AuthGuard>
+          <ThemeProvider>
+            <AuthGuard>
+              <div className="app-shell w-full pb-20 relative overflow-x-hidden">
+                <SplashGate>{children}</SplashGate>
+              </div>
+              <BottomNav />
+              <RealtimeNotificationAlert />
+            </AuthGuard>
+          </ThemeProvider>
         </LangProvider>
       </body>
     </html>
