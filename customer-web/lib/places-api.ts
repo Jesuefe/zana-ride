@@ -6,7 +6,8 @@ export type PlaceSuggestion = {
   placeId: string;
   primaryText: string;
   secondaryText: string;
-  types?: string[];\n  distanceMeters?: number;
+  types?: string[];
+  distanceMeters?: number;
 };
 
 // Biases results toward Kigali so local searches rank first, and restricts
@@ -35,7 +36,8 @@ export async function searchPlaces(query: string, origin?: { lat: number; lng: n
         input: query,
         sessionToken: getSessionToken(),
         componentRestrictions: { country: 'rw' },
-        locationBias: { center: KIGALI_BOUNDS_CENTER, radius: 30000 },\n        ...(origin ? { origin: new google.maps.LatLng(origin.lat, origin.lng) } : {}),
+        locationBias: { center: KIGALI_BOUNDS_CENTER, radius: 30000 },
+        ...(origin ? { origin: new google.maps.LatLng(origin.lat, origin.lng) } : {}),
       },
       (predictions, status) => {
         if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
@@ -47,7 +49,9 @@ export async function searchPlaces(query: string, origin?: { lat: number; lng: n
             placeId: p.place_id,
             primaryText: p.structured_formatting.main_text,
             secondaryText: p.structured_formatting.secondary_text ?? '',
-            types: p.types ?? [],\n            distanceMeters: (p as any).distance_meters,\n            types: p.types ?? [],
+            types: p.types ?? [],
+            distanceMeters: (p as any).distance_meters,
+            types: p.types ?? [],
           })),
         );
       },
