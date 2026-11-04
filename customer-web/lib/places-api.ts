@@ -45,7 +45,7 @@ export async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
           predictions.map((p) => ({
             placeId: p.place_id,
             primaryText: p.structured_formatting.main_text,
-            secondaryText: p.structured_formatting.secondary_text ?? '',
+            secondaryText: p.structured_formatting.secondary_text ?? '',\n            types: p.types ?? [],
           })),
         );
       },
