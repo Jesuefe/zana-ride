@@ -432,7 +432,7 @@ function RideOptionsContent() {
                 {t('Finding your driver...')}
               </>
             ) : (
-              `${t('Confirm')} · ${selected ? fares[selected].toLocaleString() : '—'} RWF`
+              `${t(selected === 'BIKE' ? 'Confirm Moto' : 'Confirm Car')} · ${selected ? fares[selected].toLocaleString() : '—'} RWF`
             )}
           </button>
 
