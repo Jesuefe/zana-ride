@@ -6,7 +6,7 @@ import Image from 'next/image';
 import {
   ArrowRight, ArrowUpRight, Briefcase, CalendarDays, ChevronRight,
   Clock3, Home, MapPin, Navigation, Search, ShieldCheck,
-  Wallet, X
+  Wallet, X, ArrowRight
 } from 'lucide-react';
 import { SERVICES } from '../lib/services';
 import { fetchMe, ApiUser } from '../lib/api/auth';
@@ -14,6 +14,7 @@ import { fetchWallet, recoverActiveRide } from '../lib/api/trips';
 import { haptic } from '../lib/haptics';
 import { api } from '../lib/api/client';
 import { useLang } from '../lib/LangContext';
+import { getStoredPickup } from '../lib/location';
 
 function greeting() {
   const hour = new Date().getHours();
@@ -90,15 +91,19 @@ export default function HomePage() {
     else router.push('/profile/places');
   };
 
-  const goToRide = (service: 'BIKE' | 'CAR') => {
+  const goToRide = () => {
     if (!ridePick) return;
+    const pickup = getStoredPickup();
     const params = new URLSearchParams({
-      destLat: String(ridePick.lat),
-      destLng: String(ridePick.lng),
-      destAddress: ridePick.address,
+      name: ridePick.label,
+      address: ridePick.address,
+      lat: String(ridePick.lat),
+      lng: String(ridePick.lng),
+      pickupLat: String(pickup.lat),
+      pickupLng: String(pickup.lng),
+      pickupAddress: 'Current location',
     });
-    if (service === 'BIKE') params.set('service', 'BIKE');
-    router.push(service === 'BIKE' ? `/search?${params.toString()}` : `/ride-options?${params.toString()}`);
+    router.push(`/ride-options?${params.toString()}`);
   };
 
   return (
@@ -221,7 +226,7 @@ export default function HomePage() {
           </div>
           <div className="zana-v3-service-groups">
             {[
-              { id: 'move', title: 'Move around', description: 'Get there your way.', ids: ['moto', 'car'] },
+              { id: 'move', title: 'Move around', description: 'One simple way to book a journey.', ids: [] },
               { id: 'send', title: 'Send & receive', description: 'Deliveries and thoughtful surprises.', ids: ['package', 'gift'] },
               { id: 'discover', title: 'Food & shopping', description: 'Meals, groceries and everyday finds.', ids: ['food', 'shop', 'market'] },
             ].map(group => (
@@ -235,8 +240,17 @@ export default function HomePage() {
                     <p>{t(group.description)}</p>
                   </div>
                 </div>
-                <div className="zana-v3-service-group-items">
-                  {group.ids.map(id => {
+                <div className={`zana-v3-service-group-items ${group.id === 'move' ? 'zana-v3-move-items' : ''}`}>
+                  {group.id === 'move' ? (
+                    <button onClick={() => router.push('/search')} className="zana-v3-book-ride-option">
+                      <span className="zana-v3-book-ride-art"><Navigation size={25} /></span>
+                      <span className="min-w-0 flex-1 text-left">
+                        <span className="block">{t('Book a ride')}</span>
+                        <span className="block">{t('Moto or car. Choose after setting your destination.')}</span>
+                      </span>
+                      <ArrowRight size={18} className="shrink-0" />
+                    </button>
+                  ) : group.ids.map(id => {
                     const service = SERVICES.find(item => item.id === id);
                     if (!service) return null;
                     return (
@@ -294,25 +308,17 @@ export default function HomePage() {
 
       {ridePick && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-0 sm:items-center sm:p-4" role="presentation" onClick={() => setRidePick(null)}>
-          <div className="zana-v3-ride-modal w-full max-w-md rounded-t-[26px] bg-white p-5 pb-8 sm:rounded-[26px]" role="dialog" aria-modal="true" aria-label={t('Choose a ride type')} onClick={event => event.stopPropagation()}>
+          <div className="zana-v3-ride-modal w-full max-w-md rounded-t-[26px] bg-white p-5 pb-8 sm:rounded-[26px]" role="dialog" aria-modal="true" aria-label={t('Book a ride')} onClick={event => event.stopPropagation()}>
             <div className="mb-5 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-[.12em] text-slate-400">{t('Going to')} {t(ridePick.label)}</span>
+              <span className="text-xs font-bold uppercase tracking-[.12em] text-slate-400">{t('Your destination')}</span>
               <button onClick={() => setRidePick(null)} className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-500" aria-label={t('Close')}><X size={17} /></button>
             </div>
-            <h2 className="mb-5 text-xl font-extrabold tracking-tight text-slate-950">{ridePick.address}</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => goToRide('BIKE')} className="flex flex-col items-center gap-2 rounded-2xl border border-[#f0dfb5] bg-[#fff9eb] px-4 py-5 transition-transform active:scale-[.98]">
-                <Image src="/icons/motorbike.png" alt={t('Moto')} width={48} height={48} className="object-contain" />
-                <span className="text-sm font-extrabold text-slate-900">{t('Moto')}</span>
-                <span className="text-[11px] text-slate-500">{t('Fast & affordable')}</span>
-              </button>
-              <button onClick={() => goToRide('CAR')} className="flex flex-col items-center gap-2 rounded-2xl border border-[#d8eee7] bg-[#f1faf7] px-4 py-5 transition-transform active:scale-[.98]">
-                <Image src="/icons/car.png" alt={t('Car')} width={48} height={48} className="object-contain" />
-                <span className="text-sm font-extrabold text-slate-900">{t('Car')}</span>
-                <span className="text-[11px] text-slate-500">{t('Comfortable')}</span>
-              </button>
-            </div>
-            <button onClick={() => { setRidePick(null); router.push('/profile/places'); }} className="mt-5 w-full py-2 text-center text-xs font-semibold text-slate-500">{t('Edit saved places')}</button>
+            <h2 className="mb-2 text-xl font-extrabold tracking-tight text-slate-950">{ridePick.address}</h2>
+            <p className="mb-5 text-sm text-slate-500">{t('Choose your pickup and destination, then select the ride that suits you.')}</p>
+            <button onClick={goToRide} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00A082] px-5 py-4 text-sm font-extrabold text-white transition-transform active:scale-[.98]">
+              {t('Book a ride')} <ArrowRight size={17} />
+            </button>
+            <button onClick={() => { setRidePick(null); router.push('/profile/places'); }} className="mt-4 w-full py-2 text-center text-xs font-semibold text-slate-500">{t('Edit saved places')}</button>
           </div>
         </div>
       )}
