@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { PointerEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowRight, Briefcase, CalendarClock, ChevronDown, ChevronUp, Clock3,
@@ -115,7 +116,7 @@ export default function HomePage() {
 
   const openDestination = () => router.push('/search');
   const openRide = (mode: 'CAR' | 'BIKE') => {
-    haptic('selection');
+    haptic('tap');
     router.push(mode === 'BIKE' ? '/search?service=BIKE' : '/search');
   };
   const openSavedPlace = (place: any, label: string) => {
@@ -147,7 +148,7 @@ export default function HomePage() {
     });
     router.push(`/ride-options?${params.toString()}`);
   };
-  const snapFromGesture = (event: React.PointerEvent<HTMLDivElement>) => {
+  const snapFromGesture = (event: PointerEvent<HTMLDivElement>) => {
     if (!dragStart.current) return;
     const delta = dragStart.current.y - event.clientY;
     const elapsed = Math.max(1, Date.now() - dragStart.current.time);
