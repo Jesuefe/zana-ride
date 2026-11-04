@@ -14,16 +14,17 @@ export default function ThemePicker() {
 
   return (
     <div>
-      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Appearance</p>
-      <div className="grid grid-cols-3 gap-2">
+      <p id="zana-appearance-label" className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Appearance</p>
+      <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby="zana-appearance-label">
         {OPTIONS.map(o => (
           <button
             key={o.id}
             onClick={() => setChoice(o.id)}
-            className={`flex flex-col items-center gap-1.5 py-3.5 rounded-2xl border-2 transition-all ${
+            aria-pressed={choice === o.id}
+            className={`flex min-h-[104px] flex-col items-center justify-center gap-1.5 rounded-2xl border-2 px-2 py-3.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zana-primary focus-visible:ring-offset-2 ${
               choice === o.id
-                ? 'border-zana-primary bg-zana-primary-light'
-                : 'border-gray-100 bg-white'
+                ? 'border-zana-primary bg-zana-primary-light shadow-sm'
+                : 'border-gray-100 bg-white hover:border-zana-primary/40'
             }`}
           >
             <span className={choice === o.id ? 'text-zana-primary' : 'text-gray-400'}>
