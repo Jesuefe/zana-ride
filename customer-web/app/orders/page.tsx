@@ -167,7 +167,7 @@ function OrdersContent() {
       {active && entry.kind === 'delivery' && hasMap && <div className="p-2 pb-0"><DeliveryTracker deliveryId={entry.id} pickup={{lat:Number(delivery.pickupLat),lng:Number(delivery.pickupLng)}} dropoff={{lat:Number(delivery.dropoffLat),lng:Number(delivery.dropoffLng)}} status={entry.status} onStatusUpdate={(id,status)=>setDeliveries(current=>current.map(d=>d.id===id?{...d,status}:d))}/></div>}
       <div className="p-4">
         <div className="flex items-start gap-3">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#E8F5F1] text-[#00866F]"><Icon size={20}/></span>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--zana-primary-light)] text-[#00866F]"><Icon size={20}/></span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] font-bold uppercase tracking-[.12em] text-gray-400">{t(entry.category === 'DELIVERY' ? 'Delivery' : entry.category === 'FOOD' ? 'Food order' : entry.category === 'GIFTS' ? 'Gift order' : 'Shopping order')}</span>
@@ -177,7 +177,7 @@ function OrdersContent() {
             <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">{entry.subtitle}</p>
           </div>
         </div>
-        {active && <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#F0F8F5] px-3 py-2 text-xs font-bold text-[#007D68]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#00A082]"/>{statusText}</div>}
+        {active && <div className="mt-3 flex items-center gap-2 rounded-xl bg-[var(--zana-primary-light)] px-3 py-2 text-xs font-bold text-[#007D68]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#00A082]"/>{statusText}</div>}
         {active && renderProgress(entry)}
         <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
           <div><p className="text-sm font-black text-gray-900">{money(entry.amount)}</p><p className="mt-0.5 text-[10px] text-gray-400">{dateOf(entry.date).toLocaleString([], {dateStyle:'medium',timeStyle:'short'})}</p></div>
@@ -187,16 +187,16 @@ function OrdersContent() {
     </article>;
   };
 
-  if (loading) return <div className="zana-page-enter min-h-[70vh] bg-[#F7FAF9] p-4"><div className="h-8 w-36 animate-pulse rounded-lg bg-[#E3EFEB]"/><div className="mt-5 flex gap-2">{[1,2,3].map(i=><div key={i} className="h-9 w-20 animate-pulse rounded-full bg-[#E3EFEB]"/>)}</div>{[1,2].map(i=><div key={i} className="mt-4 h-52 animate-pulse rounded-3xl bg-white shadow-sm"/>)}</div>;
+  if (loading) return <div className="zana-page-enter zana-orders-page min-h-[70vh] bg-[var(--background)] p-4"><div className="h-8 w-36 animate-pulse rounded-lg bg-[#E3EFEB]"/><div className="mt-5 flex gap-2">{[1,2,3].map(i=><div key={i} className="h-9 w-20 animate-pulse rounded-full bg-[#E3EFEB]"/>)}</div>{[1,2].map(i=><div key={i} className="mt-4 h-52 animate-pulse rounded-3xl bg-white shadow-sm"/>)}</div>;
 
-  return <main className="zana-page-enter min-h-screen bg-[#F7FAF9] px-4 pb-28 pt-5 text-gray-900">
+  return <main className="zana-page-enter zana-orders-page min-h-screen bg-[var(--background)] px-4 pb-28 pt-5 text-gray-900">
     <header className="mb-5 flex items-start justify-between gap-3">
       <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#00A082]">ZANA · KIGALI</p><h1 className="mt-1 text-[28px] font-black tracking-tight">{t('Orders')}</h1><p className="mt-1 text-xs text-gray-500">{t('Track your deliveries, food and shopping orders.')}</p></div>
       <button onClick={()=>load(true)} disabled={refreshing} className="grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white text-gray-600" aria-label={t('Refresh orders')}><RefreshCw size={17} className={refreshing?'animate-spin':''}/></button>
     </header>
     {offline && <div className="mb-4 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">{t('You are offline. Showing the last available orders.')}{lastUpdated&&<span className="mt-1 block">{t('Last updated')}: {lastUpdated.toLocaleTimeString()}</span>}</div>}
 
-    <div className="mb-4 grid grid-cols-2 rounded-2xl bg-[#E9F0ED] p-1" role="tablist">
+    <div className="mb-4 grid grid-cols-2 rounded-2xl bg-[var(--zana-primary-light)] p-1" role="tablist">
       {(['ACTIVE','HISTORY'] as View[]).map(value=><button key={value} role="tab" aria-selected={view===value} onClick={()=>setView(value)} className={`rounded-xl py-2.5 text-sm font-bold ${view===value?'bg-white text-[#007D68] shadow-sm':'text-gray-500'}`}>{t(value==='ACTIVE'?'Active':'History')}<span className="ml-1 text-[10px]">{entries.filter(e=>value==='ACTIVE'?isActive(e):!isActive(e)).length}</span></button>)}
     </div>
     {view==='HISTORY' && <div className="mb-4 flex gap-2">
