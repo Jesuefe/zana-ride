@@ -20,3 +20,9 @@
 @media(max-width:700px){.zana-search-sheet{width:100%;border-radius:0}.zana-search-header{padding-left:17px;padding-right:17px}.zana-search-fields{padding-left:18px;padding-right:18px}.zana-search-content{padding-left:18px;padding-right:18px}.zana-search-map-dim{background:rgba(8,24,18,.58)}}
 @media(min-width:701px){.zana-search-sheet{right:50%;transform:translateX(50%);border-radius:26px;top:18px;bottom:18px;max-height:calc(100% - 36px)}.zana-search-map-dim{background:rgba(10,27,21,.56)}}
 @media(prefers-reduced-motion:reduce){.zana-search-screen *,.zana-search-screen *:before,.zana-search-screen *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+.zana-search-screen button:focus-visible,.zana-search-screen input:focus-visible{outline:3px solid rgba(0,160,130,.48);outline-offset:3px}
+.zana-search-screen button:focus:not(:focus-visible){outline:none}
+.zana-search-content{scroll-padding-block:18px}
+@media(prefers-contrast:more){.zana-search-result-copy small,.zana-search-saved-card small,.zana-search-popular-row small,.zana-search-distance{color:#596b60}.zana-search-saved-card,.zana-search-result,.zana-search-popular-row{border-color:#9aa99f}.zana-search-map-button{border-color:#008f74}}
+@media(max-width:360px){.zana-search-map-button{padding:8px}.zana-search-map-button span{font-size:9px}.zana-search-header h1{font-size:20px}.zana-search-saved-card{padding:9px;grid-template-columns:30px 1fr}.zana-search-saved-card>span{width:30px;height:30px}}
