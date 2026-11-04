@@ -1591,3 +1591,17 @@ html, body { background-color: var(--background); color: var(--foreground); }
  .zana-v3-service-option{min-height:58px}
 }
 @media(prefers-reduced-motion:reduce){.zana-v3-service-group,.zana-v3-service-option,.zana-v3-service-option-arrow{transition:none!important}}
+
+
+/* Unified ride entry point: one booking action, vehicle choice happens after destination. */
+.zana-v3-move-items{display:block}
+.zana-v3-book-ride-option{width:100%;min-height:88px;display:flex;align-items:center;gap:14px;padding:15px;border:1px solid #cce8dc;border-radius:15px;background:linear-gradient(115deg,#f0faf6 0%,#fff 100%);color:#008b70;text-align:left;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.zana-v3-book-ride-option:hover{transform:translateY(-2px);border-color:#8ed0b8;box-shadow:0 10px 24px rgba(0,139,112,.1)}
+.zana-v3-book-ride-option>span:nth-child(2)>span:first-child{color:#19372c;font-size:15px;font-weight:850;letter-spacing:-.02em}
+.zana-v3-book-ride-option>span:nth-child(2)>span:last-child{margin-top:4px;color:#718078;font-size:11px;line-height:1.4}
+.zana-v3-book-ride-art{width:48px;height:48px;display:grid;place-items:center;flex:none;border-radius:14px;background:#dff3eb;color:#008b70}
+.zana-v3-book-ride-option:focus-visible{outline:3px solid rgba(0,160,130,.3);outline-offset:3px}
+.dark .zana-v3-book-ride-option{border-color:#315c4b;background:linear-gradient(115deg,#19382d 0%,#18251f 100%)}
+.dark .zana-v3-book-ride-option>span:nth-child(2)>span:first-child{color:#edf5f0}
+.dark .zana-v3-book-ride-option>span:nth-child(2)>span:last-child{color:#a8b9af}
+@media(max-width:600px){.zana-v3-book-ride-option{min-height:76px;padding:12px}.zana-v3-book-ride-art{width:42px;height:42px}}
