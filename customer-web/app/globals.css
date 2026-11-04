@@ -1337,3 +1337,142 @@ html, body { background-color: var(--background); color: var(--foreground); }
 @media (prefers-reduced-motion:reduce) {
  .zana-home-v2 *, .zana-home-v2 *::before,.zana-home-v2 *::after { transition:none !important; animation:none !important; scroll-behavior:auto !important; }
 }
+
+
+/* ── ZANA homepage v3: destination-first booking + city-map atmosphere ── */
+.zana-home-v3{min-height:100dvh;background:#f6f9f7;color:#15231d}
+.zana-v3-header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.9);border-bottom:1px solid #e8efeb;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.zana-v3-header-inner{width:min(100% - 40px,1120px);min-height:68px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.zana-v3-logo{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:#00a082;color:#fff;font-size:19px;font-weight:950;letter-spacing:-.08em;box-shadow:0 5px 12px rgba(0,160,130,.16)}
+.zana-v3-wallet{min-height:39px;display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid #e4ece7;border-radius:12px;background:#fff;color:#20372d;font-size:12px;font-weight:750}
+.zana-v3-wallet svg{color:#008b70}
+.zana-v3-avatar{width:38px;height:38px;display:grid;place-items:center;border:2px solid #e0f1e9;border-radius:50%;background:#eaf6f0;color:#007e67;font-size:13px;font-weight:850}
+.zana-v3-layout{width:min(100% - 40px,1120px);margin:0 auto;padding:27px 0 45px}
+.zana-v3-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin:0 0 21px}
+.zana-v3-greeting{margin-bottom:7px;color:#73827a;font-size:13px;font-weight:600}
+.zana-v3-intro h1{color:#14231c;font-size:clamp(2rem,4vw,2.7rem);line-height:1.04;font-weight:850;letter-spacing:-.06em}
+.zana-v3-subtitle{margin-top:9px;color:#77857e;font-size:13px;line-height:1.55}
+.zana-v3-city{display:inline-flex;align-items:center;gap:6px;flex:none;margin-bottom:3px;padding:8px 11px;border:1px solid #e4ece7;border-radius:999px;background:#fff;color:#52665b;font-size:11px;font-weight:750}
+.zana-v3-city svg{color:#00a082}
+.zana-v3-booking{position:relative;z-index:2;width:min(100%,760px);padding:22px;border:1px solid #e4ece8;border-radius:21px;background:#fff;box-shadow:0 12px 36px rgba(19,55,39,.065)}
+.zana-v3-booking-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.zana-v3-eyebrow{display:block;margin-bottom:5px;color:#008b70;font-size:9px;font-weight:850;letter-spacing:.15em;text-transform:uppercase}
+.zana-v3-booking-heading h2,.zana-v3-section-heading h2{color:#17251e;font-size:20px;font-weight:850;letter-spacing:-.04em}
+.zana-v3-booking-mark{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#eaf7f2;color:#008b70}
+.zana-v3-destination{width:100%;min-height:65px;display:flex;align-items:center;gap:13px;padding:10px 12px;border:1px solid #e7eeea;border-radius:13px;background:#fbfdfc;text-align:left;transition:border-color .18s ease,background .18s ease,transform .18s ease}
+.zana-v3-destination:hover{border-color:#b9dfd1;background:#f7fcf9}
+.zana-v3-destination:active{transform:scale(.995)}
+.zana-v3-origin-dot{width:11px;height:11px;flex:none;border:3px solid #00a082;border-radius:50%;box-shadow:0 0 0 4px #e7f6f0}
+.zana-v3-destination-dot{width:11px;height:11px;flex:none;border:3px solid #e1a62f;border-radius:3px;background:#ffc244;box-shadow:0 0 0 4px #fff5df}
+.zana-v3-current-label{padding:5px 8px;border-radius:7px;background:#eaf7f2;color:#00856c;font-size:9px;font-weight:800}
+.zana-v3-route-connector{height:13px;margin-left:17px;border-left:1px dashed #c6d8ce}
+.zana-v3-search-action{width:34px;height:34px;display:grid;place-items:center;flex:none;border-radius:10px;background:#00a082;color:#fff}
+.zana-v3-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:13px}
+.zana-v3-shortcut{min-width:0;min-height:51px;display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid #edf1ee;border-radius:11px;background:#fff;text-align:left;transition:border-color .18s ease,background .18s ease}
+.zana-v3-shortcut:hover{border-color:#c5e5d9;background:#f7fcf9}
+.zana-v3-shortcut-icon{width:30px;height:30px;display:grid;place-items:center;flex:none;border-radius:9px;background:#eff7f3;color:#008b70}
+.zana-v3-map-card{position:relative;isolation:isolate;overflow:hidden;min-height:204px;display:flex;align-items:center;margin-top:24px;border:1px solid #dfeae4;border-radius:19px;background:#eaf2ed}
+.zana-v3-map-art{position:absolute;inset:0;z-index:-1;overflow:hidden;background-color:#e8f0e9;background-image:linear-gradient(28deg,transparent 47%,rgba(255,255,255,.86) 48%,rgba(255,255,255,.86) 51%,transparent 52%),linear-gradient(116deg,transparent 46%,rgba(255,255,255,.9) 47%,rgba(255,255,255,.9) 50%,transparent 51%),linear-gradient(76deg,transparent 48%,rgba(255,255,255,.65) 49%,rgba(255,255,255,.65) 51%,transparent 52%);background-size:220px 170px,260px 190px,180px 150px;background-position:0 0,40px -20px,100px 30px}
+.zana-v3-map-block{position:absolute;border-radius:10px;background:#d7e7dc;opacity:.8;transform:rotate(-18deg)}
+.zana-v3-map-block-a{width:125px;height:65px;left:9%;top:12%}
+.zana-v3-map-block-b{width:100px;height:74px;left:39%;bottom:8%}
+.zana-v3-map-block-c{width:145px;height:60px;right:8%;top:10%}
+.zana-v3-map-road{position:absolute;height:13px;border:3px solid rgba(255,255,255,.9);border-left:0;border-right:0;background:#d2dfd5;transform-origin:center}
+.zana-v3-map-road-a{width:120%;left:-10%;top:47%;transform:rotate(-13deg)}
+.zana-v3-map-road-b{width:90%;left:8%;top:36%;transform:rotate(27deg)}
+.zana-v3-map-road-c{width:85%;left:30%;top:71%;transform:rotate(-34deg)}
+.zana-v3-map-route{position:absolute;width:210px;height:105px;left:35%;top:24%;border:3px solid transparent;border-top-color:#00a082;border-right-color:#00a082;border-radius:0 70px 0 0;transform:rotate(10deg);filter:drop-shadow(0 2px 1px rgba(0,90,70,.12))}
+.zana-v3-map-route span,.zana-v3-map-route i,.zana-v3-map-route b{position:absolute;width:12px;height:12px;border:3px solid #fff;border-radius:50%;background:#00a082;box-shadow:0 1px 5px rgba(0,0,0,.18)}
+.zana-v3-map-route span{left:-5px;top:-7px}.zana-v3-map-route i{right:-7px;top:-7px;background:#ffc244}.zana-v3-map-route b{right:-7px;bottom:5px;background:#00a082}
+.zana-v3-map-marker{position:absolute;left:59%;top:26%;width:40px;height:40px;display:grid;place-items:center;border:4px solid #fff;border-radius:50% 50% 50% 7px;background:#00a082;color:#fff;box-shadow:0 8px 18px rgba(0,90,70,.2);transform:rotate(-45deg)}
+.zana-v3-map-marker svg{transform:rotate(45deg)}
+.zana-v3-map-label{position:absolute;color:#789184;font-size:8px;font-weight:900;letter-spacing:.16em}
+.zana-v3-map-label-a{left:12%;bottom:17%}.zana-v3-map-label-b{right:12%;top:18%}
+.zana-v3-map-copy{position:relative;z-index:2;width:47%;margin-left:auto;padding:25px 28px 25px 12px}
+.zana-v3-map-live{display:inline-flex;align-items:center;gap:7px;color:#477164;font-size:9px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}
+.zana-v3-map-live span{width:6px;height:6px;border-radius:50%;background:#00a082;box-shadow:0 0 0 4px rgba(0,160,130,.12)}
+.zana-v3-map-copy h2{margin-top:9px;color:#19392d;font-size:clamp(1.25rem,2.5vw,1.75rem);font-weight:850;line-height:1.06;letter-spacing:-.05em}
+.zana-v3-map-copy p{max-width:240px;margin-top:7px;color:#62786c;font-size:11px;line-height:1.5}
+.zana-v3-map-copy button{display:inline-flex;align-items:center;gap:7px;margin-top:13px;padding:9px 12px;border-radius:9px;background:#fff;color:#007d65;font-size:10px;font-weight:850;box-shadow:0 3px 9px rgba(23,60,40,.07)}
+.zana-v3-services{margin-top:32px}
+.zana-v3-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
+.zana-v3-section-heading h2{font-size:23px}
+.zana-v3-services-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.zana-v3-service{min-width:0;min-height:100px;display:flex;align-items:center;gap:11px;padding:13px;border:1px solid #e7eeea;border-radius:15px;background:#fff;text-align:left;box-shadow:0 3px 10px rgba(20,50,37,.02);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.zana-v3-service:hover{transform:translateY(-2px);border-color:#c5e5d9;box-shadow:0 9px 22px rgba(20,50,37,.06)}
+.zana-v3-service-art{width:48px;height:48px;display:grid;place-items:center;flex:none;border-radius:13px}
+.zana-v3-delivery{position:relative;isolation:isolate;overflow:hidden;min-height:168px;display:flex;align-items:center;margin-top:22px;padding:24px 27px;border-radius:18px;background:linear-gradient(110deg,#064b3d,#008a70);color:#fff}
+.zana-v3-delivery::after{content:"";position:absolute;z-index:-1;width:250px;height:250px;right:10%;top:-130px;border:1px solid rgba(255,255,255,.15);border-radius:50%;box-shadow:0 0 0 30px rgba(255,255,255,.035),0 0 0 62px rgba(255,255,255,.025)}
+.zana-v3-delivery-copy{position:relative;z-index:2;max-width:58%}
+.zana-v3-delivery-copy>span{color:#ffdf96;font-size:9px;font-weight:850;letter-spacing:.14em;text-transform:uppercase}
+.zana-v3-delivery-copy h2{margin-top:8px;color:#fff;font-size:clamp(1.3rem,3vw,1.8rem);font-weight:850;line-height:1.08;letter-spacing:-.045em}
+.zana-v3-delivery-copy p{margin-top:7px;color:rgba(255,255,255,.72);font-size:11px}
+.zana-v3-delivery-copy button{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:9px 12px;border-radius:9px;background:#ffc244;color:#174638;font-size:10px;font-weight:850}
+.zana-v3-delivery-art{position:absolute;z-index:1;width:130px;height:130px;right:12%;bottom:10px;filter:drop-shadow(0 10px 15px rgba(0,0,0,.16))}
+.zana-v3-extras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:17px}
+.zana-v3-extra{min-width:0;min-height:75px;display:flex;align-items:center;gap:11px;padding:12px;border:1px solid #e7eeea;border-radius:14px;background:#fff;text-align:left;transition:border-color .18s ease,transform .18s ease}
+.zana-v3-extra:hover{border-color:#c5e5d9;transform:translateY(-1px)}
+.zana-v3-extra-icon{width:39px;height:39px;display:grid;place-items:center;flex:none;border-radius:12px;background:#eaf7f2;color:#008b70}
+.zana-v3-extra-icon-yellow{background:#fff5dc;color:#8b6413}
+.zana-v3-footer{display:flex;align-items:center;justify-content:space-between;margin-top:30px;padding-top:15px;border-top:1px solid #e7eeea;color:#9aa79f;font-size:9px;font-weight:800;letter-spacing:.14em}
+.zana-v3-footer strong{color:#84958c;font-size:15px;letter-spacing:-.06em}
+.zana-v3-ride-modal{box-shadow:0 -20px 70px rgba(10,35,25,.2)}
+.dark .zana-home-v3{background:#101815;color:#edf5f0}
+.dark .zana-v3-header{background:rgba(18,29,24,.92);border-color:#293a32}
+.dark .zana-v3-header .text-slate-950,.dark .zana-v3-intro h1,.dark .zana-v3-booking-heading h2,.dark .zana-v3-section-heading h2,.dark .zana-v3-service .text-slate-900,.dark .zana-v3-extra .text-slate-900{color:#edf5f0!important}
+.dark .zana-v3-wallet,.dark .zana-v3-booking,.dark .zana-v3-destination,.dark .zana-v3-shortcut,.dark .zana-v3-service,.dark .zana-v3-extra{background:#18251f;border-color:#2b3b33}
+.dark .zana-v3-destination .text-slate-800,.dark .zana-v3-shortcut .text-slate-800{color:#edf5f0!important}
+.dark .zana-v3-greeting,.dark .zana-v3-subtitle,.dark .zana-v3-service .text-slate-500,.dark .zana-v3-extra .text-slate-500{color:#9aaba1!important}
+.dark .zana-v3-map-card{border-color:#2b3b33;background:#1b2b23}
+.dark .zana-v3-map-art{filter:brightness(.62) saturate(.8)}
+.dark .zana-v3-map-copy h2{color:#17382c}
+.dark .zana-v3-extras .zana-v3-extra-icon{background:#163a2d}
+.dark .zana-v3-footer{border-color:#293a32}
+@media(max-width:900px){.zana-v3-services-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.zana-v3-booking{width:100%}}
+@media(max-width:600px){
+ .zana-v3-header-inner,.zana-v3-layout{width:calc(100% - 28px)}
+ .zana-v3-header-inner{min-height:62px}
+ .zana-v3-layout{padding-top:19px}
+ .zana-v3-intro{display:block;margin-bottom:16px}
+ .zana-v3-intro h1{font-size:2.15rem}
+ .zana-v3-city{margin-top:12px}
+ .zana-v3-booking{padding:16px;border-radius:18px}
+ .zana-v3-booking-heading h2{font-size:18px}
+ .zana-v3-shortcuts{gap:6px}
+ .zana-v3-shortcut{gap:6px;padding:7px 6px}
+ .zana-v3-shortcut-icon{width:27px;height:27px}
+ .zana-v3-shortcut .text-xs{font-size:10px}
+ .zana-v3-map-card{min-height:210px;align-items:flex-end}
+ .zana-v3-map-art{inset:0 0 35%}
+ .zana-v3-map-route{left:24%;top:20%;transform:scale(.8) rotate(10deg)}
+ .zana-v3-map-marker{left:55%;top:18%}
+ .zana-v3-map-copy{width:100%;margin:0;padding:16px 17px;background:linear-gradient(0deg,rgba(255,255,255,.98),rgba(255,255,255,.94))}
+ .zana-v3-map-copy h2{font-size:1.35rem}
+ .zana-v3-map-copy p{max-width:100%;font-size:10px}
+ .zana-v3-map-copy button{margin-top:9px}
+ .zana-v3-map-label-a{bottom:45%}
+ .zana-v3-map-label-b{top:10%}
+ .zana-v3-services{margin-top:27px}
+ .zana-v3-section-heading h2{font-size:21px}
+ .zana-v3-services-grid{gap:8px}
+ .zana-v3-service{min-height:87px;gap:8px;padding:9px;border-radius:13px}
+ .zana-v3-service-art{width:41px;height:41px;border-radius:11px}
+ .zana-v3-service-art img{width:34px;height:34px}
+ .zana-v3-service .text-\\[14px\\]{font-size:12px}
+ .zana-v3-service>svg{display:none}
+ .zana-v3-delivery{min-height:158px;margin-top:18px;padding:19px 17px;border-radius:16px}
+ .zana-v3-delivery-copy{max-width:67%}
+ .zana-v3-delivery-copy h2{font-size:1.3rem}
+ .zana-v3-delivery-art{width:100px;height:100px;right:2%;bottom:9px}
+ .zana-v3-extras{grid-template-columns:1fr;gap:8px}
+ .zana-v3-extra{min-height:68px}
+}
+@media(max-width:360px){
+ .zana-v3-header-inner,.zana-v3-layout{width:calc(100% - 22px)}
+ .zana-v3-wallet{padding:0 8px;font-size:10px}
+ .zana-v3-intro h1{font-size:1.9rem}
+ .zana-v3-shortcut{flex-wrap:wrap}
+ .zana-v3-shortcut-icon{width:24px;height:24px}
+ .zana-v3-service{padding:7px}
+}
+@media(prefers-reduced-motion:reduce){.zana-home-v3 *,.zana-home-v3 *:before,.zana-home-v3 *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
