@@ -15,8 +15,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -26,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LangProvider>
           <ThemeProvider>
             <AuthGuard>
-              <div className="app-shell w-full pb-[calc(7.5rem+env(safe-area-inset-bottom))] relative overflow-x-hidden">
+              <div className="app-shell relative w-full overflow-x-clip">
                 <SplashGate>{children}</SplashGate>
               </div>
               <BottomNav />
