@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   ArrowRight, ArrowUpRight, Briefcase, CalendarDays, ChevronRight,
-  Clock3, Home, MapPin, Navigation, Package, Search, ShieldCheck,
+  Clock3, Home, MapPin, Navigation, Search, ShieldCheck,
   Wallet, X
 } from 'lucide-react';
 import { SERVICES } from '../lib/services';
@@ -203,9 +203,9 @@ export default function HomePage() {
             <span className="zana-v3-map-label zana-v3-map-label-b">CITY CENTRE</span>
           </div>
           <div className="zana-v3-map-copy">
-            <span className="zana-v3-map-live"><span /> {t('Around your city')}</span>
-            <h2>{t('Kigali is within reach.')}</h2>
-            <p>{t('Choose a destination and we’ll help you get there.')}</p>
+            <span className="zana-v3-map-live"><span /> {t('Kigali, Rwanda')}</span>
+            <h2>{t('Your city. Your journey.')}</h2>
+            <p>{t('A better way to move, send and explore.')}</p>
             <button onClick={() => router.push('/search')}>{t('Explore the map')} <ArrowUpRight size={15} /></button>
           </div>
         </section>
@@ -216,7 +216,7 @@ export default function HomePage() {
               <span className="zana-v3-eyebrow">{t('One app. More possibilities.')}</span>
               <h2>{t('Explore Zana')}</h2>
             </div>
-            <span className="text-xs font-medium text-slate-400">{t('4 services')}</span>
+            <span className="text-xs font-medium text-slate-400">{t('7 services')}</span>
           </div>
           <div className="zana-v3-services-grid">
             {SERVICES.map((service, index) => (
