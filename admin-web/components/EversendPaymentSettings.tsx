@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api/client';
-import { CheckCircle2, CreditCard, Eye, EyeOff, RefreshCw, Save, ShieldCheck, Wifi, Copy, Smartphone } from 'lucide-react';
+import { CheckCircle2, CreditCard, Eye, EyeOff, RefreshCw, Save, ShieldCheck, Wifi, Copy } from 'lucide-react';
 
 type EversendSettings = {
   provider: 'EVERSEND';
