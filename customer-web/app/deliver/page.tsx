@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   ArrowLeft,
+  ArrowRight,
+  UserRound,
   Camera,
   MapPin,
   Navigation,
@@ -55,6 +57,7 @@ export default function DeliverPage() {
   const { t } = useLang();
   const router = useRouter();
 
+  const [step, setStep] = useState(1);
   const [selectedPackageType, setSelectedPackageType] = useState('');
   const [itemDetails, setItemDetails] = useState('');
   const [weight, setWeight] = useState<PackageWeight>('UNDER_1KG');
@@ -92,6 +95,7 @@ export default function DeliverPage() {
   const [receiverPhone, setReceiverPhone] = useState('');
 
   const [quote, setQuote] = useState<{ fee: number; distanceKm: number } | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [awaitingMomo, setAwaitingMomo] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY' | 'CASH'>('WALLET');
@@ -130,8 +134,10 @@ export default function DeliverPage() {
   useEffect(() => {
     if (!dropoff) {
       setQuote(null);
+      setQuoteLoading(false);
       return;
     }
+    setQuoteLoading(true);
     quoteDelivery({
       pickupLat: pickup.lat,
       pickupLng: pickup.lng,
@@ -140,7 +146,8 @@ export default function DeliverPage() {
       weight,
     })
       .then((q) => setQuote({ fee: q.fee, distanceKm: q.distanceKm }))
-      .catch(() => setQuote(null));
+      .catch(() => setQuote(null))
+      .finally(() => setQuoteLoading(false));
   }, [dropoff, weight, pickup.lat, pickup.lng]);
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,8 +218,8 @@ export default function DeliverPage() {
     try {
       const delivery = await createDelivery({
         itemDescription: itemDetails.trim()
-          ? `${selectedPackageType}: ${itemDetails.trim()}`
-          : selectedPackageType.trim(),
+          ? `${t(selectedPackageType)}: ${itemDetails.trim()}`
+          : t(selectedPackageType).trim(),
         weight,
         imageBase64: imageBase64 ?? undefined,
         pickupAddress,
@@ -265,326 +272,314 @@ export default function DeliverPage() {
     }
   };
 
-  return (
-    <div className="animate-fade-in zana-page-enter zana-delivery-page pb-6">
-      <BrandedMap
-        origin={pickup}
-        destination={dropoff ? { lat: dropoff.lat, lng: dropoff.lng } : undefined}
-        draggablePickup
-        onPickupChange={(c) => {
-          setPickup(c);
-          setStoredPickup(c);
-        }}
-        height={180}
-      />
+  const canContinue = step === 1
+    ? selectedPackageType.trim().length > 1
+    : step === 2
+      ? dropoff !== null
+      : step === 3
+        ? receiverPhone.replace(/\D/g, '').length >= 9
+        : canSubmit;
 
+  const stepTitles = [t('Your item'), t('Route'), t('Recipient'), t('Payment')];
+  const stepDescriptions = [
+    t('Tell us what needs to get there.'),
+    t('Choose where the package starts and where it is going.'),
+    t('Who should receive the package?'),
+    t('Review the delivery and choose how to pay.'),
+  ];
+
+  const continueStep = () => {
+    if (!canContinue) return;
+    if (step < 4) setStep((current) => Math.min(4, current + 1));
+    else handleSubmit();
+  };
+
+  return (
+    <div className="animate-fade-in zana-page-enter zana-delivery-page pb-8">
       {cameraOpen && <InAppCamera onCapture={handleCapturedPhoto} onClose={() => setCameraOpen(false)} />}
 
-      <div className="p-4 space-y-5">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
-            <ArrowLeft size={16} />
+      <div className="px-4 pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <button onClick={() => step > 1 ? setStep((current) => current - 1) : router.back()} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-zana-border bg-[var(--zana-surface)] text-gray-700" aria-label={t('Go back')}>
+            <ArrowLeft size={17} />
           </button>
-          <h1 className="text-lg font-bold text-gray-900">{t('Send a package')}</h1>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-[.16em] text-zana-primary">ZANA DELIVERY</p>
+            <h1 className="mt-0.5 text-xl font-black tracking-tight text-gray-900">{t('Send a package')}</h1>
+          </div>
+          <span className="shrink-0 rounded-full bg-zana-primary-light px-3 py-1.5 text-[11px] font-bold text-zana-primary">{t('Step')} {step} / 4</span>
         </div>
 
-        <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('What are you sending?')}</label>
-          <div className="grid grid-cols-4 gap-2">
-            {PACKAGE_TYPES.map(([label, Icon]) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setSelectedPackageType(label)}
-                className={`flex flex-col items-center justify-center gap-1.5 min-h-20 rounded-xl border-1.5 px-1.5 py-2 transition-all active:scale-95 ${
-                  selectedPackageType === label
-                    ? 'border-zana-primary bg-zana-primary-light text-zana-primary'
-                    : 'border-zana-border bg-white text-gray-700'
-                }`}
-                style={{ borderWidth: 1.5 }}
-              >
-                <Icon size={21} strokeWidth={1.8} aria-hidden="true" />
-                <span className="text-[10px] font-bold text-center leading-tight">{label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-3">
-            <label className="text-[11px] font-semibold text-gray-600 block mb-1.5">
-              {t('Additional details')} <span className="font-normal text-gray-400">({t('optional')})</span>
-            </label>
-            <textarea
-              value={itemDetails}
-              onChange={(e) => setItemDetails(e.target.value)}
-              placeholder={t('e.g. 2 plates of food and 1 bottle of juice')}
-              rows={2}
-              className="w-full border border-zana-border rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('Approximate weight')}</label>
-          <div className="grid grid-cols-3 gap-2">
-            {WEIGHT_OPTIONS.map((w) => (
-              <button
-                key={w.value}
-                onClick={() => setWeight(w.value)}
-                className={`py-2 rounded-lg text-[11px] font-semibold border-1.5 ${
-                  weight === w.value
-                    ? 'border-zana-primary bg-zana-primary-light text-zana-primary'
-                    : 'border-zana-border text-gray-600'
-                }`}
-                style={{ borderWidth: 1.5 }}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('Photo of the item')}</label>
-          {imageBase64 ? (
-            <div className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-100">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageBase64} alt="Package" className="w-full h-full object-cover" />
-              <button
-                onClick={() => setImageBase64(null)}
-                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center"
-              >
-                <X size={14} className="text-white" />
-              </button>
+        <div className="mt-5 grid grid-cols-4 gap-1.5" aria-label={t('Delivery steps')}>
+          {[1, 2, 3, 4].map((number) => (
+            <div key={number} className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+              <div className={"h-full rounded-full transition-all duration-300 " + (number <= step ? "w-full bg-zana-primary" : "w-0")} />
             </div>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={handleCapture}
-                disabled={capturing}
-                className="w-full flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-zana-border rounded-xl py-7 disabled:opacity-60"
-              >
-                <Camera size={22} className="text-zana-muted" />
-                <span className="text-xs text-zana-muted">
-                  {capturing ? t('Opening camera…') : t('Take a photo')}
-                </span>
-              </button>
-              <label className="block text-center text-[11px] text-zana-primary font-semibold mt-2 cursor-pointer">
-                {t('or choose from your gallery')}
-                <input type="file" accept="image/*" onChange={handleImage} className="hidden" />
-              </label>
-            </>
-          )}
+          ))}
         </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('Pickup location')}</label>
-          <div className="flex items-start gap-2 bg-gray-50 rounded-lg px-3 py-2.5">
-            <MapPin size={15} className="text-zana-primary mt-0.5 shrink-0" />
-            <p className="text-sm text-gray-900">{pickupAddress}</p>
-          </div>
-          <p className="text-[11px] text-zana-muted mt-1">{t('Drag the green pin on the map to adjust.')}</p>
+        <div className="mt-5">
+          <p className="text-[10px] font-bold uppercase tracking-[.14em] text-zana-primary">{t('Step')} {step}</p>
+          <h2 className="mt-1 text-[25px] font-black leading-tight tracking-tight text-gray-900">{stepTitles[step - 1]}</h2>
+          <p className="mt-1 text-sm leading-5 text-gray-500">{stepDescriptions[step - 1]}</p>
         </div>
+      </div>
 
-        <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('Delivery location')}</label>
-
-          {dropoff ? (
-            <div className="flex items-start gap-2 bg-zana-primary-light rounded-lg px-3 py-2.5">
-              <Navigation size={15} className="text-zana-secondary-dark mt-0.5 shrink-0" />
-              <p className="text-sm text-gray-900 flex-1">{dropoff.address}</p>
-              <button onClick={() => setDropoff(null)} className="shrink-0">
-                <X size={14} className="text-zana-muted" />
-              </button>
+      <div className="px-4 pt-5">
+        {step === 1 && (
+          <section className="zana-delivery-step animate-fade-slide-up space-y-5">
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-extrabold text-gray-900">{t('What are you sending?')}</h3>
+                <span className="text-[10px] font-medium text-gray-400">{t('Choose one')}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {PACKAGE_TYPES.map(([label, Icon]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setSelectedPackageType(label)}
+                    aria-pressed={selectedPackageType === label}
+                    className={"flex min-h-[94px] flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center transition-all active:scale-[.97] " + (selectedPackageType === label
+                      ? "border-zana-primary bg-zana-primary-light text-zana-primary shadow-[0_6px_18px_rgba(0,160,130,.10)]"
+                      : "border-zana-border bg-[var(--zana-surface)] text-gray-600 hover:border-zana-primary/40")}
+                  >
+                    <span className={"grid h-10 w-10 place-items-center rounded-xl " + (selectedPackageType === label ? "bg-white/70" : "bg-gray-50")}>
+                      <Icon size={21} strokeWidth={1.8} aria-hidden="true" />
+                    </span>
+                    <span className="text-[11px] font-bold leading-tight">{t(label)}</span>
+                    {selectedPackageType === label && <Check size={13} strokeWidth={3} />}
+                  </button>
+                ))}
+              </div>
             </div>
-          ) : (
-            <>
-              <input
-                value={destQuery}
-                onChange={(e) => setDestQuery(e.target.value)}
-                placeholder={t('Search for the delivery address')}
-                className="w-full border border-zana-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
-              />
-              {suggestions.length > 0 && (
-                <div className="mt-1 space-y-0.5">
-                  {suggestions.map((s) => (
-                    <button
-                      key={s.placeId}
-                      onClick={() => handlePickSuggestion(s)}
-                      className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-gray-50 text-left"
-                    >
-                      <MapPin size={13} className="text-zana-primary shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs text-gray-900 truncate">{s.primaryText}</p>
-                        <p className="text-[11px] text-zana-muted truncate">{s.secondaryText}</p>
-                      </div>
-                    </button>
-                  ))}
+
+            <div className="rounded-2xl border border-zana-border bg-[var(--zana-surface)] p-4">
+              <label className="mb-2 block text-sm font-bold text-gray-900">{t('Approximate weight')}</label>
+              <div className="grid grid-cols-3 gap-2">
+                {WEIGHT_OPTIONS.map((w) => (
+                  <button key={w.value} type="button" onClick={() => setWeight(w.value)} aria-pressed={weight === w.value}
+                    className={"rounded-xl border px-2 py-3 text-[11px] font-bold transition-colors " + (weight === w.value
+                      ? "border-zana-primary bg-zana-primary-light text-zana-primary"
+                      : "border-zana-border bg-[var(--zana-surface)] text-gray-600")}>
+                    {t(w.label)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-dashed border-zana-border bg-[var(--zana-surface)] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">{t('Add a package photo')}</h3>
+                  <p className="mt-1 text-xs text-gray-500">{t('Optional, but it helps the courier identify your item.')}</p>
+                </div>
+                <Camera size={22} className="text-zana-primary" />
+              </div>
+              {imageBase64 ? (
+                <div className="relative mt-3 h-36 overflow-hidden rounded-xl bg-gray-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imageBase64} alt={t('Package photo')} className="h-full w-full object-cover" />
+                  <button onClick={() => setImageBase64(null)} className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/65 text-white" aria-label={t('Remove photo')}>
+                    <X size={15} />
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={handleCapture} disabled={capturing} className="flex items-center justify-center gap-2 rounded-xl bg-zana-primary px-3 py-3 text-xs font-bold text-white disabled:opacity-60">
+                    {capturing ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
+                    {capturing ? t('Opening camera…') : t('Take a photo')}
+                  </button>
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-zana-border px-3 py-3 text-xs font-bold text-gray-700">
+                    <Plus size={15} /> {t('Choose from gallery')}
+                    <input type="file" accept="image/*" onChange={handleImage} className="hidden" />
+                  </label>
                 </div>
               )}
-
-              <div className="mt-3 bg-gray-50 rounded-xl p-3">
-                <p className="text-[11px] text-zana-muted mb-2">
-                  {t("Receiver can't explain their address? Ask them to send you their Zana location code.")}
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    value={codeInput}
-                    onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-                    placeholder="ZANA-8XK29"
-                    className="flex-1 border border-zana-border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
-                  />
-                  <button
-                    onClick={handleResolveCode}
-                    disabled={!codeInput.trim() || resolvingCode}
-                    className="bg-zana-primary text-white text-xs font-semibold px-4 rounded-lg disabled:opacity-40"
-                  >
-                    {resolvingCode ? <Loader2 size={14} className="animate-spin" /> : t('Use code')}
-                  </button>
-                </div>
-                {codeError && <p className="text-[11px] text-zana-error mt-1.5">{codeError}</p>}
-              </div>
-            </>
-          )}
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-900 block mb-1.5">{t('Receiver')}</label>
-          <input
-            value={receiverName}
-            onChange={(e) => setReceiverName(e.target.value)}
-            placeholder={t("Receiver's name (optional)")}
-            className="w-full border border-zana-border rounded-lg px-3 py-2.5 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
-          />
-          <div className="flex gap-2">
-            <div className="border border-zana-border rounded-lg px-3 flex items-center text-sm">+250</div>
-            <input
-              value={receiverPhone}
-              onChange={(e) => setReceiverPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
-              placeholder="788 123 456"
-              inputMode="numeric"
-              className="flex-1 border border-zana-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
-            />
-          </div>
-        </div>
-
-        {quote && (
-          <div className="flex items-center justify-between bg-zana-primary-dark rounded-xl px-4 py-3 text-white">
-            <div>
-              <p className="text-[11px] text-white/70">{t('Delivery fee')}</p>
-              <p className="text-lg font-bold">{quote.fee.toLocaleString()} RWF</p>
             </div>
-            <p className="text-xs text-white/70">{quote.distanceKm} km</p>
-          </div>
+
+            <div className="rounded-2xl border border-zana-border bg-[var(--zana-surface)] p-4">
+              <label className="mb-2 block text-sm font-bold text-gray-900">{t('Anything we should know?')} <span className="font-normal text-gray-400">({t('optional')})</span></label>
+              <textarea value={itemDetails} onChange={(e) => setItemDetails(e.target.value)} placeholder={t('e.g. 2 plates of food and 1 bottle of juice')} rows={2}
+                className="w-full resize-none rounded-xl border border-zana-border bg-transparent px-3 py-3 text-sm text-gray-900 outline-none transition focus:border-zana-primary focus:ring-2 focus:ring-zana-primary/20" />
+            </div>
+          </section>
         )}
 
-        {error && <p className="text-xs text-zana-error">{error}</p>}
-
-        {quote && (
-          <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{t('How will you pay?')}</p>
-            <div className="grid grid-cols-3 gap-2">
-              {([
-                ['WALLET', 'Wallet', CreditCard],
-                ['MOBILE_MONEY', 'MoMo', Smartphone],
-                ['CASH', 'Cash', Banknote],
-              ] as const).map(([id, label, Icon]) => {
-                const short =
-                  id === 'WALLET' && walletBalance !== null && walletBalance < quote.fee;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setPaymentMethod(id)}
-                    className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition-all ${
-                      paymentMethod === id
-                        ? short
-                          ? 'border-red-400 bg-red-50'
-                          : 'border-zana-primary bg-zana-primary-light'
-                        : 'border-gray-100 bg-white'
-                    }`}
-                  >
-                    <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
-                    <span className={`text-[11px] font-bold ${
-                      paymentMethod === id
-                        ? short ? 'text-red-600' : 'text-zana-primary'
-                        : 'text-gray-600'
-                    }`}>
-                      {label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {paymentMethod === 'WALLET' && walletBalance !== null && (
-              <p className={`text-[11px] mt-2 font-semibold ${
-                walletBalance < quote.fee ? 'text-red-500' : 'text-gray-500'
-              }`}>
-                Wallet balance: {walletBalance.toLocaleString()} RWF
-                {walletBalance < quote.fee
-                  ? ` · ${(quote.fee - walletBalance).toLocaleString()} RWF short`
-                  : ''}
-              </p>
-            )}
-
-            {paymentMethod === 'CASH' && (
-              <p className="text-[11px] text-gray-500 mt-2">
-                Pay the rider when they collect the package.
-              </p>
-            )}
-
-            {paymentMethod === 'MOBILE_MONEY' && (
-              <div className="mt-2">
-                <p className="text-[11px] text-gray-500 mb-1.5">
-                  We'll send a payment prompt to this number:
-                </p>
-                <div className="flex gap-2">
-                  <div className="border border-zana-border rounded-lg px-3 flex items-center text-sm">+250</div>
-                  <input
-                    value={momoPhone}
-                    onChange={(e) => setMomoPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
-                    placeholder="788 123 456"
-                    inputMode="numeric"
-                    className="flex-1 border border-zana-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
-                  />
+        {step === 2 && (
+          <section className="zana-delivery-step animate-fade-slide-up space-y-4">
+            <div className="overflow-hidden rounded-2xl border border-zana-border bg-[var(--zana-surface)]">
+              <BrandedMap origin={pickup} destination={dropoff ? { lat: dropoff.lat, lng: dropoff.lng } : undefined} draggablePickup
+                onPickupChange={(c) => { setPickup(c); setStoredPickup(c); }} height={220} />
+              <div className="space-y-3 p-4">
+                <div className="flex gap-3">
+                  <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-zana-primary-light text-zana-primary"><MapPin size={16} /></span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{t('Pickup location')}</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{pickupAddress}</p>
+                    <p className="mt-1 text-[11px] text-gray-500">{t('Drag the green pin on the map to adjust.')}</p>
+                  </div>
+                </div>
+                <div className="h-px bg-zana-border" />
+                <div className="flex gap-3">
+                  <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-amber-50 text-amber-600"><Navigation size={16} /></span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{t('Delivery location')}</p>
+                    {dropoff ? (
+                      <div className="mt-1 flex items-start gap-2">
+                        <p className="min-w-0 flex-1 text-sm font-semibold text-gray-900">{dropoff.address}</p>
+                        <button onClick={() => setDropoff(null)} className="text-xs font-bold text-zana-primary">{t('Change')}</button>
+                      </div>
+                    ) : (
+                      <>
+                        <input value={destQuery} onChange={(e) => setDestQuery(e.target.value)} placeholder={t('Search for the delivery address')}
+                          className="mt-2 w-full rounded-xl border border-zana-border bg-[var(--zana-surface)] px-3 py-3 text-sm text-gray-900 outline-none focus:border-zana-primary focus:ring-2 focus:ring-zana-primary/20" />
+                        {suggestions.length > 0 && (
+                          <div className="mt-2 overflow-hidden rounded-xl border border-zana-border bg-[var(--zana-surface)]">
+                            {suggestions.map((s) => (
+                              <button key={s.placeId} onClick={() => handlePickSuggestion(s)} className="flex w-full items-center gap-3 border-b border-zana-border px-3 py-3 text-left last:border-0 hover:bg-gray-50">
+                                <MapPin size={16} className="shrink-0 text-zana-primary" />
+                                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-gray-900">{s.primaryText}</span><span className="mt-0.5 block truncate text-xs text-gray-500">{s.secondaryText}</span></span>
+                                <ChevronRight size={15} className="text-gray-400" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            )}
-
-            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-3">
-              <ShieldCheck size={17} className="text-amber-500 shrink-0 mt-0.5" strokeWidth={1.8} aria-hidden="true" />
-              <p className="text-[10px] text-amber-800 leading-relaxed">
-                The rider inspects every package before pickup to meet Zana security compliance.
-              </p>
             </div>
-          </div>
+
+            {!dropoff && (
+              <div className="rounded-2xl border border-zana-border bg-[var(--zana-surface)] p-4">
+                <div className="mb-2 flex items-center gap-2"><Package size={17} className="text-zana-primary" /><h3 className="text-sm font-bold text-gray-900">{t('Use a Zana location code')}</h3></div>
+                <p className="mb-3 text-xs leading-5 text-gray-500">{t("Receiver can't explain their address? Ask them to send you their Zana location code.")}</p>
+                <div className="flex gap-2">
+                  <input value={codeInput} onChange={(e) => setCodeInput(e.target.value.toUpperCase())} placeholder="ZANA-8XK29"
+                    className="min-w-0 flex-1 rounded-xl border border-zana-border bg-[var(--zana-surface)] px-3 py-3 text-sm text-gray-900 outline-none focus:border-zana-primary focus:ring-2 focus:ring-zana-primary/20" />
+                  <button onClick={handleResolveCode} disabled={!codeInput.trim() || resolvingCode} className="rounded-xl bg-zana-primary px-4 text-xs font-bold text-white disabled:opacity-40">
+                    {resolvingCode ? <Loader2 size={15} className="animate-spin" /> : t('Use code')}
+                  </button>
+                </div>
+                {codeError && <p className="mt-2 text-xs text-zana-error">{codeError}</p>}
+              </div>
+            )}
+            {quoteLoading && <p className="text-xs font-medium text-gray-500">{t('Calculating delivery price…')}</p>}
+            {quote && <div className="flex items-center justify-between rounded-2xl bg-zana-primary-dark px-4 py-4 text-white">
+              <div><p className="text-[11px] text-white/70">{t('Estimated delivery fee')}</p><p className="mt-1 text-xl font-black">{quote.fee.toLocaleString()} RWF</p></div>
+              <p className="text-xs text-white/70">{quote.distanceKm} km</p>
+            </div>}
+          </section>
         )}
 
-        <button
-          onClick={handleSubmit}
-          disabled={!canSubmit || submitting || awaitingMomo}
-          className="w-full bg-zana-primary text-white font-semibold py-3.5 rounded-xl disabled:opacity-40 transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
-        >
-          {awaitingMomo ? (
-            <>
-              <Loader2 size={16} className="animate-spin" /> {t('Approve the MoMo prompt on your phone…')}
-            </>
-          ) : submitting ? (
-            <>
-              <Loader2 size={16} className="animate-spin" /> {t('Requesting…')}
-            </>
-          ) : (
-            <>
-              <Package size={16} /> Request Delivery
-            </>
-          )}
-        </button>
+        {step === 3 && (
+          <section className="zana-delivery-step animate-fade-slide-up space-y-4">
+            <div className="rounded-2xl border border-zana-border bg-[var(--zana-surface)] p-5">
+              <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-zana-primary-light text-zana-primary"><UserRound size={23} /></div>
+              <h3 className="text-base font-extrabold text-gray-900">{t('Recipient details')}</h3>
+              <p className="mt-1 text-xs leading-5 text-gray-500">{t('We will contact the recipient when the courier is close.')}</p>
+              <label className="mb-1.5 mt-5 block text-xs font-bold text-gray-700">{t('Recipient name')} <span className="font-normal text-gray-400">({t('optional')})</span></label>
+              <input value={receiverName} onChange={(e) => setReceiverName(e.target.value)} placeholder={t("Receiver's name (optional)")}
+                className="w-full rounded-xl border border-zana-border bg-[var(--zana-surface)] px-3 py-3 text-sm text-gray-900 outline-none focus:border-zana-primary focus:ring-2 focus:ring-zana-primary/20" />
+              <label className="mb-1.5 mt-4 block text-xs font-bold text-gray-700">{t('Recipient phone number')}</label>
+              <div className="flex gap-2">
+                <div className="flex items-center rounded-xl border border-zana-border bg-gray-50 px-4 text-sm font-bold text-gray-700">+250</div>
+                <input value={receiverPhone} onChange={(e) => setReceiverPhone(e.target.value.replace(/\D/g, '').slice(0, 9))} placeholder="788 123 456" inputMode="numeric"
+                  className="min-w-0 flex-1 rounded-xl border border-zana-border bg-[var(--zana-surface)] px-3 py-3 text-sm text-gray-900 outline-none focus:border-zana-primary focus:ring-2 focus:ring-zana-primary/20" />
+              </div>
+              <p className="mt-2 text-[11px] text-gray-500">{t('Enter a Rwanda mobile number with 9 digits.')}</p>
+            </div>
+            <div className="flex items-start gap-2 rounded-xl bg-zana-primary-light px-3 py-3 text-xs leading-5 text-zana-primary">
+              <ShieldCheck size={16} className="mt-0.5 shrink-0" /><p>{t('The recipient only receives the package. You place and pay for this delivery.')}</p>
+            </div>
+          </section>
+        )}
 
-        <FastLoadingPopup
-          visible={submitting && !awaitingMomo}
-          messages={[t('Finding the best route…'), t('Calculating your fare…'), t('Confirming with Zana…')]}
-        />
+        {step === 4 && (
+          <section className="zana-delivery-step animate-fade-slide-up space-y-4">
+            <div className="overflow-hidden rounded-2xl border border-zana-border bg-[var(--zana-surface)]">
+              <div className="bg-zana-primary-dark p-4 text-white">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{t('Delivery estimate')}</p>
+                {quote ? <p className="mt-1 text-3xl font-black">{quote.fee.toLocaleString()} <span className="text-sm font-bold">RWF</span></p> : <p className="mt-1 text-sm font-semibold">{quoteLoading ? t('Calculating delivery price…') : t('Price unavailable. Go back and try again.')}</p>}
+                {quote && <p className="mt-1 text-xs text-white/70">{quote.distanceKm} km · {t('Estimated distance')}</p>}
+              </div>
+              <div className="space-y-3 p-4">
+                <div className="flex items-start gap-3">
+                  <Package size={17} className="mt-0.5 text-zana-primary" />
+                  <div className="min-w-0"><p className="text-[10px] font-bold uppercase text-gray-400">{t('Your item')}</p><p className="mt-0.5 text-sm font-bold text-gray-900">{t(selectedPackageType)}{itemDetails.trim() ? ' · ' + itemDetails.trim() : ''}</p><p className="text-xs text-gray-500">{t(WEIGHT_OPTIONS.find((w) => w.value === weight)?.label ?? 'Under 1 kg')}</p></div>
+                </div>
+                <div className="h-px bg-zana-border" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div><p className="text-[10px] font-bold uppercase text-gray-400">{t('Pickup')}</p><p className="mt-1 text-xs font-semibold leading-5 text-gray-800">{pickupAddress}</p></div>
+                  <div><p className="text-[10px] font-bold uppercase text-gray-400">{t('Drop-off')}</p><p className="mt-1 text-xs font-semibold leading-5 text-gray-800">{dropoff?.address}</p></div>
+                </div>
+                <div className="h-px bg-zana-border" />
+                <div><p className="text-[10px] font-bold uppercase text-gray-400">{t('Recipient')}</p><p className="mt-1 text-sm font-bold text-gray-900">{receiverName.trim() || t('Recipient')}</p><p className="text-xs text-gray-500">+250 {receiverPhone}</p></div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-zana-border bg-[var(--zana-surface)] p-4">
+              <h3 className="mb-3 text-sm font-extrabold text-gray-900">{t('Choose payment method')}</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  ['WALLET', 'Wallet', CreditCard],
+                  ['MOBILE_MONEY', 'MoMo', Smartphone],
+                  ['CASH', 'Cash', Banknote],
+                ] as const).map(([id, label, Icon]) => {
+                  const short = id === 'WALLET' && walletBalance !== null && quote !== null && walletBalance < quote.fee;
+                  return (
+                    <button key={id} type="button" onClick={() => setPaymentMethod(id)} aria-pressed={paymentMethod === id}
+                      className={"flex min-h-[86px] flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all " + (paymentMethod === id
+                        ? short ? "border-red-300 bg-red-50 text-red-600" : "border-zana-primary bg-zana-primary-light text-zana-primary"
+                        : "border-zana-border bg-[var(--zana-surface)] text-gray-600")}>
+                      <Icon size={20} /><span className="text-[11px] font-bold">{t(label)}</span>
+                      {paymentMethod === id && <Check size={13} strokeWidth={3} />}
+                    </button>
+                  );
+                })}
+              </div>
+              {paymentMethod === 'WALLET' && walletBalance !== null && quote && (
+                <p className={"mt-3 text-xs font-semibold " + (walletBalance < quote.fee ? "text-red-500" : "text-gray-500")}>
+                  {t('Wallet balance')}: {walletBalance.toLocaleString()} RWF
+                  {walletBalance < quote.fee ? ' · ' + (quote.fee - walletBalance).toLocaleString() + ' RWF ' + t('short') : ''}
+                </p>
+              )}
+              {paymentMethod === 'CASH' && <p className="mt-3 text-xs leading-5 text-gray-500">{t('Pay the courier when they collect the package.')}</p>}
+              {paymentMethod === 'MOBILE_MONEY' && (
+                <div className="mt-3">
+                  <p className="mb-2 text-xs text-gray-500">{t("We'll send a payment prompt to this number:")}</p>
+                  <div className="flex gap-2">
+                    <span className="flex items-center rounded-xl border border-zana-border bg-gray-50 px-4 text-sm font-bold text-gray-700">+250</span>
+                    <input value={momoPhone} onChange={(e) => setMomoPhone(e.target.value.replace(/\D/g, '').slice(0, 9))} placeholder="788 123 456" inputMode="numeric"
+                      className="min-w-0 flex-1 rounded-xl border border-zana-border bg-[var(--zana-surface)] px-3 py-3 text-sm text-gray-900 outline-none focus:border-zana-primary focus:ring-2 focus:ring-zana-primary/20" />
+                  </div>
+                </div>
+              )}
+              <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
+                <ShieldCheck size={17} className="mt-0.5 shrink-0 text-amber-600" />
+                <p className="text-[11px] leading-5 text-amber-900">{t('The rider inspects every package before pickup to meet Zana security compliance.')}</p>
+              </div>
+            </div>
+            {error && <p role="alert" className="rounded-xl bg-red-50 px-3 py-3 text-xs font-semibold text-red-700">{error}</p>}
+          </section>
+        )}
+
+        {error && step !== 4 && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-3 py-3 text-xs font-semibold text-red-700">{error}</p>}
+
+        <div className="sticky bottom-3 z-20 mt-6 flex items-center gap-2 rounded-2xl border border-zana-border bg-[var(--zana-surface)] p-2 shadow-[0_12px_36px_rgba(15,35,28,.12)]">
+          {step > 1 && <button type="button" onClick={() => { setError(null); setStep((current) => current - 1); }} className="flex min-h-12 items-center justify-center rounded-xl px-4 text-sm font-bold text-gray-600">{t('Back')}</button>}
+          <button type="button" onClick={continueStep} disabled={!canContinue || submitting || awaitingMomo || (step === 4 && (!quote || quoteLoading))}
+            className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-zana-primary px-5 text-sm font-extrabold text-white transition hover:brightness-95 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-40">
+            {awaitingMomo ? <><Loader2 size={17} className="animate-spin" />{t('Approve the MoMo prompt on your phone…')}</>
+              : submitting ? <><Loader2 size={17} className="animate-spin" />{t('Requesting…')}</>
+              : step === 4 ? <><Package size={17} />{t('Confirm delivery')}</>
+              : <>{t('Continue')} <ArrowRight size={17} /></>}
+          </button>
+        </div>
       </div>
+
+      <FastLoadingPopup visible={submitting && !awaitingMomo} messages={[t('Finding the best route…'), t('Calculating your fare…'), t('Confirming with Zana…')]} />
     </div>
   );
 }
