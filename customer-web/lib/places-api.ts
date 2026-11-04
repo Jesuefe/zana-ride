@@ -6,6 +6,7 @@ export type PlaceSuggestion = {
   placeId: string;
   primaryText: string;
   secondaryText: string;
+  types?: string[];
 };
 
 // Biases results toward Kigali so local searches rank first, and restricts
@@ -45,7 +46,8 @@ export async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
           predictions.map((p) => ({
             placeId: p.place_id,
             primaryText: p.structured_formatting.main_text,
-            secondaryText: p.structured_formatting.secondary_text ?? '',\n            types: p.types ?? [],
+            secondaryText: p.structured_formatting.secondary_text ?? '',
+            types: p.types ?? [],\n            types: p.types ?? [],
           })),
         );
       },
