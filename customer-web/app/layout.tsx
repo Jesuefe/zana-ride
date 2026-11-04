@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LangProvider>
           <ThemeProvider>
             <AuthGuard>
-              <div className="app-shell w-full pb-20 relative overflow-x-hidden">
+              <div className="app-shell w-full pb-[calc(7.5rem+env(safe-area-inset-bottom))] relative overflow-x-hidden">
                 <SplashGate>{children}</SplashGate>
               </div>
               <BottomNav />
