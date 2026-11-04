@@ -1713,3 +1713,37 @@ body { background-color: var(--background); color: var(--foreground); }
 .dark .zana-orders-page [class~="bg-white"] {
   background-color: var(--zana-surface) !important;
 }
+
+
+/* Delivery flow: keep its cards and notices aligned with the selected theme. */
+.dark .zana-delivery-page .bg-amber-50 {
+  background-color: #352B17 !important;
+}
+.dark .zana-delivery-page .border-amber-200 {
+  border-color: #675126 !important;
+}
+.dark .zana-delivery-page .text-amber-600,
+.dark .zana-delivery-page .text-amber-900 {
+  color: #F3D18A !important;
+}
+.dark .zana-delivery-page .bg-red-50 {
+  background-color: #3B1E1D !important;
+}
+.dark .zana-delivery-page .text-red-700 {
+  color: #FFB4AB !important;
+}
+.dark .zana-delivery-page .border-red-300 {
+  border-color: #8E4741 !important;
+}
+.dark .zana-delivery-page input,
+.dark .zana-delivery-page textarea,
+.dark .zana-delivery-page select {
+  color: var(--foreground);
+  background-color: var(--zana-surface);
+  border-color: var(--zana-border);
+}
+.dark .zana-delivery-page input::placeholder,
+.dark .zana-delivery-page textarea::placeholder {
+  color: var(--zana-muted);
+  opacity: 1;
+}
