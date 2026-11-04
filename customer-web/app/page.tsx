@@ -210,26 +210,50 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="zana-v3-services">
-          <div className="zana-v3-section-heading">
+        <section className="zana-v3-services" aria-label={t('Explore Zana services')}>
+          <div className="zana-v3-services-intro">
             <div>
-              <span className="zana-v3-eyebrow">{t('One app. More possibilities.')}</span>
-              <h2>{t('Explore Zana')}</h2>
+              <span className="zana-v3-eyebrow">{t('More than a ride')}</span>
+              <h2>{t('Your everyday, all in one app.')}</h2>
+              <p>{t('Move around. Send across town. Eat well. Shop with ease.')}</p>
             </div>
-            <span className="text-xs font-medium text-slate-400">{t('7 services')}</span>
+            <span className="zana-v3-services-count">{t('7 services')}</span>
           </div>
-          <div className="zana-v3-services-grid">
-            {SERVICES.map((service, index) => (
-              <button key={service.id} onClick={() => router.push(service.route)} className={`zana-v3-service zana-v3-service-${index}`}>
-                <span className="zana-v3-service-art" style={{ background: service.bg }}>
-                  <Image src={service.image} alt={t(service.title)} width={48} height={48} className="object-contain" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[14px] font-extrabold text-slate-900">{t(service.title)}</span>
-                  <span className="mt-1 block text-[11px] leading-4 text-slate-500">{t(service.sub)}</span>
-                </span>
-                <ArrowUpRight size={16} className="shrink-0 text-slate-400" />
-              </button>
+          <div className="zana-v3-service-groups">
+            {[
+              { id: 'move', title: 'Move around', description: 'Get there your way.', ids: ['moto', 'car'] },
+              { id: 'send', title: 'Send & receive', description: 'Deliveries and thoughtful surprises.', ids: ['package', 'gift'] },
+              { id: 'discover', title: 'Food & shopping', description: 'Meals, groceries and everyday finds.', ids: ['food', 'shop', 'market'] },
+            ].map(group => (
+              <div className={`zana-v3-service-group zana-v3-service-group-${group.id}`} key={group.id}>
+                <div className="zana-v3-service-group-heading">
+                  <span className={`zana-v3-service-group-symbol zana-v3-service-group-symbol-${group.id}`}>
+                    {group.id === 'move' ? <Navigation size={18} /> : group.id === 'send' ? <ArrowUpRight size={18} /> : <Briefcase size={18} />}
+                  </span>
+                  <div>
+                    <h3>{t(group.title)}</h3>
+                    <p>{t(group.description)}</p>
+                  </div>
+                </div>
+                <div className="zana-v3-service-group-items">
+                  {group.ids.map(id => {
+                    const service = SERVICES.find(item => item.id === id);
+                    if (!service) return null;
+                    return (
+                      <button key={service.id} onClick={() => router.push(service.route)} className="zana-v3-service-option">
+                        <span className="zana-v3-service-option-art" style={{ background: service.bg }}>
+                          <Image src={service.image} alt="" width={42} height={42} className="object-contain" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block">{t(service.title)}</span>
+                          <span className="block">{t(service.sub)}</span>
+                        </span>
+                        <ChevronRight size={16} className="zana-v3-service-option-arrow" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
           </div>
         </section>
