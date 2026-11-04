@@ -100,52 +100,7 @@
 .zana-city-home[data-sheet="peek"] .zana-city-sheet-scroll{overflow:hidden}
 .zana-city-recovering{position:fixed;z-index:90;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:30px;background:rgba(255,255,255,.96);color:#263a30;text-align:center}
 .zana-city-recovering>span:last-child{color:#758278;font-size:12px}
-body:has(.zana-city-home) .zana-bottom-nav{left:50%;right:auto;bottom:calc(env(safe-area-inset-bottom) + 12px);transform:translateX(-50%);width:min(520px,calc(100vw - 32px));border:1px solid rgba(255,255,255,.86);border-radius:20px;background:rgba(255,255,255,.95);box-shadow:0 10px 30px rgba(24,44,33,.17);backdrop-filter:blur(20px) saturate(155%);-webkit-backdrop-filter:blur(20px) saturate(155%);padding:6px 8px;z-index:60}
-body:has(.zana-city-home) .zana-bottom-nav-item{min-height:48px;padding-top:5px;padding-bottom:5px;gap:4px}
-body:has(.zana-city-home) .zana-bottom-nav-item span{font-size:10px;line-height:1.2}
-body:has(.zana-city-home) .zana-bottom-nav-active{position:relative}
-body:has(.zana-city-home) .zana-bottom-nav-active:before{content:"";position:absolute;top:-6px;width:24px;height:3px;border-radius:99px;background:#00A082}
-@media(min-width:700px){
- .zana-city-topbar{left:28px;right:28px;top:24px}.zana-city-greeting{left:34px;top:94px}
- .zana-city-sheet{left:auto;right:28px;bottom:18px;width:min(520px,calc(100vw - 56px));height:76dvh;max-height:calc(100dvh - 145px);border-radius:28px}
- .zana-city-home[data-sheet="peek"] .zana-city-sheet{height:280px}
- .zana-city-home[data-sheet="full"] .zana-city-sheet{height:calc(100dvh - 145px);max-height:calc(100dvh - 145px)}
- .zana-city-sheet-scroll{padding-left:20px;padding-right:20px}
- .zana-city-services-block{margin-left:-20px;margin-right:-20px}.zana-city-service-strip{padding-left:20px;padding-right:20px}
-}
-@media(max-width:390px){
- .zana-city-sheet-scroll{padding-left:14px;padding-right:14px}
- .zana-city-services-block{margin-left:-14px;margin-right:-14px}.zana-city-service-strip{padding-left:14px;padding-right:14px}
- .zana-city-service.primary{flex-basis:84px}.zana-city-service.compact{flex-basis:66px}
- .zana-city-booking-heading h1{font-size:21px}
-}
-.dark .zana-city-home{background:#101915;color:#edf4ef}
-.dark .zana-city-map{background:#1c2923}.dark .zana-city-map .gm-style{filter:saturate(.48) brightness(.72) contrast(1.02)}
-.dark .zana-city-contours{opacity:.14;mix-blend-mode:screen}
-.dark .zana-city-map-label{color:#c0d0c3;text-shadow:0 1px 8px rgba(0,0,0,.7)}
-.dark .zana-city-wordmark{color:#eff8f1;text-shadow:none}
-.dark .zana-city-greeting{color:#f0f6f1;text-shadow:0 1px 10px rgba(0,0,0,.55)}
-.dark .zana-city-greeting span{color:#c2d2c7}
-.dark .zana-city-wallet{background:rgba(26,39,32,.88);border-color:rgba(255,255,255,.12);color:#a9b9ae}
-.dark .zana-city-wallet strong{color:#eff6f0}
-.dark .zana-city-sheet{background:rgba(25,35,30,.975);border-color:#35463c;box-shadow:0 -12px 40px rgba(0,0,0,.35)}
-.dark .zana-city-sheet-handle>span{background:#52665a}
-.dark .zana-city-booking-heading h1{color:#f0f5f0}
-.dark .zana-city-locating{color:#a8c7b5}
-.dark .zana-city-route-card,.dark .zana-city-place-chip,.dark .zana-city-shortcuts button{background:#293831;border-color:#3b4b41;color:#d5e1d8}
-.dark .zana-city-route-text strong,.dark .zana-city-recent-row strong{color:#e5eee7}
-.dark .zana-city-route-text small,.dark .zana-city-recent-row small,.dark .zana-city-section-label strong{color:#9aaca0}
-.dark .zana-city-route-row+.zana-city-route-row,.dark .zana-city-recent-row{border-color:#3a4a40}
-.dark .zana-city-place-chip svg,.dark .zana-city-shortcuts button>svg:first-child{color:#76d3b2}
-.dark .zana-city-service{background:#293831;border-color:#3b4b41;color:#d5e1d8}
-.dark .zana-city-service.primary{background:#263e34;border-color:#3d6955}
-.dark .zana-city-service strong{color:#dce9e0}
-.dark .zana-city-service-glyph{color:#8ed9bb}
-.dark .zana-city-recent-icon{background:#34463b;color:#c4d4c9}
-.dark .zana-city-recent-empty{color:#9aaca0}
-.dark .zana-city-shortcuts button>svg:last-child{color:#8b9b90}
-.dark body:has(.zana-city-home) .zana-bottom-nav{background:rgba(27,39,33,.96);border-color:#3a4b40}
-.dark body:has(.zana-city-home) .zana-bottom-nav-active:before{background:#70C7AE}
+/* Navigation styling is shared globally so it remains identical across routes. */
 @media(prefers-reduced-motion:reduce){
  .zana-city-sheet,.zana-city-service,.zana-city-route-row{transition:none!important}
  .zana-city-signature-pin{animation:none!important}
