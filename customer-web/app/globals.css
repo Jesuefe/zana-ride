@@ -1605,3 +1605,48 @@ html, body { background-color: var(--background); color: var(--foreground); }
 .dark .zana-v3-book-ride-option>span:nth-child(2)>span:first-child{color:#edf5f0}
 .dark .zana-v3-book-ride-option>span:nth-child(2)>span:last-child{color:#a8b9af}
 @media(max-width:600px){.zana-v3-book-ride-option{min-height:76px;padding:12px}.zana-v3-book-ride-art{width:42px;height:42px}}
+
+
+/* ── Theme consistency pass: keep legacy and newer screens in sync ── */
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+body { background-color: var(--background); color: var(--foreground); }
+.dark .app-shell { background-color: var(--zana-canvas, var(--background)); }
+
+/* Neutral surfaces used by newer screens and shared controls. */
+.dark .bg-slate-50,
+.dark .bg-slate-100 { background-color: #151f1b !important; }
+.dark .bg-slate-200 { background-color: #202d26 !important; }
+.dark .bg-slate-800,
+.dark .bg-slate-900,
+.dark .bg-slate-950 { background-color: #101713 !important; }
+.dark .text-slate-950,
+.dark .text-slate-900 { color: var(--foreground) !important; }
+.dark .text-slate-800 { color: #e0e9e4 !important; }
+.dark .text-slate-700 { color: #d0dbd4 !important; }
+.dark .text-slate-600 { color: #b8c7be !important; }
+.dark .text-slate-500 { color: #a5b5ab !important; }
+.dark .text-slate-400 { color: #91a197 !important; }
+.dark .border-slate-50,
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300 { border-color: var(--zana-line) !important; }
+
+/* Theme controls and form fields must remain legible in both appearances. */
+.dark .zana-settings-page input,
+.dark .zana-settings-page textarea,
+.dark .zana-settings-page select {
+  color: var(--foreground);
+  background-color: var(--zana-card);
+  border-color: var(--zana-line);
+}
+.dark .zana-settings-page input::placeholder { color: var(--zana-text-muted); opacity: 1; }
+.dark .zana-settings-page .bg-gray-100 { background-color: #202d26 !important; }
+.dark .zana-settings-page .text-zana-primary { color: #55d9b5 !important; }
+.dark .zana-settings-page .border-zana-primary { border-color: #35bd9b !important; }
+
+/* Prevent browser-native controls from reverting to a light palette in dark mode. */
+.dark input,
+.dark textarea,
+.dark select,
+.dark option { color-scheme: dark; }
