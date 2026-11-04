@@ -63,19 +63,19 @@ export default function DeliverPage() {
   const [weight, setWeight] = useState<PackageWeight>('UNDER_1KG');
 
   const PACKAGE_TYPES = [
-    [t('Food'), Utensils],
-    [t('Clothes'), Shirt],
-    [t('Documents'), FileText],
-    [t('Package'), Package],
-    [t('Medicine'), Pill],
-    [t('Groceries'), ShoppingCart],
-    [t('Gift'), Gift],
-    [t('Electronics'), Smartphone],
-    [t('Shoes'), Footprints],
-    [t('Books'), BookOpen],
-    [t('Cosmetics'), Sparkles],
-    [t('Household'), House],
-    [t('Other'), Plus],
+    ['Food', Utensils],
+    ['Clothes', Shirt],
+    ['Documents', FileText],
+    ['Package', Package],
+    ['Medicine', Pill],
+    ['Groceries', ShoppingCart],
+    ['Gift', Gift],
+    ['Electronics', Smartphone],
+    ['Shoes', Footprints],
+    ['Books', BookOpen],
+    ['Cosmetics', Sparkles],
+    ['Household', House],
+    ['Other', Plus],
   ] as const;
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
