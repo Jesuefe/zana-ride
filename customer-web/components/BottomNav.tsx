@@ -19,7 +19,7 @@ export default function BottomNav() {
   if (hidden) return null;
 
   return (
-    <nav aria-label={t('Main navigation')} className="zana-bottom-nav pointer-events-none fixed bottom-0 left-0 w-full flex items-center justify-around py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-30">
+    <nav aria-label={t('Main navigation')} className="zana-bottom-nav pointer-events-none fixed inset-x-0 bottom-0 z-40 flex w-full items-center justify-around">
       {items.map((item) => {
         const active = pathname === item.href;
         const Icon = item.icon;
