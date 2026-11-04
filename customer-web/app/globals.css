@@ -1650,3 +1650,66 @@ body { background-color: var(--background); color: var(--foreground); }
 .dark textarea,
 .dark select,
 .dark option { color-scheme: dark; }
+
+
+/* Orders page: keep every surface, divider and status chip on the active theme. */
+.dark .zana-orders-page {
+  background-color: var(--background) !important;
+  color: var(--foreground);
+}
+.dark .zana-orders-page [class~="bg-[#E8F5F1]"],
+.dark .zana-orders-page [class~="bg-[#F0F8F5]"],
+.dark .zana-orders-page [class~="bg-[#E9F0ED]"] {
+  background-color: var(--zana-primary-light) !important;
+}
+.dark .zana-orders-page [class~="border-gray-100"],
+.dark .zana-orders-page [class~="border-gray-200"] {
+  border-color: var(--zana-border) !important;
+}
+.dark .zana-orders-page [class~="text-gray-400"] {
+  color: #899995 !important;
+}
+.dark .zana-orders-page [class~="bg-emerald-50"] {
+  background-color: #12352B !important;
+}
+.dark .zana-orders-page [class~="text-emerald-700"] {
+  color: #70DDB2 !important;
+}
+.dark .zana-orders-page [class~="bg-amber-50"] {
+  background-color: #3A2D16 !important;
+}
+.dark .zana-orders-page [class~="text-amber-700"],
+.dark .zana-orders-page [class~="text-amber-800"] {
+  color: #F4CC78 !important;
+}
+.dark .zana-orders-page [class~="bg-teal-50"] {
+  background-color: #12332C !important;
+}
+.dark .zana-orders-page [class~="text-teal-800"] {
+  color: #76DCC3 !important;
+}
+.dark .zana-orders-page [class~="bg-gray-100"] {
+  background-color: #1C2625 !important;
+}
+.dark .zana-orders-page [class~="text-gray-600"],
+.dark .zana-orders-page [class~="text-gray-700"] {
+  color: #C6CECC !important;
+}
+.dark .zana-orders-page [class~="text-[#007D68]"],
+.dark .zana-orders-page [class~="text-[#00866F]"] {
+  color: #55D9B5 !important;
+}
+.dark .zana-orders-page input,
+.dark .zana-orders-page select,
+.dark .zana-orders-page option {
+  color: var(--foreground);
+  background-color: var(--zana-surface);
+  border-color: var(--zana-border);
+}
+.dark .zana-orders-page input::placeholder {
+  color: var(--zana-muted);
+  opacity: 1;
+}
+.dark .zana-orders-page [class~="bg-white"] {
+  background-color: var(--zana-surface) !important;
+}
