@@ -117,7 +117,7 @@ export default function HomePage() {
   const openDestination = () => router.push('/search');
   const openRide = (mode: 'CAR' | 'BIKE') => {
     haptic('tap');
-    router.push(mode === 'BIKE' ? '/search?service=BIKE' : '/search');
+    router.push(mode === 'BIKE' ? '/search?service=BIKE' : '/search?service=ECONOMY');
   };
   const openSavedPlace = (place: any, label: string) => {
     if (!place) {
@@ -234,10 +234,10 @@ export default function HomePage() {
 
           <div className="zana-city-place-row">
             <button className="zana-city-place-chip" onClick={() => openSavedPlace(savedHome, 'Home')}>
-              <Home size={15} /><span>{savedHome?.address ? savedHome.address.split(',')[0] : t('Add a place')}</span>
+              <Home size={15} />{savedHome?.address ? <span className="zana-city-place-copy"><strong>{t('Home')}</strong><small>{savedHome.address.split(',')[0]}</small></span> : <span>{t('Add a place')}</span>}
             </button>
             <button className="zana-city-place-chip" onClick={() => openSavedPlace(savedWork, 'Work')}>
-              <Briefcase size={15} /><span>{savedWork?.address ? savedWork.address.split(',')[0] : t('Add a place')}</span>
+              <Briefcase size={15} />{savedWork?.address ? <span className="zana-city-place-copy"><strong>{t('Work')}</strong><small>{savedWork.address.split(',')[0]}</small></span> : <span>{t('Add a place')}</span>}
             </button>
             {placeHint && !savedHome && !savedWork && (
               <div className="zana-city-place-hint" role="status">
