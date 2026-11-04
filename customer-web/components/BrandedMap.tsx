@@ -196,7 +196,10 @@ export default function BrandedMap({
       if (mapClickRef.current) {
         mapRef.current.addListener('click', (event: any) => {
           const point = event?.latLng;
-          if (point) mapClickRef.current?.({ lat: point.lat(), lng: point.lng() });
+          if (point) {
+            mapRef.current.panTo(point);
+            mapClickRef.current?.({ lat: point.lat(), lng: point.lng() });
+          }
         });
       }
       // Fetch initial route
