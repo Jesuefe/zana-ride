@@ -9,7 +9,7 @@ type EversendSettings = {
   enabled: boolean;
   environment: 'sandbox' | 'production';
   baseUrl: string;
-  rail: 'mtn_momo' | 'airtel_money';
+  rail: 'auto' | 'mtn_momo' | 'airtel_money';
   minWithdrawal: number;
   configured: boolean;
   apiKeyHint?: string | null;
@@ -26,7 +26,7 @@ export default function EversendPaymentSettings() {
     enabled: false,
     environment: 'sandbox',
     baseUrl: 'https://api.eversend.co/v1',
-    rail: 'mtn_momo',
+    rail: 'auto',
     minWithdrawal: 1000,
     configured: false,
     webhookConfigured: false,
@@ -103,7 +103,7 @@ export default function EversendPaymentSettings() {
 
         <div className="grid md:grid-cols-2 gap-4">
           <label><span className="text-xs font-semibold text-gray-600 block mb-1.5">Environment</span><select value={settings.environment} onChange={e => setSettings(s => ({ ...s, environment: e.target.value as EversendSettings['environment'] }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white"><option value="sandbox">Sandbox / Test</option><option value="production">Production / Live</option></select></label>
-          <label><span className="text-xs font-semibold text-gray-600 block mb-1.5">Rwanda mobile-money payout rail</span><select value={settings.rail} onChange={e => setSettings(s => ({ ...s, rail: e.target.value as EversendSettings['rail'] }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white"><option value="mtn_momo">MTN Mobile Money</option><option value="airtel_money">Airtel Money</option></select></label>
+          <label><span className="text-xs font-semibold text-gray-600 block mb-1.5">Rwanda mobile-money payout rail</span><select value={settings.rail} onChange={e => setSettings(s => ({ ...s, rail: e.target.value as EversendSettings['rail'] }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white"><option value="auto">Auto-detect MTN / Airtel</option><option value="mtn_momo">MTN Mobile Money only</option><option value="airtel_money">Airtel Money only</option></select></label>
         </div>
 
         <div>
