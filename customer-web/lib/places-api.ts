@@ -51,7 +51,6 @@ export async function searchPlaces(query: string, origin?: { lat: number; lng: n
             secondaryText: p.structured_formatting.secondary_text ?? '',
             types: p.types ?? [],
             distanceMeters: (p as any).distance_meters,
-            types: p.types ?? [],
           })),
         );
       },
