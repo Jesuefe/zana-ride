@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Package, MapPin, Navigation, ShoppingBag, Star, Clock3, ChevronRight, X } from 'lucide-react';
+import { Package, MapPin, Navigation, ShoppingBag, Star, Clock3, ChevronRight, X, Search, ArrowUpRight, PackageCheck } from 'lucide-react';
 import ReviewSheet from '../../components/ReviewSheet';
 import DeliveryTracker from '../../components/DeliveryTracker';
 import { fetchMyDeliveries, Delivery } from '../../lib/api/deliveries';
@@ -63,6 +63,7 @@ function OrdersContent() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [tab, setTab] = useState<'orders' | 'deliveries'>('orders');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [resolvingItem, setResolvingItem] = useState<string | null>(null);
@@ -79,7 +80,15 @@ function OrdersContent() {
     return () => clearInterval(interval);
   }, []);
 
-  const activeOrders = useMemo(() => orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status)), [orders]);
+  const matchesSearch = (value: unknown) => String(value ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase());
+  const matchesOrder = (o: any) => !searchQuery.trim() || [
+    o.id, o.trackingCode, o.merchant?.businessName, o.status,
+    ...(o.items ?? []).map((i: any) => i.product?.name),
+  ].some(matchesSearch);
+  const activeOrders = useMemo(() => orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status) && matchesOrder(o)), [orders, searchQuery]);
+  const filteredDeliveries = useMemo(() => deliveries.filter(d => !searchQuery.trim() || [
+    d.id, d.itemDescription, d.status, d.pickupAddress, d.dropoffAddress,
+  ].some(matchesSearch)), [deliveries, searchQuery]);
 
   const resolveItem = async (orderId: string, itemId: string, action: 'REFUND' | 'REPLACE' | 'REMOVE', replacementProductId?: string) => {
     setResolvingItem(itemId);
@@ -109,7 +118,7 @@ function OrdersContent() {
       setResolvingItem(null);
     }
   };
-  const historyOrders = useMemo(() => orders.filter(o => !ACTIVE_ORDER_STATUSES.includes(o.status)), [orders]);
+  const historyOrders = useMemo(() => orders.filter(o => !ACTIVE_ORDER_STATUSES.includes(o.status) && matchesOrder(o)), [orders, searchQuery]);
 
   const renderOrder = (o: any, active: boolean) => {
     const delivery = o.delivery;
@@ -124,7 +133,7 @@ function OrdersContent() {
     return (
       <div
         key={o.id}
-        className={`overflow-hidden rounded-2xl bg-white shadow-sm ${o.id === highlightId ? 'ring-2 ring-zana-primary' : ''}`}
+        className={`overflow-hidden rounded-[22px] border border-gray-100 bg-white shadow-[0_5px_22px_rgba(20,60,45,0.035)] transition-all hover:border-[#CDEBE1] hover:shadow-[0_10px_30px_rgba(20,60,45,0.07)] ${o.id === highlightId ? 'ring-2 ring-[#00A082]' : ''}`}
       >
         {active && hasMap && (
           <div className="p-2 pb-0">
@@ -203,18 +212,62 @@ function OrdersContent() {
   };
 
   return (
-    <div className="p-4 pb-8">
-      <div className="mb-4">
-        <h1 className="text-xl font-black text-gray-900">{t('My Orders')}</h1>
-        <p className="text-xs text-zana-muted mt-1">{t('Track your orders and deliveries in one place.')}</p>
-      </div>
+    <div className="min-h-screen bg-[#F7FAF8] px-3 py-4 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="relative mb-6 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#00A082] via-[#008B70] to-[#006B57] p-5 text-white shadow-[0_18px_45px_rgba(0,128,102,0.16)] sm:p-8">
+          <div className="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full border border-white/15 shadow-[0_0_0_22px_rgba(255,255,255,0.04),0_0_0_48px_rgba(255,255,255,0.035)]" />
+          <div className="pointer-events-none absolute bottom-[-52px] right-[22%] h-32 w-32 rounded-full bg-[#FFC244]/15 blur-2xl" />
+          <div className="relative flex items-center justify-between gap-5">
+            <div className="min-w-0 max-w-2xl">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/90">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#FFC244] animate-pulse" /> {t('YOUR ZANA JOURNEY')}
+              </div>
+              <h1 className="text-3xl font-black leading-[1.04] tracking-tight sm:text-5xl">{t('Your orders,')}<br className="sm:hidden" /> <span className="text-[#FFC244]">{t('in motion.')}</span></h1>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-white/80 sm:text-base">{t('From the first tap to your front door, every order has a story. Follow it here.')}</p>
+              <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-bold text-white/90">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-2"><span className="h-2 w-2 rounded-full bg-[#FFC244] animate-pulse" /> {orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status)).length} {t('in progress')}</span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2"><PackageCheck size={14} /> {t('Auto-updating tracking')}</span>
+              </div>
+            </div>
+            <div className="relative hidden h-36 w-36 shrink-0 items-center justify-center sm:flex">
+              <div className="absolute inset-1 rounded-[34px] rotate-6 bg-[#FFC244] shadow-xl" />
+              <div className="relative flex h-32 w-32 -rotate-3 items-center justify-center rounded-[30px] border border-white/30 bg-white/15 backdrop-blur-sm">
+                <PackageCheck size={62} strokeWidth={1.4} className="text-white drop-shadow-md" />
+                <span className="absolute -bottom-2 -right-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFC244] text-[#17362D] shadow-lg"><Navigation size={20} /></span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <div className="flex gap-2 mb-5">
+        <div className="mb-5 grid grid-cols-3 gap-2.5 sm:gap-3">
+          <div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-[#DDEFE8] bg-white p-3.5 shadow-[0_4px_18px_rgba(20,60,45,0.035)] sm:flex-row sm:items-center sm:gap-3 sm:p-4">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E2F5EF] text-[#008B71]"><Clock3 size={20}/></span>
+            <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">{t('In progress')}</p><p className="mt-0.5 text-2xl font-black text-gray-900">{orders.filter(o => ACTIVE_ORDER_STATUSES.includes(o.status)).length}</p></div>
+          </div>
+          <div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-[#F3E7C8] bg-white p-3.5 shadow-[0_4px_18px_rgba(20,60,45,0.035)] sm:flex-row sm:items-center sm:gap-3 sm:p-4">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF3D7] text-[#9A6A00]"><PackageCheck size={20}/></span>
+            <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">{t('Completed orders')}</p><p className="mt-0.5 text-2xl font-black text-gray-900">{orders.filter(o => o.status === 'DELIVERED').length}</p></div>
+          </div>
+          <div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-[#E3E8FB] bg-white p-3.5 shadow-[0_4px_18px_rgba(20,60,45,0.035)] sm:flex-row sm:items-center sm:gap-3 sm:p-4">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E8EDFF] text-[#4A5BB1]"><ShoppingBag size={20}/></span>
+            <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">{t('Total orders')}</p><p className="mt-0.5 text-2xl font-black text-gray-900">{orders.length}</p></div>
+          </div>
+        </div>
+
+        <div className="mb-4 flex flex-col gap-3 rounded-3xl border border-gray-100 bg-white p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+          <div className="relative w-full sm:max-w-md">
+            <Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"/>
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t('Search orders, shops or tracking code…')} aria-label={t('Search orders, shops or tracking code')} className="w-full rounded-2xl border border-gray-200 bg-[#F8FAF9] py-3.5 pl-11 pr-4 text-sm text-gray-900 outline-none transition focus:border-[#00A082] focus:bg-white focus:ring-4 focus:ring-[#00A082]/10"/>
+          </div>
+          <p className="text-xs text-gray-500">{t('Orders and deliveries update automatically')}</p>
+        </div>
+
+      <div className="mb-5 flex gap-2">
         {(['orders', 'deliveries'] as const).map(tabName => (
           <button
             key={tabName}
             onClick={() => setTab(tabName)}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold ${tab === tabName ? 'bg-zana-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}
+            className={`rounded-xl px-4 py-2.5 text-sm font-extrabold transition-all ${tab === tabName ? 'bg-[#00A082] text-white shadow-md shadow-[#00A082]/20' : 'border border-gray-200 bg-white text-gray-600 hover:border-[#BFE8DC] hover:bg-[#F5FBF8]'}`}
           >
             {tabName === 'orders' ? `${t('Orders')} (${orders.length})` : `${t('Deliveries')} (${deliveries.length})`}
           </button>
@@ -254,7 +307,7 @@ function OrdersContent() {
 
       {tab === 'deliveries' && (
         <div className="space-y-3">
-          {deliveries.length === 0 && (
+          {filteredDeliveries.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-14 h-14 rounded-full bg-zana-primary-light flex items-center justify-center mb-3">
                 <Package size={22} className="text-zana-primary" />
@@ -262,8 +315,8 @@ function OrdersContent() {
               <p className="text-sm text-zana-muted">{t('Your deliveries will show up here.')}</p>
             </div>
           )}
-          {deliveries.map(d => (
-            <div key={d.id} className={`bg-white rounded-2xl p-4 shadow-sm ${d.id === highlightId ? 'ring-2 ring-zana-primary animate-fade-slide-up' : ''}`}>
+          {filteredDeliveries.map(d => (
+            <div key={d.id} className={`bg-white rounded-2xl border border-gray-100 p-4 ${d.id === highlightId ? 'ring-2 ring-zana-primary animate-fade-slide-up' : ''}`}>
               <div className="flex items-start gap-3">
                 {d.imageUrl
                   ? <img src={d.imageUrl} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
@@ -431,6 +484,7 @@ function OrdersContent() {
           onDone={() => setReview(null)}
         />
       )}
+      </div>
     </div>
   );
 }
