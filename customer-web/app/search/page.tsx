@@ -2,7 +2,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Briefcase, Clock3, Home, MapPin, MapPinned, Plus, Search, X, Loader2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Briefcase, Clock3, Home, MapPin, MapPinned, Search, X, Loader2, ChevronRight } from 'lucide-react';
 import BrandedMap from '../../components/BrandedMap';
 import { getStoredPickup, setStoredPickup } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
@@ -32,7 +32,7 @@ function SearchContent(){
  const [pickup,setPickup]=useState(getStoredPickup()),[pickupAddress,setPickupAddress]=useState('Current location'),[pickupEditing,setPickupEditing]=useState(false),[pickupQuery,setPickupQuery]=useState('');
  const [query,setQuery]=useState(''),[suggestions,setSuggestions]=useState<PlaceSuggestion[]>([]);
  const [saved,setSaved]=useState<SavedPlace[]>([]),[recents,setRecents]=useState<RecentPlace[]>([]),[loadingHome,setLoadingHome]=useState(true),[searching,setSearching]=useState(false);
- const [mapPicker,setMapPicker]=useState(false),[mapPoint,setMapPoint]=useState<{lat:number;lng:number}|null>(null),[mapAddress,setMapAddress]=useState(''),[resolvingMap,setResolvingMap]=useState(false),[addingStop,setAddingStop]=useState(false),[error,setError]=useState('');
+ const [mapPicker,setMapPicker]=useState(false),[mapPoint,setMapPoint]=useState<{lat:number;lng:number}|null>(null),[mapAddress,setMapAddress]=useState(''),[resolvingMap,setResolvingMap]=useState(false),[error,setError]=useState('');
  useEffect(()=>{const id=window.setTimeout(()=>inputRef.current?.focus(),80);return()=>window.clearTimeout(id);},[]);
  useEffect(()=>{let live=true;api.get<SavedPlace[]>('/users/saved-places').then(v=>{if(live)setSaved(Array.isArray(v)?v:[])}).catch(()=>{});
  api.get<any[]>('/rides/history').then(rows=>{if(!live||!Array.isArray(rows))return;const seen=new Set<string>(),out:RecentPlace[]=[];for(const r of rows){const lat=Number(r?.destinationLat),lng=Number(r?.destinationLng),address=r?.destinationAddress;if(!address||!Number.isFinite(lat)||!Number.isFinite(lng))continue;const k=`${lat.toFixed(4)}:${lng.toFixed(4)}`;if(seen.has(k))continue;seen.add(k);out.push({id:String(r.id??k),name:String(r.destinationName??address.split(',')[0]),address,lat,lng});if(out.length===5)break;}setRecents(out);}).catch(()=>{}).finally(()=>{if(live)setLoadingHome(false)});const fallback=window.setTimeout(()=>{if(live)setLoadingHome(false)},1500);return()=>{live=false;window.clearTimeout(fallback)};},[]);
@@ -61,7 +61,6 @@ function SearchContent(){
     <button className="zana-search-pickup" onClick={()=>{setPickupEditing(v=>!v);setPickupQuery('');}} aria-label={t('Edit pickup location')}><span className="zana-search-field-label">{t('PICKUP')}</span><strong>{pickupAddress}</strong><span className="zana-search-edit">{t('Edit')}</span></button>
     {pickupEditing&&<div className="zana-search-pickup-edit"><input id="zana-pickup-edit" value={pickupQuery} onChange={e=>setPickupQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')searchPickup()}} placeholder={t('Search pickup location')}/><button onClick={searchPickup} aria-label={t('Search pickup')}><Search size={16}/></button></div>}
     <div className="zana-search-destination-row"><div className="zana-search-destination-input"><span className="zana-search-field-label">{t('DESTINATION')}</span><input ref={inputRef} value={query} onChange={e=>setQuery(e.target.value)} placeholder={t('Search a landmark, area or address')} aria-label={t('Destination')} autoComplete="off" autoFocus/></div><button className="zana-search-map-button" onClick={pinOnMap}><MapPinned size={15}/><span>{t('Choose on map')}</span></button></div>
-    <button className="zana-search-add-stop" onClick={()=>setAddingStop(v=>!v)} aria-label={t('Add a stop')}><Plus size={13}/></button>{addingStop&&<p className="zana-search-stop-note">{t('Multi-stop booking is not enabled yet. You can add stops in a future booking update.')}</p>}
    </div></div>
    <div className="zana-search-content" aria-live="polite">
     {active?<>{searching&&<div className="zana-search-skeletons" aria-label={t('Loading places')}><i/><i/><i/><i/></div>}
