@@ -6,7 +6,7 @@ import Image from 'next/image';
 import {
   ArrowRight, ArrowUpRight, Briefcase, CalendarDays, ChevronRight,
   Clock3, Home, MapPin, Navigation, Search, ShieldCheck,
-  Wallet, X, ArrowRight
+  Wallet, X
 } from 'lucide-react';
 import { SERVICES } from '../lib/services';
 import { fetchMe, ApiUser } from '../lib/api/auth';
