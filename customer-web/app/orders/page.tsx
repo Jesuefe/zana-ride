@@ -3,8 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowUpRight, Bike, CalendarDays, CarFront, CheckCircle2, ChevronRight,
-  Clock3, Gift, MapPin, MessageCircle, Package, Phone, RefreshCw, Search,
+  Bike, ChevronRight, Gift, MapPin, MessageCircle, Package, Phone, RefreshCw, Search,
   Share2, ShoppingBag, Star, Store, Utensils, X,
 } from 'lucide-react';
 import BrandedMap from '../../components/BrandedMap';
@@ -108,7 +107,7 @@ function OrdersContent() {
     if (results[1].status === 'fulfilled') setDeliveries(Array.isArray(results[1].value) ? results[1].value : []); else failures++;
     if (results[2].status === 'fulfilled') setOrders(Array.isArray(results[2].value) ? results[2].value : []); else failures++;
     setOffline(failures === 3);
-    setLastUpdated(new Date());
+    if (failures < 3) setLastUpdated(new Date());
     setLoading(false);
     setRefreshing(false);
   }, []);
