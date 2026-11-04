@@ -860,3 +860,31 @@ Object.assign(UI, {
     rw: 'Mbere yo gufata ikintu, utanga ibintu arakigenzura kugira ngo hubahirizwe amabwiriza y’umutekano ya Zana.'
   },
 });
+
+
+// Premium profile and account hub translations.
+Object.assign(UI, {
+  'Profile': { en: 'Profile', fr: 'Profil', rw: 'Umwirondoro' },
+  'Your Zana account': { en: 'Your Zana account', fr: 'Votre compte Zana', rw: 'Konti yawe ya Zana' },
+  'Your account': { en: 'Your account', fr: 'Votre compte', rw: 'Konti yawe' },
+  'Edit': { en: 'Edit', fr: 'Modifier', rw: 'Hindura' },
+  'Account': { en: 'Account', fr: 'Compte', rw: 'Konti' },
+  'Your activity': { en: 'Your activity', fr: 'Votre activité', rw: 'Ibikorwa byawe' },
+  'Support & safety': { en: 'Support & safety', fr: 'Assistance et sécurité', rw: 'Ubufasha n’umutekano' },
+  'Preferences': { en: 'Preferences', fr: 'Préférences', rw: 'Ibyo ukunda' },
+  'Balance & payments': { en: 'Balance & payments', fr: 'Solde et paiements', rw: 'Amafaranga na serivisi zo kwishyura' },
+  'Track your items': { en: 'Track your items', fr: 'Suivre vos colis', rw: 'Kurikirana ibyo wohereje' },
+  'Rewards': { en: 'Rewards', fr: 'Récompenses', rw: 'Ibihembo' },
+  'Manage your personal details': { en: 'Manage your personal details', fr: 'Gérer vos informations personnelles', rw: 'Genzura amakuru yawe bwite' },
+  'Home, work and favourite places': { en: 'Home, work and favourite places', fr: 'Domicile, travail et lieux favoris', rw: 'Ahantu hatandukanye ukunda kujya' },
+  'Wallet and payment options': { en: 'Wallet and payment options', fr: 'Portefeuille et moyens de paiement', rw: 'Wallet n’uburyo bwo kwishyura' },
+  'Your previous journeys': { en: 'Your previous journeys', fr: 'Vos trajets précédents', rw: 'Ingendo wakoze mbere' },
+  'Deliveries and shopping orders': { en: 'Deliveries and shopping orders', fr: 'Livraisons et commandes', rw: 'Ibyo watumije n’ibyo wohereje' },
+  'Your rewards and benefits': { en: 'Your rewards and benefits', fr: 'Vos récompenses et avantages', rw: 'Ibihembo n’inyungu byawe' },
+  'Your safety tools and preferences': { en: 'Your safety tools and preferences', fr: 'Vos outils et préférences de sécurité', rw: 'Ibikoresho n’amahitamo by’umutekano wawe' },
+  'We are here when you need us': { en: 'We are here when you need us', fr: 'Nous sommes là quand vous en avez besoin', rw: 'Turi hano igihe udukeneye' },
+  'Choose your preferred language': { en: 'Choose your preferred language', fr: 'Choisissez votre langue préférée', rw: 'Hitamo ururimi wifuza gukoresha' },
+  'Choose language': { en: 'Choose language', fr: 'Choisir la langue', rw: 'Hitamo ururimi' },
+  'Logging out…': { en: 'Logging out…', fr: 'Déconnexion…', rw: 'Urimo gusohoka…' },
+  'Close': { en: 'Close', fr: 'Fermer', rw: 'Funga' },
+});
