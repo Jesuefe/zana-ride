@@ -155,3 +155,9 @@ body:has(.zana-city-home) .zana-bottom-nav-active:before{content:"";position:abs
 .zana-city-place-copy small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#87938a;font-size:8px;line-height:1.15}
 .dark .zana-city-place-copy strong{color:#e5eee7}
 .dark .zana-city-place-copy small{color:#9aaca0}
+
+@keyframes zana-pin-pulse{0%,100%{box-shadow:0 0 0 7px rgba(0,160,130,.12),0 0 0 15px rgba(0,160,130,.055),0 7px 18px rgba(25,55,39,.22)}50%{box-shadow:0 0 0 10px rgba(0,160,130,.09),0 0 0 22px rgba(0,160,130,.025),0 7px 18px rgba(25,55,39,.22)}}
+.zana-city-signature-pin{animation:zana-pin-pulse 2.7s ease-in-out infinite}
+.zana-city-service-moto:active .zana-city-service-glyph circle{transform-box:fill-box;transform-origin:center;animation:zana-wheel-turn .34s ease-out}
+@keyframes zana-wheel-turn{to{transform:rotate(360deg)}}
+.zana-city-service-delivery:active .zana-city-service-glyph path:first-child{transform:translateY(-1px);transition:transform .16s ease}
