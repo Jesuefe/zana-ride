@@ -162,3 +162,329 @@ body:has(.zana-city-home) .zana-bottom-nav-active:before{content:"";position:abs
 .zana-city-service-moto:active .zana-city-service-glyph circle{transform-box:fill-box;transform-origin:center;animation:zana-wheel-turn .34s ease-out}
 @keyframes zana-wheel-turn{to{transform:rotate(360deg)}}
 .zana-city-service-delivery:active .zana-city-service-glyph path:first-child{transform:translateY(-1px);transition:transform .16s ease}
+
+
+/* ── Responsive home experience: compact phones, tablets, foldables, desktop ── */
+.zana-city-home,
+.zana-city-home * {
+  box-sizing: border-box;
+}
+.zana-city-home {
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: clip;
+}
+.zana-city-map,
+.zana-city-sheet,
+.zana-city-topbar,
+.zana-city-greeting {
+  min-width: 0;
+}
+.zana-city-sheet {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.zana-city-sheet-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  padding-bottom: max(128px, calc(88px + env(safe-area-inset-bottom, 0px)));
+  -webkit-overflow-scrolling: touch;
+}
+.zana-city-route-row,
+.zana-city-place-chip,
+.zana-city-shortcuts button,
+.zana-city-service,
+.zana-city-wallet {
+  touch-action: manipulation;
+}
+.zana-city-route-row,
+.zana-city-place-chip,
+.zana-city-shortcuts button {
+  min-height: 44px;
+}
+.zana-city-wallet {
+  max-width: min(62vw, 260px);
+  min-width: 0;
+}
+.zana-city-wallet strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zana-city-booking-heading h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.zana-city-delivery-copy {
+  min-width: 0;
+}
+.zana-city-parcel-art {
+  max-width: 45%;
+  object-fit: contain;
+  object-position: bottom right;
+}
+
+@media (max-width: 420px) {
+  .zana-city-topbar {
+    left: max(12px, env(safe-area-inset-left, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
+    gap: 8px;
+  }
+  .zana-city-wordmark {
+    gap: 7px;
+    font-size: 14px;
+  }
+  .zana-city-logo {
+    width: 29px;
+    height: 29px;
+  }
+  .zana-city-wallet {
+    min-height: 40px;
+    gap: 5px;
+    padding-inline: 10px;
+    font-size: 9px;
+  }
+  .zana-city-wallet strong {
+    font-size: 10px;
+  }
+  .zana-city-greeting {
+    left: 16px;
+    max-width: calc(100vw - 32px);
+  }
+  .zana-city-greeting strong {
+    font-size: clamp(18px, 5vw, 20px);
+  }
+  .zana-city-sheet {
+    height: 70dvh;
+    max-height: calc(100dvh - 138px);
+    min-height: 248px;
+    border-radius: 24px 24px 0 0;
+  }
+  .zana-city-home[data-sheet="peek"] .zana-city-sheet {
+    height: 270px;
+    max-height: calc(100dvh - 138px);
+  }
+  .zana-city-home[data-sheet="full"] .zana-city-sheet {
+    height: calc(100dvh - 104px);
+    max-height: calc(100dvh - 104px);
+  }
+  .zana-city-sheet-scroll {
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-bottom: max(122px, calc(88px + env(safe-area-inset-bottom, 0px)));
+  }
+  .zana-city-booking-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: 7px;
+  }
+  .zana-city-booking-heading h1 {
+    font-size: clamp(19px, 5.3vw, 22px);
+  }
+  .zana-city-locating {
+    font-size: 9px;
+  }
+  .zana-city-place-row {
+    gap: 6px;
+  }
+  .zana-city-place-chip {
+    max-width: calc(50% - 3px);
+    padding-inline: 9px;
+  }
+  .zana-city-services-block {
+    margin-left: -14px;
+    margin-right: -14px;
+  }
+  .zana-city-service-strip {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .zana-city-delivery-promo {
+    min-height: 106px;
+    padding: 12px;
+  }
+  .zana-city-delivery-copy {
+    max-width: 68%;
+  }
+  .zana-city-delivery-copy h2 {
+    font-size: 15px;
+  }
+  body:has(.zana-city-home) .zana-bottom-nav {
+    width: calc(100vw - 24px);
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    padding: 5px 6px;
+  }
+  body:has(.zana-city-home) .zana-bottom-nav-item {
+    min-height: 46px;
+    padding-inline: 2px;
+  }
+  body:has(.zana-city-home) .zana-bottom-nav-item span {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 350px) {
+  .zana-city-wallet span {
+    display: none;
+  }
+  .zana-city-wallet {
+    padding-inline: 9px;
+  }
+  .zana-city-greeting {
+    top: calc(max(16px, env(safe-area-inset-top)) + 54px);
+  }
+  .zana-city-sheet-scroll {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .zana-city-route-card {
+    padding-inline: 9px;
+  }
+  .zana-city-route-row {
+    gap: 8px;
+  }
+  .zana-city-services-block {
+    margin-left: -12px;
+    margin-right: -12px;
+  }
+  .zana-city-service-strip {
+    padding-inline: 12px;
+  }
+  body:has(.zana-city-home) .zana-bottom-nav-item span {
+    font-size: 8px;
+  }
+}
+
+@media (min-width: 700px) and (min-height: 700px) {
+  .zana-city-sheet {
+    width: min(520px, calc(100vw - 56px));
+  }
+  .zana-city-sheet-scroll {
+    padding-bottom: max(116px, calc(88px + env(safe-area-inset-bottom, 0px)));
+  }
+  .zana-city-booking-heading h1 {
+    font-size: clamp(22px, 2.2vw, 27px);
+  }
+  .zana-city-service {
+    flex-basis: 74px;
+    height: 80px;
+  }
+  .zana-city-service.primary {
+    flex-basis: 96px;
+    height: 88px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .zana-city-topbar {
+    left: clamp(28px, 4vw, 64px);
+    right: clamp(28px, 4vw, 64px);
+  }
+  .zana-city-greeting {
+    left: clamp(34px, 4.5vw, 72px);
+  }
+  .zana-city-sheet {
+    right: clamp(28px, 4vw, 64px);
+    width: min(540px, 42vw);
+  }
+  .zana-city-sheet-scroll {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .zana-city-services-block {
+    margin-left: -24px;
+    margin-right: -24px;
+  }
+  .zana-city-service-strip {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 1500px) {
+  .zana-city-sheet {
+    width: min(570px, 40vw);
+  }
+  .zana-city-booking-heading h1 {
+    font-size: 28px;
+  }
+  .zana-city-route-row {
+    min-height: 48px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .zana-city-topbar {
+    top: max(10px, env(safe-area-inset-top, 0px));
+    left: max(14px, env(safe-area-inset-left, 0px));
+    right: max(14px, env(safe-area-inset-right, 0px));
+  }
+  .zana-city-greeting {
+    top: 68px;
+    left: max(16px, env(safe-area-inset-left, 0px));
+  }
+  .zana-city-greeting strong {
+    font-size: 18px;
+  }
+  .zana-city-sheet,
+  .zana-city-home[data-sheet="peek"] .zana-city-sheet,
+  .zana-city-home[data-sheet="full"] .zana-city-sheet {
+    top: max(10px, env(safe-area-inset-top, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    left: auto;
+    width: min(460px, 58vw);
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    border-radius: 22px;
+  }
+  .zana-city-sheet-scroll {
+    min-height: 0;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: 92px;
+  }
+  .zana-city-home[data-sheet="peek"] .zana-city-sheet-secondary,
+  .zana-city-home[data-sheet="peek"] .zana-city-recents,
+  .zana-city-home[data-sheet="peek"] .zana-city-services-block {
+    display: block;
+  }
+  .zana-city-home[data-sheet="peek"] .zana-city-sheet-scroll {
+    overflow-y: auto;
+  }
+  .zana-city-booking-heading {
+    margin-bottom: 8px;
+  }
+  .zana-city-booking-heading h1 {
+    font-size: 19px;
+  }
+  .zana-city-route-row {
+    min-height: 38px;
+  }
+  .zana-city-place-row {
+    margin-block: 7px 9px;
+  }
+  .zana-city-delivery-promo {
+    min-height: 88px;
+  }
+  body:has(.zana-city-home) .zana-bottom-nav {
+    left: 16px;
+    right: auto;
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    transform: none;
+    width: min(390px, calc(100vw - 500px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zana-city-home *,
+  .zana-city-home *::before,
+  .zana-city-home *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
