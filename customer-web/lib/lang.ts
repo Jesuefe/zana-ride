@@ -851,3 +851,12 @@ Object.assign(UI, {
   '10 – 20 kg': { en: '10 – 20 kg', fr: '10 à 20 kg', rw: 'Kg 10 kugeza kuri 20' },
   'Over 20 kg': { en: 'Over 20 kg', fr: 'Plus de 20 kg', rw: 'Hejuru ya kg 20' },
 });
+
+
+Object.assign(UI, {
+  'The rider inspects every package before pickup to meet Zana security compliance.': {
+    en: 'The rider inspects every package before pickup to meet Zana security compliance.',
+    fr: 'Le coursier vérifie chaque colis avant la collecte afin de respecter les règles de sécurité de Zana.',
+    rw: 'Mbere yo gufata ikintu, utanga ibintu arakigenzura kugira ngo hubahirizwe amabwiriza y’umutekano ya Zana.'
+  },
+});
