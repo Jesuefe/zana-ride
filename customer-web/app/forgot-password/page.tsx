@@ -75,7 +75,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-white px-6 pt-14 pb-10">
+    <div className="zana-page-enter zana-auth-page min-h-screen bg-white px-6 pt-14 pb-10">
       <button
         onClick={() => (step === 'reset' ? setStep('identify') : router.back())}
         className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center mb-6"

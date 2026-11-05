@@ -51,7 +51,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="zana-page-enter zana-auth-page flex flex-col min-h-screen">
       <div className="bg-zana-primary-light flex-1 flex items-center justify-center animate-fade-in py-10">
         <div className="w-32 h-32 rounded-3xl bg-white shadow-lg flex items-center justify-center overflow-hidden animate-fade-slide-up">
           <Image src="/zana-mark.png" alt="Zana" width={128} height={128} className="object-cover" priority />

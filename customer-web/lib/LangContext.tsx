@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Lang, getStoredLang, setStoredLang, UI } from './lang';
 import { getToken } from './api/client';
 
@@ -20,6 +20,10 @@ export function LangProvider({ children }: { children: ReactNode }) {
   // Resolve the cached/browser language during the first client render so
   // the app does not briefly render English before restoring the preference.
   const [lang, setLangState] = useState<Lang>(() => getStoredLang(getToken()));
+
+  useEffect(() => {
+    document.documentElement.lang = lang === 'rw' ? 'rw' : lang;
+  }, [lang]);
 
   const setLang = (newLang: Lang) => {
     setLangState(newLang);

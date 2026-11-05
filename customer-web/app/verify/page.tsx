@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { verifyPhone, resendVerification } from '../../lib/api/auth';
 import { ApiError } from '../../lib/api/client';
 import { useLang } from '../../lib/LangContext';
+import ZanaLoading from '../../components/ZanaLoading';
 
 function VerifyForm() {
   const { t } = useLang();
@@ -55,7 +56,7 @@ function VerifyForm() {
   };
 
   return (
-    <div className="p-6">
+    <div className="zana-page-enter zana-auth-page p-6">
       <h1 className="text-2xl font-bold text-gray-900">{t('Enter the code')}</h1>
       <p className="text-sm text-zana-muted mt-1">
         {usingEmail ? `${t('Sent by email to')} ${email || t('your email')}` : `${t('Sent via SMS to')} ${phone}`}
@@ -101,7 +102,7 @@ function VerifyForm() {
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}>
       <VerifyForm />
     </Suspense>
   );
