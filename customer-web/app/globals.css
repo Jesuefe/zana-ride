@@ -214,7 +214,7 @@ button, a, input, textarea, select {
 }
 .zana-home-top {
   position: relative;
-  padding-top: max(1.75rem, env(safe-area-inset-top));
+  padding-top: max(1.75rem, 0px);
   padding-bottom: 2.25rem;
   border-radius: 0 0 34px 34px;
   background:
@@ -430,7 +430,7 @@ button, a, input, textarea, select {
   color: #12211c;
 }
 .zana-marketplace-header {
-  padding-top: max(1.25rem, env(safe-area-inset-top));
+  padding-top: max(1.25rem, 0px);
   box-shadow: 0 4px 18px rgba(18,45,35,.025);
 }
 .zana-marketplace-list {
@@ -522,7 +522,7 @@ body { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; 
   color: #17211e;
 }
 .zana-home-top {
-  padding-top: max(1.1rem, env(safe-area-inset-top));
+  padding-top: max(1.1rem, 0px);
   padding-bottom: .65rem;
   border-radius: 0;
   background: #f8faf9;
@@ -828,7 +828,7 @@ html, body { background-color: var(--background); color: var(--foreground); }
 
 /* ── Wallet refinement: clear hierarchy, premium tactility ─────────────── */
 .zana-wallet-screen { max-width: 920px; margin-inline: auto; }
-.zana-wallet-heading { padding-top: max(.35rem, env(safe-area-inset-top)); }
+.zana-wallet-heading { padding-top: max(.35rem, 0px); }
 .zana-wallet-balance-card {
   position: relative;
   isolation: isolate;
@@ -940,7 +940,7 @@ html, body { background-color: var(--background); color: var(--foreground); }
   min-height: min(76vh, 760px);
   width: min(100% - 2rem, 560px);
   margin: 0 auto;
-  padding: max(3rem, env(safe-area-inset-top)) 0 3rem;
+  padding: max(3rem, 0px) 0 3rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2097,7 +2097,7 @@ body {
   :root { --zana-bottom-nav-height: 3.9rem; }
 }
 @media (min-width: 768px) {
-  .app-shell { padding-left: 0; padding-right: 0; }
+  .app-shell { padding-left: var(--zana-safe-inline-start); padding-right: var(--zana-safe-inline-end); }
 }
 @supports not (height: 100dvh) {
   .app-shell { min-height: 100vh; }
