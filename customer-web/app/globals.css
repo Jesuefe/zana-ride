@@ -2410,3 +2410,94 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+
+/* Lock the customer app to the device viewport. Scroll belongs only to
+   explicitly scrollable inner panels, never to the document/page itself. */
+html, body {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-width: 100%;
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+body {
+  position: fixed;
+  inset: 0;
+}
+.app-shell {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  min-height: 0 !important;
+  max-height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.app-shell > * { min-width: 0; max-width: 100%; }
+img, video, canvas, iframe { max-width: 100%; }
+
+/* Minimal driver-search screen */
+.zana-dispatch-minimal {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) max(14px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  color: #18231f;
+  background: #fff;
+}
+.zana-dispatch-minimal-header { display:flex; align-items:center; gap:10px; min-height:42px; }
+.zana-dispatch-minimal-header img { width:30px; height:30px; object-fit:contain; }
+.zana-dispatch-minimal-header > span { color:#173b31; font-size:13px; font-weight:900; letter-spacing:.18em; }
+.zana-dispatch-minimal-sound {
+  display:grid; width:38px; height:38px; margin-left:auto; place-items:center;
+  border:1px solid #e8eeeb; border-radius:50%; color:#52645c; background:#fff;
+}
+.zana-dispatch-minimal-content {
+  display:flex; width:100%; max-width:390px; min-height:0; flex:1 1 auto;
+  flex-direction:column; align-items:center; justify-content:center;
+  margin:0 auto; text-align:center;
+}
+.zana-dispatch-minimal-spinner {
+  position:relative; display:grid; width:82px; height:82px; margin-bottom:28px;
+  place-items:center; border:1px solid #e2eee9; border-radius:50%;
+  color:#008f73; background:#f7fbf9;
+}
+.zana-dispatch-minimal-spinner span {
+  position:absolute; inset:-4px; border:2px solid transparent;
+  border-top-color:#00a082; border-right-color:#00a082; border-radius:50%;
+  animation:zana-minimal-spin 1.25s linear infinite;
+}
+.zana-dispatch-minimal-eyebrow { margin:0 0 9px; color:#008f73; font-size:10px; font-weight:850; letter-spacing:.18em; }
+.zana-dispatch-minimal-content h1 { margin:0; color:#17231e; font-size:clamp(25px,6vw,32px); font-weight:850; letter-spacing:-.045em; line-height:1.15; }
+.zana-dispatch-minimal-copy { max-width:285px; margin:12px 0 0; color:#78857f; font-size:13px; line-height:1.6; }
+.zana-dispatch-minimal-time {
+  display:flex; align-items:center; gap:12px; margin-top:27px; padding:10px 15px;
+  border:1px solid #edf1ef; border-radius:999px; color:#75827c; background:#fff; font-size:11px;
+}
+.zana-dispatch-minimal-time strong { color:#173b31; font-size:12px; font-variant-numeric:tabular-nums; }
+.zana-dispatch-minimal-note { max-width:310px; margin-top:24px; padding:14px 16px; border-radius:14px; color:#718078; background:#f6f9f7; font-size:11px; line-height:1.55; }
+.zana-dispatch-minimal-footer { width:100%; max-width:390px; margin:0 auto; }
+.zana-dispatch-minimal-footer button {
+  width:100%; min-height:48px; border:1px solid #e6ece9; border-radius:14px;
+  color:#42534b; background:#fff; font-size:13px; font-weight:750;
+}
+.zana-dispatch-minimal-footer p { margin:10px 0 0; color:#a1aaa5; font-size:10px; text-align:center; }
+@keyframes zana-minimal-spin { to { transform:rotate(360deg); } }
+@media (max-height:640px) {
+  .zana-dispatch-minimal-spinner { width:64px; height:64px; margin-bottom:17px; }
+  .zana-dispatch-minimal-time { margin-top:17px; }
+  .zana-dispatch-minimal-note { margin-top:14px; padding:10px 13px; }
+}
+@media (prefers-reduced-motion:reduce) { .zana-dispatch-minimal-spinner span { animation:none; } }
