@@ -2102,3 +2102,15 @@ body {
 @supports not (height: 100dvh) {
   .app-shell { min-height: 100vh; }
 }
+
+/* Driver-search sweep used by the live ride-dispatch panel. */
+@keyframes search-sweep {
+  0% { transform: translateX(-110%); }
+  55% { transform: translateX(210%); }
+  100% { transform: translateX(330%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zana-page-enter [class*="animate-[search-sweep"] {
+    animation: none !important;
+  }
+}
