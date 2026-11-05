@@ -19,7 +19,7 @@ export default function BottomNav() {
   if (hidden) return null;
 
   return (
-    <nav aria-label={t('Main navigation')} className="zana-bottom-nav pointer-events-none fixed inset-x-0 bottom-0 left-1/2 -translate-x-1/2 z-40 flex w-full max-w-[480px] md:max-w-[640px] lg:max-w-[760px] items-center justify-around">
+    <nav aria-label={t('Main navigation')} className="zana-bottom-nav">
       {items.map((item) => {
         const active = pathname === item.href;
         const Icon = item.icon;
@@ -28,10 +28,10 @@ export default function BottomNav() {
             key={item.href}
             href={item.href}
             aria-current={active ? 'page' : undefined}
-            className={`zana-bottom-nav-item pointer-events-auto flex min-w-0 flex-1 max-w-24 flex-col items-center gap-1 px-2 py-1 ${active ? 'zana-bottom-nav-active text-zana-primary' : 'text-zana-muted'}`}
+            className={`zana-bottom-nav-item ${active ? 'zana-bottom-nav-active' : ''}`}
           >
             <Icon size={20} strokeWidth={active ? 2.4 : 2} />
-            <span className="text-[11px]">{t(item.label)}</span>
+            <span>{t(item.label)}</span>
           </Link>
         );
       })}
