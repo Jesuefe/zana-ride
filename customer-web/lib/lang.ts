@@ -931,6 +931,14 @@ Object.assign(UI, {
 });
 
 Object.assign(UI, {
+  'Browse Local Shops': { en: 'Browse Local Shops', fr: 'Parcourir les commerces locaux', rw: 'Reba amaduka yo hafi' },
+  'Everything you need, nearby.': { en: 'Everything you need, nearby.', fr: 'Tout ce qu’il vous faut, à proximité.', rw: 'Ibyo ukeneye byose hafi yawe.' },
+  'Shop from local markets and stores in one place.': { en: 'Shop from local markets and stores in one place.', fr: 'Faites vos achats dans les marchés et commerces locaux au même endroit.', rw: 'Gurira mu masoko no mu maduka yo hafi yawe ahantu hamwe.' },
+  'Choose where you want to shop.': { en: 'Choose where you want to shop.', fr: 'Choisissez où vous souhaitez faire vos achats.', rw: 'Hitamo aho ushaka guhaha.' },
+  'Local Markets': { en: 'Local Markets', fr: 'Marchés locaux', rw: 'Amasoko yo hafi' },
+  'Fresh produce and everyday market essentials.': { en: 'Fresh produce and everyday market essentials.', fr: 'Produits frais et articles essentiels du marché.', rw: 'Imbuto, imboga n’ibindi bikenerwa ku isoko buri munsi.' },
+  'Local Stores': { en: 'Local Stores', fr: 'Magasins locaux', rw: 'Amaduka yo hafi' },
+  'Products from shops and registered merchants near you.': { en: 'Products from shops and registered merchants near you.', fr: 'Produits des magasins et commerçants près de chez vous.', rw: 'Ibicuruzwa byo mu maduka n’abacuruzi bo hafi yawe.' },
   'Market & Shop': { en: 'Market & Shop', fr: 'Marché et boutiques', rw: 'Isoko n’amaduka' },
   'Around you': { en: 'Around you', fr: 'Autour de vous', rw: 'Hafi yawe' },
   'Buy from your local market': { en: 'Buy from your local market', fr: 'Achetez dans votre marché local', rw: 'Gura ku isoko ryo hafi yawe' },
