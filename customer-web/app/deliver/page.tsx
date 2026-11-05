@@ -93,7 +93,7 @@ export default function DeliverPage() {
   const [receiverName, setReceiverName] = useState('');
   const [receiverPhone, setReceiverPhone] = useState('');
 
-  const [quote, setQuote] = useState<{ fee: number; distanceKm: number } | null>(null);
+  const [quote, setQuote] = useState<{ fee: number; distanceKm: number; durationMinutes: number } | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [awaitingMomo, setAwaitingMomo] = useState(false);
@@ -144,7 +144,7 @@ export default function DeliverPage() {
       dropoffLng: dropoff.lng,
       weight,
     })
-      .then((q) => setQuote({ fee: q.fee, distanceKm: q.distanceKm }))
+      .then((q) => setQuote({ fee: q.fee, distanceKm: q.distanceKm, durationMinutes: q.durationMinutes }))
       .catch(() => setQuote(null))
       .finally(() => setQuoteLoading(false));
   }, [dropoff, weight, pickup.lat, pickup.lng]);
@@ -467,7 +467,7 @@ export default function DeliverPage() {
             {quoteLoading && <p className="text-xs font-medium text-gray-500">{t('Calculating delivery price…')}</p>}
             {quote && <div className="flex items-center justify-between rounded-2xl bg-zana-primary-dark px-4 py-4 text-white">
               <div><p className="text-[11px] text-white/70">{t('Estimated delivery fee')}</p><p className="mt-1 text-xl font-black">{quote.fee.toLocaleString()} RWF</p></div>
-              <p className="text-xs text-white/70">{quote.distanceKm} km</p>
+              <div className="text-right"><p className="text-xs font-semibold text-white">~{Math.max(1, Math.round(quote.durationMinutes))} min</p><p className="text-[10px] text-white/70">{quote.distanceKm} km</p></div>
             </div>}
           </section>
         )}
@@ -501,7 +501,7 @@ export default function DeliverPage() {
               <div className="bg-zana-primary-dark p-4 text-white">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{t('Delivery estimate')}</p>
                 {quote ? <p className="mt-1 text-3xl font-black">{quote.fee.toLocaleString()} <span className="text-sm font-bold">RWF</span></p> : <p className="mt-1 text-sm font-semibold">{quoteLoading ? t('Calculating delivery price…') : t('Price unavailable. Go back and try again.')}</p>}
-                {quote && <p className="mt-1 text-xs text-white/70">{quote.distanceKm} km · {t('Estimated distance')}</p>}
+                {quote && <p className="mt-1 text-xs text-white/70">{quote.distanceKm} km · ~{Math.max(1, Math.round(quote.durationMinutes))} min · {t('Estimated distance')}</p>}
               </div>
               <div className="space-y-3 p-4">
                 <div className="flex items-start gap-3">

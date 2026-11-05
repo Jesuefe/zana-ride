@@ -102,6 +102,12 @@ function RideOptionsContent() {
           COMFORT: comfort.status === 'fulfilled' ? comfort.value.fare : 0,
         };
         setFares(nextFares);
+        if (bike.status === 'fulfilled') {
+          setRouteInfo({
+            distanceText: `${bike.value.distanceKm.toFixed(1)} km`,
+            durationText: `~${Math.max(1, Math.round(bike.value.durationMinutes))} min`,
+          });
+        }
         setFareError(Object.values(nextFares).some(fare => fare > 0) ? null : t('Could not calculate the ride fare. Please try again.'));
       } catch {
         setFares({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
