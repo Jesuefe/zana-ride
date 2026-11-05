@@ -444,18 +444,10 @@ function TrackingContent() {
         </div>
       )}
       {status === 'SEARCHING_DRIVER' && (
-        <section className="zana-dispatch-fullscreen" aria-live="polite" aria-label={t('Finding your driver')}>
-          <div className="zana-dispatch-grid" aria-hidden="true" />
-          <div className="zana-dispatch-glow zana-dispatch-glow-one" aria-hidden="true" />
-          <div className="zana-dispatch-glow zana-dispatch-glow-two" aria-hidden="true" />
-          <header className="zana-dispatch-header">
-            <div className="flex items-center gap-3">
-              <img src="/zana-mark.svg" alt="Zana" className="h-11 w-11 object-contain" />
-              <div>
-                <p className="text-white text-[15px] font-black tracking-[0.22em]">ZANA</p>
-                <p className="text-emerald-100/55 text-[9px] font-bold uppercase tracking-[0.2em]">Ride dispatch</p>
-              </div>
-            </div>
+        <section className="zana-dispatch-minimal" aria-live="polite" aria-label={t('Finding your driver')}>
+          <header className="zana-dispatch-minimal-header">
+            <img src="/zana-mark.svg" alt="Zana" />
+            <span>ZANA</span>
             <button
               type="button"
               onClick={() => {
@@ -470,72 +462,38 @@ function TrackingContent() {
                   setSearchSoundOn(true);
                 }
               }}
-              className="zana-dispatch-sound"
               aria-label={searchSoundOn ? t('Mute search sound') : t('Enable search sound')}
               aria-pressed={searchSoundOn}
+              className="zana-dispatch-minimal-sound"
             >
               {searchSoundOn ? <Volume2 size={17} /> : <VolumeX size={17} />}
-              <span>{searchSoundOn ? t('Sound on') : t('Sound off')}</span>
             </button>
           </header>
-
-          <div className="zana-dispatch-main">
-            <div className="zana-dispatch-kicker"><span className="zana-dispatch-live-dot" /> {t('ZANA DISPATCH LIVE')}</div>
-            <h1 className="zana-dispatch-title">
-              {searchSeconds < 7
-                ? t('Finding your ride')
-                : searchSeconds < 18
-                  ? t('Scanning nearby streets')
-                  : t('Expanding the search')}
-            </h1>
-            <p className="zana-dispatch-subtitle">
-              {searchSeconds < 7
-                ? t('We are looking for an available ride professional near your pickup.')
-                : searchSeconds < 18
-                  ? t('Checking nearby availability and sending your request to drivers.')
-                  : t('Still searching nearby. We are keeping your request active.')}
+          <div className="zana-dispatch-minimal-content">
+            <div className="zana-dispatch-minimal-spinner" aria-hidden="true">
+              <span />
+              <Bike size={25} strokeWidth={1.8} />
+            </div>
+            <p className="zana-dispatch-minimal-eyebrow">{t('ZANA RIDE')}</p>
+            <h1>{t('Finding your ride')}</h1>
+            <p className="zana-dispatch-minimal-copy">
+              {searchSeconds < 18
+                ? t('We are checking for available drivers near your pickup.')
+                : t('We are still looking nearby. Your request remains active.')}
             </p>
-
-            <div className="zana-dispatch-radar" aria-hidden="true">
-              <div className="zana-dispatch-radar-ring zana-dispatch-ring-one" />
-              <div className="zana-dispatch-radar-ring zana-dispatch-ring-two" />
-              <div className="zana-dispatch-radar-ring zana-dispatch-ring-three" />
-              <div className="zana-dispatch-radar-crosshair" />
-              <div className="zana-dispatch-radar-sweep" />
-              <span className="zana-dispatch-signal signal-one" />
-              <span className="zana-dispatch-signal signal-two" />
-              <span className="zana-dispatch-signal signal-three" />
-              <span className="zana-dispatch-signal signal-four" />
-              <div className="zana-dispatch-center">
-                <span className="zana-dispatch-center-halo" />
-                <span className="zana-dispatch-center-icon"><Bike size={38} strokeWidth={1.8} /></span>
-                <span className="zana-dispatch-center-pin"><MapPin size={15} fill="currentColor" /></span>
-              </div>
-            </div>
-
-            <div className="zana-dispatch-scanline">
-              <span className="zana-dispatch-scanline-fill" />
-            </div>
-            <div className="zana-dispatch-timer">
-              <span><Radar size={14} /> {t('Searching around your pickup')}</span>
+            <div className="zana-dispatch-minimal-time">
+              <span>{t('Searching nearby')}</span>
               <strong>{formatElapsed(searchSeconds)}</strong>
             </div>
-          </div>
-
-          <footer className="zana-dispatch-footer">
-            <div className="zana-dispatch-status-card">
-              <div className="flex items-center gap-3">
-                <span className="zana-dispatch-status-icon"><Radar size={20} /></span>
-                <div className="min-w-0">
-                  <p className="text-white text-sm font-extrabold">{t('Your ride is being matched')}</p>
-                  <p className="text-emerald-100/60 text-[11px] leading-relaxed mt-1">{t('Your driver details and live location will appear here as soon as they accept.')}</p>
-                </div>
-                <span className="zana-dispatch-equalizer" aria-hidden="true"><i /><i /><i /><i /><i /></span>
-              </div>
+            <div className="zana-dispatch-minimal-note">
+              {t('Your driver and live location will appear here once a driver accepts.')}
             </div>
-            <button type="button" onClick={handleCancel} className="zana-dispatch-cancel">{t('Cancel ride')}</button>
-            <p className="text-center text-[9px] text-white/35 mt-3">{t('Please keep this screen open while we search.')}</p>
+          </div>
+          <footer className="zana-dispatch-minimal-footer">
+            <button type="button" onClick={handleCancel}>{t('Cancel ride')}</button>
+            <p>{t('Please keep this screen open while we search.')}</p>
           </footer>
+          <audio ref={searchSoundRef} src="https://sfxmint.com/dl/sci-fi-scan-01.mp3" preload="auto" />
         </section>
       )}
       <div className="relative">
