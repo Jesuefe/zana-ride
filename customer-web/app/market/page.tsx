@@ -38,8 +38,8 @@ export default function MarketsPage() {
           <ArrowLeft size={18} className="text-gray-700" />
         </button>
         <div>
-          <h1 className="text-xl font-black text-gray-900">{t('Buy from the market')}</h1>
-          <p className="text-xs text-gray-500">{t('An agent shops for you and a rider brings it')}</p>
+          <h1 className="text-xl font-black text-gray-900">{t('Buy from your local market')}</h1>
+          <p className="text-xs text-gray-500">{t('Explore local markets and have your shopping delivered')}</p>
         </div>
       </div>
 
