@@ -61,8 +61,12 @@ export class TranslationService {
 
   constructor(private config: ConfigService) {}
 
-  private get apiKey() {
+  private get googleApiKey() {
     return this.config.get<string>('GOOGLE_TRANSLATE_API_KEY') ?? '';
+  }
+
+  private get geminiApiKey() {
+    return this.config.get<string>('GEMINI_API_KEY') ?? '';
   }
 
   // Translates a navigation phrase using the hardcoded map.
@@ -84,27 +88,52 @@ export class TranslationService {
   // Translates arbitrary text via Google Translate API.
   async translate(text: string, targetLang: Lang, sourceLang?: Lang): Promise<string> {
     if (!text.trim()) return text;
-    if (!this.apiKey) {
-      this.logger.warn('GOOGLE_TRANSLATE_API_KEY not set — returning original text');
-      return text;
-    }
-
-    // Map our lang codes to Google's
-    const langMap: Record<Lang, string> = { en: 'en', fr: 'fr', rw: 'rw' };
+    const languageNames: Record<Lang, string> = { en: 'English', fr: 'French', rw: 'Kinyarwanda' };
 
     try {
-      const params = new URLSearchParams({
-        q: text,
-        target: langMap[targetLang],
-        key: this.apiKey,
-        format: 'text',
-        ...(sourceLang ? { source: langMap[sourceLang] } : {}),
-      });
+      if (this.googleApiKey) {
+        const params = new URLSearchParams({
+          q: text, target: targetLang, key: this.googleApiKey, format: 'text',
+          ...(sourceLang ? { source: sourceLang } : {}),
+        });
+        const res = await fetch(`https://translation.googleapis.com/language/translate/v2?${params}`);
+        if (!res.ok) throw new Error(`Google Translate API error: ${res.status}`);
+        const data = await res.json() as any;
+        return data.data?.translations?.[0]?.translatedText ?? text;
+      }
 
-      const res = await fetch(`https://translation.googleapis.com/language/translate/v2?${params}`);
-      if (!res.ok) throw new Error(`Translate API error: ${res.status}`);
-      const data = await res.json() as any;
-      return data.data?.translations?.[0]?.translatedText ?? text;
+      // Use the Gemini key already documented for the backend deployment.
+      if (this.geminiApiKey) {
+        const model = this.config.get<string>('GEMINI_MODEL') ?? 'gemini-2.5-flash';
+        const sourceInstruction = sourceLang
+          ? `The source language is ${languageNames[sourceLang]}.`
+          : 'Detect the source language automatically.';
+        const prompt = [
+          'Translate the message below faithfully and naturally.',
+          sourceInstruction,
+          `Translate it into ${languageNames[targetLang]}.`,
+          'Preserve names, addresses, numbers, prices and the original meaning.',
+          'Return only the translated message, with no quotation marks or explanation.',
+          '',
+          text,
+        ].join('\\n');
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(this.geminiApiKey)}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
+          }),
+        });
+        if (!res.ok) throw new Error(`Gemini translation API error: ${res.status}`);
+        const data = await res.json() as any;
+        const translated = data.candidates?.[0]?.content?.parts?.map((part: any) => part.text ?? '').join('').trim();
+        return translated || text;
+      }
+
+      this.logger.warn('No translation API key configured; returning original message');
+      return text;
     } catch (err) {
       this.logger.error(`Translation failed: ${err}`);
       return text;

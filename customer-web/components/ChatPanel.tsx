@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLang } from '../lib/LangContext';
 import { X, Send, MessageCircle, Loader2 } from 'lucide-react';
 import { sendMessage, getMessages, ChatMessage } from '../lib/api/chat';
-import { getStoredLang, Lang } from '../lib/lang';
+import { Lang } from '../lib/lang';
 import { getToken } from '../lib/api/client';
 
 // Decode just the sub from the JWT so we know which messages are "mine"
@@ -29,14 +29,16 @@ export default function ChatPanel({
   contextId: string;
   onClose: () => void;
 }) {
-  const { t } = useLang();
-  const appLang = getStoredLang() as Lang;
-  const [lang, setLang] = useState<Lang>(appLang);
+  const { t, lang: preferredLang } = useLang();
+  const [lang, setLang] = useState<Lang>(preferredLang);
+  const [showOriginal, setShowOriginal] = useState<Record<string, boolean>>({});
   const myId = getUserIdFromToken();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setLang(preferredLang); }, [preferredLang]);
 
   useEffect(() => {
     const load = () =>
@@ -114,6 +116,15 @@ export default function ChatPanel({
                 }`}>
                   {m.content}
                 </div>
+                {m.originalContent && m.originalContent !== m.content && (
+                  <div className="px-1">
+                    <span className="text-[9px] text-zana-muted">{t('Translated automatically')}</span>
+                    <button onClick={() => setShowOriginal(current => ({ ...current, [m.id]: !current[m.id] }))} className="ml-2 text-[9px] font-semibold text-zana-primary underline">
+                      {t(showOriginal[m.id] ? 'Hide original' : 'See original')}
+                    </button>
+                    {showOriginal[m.id] && <p className="mt-1 rounded-lg bg-gray-50 px-2 py-1 text-xs text-gray-600">{m.originalContent}</p>}
+                  </div>
+                )}
                 <span className="text-[9px] text-zana-muted px-1">
                   {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>

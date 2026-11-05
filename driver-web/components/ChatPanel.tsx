@@ -32,6 +32,7 @@ export default function ChatPanel({
   const myId = getUserIdFromToken();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
+  const [showOriginal, setShowOriginal] = useState<Record<string, boolean>>({});
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +107,15 @@ export default function ChatPanel({
                 }`}>
                   {m.content}
                 </div>
+                {m.originalContent && m.originalContent !== m.content && (
+                  <div className="px-1">
+                    <span className="text-[9px] text-zana-muted">{dt('Translated automatically')}</span>
+                    <button onClick={() => setShowOriginal(current => ({ ...current, [m.id]: !current[m.id] }))} className="ml-2 text-[9px] font-semibold text-zana-primary underline">
+                      {dt(showOriginal[m.id] ? 'Hide original' : 'See original')}
+                    </button>
+                    {showOriginal[m.id] && <p className="mt-1 rounded-lg bg-gray-50 px-2 py-1 text-xs text-gray-600">{m.originalContent}</p>}
+                  </div>
+                )}
                 <span className="text-[9px] text-zana-muted px-1">
                   {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>

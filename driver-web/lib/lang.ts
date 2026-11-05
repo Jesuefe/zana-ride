@@ -534,3 +534,9 @@ Object.assign(DRIVER_UI, {
   'Delivery Request': { en: 'Delivery Request', fr: 'Demande de livraison', rw: 'Ubusabe bwo kugeza ibintu' },
   'Menu': { en: 'Menu', fr: 'Menu', rw: 'Menyu' },
 });
+
+Object.assign(DRIVER_UI, {
+  'Translated automatically': { en: 'Translated automatically', fr: 'Traduit automatiquement', rw: 'Byahinduwe mu buryo bwikora' },
+  'See original': { en: 'See original', fr: 'Voir l’original', rw: 'Reba ubutumwa bw’umwimerere' },
+  'Hide original': { en: 'Hide original', fr: 'Masquer l’original', rw: 'Hisha ubutumwa bw’umwimerere' },
+});

@@ -929,3 +929,21 @@ Object.assign(UI, {
   'Resolved': { en: 'Resolved', fr: 'Résolu', rw: 'Cyakemutse' },
   'Closed': { en: 'Closed', fr: 'Fermé', rw: 'Cyafunzwe' },
 });
+
+Object.assign(UI, {
+  'Market & Shop': { en: 'Market & Shop', fr: 'Marché et boutiques', rw: 'Isoko n’amaduka' },
+  'Around you': { en: 'Around you', fr: 'Autour de vous', rw: 'Hafi yawe' },
+  'Buy from your local market': { en: 'Buy from your local market', fr: 'Achetez dans votre marché local', rw: 'Gura ku isoko ryo hafi yawe' },
+  'Explore nearby markets and get fresh everyday essentials delivered to you.': { en: 'Explore nearby markets and get fresh everyday essentials delivered to you.', fr: 'Découvrez les marchés proches et faites-vous livrer vos produits frais du quotidien.', rw: 'Reba amasoko akwegereye maze uhabwe ibicuruzwa by’ibanze bishya.' },
+  'Explore local markets': { en: 'Explore local markets', fr: 'Découvrir les marchés locaux', rw: 'Reba amasoko yo hafi yawe' },
+  'More ways to shop': { en: 'More ways to shop', fr: 'Plus de façons de faire vos achats', rw: 'Ubundi buryo bwo guhaha' },
+  'Shop from local stores': { en: 'Shop from local stores', fr: 'Achetez dans les boutiques locales', rw: 'Gura mu maduka yo hafi yawe' },
+  'Browse products from stores and merchants near you.': { en: 'Browse products from stores and merchants near you.', fr: 'Parcourez les produits des boutiques et commerçants près de vous.', rw: 'Reba ibicuruzwa byo mu maduka n’abacuruzi bakwegereye.' },
+  'Browse local shops': { en: 'Browse local shops', fr: 'Parcourir les boutiques locales', rw: 'Reba amaduka yo hafi yawe' },
+  'Find groceries, household goods and everyday essentials.': { en: 'Find groceries, household goods and everyday essentials.', fr: 'Trouvez des courses, des articles ménagers et des produits essentiels.', rw: 'Shaka ibiribwa, ibikoresho byo mu rugo n’ibindi bikenerwa buri munsi.' },
+  'Explore local markets and have your shopping delivered': { en: 'Explore local markets and have your shopping delivered', fr: 'Découvrez les marchés locaux et faites-vous livrer vos achats', rw: 'Reba amasoko yo hafi yawe maze ugemurirwe ibyo waguze' },
+  'Messages are translated into your selected language': { en: 'Messages are translated into your selected language', fr: 'Les messages sont traduits dans la langue choisie', rw: 'Ubutumwa buhindurwa mu rurimi wahisemo' },
+  'Translated automatically': { en: 'Translated automatically', fr: 'Traduit automatiquement', rw: 'Byahinduwe mu buryo bwikora' },
+  'See original': { en: 'See original', fr: 'Voir l’original', rw: 'Reba ubutumwa bw’umwimerere' },
+  'Hide original': { en: 'Hide original', fr: 'Masquer l’original', rw: 'Hisha ubutumwa bw’umwimerere' },
+});
