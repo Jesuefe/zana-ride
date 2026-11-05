@@ -8,7 +8,7 @@ button{font:inherit}
 .site-shell{overflow:hidden}
 .site-header{height:82px;padding:0 6.5vw;display:flex;align-items:center;justify-content:space-between;background:rgba(247,248,243,.93);backdrop-filter:blur(14px);position:sticky;top:0;z-index:50;border-bottom:1px solid rgba(16,34,29,.06)}
 .brand{display:inline-flex;align-items:center;gap:9px;font-size:27px;font-weight:800;letter-spacing:-1.7px;line-height:1}
-.brand img{object-fit:contain;width:42px;height:34px}
+.brand img{object-fit:contain;width:52px;height:52px;border-radius:8px}
 .brand-dot{color:var(--green)}
 .main-nav{display:flex;align-items:center;gap:34px;font-size:14px;font-weight:600;color:#52635b}
 .main-nav>a:not(.nav-cta):hover,.text-link:hover{color:var(--green)}
