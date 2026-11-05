@@ -332,7 +332,6 @@ function TrackingContent() {
       audio.currentTime = 0;
       audio.play().catch(() => {});
     };
-    playScan();
     const timer = setInterval(playScan, 8500);
     return () => {
       clearInterval(timer);
@@ -459,7 +458,18 @@ function TrackingContent() {
             </div>
             <button
               type="button"
-              onClick={() => setSearchSoundOn((value) => !value)}
+              onClick={() => {
+                if (searchSoundOn) {
+                  setSearchSoundOn(false);
+                } else {
+                  const audio = searchSoundRef.current;
+                  if (audio) {
+                    audio.currentTime = 0;
+                    audio.play().catch(() => {});
+                  }
+                  setSearchSoundOn(true);
+                }
+              }}
               className="zana-dispatch-sound"
               aria-label={searchSoundOn ? t('Mute search sound') : t('Enable search sound')}
               aria-pressed={searchSoundOn}
