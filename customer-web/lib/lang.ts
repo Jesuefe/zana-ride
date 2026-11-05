@@ -947,3 +947,13 @@ Object.assign(UI, {
   'See original': { en: 'See original', fr: 'Voir l’original', rw: 'Reba ubutumwa bw’umwimerere' },
   'Hide original': { en: 'Hide original', fr: 'Masquer l’original', rw: 'Hisha ubutumwa bw’umwimerere' },
 });
+
+Object.assign(UI, {
+  'Order progress': { en: 'Order progress', fr: 'Progression de la commande', rw: 'Aho ibyo watumije bigeze' },
+  'Drop-off': { en: 'Drop-off', fr: 'Livraison', rw: 'Aho bigezwa' },
+  'Rate delivery': { en: 'Rate delivery', fr: 'Évaluer la livraison', rw: 'Tanga amanota ku kugeza ibintu' },
+  'Order total': { en: 'Order total', fr: 'Total de la commande', rw: 'Amafaranga yose y’itegeko' },
+  'Could not cancel this order.': { en: 'Could not cancel this order.', fr: 'Impossible d’annuler cette commande.', rw: 'Ntibyashobotse guhagarika iri tegeko.' },
+  'Close details': { en: 'Close details', fr: 'Fermer les détails', rw: 'Funga ibisobanuro' },
+  'Item': { en: 'Item', fr: 'Article', rw: 'Igicuruzwa' },
+});
