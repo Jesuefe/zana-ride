@@ -473,60 +473,84 @@ function TrackingContent() {
           {allCompleted ? t('All trips completed') : t(STATUS_COPY[status] ?? status)}
         </h2>
         {status === 'SEARCHING_DRIVER' && (
-          <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-[#f0fbf6] via-white to-[#fff8e8] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#00a082]">{t('Zana is on the hunt')}</p>
-                <p className="mt-1 text-sm font-bold text-gray-900">
-                  {searchSeconds < 5
-                    ? t('Scanning streets near your pickup')
-                    : searchSeconds < 15
-                      ? t('Where are the drivers hiding?')
-                      : t('Still searching for your ride professional')}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {searchSeconds < 5
-                    ? t('Looking for a ride professional close to you.')
-                    : searchSeconds < 15
-                      ? t('The search is still active. Hang tight.')
-                      : t('We have not given up. Your request is still active.')}
+          <section className="mt-4 overflow-hidden rounded-[28px] border border-emerald-100 bg-gradient-to-br from-[#effbf6] via-white to-[#fff8e8] p-4 shadow-[0_12px_35px_rgba(0,90,70,0.07)]" aria-live="polite">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#008b70]">{t('Zana ride dispatch')}</p>
+                <h3 className="mt-1 text-lg font-black leading-tight text-gray-900">
+                  {searchSeconds < 6
+                    ? t('Finding your ride professional')
+                    : searchSeconds < 16
+                      ? t('Searching nearby streets')
+                      : t('Your ride professional is still out there')}
+                </h3>
+                <p className="mt-1.5 max-w-[230px] text-xs leading-relaxed text-gray-500">
+                  {searchSeconds < 6
+                    ? t('We are checking for an available driver close to your pickup.')
+                    : searchSeconds < 16
+                      ? t('Zana is widening the search around your pickup point.')
+                      : t('The search is still active. We are giving nearby drivers a chance to respond.')}
                 </p>
               </div>
-              <div className="relative grid h-[88px] w-[88px] shrink-0 place-items-center">
+              <div className="relative grid h-[104px] w-[104px] shrink-0 place-items-center" aria-hidden="true">
                 <span className="absolute inset-0 rounded-full border border-[#00a082]/20 animate-ping" />
-                <span className="absolute inset-2 rounded-full border border-dashed border-[#00a082]/35 animate-[spin_12s_linear_infinite]" />
-                <span className="absolute inset-[22px] rounded-full bg-[#00a082]/10" />
-                <span className="relative grid h-10 w-10 place-items-center rounded-2xl bg-[#00a082] text-white shadow-lg shadow-emerald-900/15 animate-bounce">
-                  <Bike size={22} />
+                <span className="absolute inset-[9px] rounded-full border border-dashed border-[#00a082]/35 animate-[spin_10s_linear_infinite]" />
+                <span className="absolute inset-[19px] rounded-full border border-[#ffc244]/60 animate-[spin_5s_linear_infinite]" />
+                <span className="absolute inset-[29px] rounded-full bg-[#00a082]/10" />
+                <span className="absolute left-1/2 top-1/2 h-px w-[43px] origin-left -translate-y-1/2 bg-gradient-to-r from-[#00a082] to-transparent animate-[spin_3s_linear_infinite]" />
+                <span className="relative grid h-11 w-11 place-items-center rounded-2xl bg-[#00a082] text-white shadow-lg shadow-emerald-900/20">
+                  <Bike size={23} />
                 </span>
-                <span className="absolute right-1 top-3 h-2.5 w-2.5 rounded-full bg-[#ffc244] ring-4 ring-white animate-pulse" />
-                <span className="absolute bottom-2 left-1 h-2 w-2 rounded-full bg-[#00a082] ring-4 ring-white animate-pulse" />
+                <span className="absolute right-2 top-4 h-2.5 w-2.5 rounded-full bg-[#ffc244] ring-4 ring-white animate-pulse" />
+                <span className="absolute bottom-3 left-3 h-2 w-2 rounded-full bg-[#00a082] ring-4 ring-white animate-pulse" />
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-2 rounded-2xl bg-white/85 px-3 py-2.5">
-              <span className="relative flex h-2.5 w-2.5 shrink-0">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[#00a082] opacity-60 animate-ping" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#00a082]" />
-              </span>
-              <p className="text-[11px] font-semibold text-gray-600">
-                {searchSeconds < 8
-                  ? t('Checking the closest drivers first…')
-                  : searchSeconds < 18
-                    ? t('Our driver radar is still on…')
-                    : t('Your ride professional is worth the wait. Still searching…')}
-              </p>
-              <span className="ml-auto text-[10px] font-bold tabular-nums text-[#00a082]">{formatElapsed(searchSeconds)}</span>
+            <div className="mt-4 rounded-2xl bg-white/90 p-3 ring-1 ring-emerald-900/5">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{t('Live driver search')}</span>
+                <span className="text-[11px] font-black tabular-nums text-[#008b70]">{formatElapsed(searchSeconds)}</span>
+              </div>
+              <div className="relative h-2 overflow-hidden rounded-full bg-[#e8f3ee]">
+                <span className="absolute inset-y-0 left-0 w-1/3 rounded-full bg-gradient-to-r from-[#00a082]/20 via-[#00a082] to-[#ffc244] animate-[search-sweep_1.8s_ease-in-out_infinite]" />
+              </div>
+              <div className="mt-2.5 flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-[#00a082] opacity-60 animate-ping" />
+                  <span className="relative h-2.5 w-2.5 rounded-full bg-[#00a082]" />
+                </span>
+                <p className="text-[11px] font-semibold text-gray-600">
+                  {searchSeconds < 8
+                    ? t('Checking the closest drivers first…')
+                    : searchSeconds < 18
+                      ? t('Our driver radar is still on…')
+                      : t('Still looking. Good rides are worth finding…')}
+                </p>
+              </div>
             </div>
-            <p className="mt-3 text-center text-[10px] font-medium text-gray-400">{t('You will see your driver details as soon as someone accepts.')}</p>
-          </div>
+            <p className="mt-3 text-center text-[10px] font-medium text-gray-400">{t('Your driver and ride details will appear here as soon as a driver accepts.')}</p>
+          </section>
         )}
 
         {status === 'NO_DRIVER_FOUND' && (
-          <div className="mt-4 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 text-center">
-            <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-amber-100 text-2xl">⌖</div>
-            <p className="text-base font-black text-gray-900">{t('No ride professional found just yet')}</p>
-            <p className="mt-2 text-sm leading-relaxed text-gray-600">{t('We checked nearby areas but could not find an available driver. Try again in a moment or choose a pickup point on a busier street.')}</p>
-          </div>
+          <section className="mt-4 overflow-hidden rounded-[28px] border border-amber-200 bg-gradient-to-br from-[#fff8e8] via-white to-[#f0fbf6] p-5 text-center shadow-[0_12px_35px_rgba(120,80,0,0.06)]" aria-live="polite">
+            <div className="relative mx-auto mb-4 grid h-28 w-28 place-items-center" aria-hidden="true">
+              <span className="absolute inset-0 rounded-full border border-dashed border-amber-300 animate-[spin_16s_linear_infinite]" />
+              <span className="absolute inset-3 rounded-full border border-amber-200" />
+              <span className="absolute inset-6 rounded-full bg-amber-50" />
+              <span className="relative grid h-12 w-12 place-items-center rounded-2xl bg-[#ffc244] text-[#173b31] shadow-lg">
+                <Bike size={25} />
+              </span>
+              <span className="absolute -right-0.5 top-4 rounded-full bg-white px-2 py-1 text-[9px] font-black text-amber-700 shadow">?</span>
+              <span className="absolute bottom-1 left-1 rounded-full bg-white px-2 py-1 text-[9px] font-bold text-[#008b70] shadow">Z</span>
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">{t('The search is taking a breather')}</p>
+            <h3 className="mt-1 text-lg font-black text-gray-900">{t('No ride professional found just yet')}</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-gray-600">{t('Looks like our nearby drivers are busy right now. Your request could not be matched this time. Try again shortly or choose a pickup point on a busier street.')}</p>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-[11px] font-semibold text-gray-500 ring-1 ring-amber-100">
+              <span className="h-2 w-2 rounded-full bg-amber-400" />
+              {t('A little patience can go a long way.')}
+            </div>
+          </section>
         )}
 
         {/* Driver on the way — show how far away they are */}
