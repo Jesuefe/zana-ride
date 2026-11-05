@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { AlertTriangle, Phone, Star, User, Navigation, MessageCircle, Bike } from 'lucide-react';
+import { AlertTriangle, Phone, Star, User, Navigation, MessageCircle, Bike, Volume2, VolumeX, Radar, MapPin } from 'lucide-react';
 import ChatPanel from '../../components/ChatPanel';
 import RatingModal from '../../components/RatingModal';
 import VoiceCall from '../../components/VoiceCall';
@@ -135,6 +135,8 @@ function TrackingContent() {
   const [driverEta, setDriverEta] = useState<{ durationText: string; distanceText: string } | null>(null);
   const [waitingSeconds, setWaitingSeconds] = useState(0);
   const [searchSeconds, setSearchSeconds] = useState(0);
+  const [searchSoundOn, setSearchSoundOn] = useState(false);
+  const searchSoundRef = useRef<HTMLAudioElement | null>(null);
   const [serverOffsetMs, setServerOffsetMs] = useState(0);
   const [cancelNotice, setCancelNotice] = useState<string | null>(null);
   const motionRequested = useRef(false);
@@ -320,6 +322,25 @@ function TrackingContent() {
     return () => clearInterval(timer);
   }, [status, primaryTrip?.id]);
 
+  // Search audio is opt-in: browsers require a real user gesture before sound
+  // can play. The loop stops immediately when dispatch ends or the customer mutes.
+  useEffect(() => {
+    if (status !== 'SEARCHING_DRIVER' || !searchSoundOn) return;
+    const audio = searchSoundRef.current;
+    if (!audio) return;
+    const playScan = () => {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    };
+    playScan();
+    const timer = setInterval(playScan, 8500);
+    return () => {
+      clearInterval(timer);
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, [status, searchSoundOn, primaryTrip?.id]);
+
   const rideIsActive = ACTIVE_STATUSES.includes(status);
 
   // The phone may have been offline while the driver changed the ride state.
@@ -423,6 +444,90 @@ function TrackingContent() {
           {callNotice}
         </div>
       )}
+      {status === 'SEARCHING_DRIVER' && (
+        <section className="zana-dispatch-fullscreen" aria-live="polite" aria-label={t('Finding your driver')}>
+          <div className="zana-dispatch-grid" aria-hidden="true" />
+          <div className="zana-dispatch-glow zana-dispatch-glow-one" aria-hidden="true" />
+          <div className="zana-dispatch-glow zana-dispatch-glow-two" aria-hidden="true" />
+          <header className="zana-dispatch-header">
+            <div className="flex items-center gap-3">
+              <img src="/zana-mark.svg" alt="Zana" className="h-11 w-11 object-contain" />
+              <div>
+                <p className="text-white text-[15px] font-black tracking-[0.22em]">ZANA</p>
+                <p className="text-emerald-100/55 text-[9px] font-bold uppercase tracking-[0.2em]">Ride dispatch</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSearchSoundOn((value) => !value)}
+              className="zana-dispatch-sound"
+              aria-label={searchSoundOn ? t('Mute search sound') : t('Enable search sound')}
+              aria-pressed={searchSoundOn}
+            >
+              {searchSoundOn ? <Volume2 size={17} /> : <VolumeX size={17} />}
+              <span>{searchSoundOn ? t('Sound on') : t('Sound off')}</span>
+            </button>
+          </header>
+
+          <div className="zana-dispatch-main">
+            <div className="zana-dispatch-kicker"><span className="zana-dispatch-live-dot" /> {t('ZANA DISPATCH LIVE')}</div>
+            <h1 className="zana-dispatch-title">
+              {searchSeconds < 7
+                ? t('Finding your ride')
+                : searchSeconds < 18
+                  ? t('Scanning nearby streets')
+                  : t('Expanding the search')}
+            </h1>
+            <p className="zana-dispatch-subtitle">
+              {searchSeconds < 7
+                ? t('We are looking for an available ride professional near your pickup.')
+                : searchSeconds < 18
+                  ? t('Checking nearby availability and sending your request to drivers.')
+                  : t('Still searching nearby. We are keeping your request active.')}
+            </p>
+
+            <div className="zana-dispatch-radar" aria-hidden="true">
+              <div className="zana-dispatch-radar-ring zana-dispatch-ring-one" />
+              <div className="zana-dispatch-radar-ring zana-dispatch-ring-two" />
+              <div className="zana-dispatch-radar-ring zana-dispatch-ring-three" />
+              <div className="zana-dispatch-radar-crosshair" />
+              <div className="zana-dispatch-radar-sweep" />
+              <span className="zana-dispatch-signal signal-one" />
+              <span className="zana-dispatch-signal signal-two" />
+              <span className="zana-dispatch-signal signal-three" />
+              <span className="zana-dispatch-signal signal-four" />
+              <div className="zana-dispatch-center">
+                <span className="zana-dispatch-center-halo" />
+                <span className="zana-dispatch-center-icon"><Bike size={38} strokeWidth={1.8} /></span>
+                <span className="zana-dispatch-center-pin"><MapPin size={15} fill="currentColor" /></span>
+              </div>
+            </div>
+
+            <div className="zana-dispatch-scanline">
+              <span className="zana-dispatch-scanline-fill" />
+            </div>
+            <div className="zana-dispatch-timer">
+              <span><Radar size={14} /> {t('Searching around your pickup')}</span>
+              <strong>{formatElapsed(searchSeconds)}</strong>
+            </div>
+          </div>
+
+          <footer className="zana-dispatch-footer">
+            <div className="zana-dispatch-status-card">
+              <div className="flex items-center gap-3">
+                <span className="zana-dispatch-status-icon"><Radar size={20} /></span>
+                <div className="min-w-0">
+                  <p className="text-white text-sm font-extrabold">{t('Your ride is being matched')}</p>
+                  <p className="text-emerald-100/60 text-[11px] leading-relaxed mt-1">{t('Your driver details and live location will appear here as soon as they accept.')}</p>
+                </div>
+                <span className="zana-dispatch-equalizer" aria-hidden="true"><i /><i /><i /><i /><i /></span>
+              </div>
+            </div>
+            <button type="button" onClick={handleCancel} className="zana-dispatch-cancel">{t('Cancel ride')}</button>
+            <p className="text-center text-[9px] text-white/35 mt-3">{t('Please keep this screen open while we search.')}</p>
+          </footer>
+        </section>
+      )}
       <div className="relative">
         {mapSource ? (
           <BrandedMap
@@ -473,62 +578,7 @@ function TrackingContent() {
           {allCompleted ? t('All trips completed') : t(STATUS_COPY[status] ?? status)}
         </h2>
         {status === 'SEARCHING_DRIVER' && (
-          <section className="mt-4 overflow-hidden rounded-[28px] border border-emerald-100 bg-gradient-to-br from-[#effbf6] via-white to-[#fff8e8] p-4 shadow-[0_12px_35px_rgba(0,90,70,0.07)]" aria-live="polite">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#008b70]">{t('Zana ride dispatch')}</p>
-                <h3 className="mt-1 text-lg font-black leading-tight text-gray-900">
-                  {searchSeconds < 6
-                    ? t('Finding your ride professional')
-                    : searchSeconds < 16
-                      ? t('Searching nearby streets')
-                      : t('Your ride professional is still out there')}
-                </h3>
-                <p className="mt-1.5 max-w-[230px] text-xs leading-relaxed text-gray-500">
-                  {searchSeconds < 6
-                    ? t('We are checking for an available driver close to your pickup.')
-                    : searchSeconds < 16
-                      ? t('Zana is widening the search around your pickup point.')
-                      : t('The search is still active. We are giving nearby drivers a chance to respond.')}
-                </p>
-              </div>
-              <div className="relative grid h-[104px] w-[104px] shrink-0 place-items-center" aria-hidden="true">
-                <span className="absolute inset-0 rounded-full border border-[#00a082]/20 animate-ping" />
-                <span className="absolute inset-[9px] rounded-full border border-dashed border-[#00a082]/35 animate-[spin_10s_linear_infinite]" />
-                <span className="absolute inset-[19px] rounded-full border border-[#ffc244]/60 animate-[spin_5s_linear_infinite]" />
-                <span className="absolute inset-[29px] rounded-full bg-[#00a082]/10" />
-                <span className="absolute left-1/2 top-1/2 h-px w-[43px] origin-left -translate-y-1/2 bg-gradient-to-r from-[#00a082] to-transparent animate-[spin_3s_linear_infinite]" />
-                <span className="relative grid h-11 w-11 place-items-center rounded-2xl bg-[#00a082] text-white shadow-lg shadow-emerald-900/20">
-                  <Bike size={23} />
-                </span>
-                <span className="absolute right-2 top-4 h-2.5 w-2.5 rounded-full bg-[#ffc244] ring-4 ring-white animate-pulse" />
-                <span className="absolute bottom-3 left-3 h-2 w-2 rounded-full bg-[#00a082] ring-4 ring-white animate-pulse" />
-              </div>
-            </div>
-            <div className="mt-4 rounded-2xl bg-white/90 p-3 ring-1 ring-emerald-900/5">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{t('Live driver search')}</span>
-                <span className="text-[11px] font-black tabular-nums text-[#008b70]">{formatElapsed(searchSeconds)}</span>
-              </div>
-              <div className="relative h-2 overflow-hidden rounded-full bg-[#e8f3ee]">
-                <span className="absolute inset-y-0 left-0 w-1/3 rounded-full bg-gradient-to-r from-[#00a082]/20 via-[#00a082] to-[#ffc244] animate-[search-sweep_1.8s_ease-in-out_infinite]" />
-              </div>
-              <div className="mt-2.5 flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5 shrink-0">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-[#00a082] opacity-60 animate-ping" />
-                  <span className="relative h-2.5 w-2.5 rounded-full bg-[#00a082]" />
-                </span>
-                <p className="text-[11px] font-semibold text-gray-600">
-                  {searchSeconds < 8
-                    ? t('Checking the closest drivers first…')
-                    : searchSeconds < 18
-                      ? t('Our driver radar is still on…')
-                      : t('Still looking. Good rides are worth finding…')}
-                </p>
-              </div>
-            </div>
-            <p className="mt-3 text-center text-[10px] font-medium text-gray-400">{t('Your driver and ride details will appear here as soon as a driver accepts.')}</p>
-          </section>
+          <audio ref={searchSoundRef} src="https://sfxmint.com/dl/sci-fi-scan-01.mp3" preload="auto" />
         )}
 
         {status === 'NO_DRIVER_FOUND' && (

@@ -2114,3 +2114,299 @@ body {
     animation: none !important;
   }
 }
+
+
+/* Full-screen Zana dispatch experience */
+.zana-dispatch-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+  padding: max(18px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  color: #fff;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(0,160,130,.24), transparent 43%),
+    linear-gradient(155deg, #061b18 0%, #082b25 52%, #041713 100%);
+  animation: zana-dispatch-enter .55s cubic-bezier(.2,.8,.2,1) both;
+}
+.zana-dispatch-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  opacity: .14;
+  background-image: linear-gradient(rgba(133,235,205,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(133,235,205,.18) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(ellipse at center, black, transparent 82%);
+}
+.zana-dispatch-glow {
+  position: absolute;
+  z-index: -1;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+.zana-dispatch-glow-one { top: 22%; left: -190px; background: rgba(0,160,130,.18); }
+.zana-dispatch-glow-two { right: -190px; bottom: 9%; background: rgba(255,194,68,.10); }
+.zana-dispatch-header {
+  display: flex;
+  width: 100%;
+  max-width: 620px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto;
+}
+.zana-dispatch-sound {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px;
+  border: 1px solid rgba(190,240,220,.17);
+  border-radius: 999px;
+  color: rgba(255,255,255,.88);
+  background: rgba(255,255,255,.07);
+  font-size: 11px;
+  font-weight: 750;
+  backdrop-filter: blur(14px);
+}
+.zana-dispatch-main {
+  display: flex;
+  width: 100%;
+  max-width: 620px;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  padding: 14px 0 10px;
+  text-align: center;
+}
+.zana-dispatch-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #7fe3c4;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .22em;
+}
+.zana-dispatch-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffc244;
+  box-shadow: 0 0 0 5px rgba(255,194,68,.12), 0 0 16px rgba(255,194,68,.65);
+  animation: zana-dispatch-blink 1.5s ease-in-out infinite;
+}
+.zana-dispatch-title {
+  margin: 13px 0 0;
+  color: #fff;
+  font-size: clamp(27px, 7vw, 42px);
+  font-weight: 950;
+  letter-spacing: -.045em;
+  line-height: 1.05;
+}
+.zana-dispatch-subtitle {
+  max-width: 320px;
+  margin: 10px auto 0;
+  color: rgba(225,248,239,.66);
+  font-size: 12px;
+  line-height: 1.65;
+}
+.zana-dispatch-radar {
+  position: relative;
+  width: min(72vw, 310px);
+  height: min(72vw, 310px);
+  max-height: 310px;
+  flex: 0 0 auto;
+  margin: clamp(18px, 4vh, 32px) auto clamp(14px, 3vh, 24px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,160,130,.13) 0%, rgba(0,160,130,.035) 48%, transparent 70%);
+}
+.zana-dispatch-radar-ring {
+  position: absolute;
+  inset: 50%;
+  border: 1px solid rgba(108,227,192,.22);
+  border-radius: 50%;
+  transform: translate(-50%,-50%);
+}
+.zana-dispatch-ring-one { width: 35%; height: 35%; }
+.zana-dispatch-ring-two { width: 66%; height: 66%; border-style: dashed; animation: zana-dispatch-orbit 28s linear infinite; }
+.zana-dispatch-ring-three { width: 98%; height: 98%; border-color: rgba(108,227,192,.12); animation: zana-dispatch-breathe 3.6s ease-in-out infinite; }
+.zana-dispatch-radar-crosshair {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(90deg, transparent calc(50% - .5px), rgba(108,227,192,.13) 50%, transparent calc(50% + .5px)), linear-gradient(0deg, transparent calc(50% - .5px), rgba(108,227,192,.13) 50%, transparent calc(50% + .5px));
+}
+.zana-dispatch-radar-sweep {
+  position: absolute;
+  inset: 1%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg 285deg, rgba(0,160,130,0) 300deg, rgba(0,160,130,.05) 325deg, rgba(0,190,150,.42) 359deg, transparent 360deg);
+  animation: zana-dispatch-sweep 4.8s linear infinite;
+  -webkit-mask: radial-gradient(circle, transparent 0 12%, #000 13% 100%);
+  mask: radial-gradient(circle, transparent 0 12%, #000 13% 100%);
+}
+.zana-dispatch-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 90px;
+  height: 90px;
+  place-items: center;
+  transform: translate(-50%,-50%);
+}
+.zana-dispatch-center-halo {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255,194,68,.5);
+  border-radius: 30px;
+  background: rgba(255,194,68,.08);
+  box-shadow: 0 0 36px rgba(0,160,130,.28), inset 0 0 25px rgba(0,160,130,.14);
+  animation: zana-dispatch-center-pulse 2.4s ease-in-out infinite;
+}
+.zana-dispatch-center-icon {
+  position: relative;
+  display: grid;
+  width: 66px;
+  height: 66px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.17);
+  border-radius: 23px;
+  color: #fff;
+  background: linear-gradient(145deg, #08b98e, #007d65);
+  box-shadow: 0 12px 34px rgba(0,0,0,.28);
+}
+.zana-dispatch-center-pin {
+  position: absolute;
+  right: -5px;
+  top: -6px;
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 2px solid #082b25;
+  border-radius: 50%;
+  color: #09231d;
+  background: #ffc244;
+}
+.zana-dispatch-signal {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #082b25;
+  border-radius: 50%;
+  background: #ffc244;
+  box-shadow: 0 0 0 5px rgba(255,194,68,.12), 0 0 16px rgba(255,194,68,.55);
+  animation: zana-dispatch-signal 2.4s ease-in-out infinite;
+}
+.zana-dispatch-signal.signal-one { top: 17%; left: 27%; }
+.zana-dispatch-signal.signal-two { top: 29%; right: 14%; animation-delay: -.7s; }
+.zana-dispatch-signal.signal-three { bottom: 17%; left: 22%; animation-delay: -1.3s; }
+.zana-dispatch-signal.signal-four { right: 23%; bottom: 13%; animation-delay: -.35s; }
+.zana-dispatch-scanline {
+  position: relative;
+  width: min(76%, 260px);
+  height: 3px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(255,255,255,.1);
+}
+.zana-dispatch-scanline-fill {
+  position: absolute;
+  inset: 0 auto 0 -35%;
+  width: 35%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, #00d5a4, #ffc244);
+  box-shadow: 0 0 14px rgba(0,213,164,.7);
+  animation: search-sweep 2.1s ease-in-out infinite;
+}
+.zana-dispatch-timer {
+  display: flex;
+  width: min(76%, 260px);
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 13px;
+  color: rgba(225,248,239,.64);
+  font-size: 10px;
+}
+.zana-dispatch-timer span { display: inline-flex; align-items: center; gap: 7px; }
+.zana-dispatch-timer strong { color: #ffc244; font-size: 12px; font-variant-numeric: tabular-nums; }
+.zana-dispatch-footer {
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+  padding-bottom: max(2px, env(safe-area-inset-bottom, 0px));
+}
+.zana-dispatch-status-card {
+  padding: 15px;
+  border: 1px solid rgba(185,238,218,.15);
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,.09), rgba(255,255,255,.035));
+  box-shadow: 0 14px 42px rgba(0,0,0,.16);
+  backdrop-filter: blur(18px);
+}
+.zana-dispatch-status-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border: 1px solid rgba(0,213,164,.24);
+  border-radius: 14px;
+  color: #6fe0bf;
+  background: rgba(0,160,130,.16);
+}
+.zana-dispatch-equalizer { display: flex; height: 24px; flex: 0 0 auto; align-items: center; gap: 3px; margin-left: auto; }
+.zana-dispatch-equalizer i { display: block; width: 3px; height: 8px; border-radius: 9px; background: #ffc244; animation: zana-dispatch-equalize .85s ease-in-out infinite alternate; }
+.zana-dispatch-equalizer i:nth-child(2) { animation-delay: -.3s; }
+.zana-dispatch-equalizer i:nth-child(3) { height: 18px; animation-delay: -.55s; }
+.zana-dispatch-equalizer i:nth-child(4) { animation-delay: -.15s; }
+.zana-dispatch-equalizer i:nth-child(5) { height: 13px; animation-delay: -.4s; }
+.zana-dispatch-cancel {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 12px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 15px;
+  color: rgba(255,255,255,.84);
+  background: rgba(255,255,255,.055);
+  font-size: 12px;
+  font-weight: 800;
+  transition: background .18s ease, transform .18s ease;
+}
+.zana-dispatch-cancel:active { transform: scale(.985); background: rgba(255,255,255,.12); }
+@keyframes zana-dispatch-enter { from { opacity: 0; transform: scale(1.025); } to { opacity: 1; transform: scale(1); } }
+@keyframes zana-dispatch-sweep { to { transform: rotate(360deg); } }
+@keyframes zana-dispatch-orbit { to { transform: translate(-50%,-50%) rotate(360deg); } }
+@keyframes zana-dispatch-breathe { 0%,100% { opacity: .55; transform: translate(-50%,-50%) scale(.97); } 50% { opacity: 1; transform: translate(-50%,-50%) scale(1.03); } }
+@keyframes zana-dispatch-center-pulse { 0%,100% { transform: scale(.92); opacity: .75; } 50% { transform: scale(1.08); opacity: 1; } }
+@keyframes zana-dispatch-signal { 0%,100% { opacity: .55; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.35); } }
+@keyframes zana-dispatch-blink { 0%,100% { opacity: .65; } 50% { opacity: 1; } }
+@keyframes zana-dispatch-equalize { from { transform: scaleY(.4); opacity: .65; } to { transform: scaleY(1.25); opacity: 1; } }
+@media (max-height: 700px) {
+  .zana-dispatch-radar { width: min(57vw, 245px); height: min(57vw, 245px); margin-top: 12px; margin-bottom: 10px; }
+  .zana-dispatch-title { font-size: clamp(25px, 6vw, 34px); }
+  .zana-dispatch-subtitle { margin-top: 7px; }
+  .zana-dispatch-status-card { padding: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zana-dispatch-fullscreen *, .zana-dispatch-fullscreen *::before, .zana-dispatch-fullscreen *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
