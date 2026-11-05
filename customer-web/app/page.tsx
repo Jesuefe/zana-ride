@@ -45,7 +45,7 @@ function ServiceGlyph({ kind }: { kind: string }) {
 const SECONDARY_SERVICES = [
   { id: 'package', label: 'Delivery', kind: 'delivery' },
   { id: 'food', label: 'Order Food', kind: 'food' },
-  { id: 'market', label: 'Market & Shop', kind: 'market' },
+  { id: 'shop', label: 'Market & Shop', kind: 'market' },
   { id: 'gift', label: 'Send a Gift', kind: 'gift' },
 ];
 
