@@ -88,3 +88,50 @@ tbody tr { transition: background-color .12s ease; }
 .dark .text-gray-400 { color: #7C8986 !important; }
 .dark .border-gray-100, .dark .border-gray-200 { border-color: var(--zana-border) !important; }
 .dark .shadow-sm, .dark .shadow-md { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important; }
+
+
+/* ── Central admin device safe-area system ─────────────────────────────── */
+:root {
+  --zana-safe-top: env(safe-area-inset-top, 0px);
+  --zana-safe-right: env(safe-area-inset-right, 0px);
+  --zana-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --zana-safe-left: env(safe-area-inset-left, 0px);
+}
+html, body {
+  min-height: 100%;
+  min-height: 100svh;
+  scroll-padding-top: var(--zana-safe-top);
+}
+.admin-workspace {
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+.admin-sidebar {
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: var(--zana-safe-top);
+  padding-bottom: var(--zana-safe-bottom);
+}
+.admin-topbar {
+  top: var(--zana-safe-top);
+  min-height: calc(72px + var(--zana-safe-top));
+  padding-top: var(--zana-safe-top);
+  padding-left: max(1rem, var(--zana-safe-left));
+  padding-right: max(1rem, var(--zana-safe-right));
+}
+.admin-main {
+  min-width: 0;
+  padding-bottom: max(2rem, var(--zana-safe-bottom));
+}
+.zana-admin-safe-overlay {
+  padding-top: var(--zana-safe-top);
+  padding-bottom: var(--zana-safe-bottom);
+  padding-left: var(--zana-safe-left);
+  padding-right: var(--zana-safe-right);
+}
+@supports not (height: 100dvh) {
+  .admin-workspace, .admin-sidebar { min-height: 100vh; }
+}
