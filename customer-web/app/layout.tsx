@@ -26,9 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeProvider>
             <AuthGuard>
               <div className="app-shell relative w-full overflow-x-clip">
-                <SplashGate>{children}</SplashGate>
-                <span className="lollypop-design-watermark" aria-hidden="true">Designed by Lollypop Design Studio</span>
-              </div>
+                <SplashGate>{children}</SplashGate></div>
               <BottomNav />
               <RealtimeNotificationAlert />
             </AuthGuard>
