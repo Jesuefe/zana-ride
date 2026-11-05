@@ -45,9 +45,8 @@ function ServiceGlyph({ kind }: { kind: string }) {
 const SECONDARY_SERVICES = [
   { id: 'package', label: 'Delivery', kind: 'delivery' },
   { id: 'food', label: 'Order Food', kind: 'food' },
-  { id: 'shop', label: 'Shop', kind: 'shop' },
-  { id: 'gift', label: 'Send Gift', kind: 'gift' },
-  { id: 'market', label: 'Market', kind: 'market' },
+  { id: 'market', label: 'Market & Shop', kind: 'market' },
+  { id: 'gift', label: 'Send a Gift', kind: 'gift' },
 ];
 
 export default function HomePage() {
@@ -170,7 +169,7 @@ export default function HomePage() {
 
       <header className="zana-city-topbar">
         <button className="zana-city-wordmark" onClick={() => router.push('/')} aria-label={t('Zana home')}>
-          <span className="zana-city-logo">Z</span><span>ZANA</span>
+          <img src="/zana-mark.svg" alt="" className="zana-city-logo-image" /><span>ZANA</span>
         </button>
         <button className="zana-city-wallet" onClick={() => router.push('/wallet')} aria-label={`${t('Wallet')}: ${walletBalance === null ? '—' : `${walletBalance.toLocaleString()} RWF`}`}>
           <Wallet size={15} /><span>{t('Wallet')}</span><strong>{walletBalance === null ? '—' : `${walletBalance.toLocaleString()} RWF`}</strong>
@@ -184,7 +183,7 @@ export default function HomePage() {
 
       {recoveringRide && (
         <div className="zana-city-recovering" role="status">
-          <span className="zana-city-logo">Z</span>
+          <img src="/zana-mark.svg" alt="" className="zana-city-logo-image" />
           <strong>{t('Recovering your ride…')}</strong>
           <span>{t('Please wait while we reconnect you to your active trip.')}</span>
         </div>
