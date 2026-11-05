@@ -134,6 +134,7 @@ function TrackingContent() {
   const [routeDeviation, setRouteDeviation] = useState<{ offRoute: boolean; distanceMeters: number } | null>(null);
   const [driverEta, setDriverEta] = useState<{ durationText: string; distanceText: string } | null>(null);
   const [waitingSeconds, setWaitingSeconds] = useState(0);
+  const [searchSeconds, setSearchSeconds] = useState(0);
   const [serverOffsetMs, setServerOffsetMs] = useState(0);
   const [cancelNotice, setCancelNotice] = useState<string | null>(null);
   const motionRequested = useRef(false);
@@ -307,6 +308,18 @@ function TrackingContent() {
     return () => clearInterval(t);
   }, [primaryTrip?.driver?.lastLat, primaryTrip?.driver?.lastLng, primaryTrip?.status]);
   const status = primaryTrip?.status ?? 'SEARCHING_DRIVER';
+  useEffect(() => {
+    if (status !== 'SEARCHING_DRIVER') {
+      setSearchSeconds(0);
+      return;
+    }
+    const startedAt = Date.now();
+    const timer = setInterval(() => {
+      setSearchSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [status, primaryTrip?.id]);
+
   const rideIsActive = ACTIVE_STATUSES.includes(status);
 
   // The phone may have been offline while the driver changed the ride state.
@@ -459,6 +472,63 @@ function TrackingContent() {
           {isGroup && !allCompleted ? `${groupTrips.length} ${t('motos')} · ` : ''}
           {allCompleted ? t('All trips completed') : t(STATUS_COPY[status] ?? status)}
         </h2>
+        {status === 'SEARCHING_DRIVER' && (
+          <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-[#f0fbf6] via-white to-[#fff8e8] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#00a082]">{t('Zana is on the hunt')}</p>
+                <p className="mt-1 text-sm font-bold text-gray-900">
+                  {searchSeconds < 5
+                    ? t('Scanning streets near your pickup')
+                    : searchSeconds < 15
+                      ? t('Checking nearby routes and available drivers')
+                      : t('Expanding the search around Kigali')}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {searchSeconds < 5
+                    ? t('Looking for a ride professional close to you.')
+                    : searchSeconds < 15
+                      ? t('We are checking more nearby areas. Hang tight.')
+                      : t('We are widening the search. Your request is still active.')}
+                </p>
+              </div>
+              <div className="relative grid h-[88px] w-[88px] shrink-0 place-items-center">
+                <span className="absolute inset-0 rounded-full border border-[#00a082]/20 animate-ping" />
+                <span className="absolute inset-2 rounded-full border border-dashed border-[#00a082]/35 animate-[spin_12s_linear_infinite]" />
+                <span className="absolute inset-[22px] rounded-full bg-[#00a082]/10" />
+                <span className="relative grid h-10 w-10 place-items-center rounded-2xl bg-[#00a082] text-white shadow-lg shadow-emerald-900/15 animate-bounce">
+                  <Bike size={22} />
+                </span>
+                <span className="absolute right-1 top-3 h-2.5 w-2.5 rounded-full bg-[#ffc244] ring-4 ring-white animate-pulse" />
+                <span className="absolute bottom-2 left-1 h-2 w-2 rounded-full bg-[#00a082] ring-4 ring-white animate-pulse" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-2 rounded-2xl bg-white/85 px-3 py-2.5">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-[#00a082] opacity-60 animate-ping" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#00a082]" />
+              </span>
+              <p className="text-[11px] font-semibold text-gray-600">
+                {searchSeconds < 8
+                  ? t('Checking the closest drivers first…')
+                  : searchSeconds < 18
+                    ? t('Looking a little further down the road…')
+                    : t('Good things are worth finding. Still searching…')}
+              </p>
+              <span className="ml-auto text-[10px] font-bold tabular-nums text-[#00a082]">{formatElapsed(searchSeconds)}</span>
+            </div>
+            <p className="mt-3 text-center text-[10px] font-medium text-gray-400">{t('You will see your driver details as soon as someone accepts.')}</p>
+          </div>
+        )}
+
+        {status === 'NO_DRIVER_FOUND' && (
+          <div className="mt-4 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 text-center">
+            <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-amber-100 text-2xl">⌖</div>
+            <p className="text-base font-black text-gray-900">{t('No ride professional found just yet')}</p>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">{t('We checked nearby areas but could not find an available driver. Try again in a moment or choose a pickup point on a busier street.')}</p>
+          </div>
+        )}
+
         {/* Driver on the way — show how far away they are */}
         {driverEta && (
           <div className="flex items-center gap-2 mt-2 bg-zana-primary-light rounded-2xl px-4 py-2.5 w-fit">
