@@ -7,9 +7,10 @@ const DRIVER = 'https://driver.zanaride.rw';
 const MERCHANT = '/merchants';
 
 const SERVICES = [
-  { number: '01', icon: '↗', title: 'Ride across town', text: 'Book a moto or car, see your fare before you go, and follow your driver on the map.', tag: 'Moto + car', href: APP, tone: 'mint' },
-  { number: '02', icon: '↗', title: 'Send it with Zana', text: 'From important documents to everyday parcels, get it picked up and delivered with tracking.', tag: 'Door to door', href: APP, tone: 'yellow' },
-  { number: '03', icon: '↗', title: 'Bring the good stuff', text: 'Order from local restaurants and shops, or get help buying what you need around Kigali.', tag: 'Food + shopping', href: APP, tone: 'peach' },
+  { number: '01', icon: '↗', title: 'Delivery', text: 'Send parcels, documents and everyday items across Kigali with convenient pickup and delivery.', tag: 'Send anything', href: APP, tone: 'mint' },
+  { number: '02', icon: '↗', title: 'Order Food', text: 'Discover local restaurants and have your favourite meals brought straight to your door.', tag: 'Meals delivered', href: APP, tone: 'yellow' },
+  { number: '03', icon: '↗', title: 'Market & Shop', text: 'Shop for groceries, daily essentials and more from local stores in one place.', tag: 'Everyday shopping', href: APP, tone: 'peach' },
+  { number: '04', icon: '↗', title: 'Send a Gift', text: 'Make someone’s day. Choose a thoughtful gift and have it delivered to someone special.', tag: 'Surprise someone', href: APP, tone: 'mint' },
 ];
 
 export default function Landing() {
@@ -49,14 +50,14 @@ export default function Landing() {
         <div className="hero-copy">
           <div className="eyebrow"><span className="live-dot" /> MADE FOR KIGALI, RWANDA</div>
           <h1>Your city.<br /><span>Your way.</span></h1>
-          <p className="hero-lede">A ride across town. A parcel on its way. Your favourite things at your door. One simple way to get life moving.</p>
+          <p className="hero-lede">A meal you love. Market essentials for the week. A parcel on its way or a gift for someone special. One simple way to get it there.</p>
           <div className="hero-actions">
             <a className="button button-primary" href={APP}>Get moving <span aria-hidden="true">↗</span></a>
             <a className="text-link" href="#services">Explore Zana <span aria-hidden="true">↓</span></a>
           </div>
           <div className="hero-trust">
             <span className="trust-icon">✳</span>
-            <span><strong>One app, more possibilities.</strong><small>Rides · Deliveries · Food · Shopping</small></span>
+            <span><strong>One app, more possibilities.</strong><small>Delivery · Food · Market & Shop · Gifts</small></span>
           </div>
         </div>
 
@@ -106,7 +107,7 @@ export default function Landing() {
           <div className="how-map"><span className="how-road how-road-one" /><span className="how-road how-road-two" /><span className="how-road how-road-three" /><span className="how-pin pin-a">A</span><span className="how-pin pin-b">B</span><span className="how-map-label">KIGALI CITY</span></div>
           <div className="trip-card"><span className="trip-check">✓</span><span><strong>You're all set.</strong><small>Your journey, in your hands.</small></span></div>
         </div>
-        <div className="how-copy"><p className="eyebrow">LESS BACK AND FORTH</p><h2>Simple from<br />the first tap<span className="brand-dot">.</span></h2><p>Choose what you need, add the details, and let Zana take it from there. Clear steps, useful updates, and your journey in view.</p><div className="steps"><div className="step"><span>01</span><div><strong>Choose your service</strong><p>Ride, send, eat or shop.</p></div></div><div className="step"><span>02</span><div><strong>Tell us the details</strong><p>Set your destination or delivery.</p></div></div><div className="step"><span>03</span><div><strong>Keep your day moving</strong><p>Follow progress and stay in the loop.</p></div></div></div><a className="button button-dark" href={APP}>Try Zana <span aria-hidden="true">↗</span></a></div>
+        <div className="how-copy"><p className="eyebrow">LESS BACK AND FORTH</p><h2>Simple from<br />the first tap<span className="brand-dot">.</span></h2><p>Choose what you need, add the details, and let Zana take it from there. Clear steps, useful updates, and your journey in view.</p><div className="steps"><div className="step"><span>01</span><div><strong>Choose your service</strong><p>Choose delivery, food, market shopping or gifts.</p></div></div><div className="step"><span>02</span><div><strong>Tell us the details</strong><p>Choose what you need and where it should go.</p></div></div><div className="step"><span>03</span><div><strong>Keep your day moving</strong><p>Follow progress and stay in the loop.</p></div></div></div><a className="button button-dark" href={APP}>Try Zana <span aria-hidden="true">↗</span></a></div>
       </section>
 
       <section className="business-section section-pad" id="business">
