@@ -31,8 +31,7 @@ export default function Landing() {
       <div className="scroll-progress" style={{ width: `${scrollProgress}%` }} aria-hidden="true" />
       <header className="site-header">
         <a className="brand" href="/" aria-label="Zana home">
-          <img src="/zana-mark.png" alt="" width="42" height="34" />
-          <span>zana<span className="brand-dot">.</span></span>
+          <img src="/zana-mark.png" alt="Zana" width="52" height="52" />
         </a>
         <button className="menu-toggle" type="button" aria-expanded={menuOpen} aria-label="Toggle navigation" onClick={() => setMenuOpen(!menuOpen)}>
           <span /><span />
@@ -121,7 +120,7 @@ export default function Landing() {
       </section>
 
       <footer className="site-footer">
-        <div className="footer-main"><div className="footer-brand"><a className="brand brand-footer" href="/"><img src="/zana-mark.png" alt="" width="38" height="30" /><span>zana<span className="brand-dot">.</span></span></a><p>Your everyday, connected.<br />Kigali, Rwanda.</p></div><div className="footer-col"><strong>Explore</strong><a href="#services">Our services</a><a href="#how-it-works">How it works</a><a href={APP}>Open Zana</a></div><div className="footer-col"><strong>Partner with us</strong><a href={DRIVER}>Drive with Zana</a><a href={MERCHANT}>Sell with Zana</a><a href="https://zanaride.rw/form">Join the rider network</a></div><div className="footer-col"><strong>Say hello</strong><a href="mailto:support@zanaride.rw">support@zanaride.rw</a><a href="/contact">Contact us</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div></div>
+        <div className="footer-main"><div className="footer-brand"><a className="brand brand-footer" href="/"><img src="/zana-mark.png" alt="Zana" width="48" height="48" /></a><p>Your everyday, connected.<br />Kigali, Rwanda.</p></div><div className="footer-col"><strong>Explore</strong><a href="#services">Our services</a><a href="#how-it-works">How it works</a><a href={APP}>Open Zana</a></div><div className="footer-col"><strong>Partner with us</strong><a href={DRIVER}>Drive with Zana</a><a href={MERCHANT}>Sell with Zana</a><a href="https://zanaride.rw/form">Join the rider network</a></div><div className="footer-col"><strong>Say hello</strong><a href="mailto:support@zanaride.rw">support@zanaride.rw</a><a href="/contact">Contact us</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div></div>
         <div className="footer-bottom"><span>© {new Date().getFullYear()} Zana Ride. Made for Kigali.</span><span>Move freely. Move with Zana. <span className="brand-dot">✳</span></span></div>
       </footer>
     </main>
