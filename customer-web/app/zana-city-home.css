@@ -768,3 +768,83 @@
     scroll-behavior: auto !important;
   }
 }
+
+
+/* Fixed customer home viewport: prevent the document itself from scrolling.
+   The booking sheet remains the only vertical content scroller, with no visible bar. */
+html:has(.zana-city-home),
+body:has(.zana-city-home) {
+  width: 100%;
+  height: 100%;
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+body:has(.zana-city-home) .app-shell {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden !important;
+  padding-bottom: 0 !important;
+}
+.zana-city-home {
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+.zana-city-logo-image {
+  display: block;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 5px rgba(25,55,39,.12));
+}
+.zana-city-recovering .zana-city-logo-image {
+  width: 62px;
+  height: 62px;
+  flex-basis: 62px;
+}
+
+/* Four fixed service shortcuts — no horizontal carousel or clipped final tile. */
+.zana-city-service-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  overflow: visible;
+  padding: 0 14px 8px;
+  mask-image: none;
+}
+.zana-city-service {
+  width: 100%;
+  min-width: 0;
+  height: 82px;
+  min-height: 82px;
+  flex: initial;
+  gap: 5px;
+  padding: 7px 3px;
+  border-radius: 14px;
+}
+.zana-city-service-glyph,
+.zana-city-service-glyph svg {
+  width: 28px;
+  height: 26px;
+}
+.zana-city-service strong {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  font-size: 8px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.zana-city-services-block {
+  margin-left: -14px;
+  margin-right: -14px;
+}
+@media (max-width: 350px) {
+  .zana-city-service-strip { gap: 5px; padding-inline: 12px; }
+  .zana-city-service { height: 78px; min-height: 78px; }
+  .zana-city-service strong { font-size: 7.5px; }
+}
