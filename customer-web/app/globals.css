@@ -183,3 +183,1844 @@ body > .skiptranslate {
   background: none !important;
   box-shadow: none !important;
 }
+
+/* Responsive helpers: keep the established phone layout intact while making
+   controls and media safe on very narrow and notched mobile screens. */
+img, video, canvas, svg {
+  max-width: 100%;
+}
+
+button, a, input, textarea, select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@supports (padding: max(0px)) {
+  .app-shell {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 359px) {
+  .app-shell {
+    overflow-x: hidden;
+  }
+}
+
+
+/* ── ZANA premium customer experience ─────────────────────────────────── */
+.zana-home {
+  background: #f5f7f6;
+  color: #111b18;
+}
+.zana-home-top {
+  position: relative;
+  padding-top: max(1.75rem, env(safe-area-inset-top));
+  padding-bottom: 2.25rem;
+  border-radius: 0 0 34px 34px;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(255,194,68,.20), transparent 36%),
+    radial-gradient(ellipse at 0% 55%, rgba(91,220,184,.17), transparent 45%),
+    linear-gradient(145deg, #073d32 0%, #006d58 54%, #00a082 100%);
+}
+.zana-home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 1.25rem 1.25rem;
+}
+.zana-brand-mark {
+  display: inline-flex;
+  width: 25px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #ffc244;
+  color: #123e33;
+  font-size: 14px;
+  font-weight: 950;
+  box-shadow: 0 3px 10px rgba(0,0,0,.1);
+}
+.zana-wallet-chip {
+  max-width: 100%;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.10);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  transition: background .2s ease, transform .2s ease;
+}
+.zana-wallet-chip:active { transform: scale(.98); }
+.zana-destination-wrap {
+  position: relative;
+  z-index: 2;
+  max-width: 760px;
+  margin: 0 auto;
+  margin-top: 0;
+}
+.zana-destination-card {
+  background: #fff;
+  border-color: rgba(255,255,255,.75);
+  box-shadow: 0 18px 50px rgba(0,40,31,.16), 0 2px 8px rgba(0,0,0,.035);
+}
+.zana-search-trigger {
+  min-height: 64px;
+  border: 1px solid #e5ece9;
+  background: #f7faf9;
+  transition: border-color .2s ease, background .2s ease, transform .2s ease;
+}
+.zana-search-trigger:hover { border-color: #9bd8ca; background: #f1faf7; }
+.zana-search-trigger:active { transform: scale(.99); }
+.zana-place-chip {
+  min-width: 0;
+  border: 1px solid #edf1ef;
+  background: #fbfcfc;
+  border-radius: 18px;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.zana-place-chip:hover {
+  border-color: #c5e8de;
+  box-shadow: 0 7px 18px rgba(0,90,72,.06);
+}
+.zana-place-chip:active { transform: scale(.97); }
+.zana-home-section {
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.zana-service-tile {
+  position: relative;
+  min-width: 0;
+  min-height: 150px;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid #e9efec;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15,45,35,.025);
+  text-align: left;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.zana-service-tile:hover {
+  transform: translateY(-3px);
+  border-color: #c4e8de;
+  box-shadow: 0 12px 26px rgba(0,90,72,.08);
+}
+.zana-service-tile:active { transform: scale(.985); }
+.zana-service-tile-warm { background: linear-gradient(145deg,#fff 60%,#fffbf0); }
+.zana-service-icon { box-shadow: inset 0 0 0 1px rgba(20,70,55,.025); }
+.zana-promo-panel {
+  isolation: isolate;
+  max-width: 1120px;
+  min-height: 205px;
+  margin-left: auto;
+  margin-right: auto;
+  background: linear-gradient(120deg,#006e59 0%,#008a70 54%,#00a082 100%);
+  box-shadow: 0 12px 28px rgba(0,115,91,.16);
+}
+.zana-promo-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255,255,255,.15) .8px, transparent .8px);
+  background-size: 14px 14px;
+  mask-image: linear-gradient(90deg,transparent 15%,black 100%);
+  opacity: .35;
+}
+.zana-promo-orb {
+  position: absolute;
+  right: 0;
+  top: -52px;
+  z-index: -1;
+  width: 190px;
+  height: 190px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 50%;
+  box-shadow: 0 0 0 24px rgba(255,255,255,.035), 0 0 0 48px rgba(255,255,255,.025);
+}
+.zana-wallet-tip {
+  border: 1px solid #e2eee9;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(15,45,35,.035);
+}
+.zana-ride-sheet {
+  background: #fff;
+  box-shadow: 0 -18px 60px rgba(0,0,0,.12);
+  animation: zanaSheetUp .28s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes zanaSheetUp {
+  from { opacity: .6; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (min-width: 768px) {
+  .zana-home-top { padding-bottom: 3.5rem; }
+  .zana-home-header { padding-left: 2rem; padding-right: 2rem; padding-bottom: 1.5rem; }
+  .zana-destination-wrap { margin-top: 0; padding-left: 1rem; padding-right: 1rem; }
+  .zana-destination-card { padding: 1.75rem; }
+  .zana-home-section { padding-left: 2rem; padding-right: 2rem; }
+  .zana-service-tile { min-height: 172px; padding: 18px; }
+  .zana-promo-panel { min-height: 225px; padding: 1.75rem; }
+}
+@media (max-width: 390px) {
+  .zana-wallet-chip { gap: .45rem; padding-left: .5rem; padding-right: .5rem; }
+  .zana-service-tile { min-height: 137px; padding: 11px; border-radius: 21px; }
+  .zana-service-icon { width: 54px; height: 54px; }
+  .zana-destination-card { padding: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zana-home *, .zana-home *::before, .zana-home *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+.zana-bottom-nav {
+  left: 50%;
+  bottom: 0;
+  width: min(100%, 900px);
+  transform: translateX(-50%);
+  border: 1px solid rgba(226,235,231,.9);
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 -8px 32px rgba(16,47,37,.08);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+}
+.zana-bottom-nav-item {
+  position: relative;
+  padding-top: .55rem;
+  padding-bottom: .45rem;
+  font-weight: 600;
+  transition: color .18s ease, transform .18s ease;
+}
+.zana-bottom-nav-item svg { transition: transform .18s ease; }
+.zana-bottom-nav-item:active svg { transform: scale(.9); }
+.zana-bottom-nav-active { font-weight: 800; }
+.zana-bottom-nav-active::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 30px;
+  height: 3px;
+  border-radius: 0 0 8px 8px;
+  background: #00a082;
+}
+.dark .zana-bottom-nav {
+  background: rgba(23,32,32,.94);
+  border-color: #253130;
+}
+
+.zana-wallet-chip .text-gray-900 { color: #fff !important; }
+.zana-home-top .text-zana-primary { color: #7ce0c5 !important; }
+.zana-home-top .bg-zana-primary-light { background: rgba(255,255,255,.14) !important; }
+
+
+/* ── Shared premium surfaces: marketplace, wallet and profile ──────────── */
+.zana-marketplace-page,
+.zana-wallet-page,
+.zana-profile-page {
+  color: #12211c;
+}
+.zana-marketplace-header {
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+  box-shadow: 0 4px 18px rgba(18,45,35,.025);
+}
+.zana-marketplace-list {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.zana-merchant-card {
+  box-shadow: 0 5px 20px rgba(15,45,35,.045);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.zana-merchant-card:hover {
+  transform: translateY(-2px);
+  border-color: #c4e8de;
+  box-shadow: 0 14px 30px rgba(0,90,72,.08);
+}
+.zana-wallet-page { max-width: 900px; margin: 0 auto; }
+.zana-wallet-balance {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(255,194,68,.25), transparent 42%),
+    linear-gradient(135deg,#063e33 0%,#00765f 60%,#00a082 100%);
+  box-shadow: 0 16px 36px rgba(0,105,82,.18);
+}
+.zana-wallet-balance::after {
+  content: "";
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  right: -75px;
+  top: -105px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 50%;
+  box-shadow: 0 0 0 22px rgba(255,255,255,.045), 0 0 0 46px rgba(255,255,255,.025);
+  pointer-events: none;
+}
+.zana-wallet-balance > * { position: relative; z-index: 1; }
+.zana-transaction-row { transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+.zana-transaction-row:hover {
+  border-color: #cde8df;
+  box-shadow: 0 8px 20px rgba(15,45,35,.045);
+}
+.zana-topup-modal { box-shadow: 0 -18px 60px rgba(0,0,0,.12); }
+.zana-profile-page { max-width: 850px; margin: 0 auto; }
+.zana-profile-hero {
+  color: #fff;
+  background:
+    radial-gradient(ellipse at 100% 0%,rgba(255,194,68,.20),transparent 45%),
+    linear-gradient(135deg,#073d32 0%,#00836a 100%);
+  box-shadow: 0 14px 30px rgba(0,105,82,.12);
+}
+.zana-profile-hero .text-gray-900 { color: #fff; }
+.zana-profile-hero .text-zana-muted { color: rgba(255,255,255,.7); }
+.zana-profile-menu-item { min-height: 58px; }
+.zana-profile-menu-item + .zana-profile-menu-item { border-top: 1px solid #f0f3f1; }
+.zana-profile-menu-item:active { background: #f1faf7; }
+.zana-logout-button { min-height: 56px; }
+.dark .zana-marketplace-page,
+.dark .zana-wallet-page,
+.dark .zana-profile-page { color: var(--foreground); }
+.dark .zana-marketplace-header { background: var(--zana-surface) !important; border-color: var(--zana-border) !important; }
+.dark .zana-merchant-card,
+.dark .zana-transaction-row,
+.dark .zana-profile-menu,
+.dark .zana-profile-menu-item,
+.dark .zana-logout-button,
+.dark .zana-topup-modal { background: var(--zana-surface) !important; border-color: var(--zana-border) !important; }
+.dark .zana-profile-menu-item + .zana-profile-menu-item { border-color: var(--zana-border); }
+@media (min-width: 768px) {
+  .zana-marketplace-page { padding-bottom: 3rem; }
+  .zana-marketplace-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; gap: 1rem; }
+  .zana-merchant-card { margin-bottom: 0; }
+}
+@media (min-width: 1100px) {
+  .zana-marketplace-list { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+
+
+/* ── ZANA clean motion system — quiet, spacious, ride-first ─────────────── */
+:root {
+  --background: #f8faf9;
+  --foreground: #17211e;
+  --zana-border: #e8eeeb;
+}
+html { scroll-behavior: smooth; }
+body { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+.zana-home {
+  background: #f8faf9;
+  color: #17211e;
+}
+.zana-home-top {
+  padding-top: max(1.1rem, env(safe-area-inset-top));
+  padding-bottom: .65rem;
+  border-radius: 0;
+  background: #f8faf9;
+}
+.zana-home-top .text-white { color: #17211e !important; }
+.zana-home-top .text-white\/70,
+.zana-home-top .text-white\/75 { color: #75827d !important; }
+.zana-home-top .text-white\/\[.*\] { color: #75827d !important; }
+.zana-home-top .zana-brand-mark {
+  width: 29px;
+  height: 29px;
+  border-radius: 10px;
+  background: #00a082;
+  color: #fff;
+  box-shadow: none;
+}
+.zana-home-top .text-\[10px\] { letter-spacing: .14em; color: #687770 !important; }
+.zana-home-top .text-3xl {
+  margin-top: .15rem;
+  font-size: clamp(1.55rem, 5vw, 1.9rem);
+  font-weight: 750;
+  letter-spacing: -.045em;
+}
+.zana-home-top .text-zana-primary { color: #00a082 !important; }
+.zana-wallet-chip {
+  border: 1px solid #e4ebe7;
+  background: #fff;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.zana-wallet-chip .text-gray-900 { color: #17211e !important; }
+.zana-wallet-chip .bg-zana-primary-light { background: #e8f7f2; }
+.zana-destination-wrap { max-width: 780px; padding-inline: 1rem; }
+.zana-destination-card {
+  padding: 1.1rem 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.zana-destination-card h2 {
+  margin-bottom: .85rem;
+  font-size: clamp(1.45rem, 4.5vw, 1.8rem);
+  font-weight: 750;
+  letter-spacing: -.045em;
+}
+.zana-search-trigger {
+  min-height: 58px;
+  padding: .65rem .8rem;
+  border: 1px solid #e3eae6;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(24,48,38,.025);
+}
+.zana-search-trigger:hover { background: #fff; border-color: #a8dccc; }
+.zana-search-trigger > div {
+  border: 0;
+  background: #f1f5f3;
+  border-radius: 11px;
+}
+.zana-place-chip {
+  padding: .7rem .65rem;
+  border: 1px solid #e8eeeb;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: none;
+}
+.zana-place-chip:hover { box-shadow: none; background: #f2faf7; }
+.zana-place-chip > div { box-shadow: none !important; }
+.zana-home-section { padding-inline: 1rem; margin-top: 2rem; }
+.zana-home-section h2 {
+  font-size: 1.2rem;
+  font-weight: 750;
+  letter-spacing: -.035em;
+}
+.zana-service-grid { gap: .7rem !important; }
+.zana-service-tile {
+  min-height: 126px;
+  padding: .85rem;
+  gap: .6rem;
+  border: 1px solid #e8eeeb;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: none;
+}
+.zana-service-tile:hover {
+  transform: translateY(-2px);
+  border-color: #c8e7dc;
+  box-shadow: 0 7px 18px rgba(0,90,72,.045);
+}
+.zana-service-icon {
+  width: 47px;
+  height: 47px;
+  border-radius: 14px;
+  box-shadow: none;
+}
+.zana-service-tile p.text-sm { font-weight: 700; letter-spacing: -.015em; }
+.zana-service-tile p.text-\[11px\] { color: #7a8781; }
+.zana-promo-panel {
+  min-height: 148px;
+  border-radius: 20px;
+  background: #006f5b !important;
+  box-shadow: none;
+}
+.zana-promo-panel::after { opacity: .12; }
+.zana-promo-panel button { background: rgba(255,255,255,.16); transition: background .2s ease, transform .2s ease; }
+.zana-promo-panel button:hover { background: rgba(255,255,255,.24); }
+.zana-wallet-tip { border-color: #e8eeeb; border-radius: 16px; box-shadow: none; }
+.zana-bottom-nav {
+  width: 100%;
+  border: 1px solid #e9efec;
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -4px 20px rgba(16,47,37,.045);
+}
+.zana-bottom-nav-active::before { top: -7px; width: 22px; }
+.zana-merchant-card,
+.zana-transaction-row,
+.zana-profile-menu-item,
+.zana-search-trigger,
+.zana-service-tile,
+.zana-place-chip,
+.zana-wallet-chip,
+button, a {
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(.2,.75,.25,1);
+}
+.zana-home-section,
+.zana-destination-wrap,
+.zana-promo-panel,
+.zana-wallet-tip {
+  animation: zanaContentEnter .42s cubic-bezier(.2,.75,.25,1) both;
+}
+.zana-home-section { animation-delay: .04s; }
+.zana-promo-panel { animation-delay: .08s; }
+.zana-wallet-tip { animation-delay: .1s; }
+@keyframes zanaContentEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(0,160,130,.32);
+  outline-offset: 3px;
+}
+.dark .zana-home { background: #101816; color: #eff5f2; }
+.dark .zana-home-top { background: #101816; }
+.dark .zana-home-top .text-white { color: #eff5f2 !important; }
+.dark .zana-home-top .text-white\/70,
+.dark .zana-home-top .text-white\/75 { color: #9aa9a2 !important; }
+.dark .zana-wallet-chip,
+.dark .zana-search-trigger,
+.dark .zana-place-chip,
+.dark .zana-service-tile,
+.dark .zana-wallet-tip {
+  background: #17211e;
+  border-color: #2a3832;
+}
+.dark .zana-wallet-chip .text-gray-900,
+.dark .zana-place-chip .text-gray-900,
+.dark .zana-service-tile .text-gray-900 { color: #eff5f2 !important; }
+@media (min-width: 768px) {
+  .zana-home-top { padding-bottom: .75rem; }
+  .zana-destination-wrap { margin-top: 0; }
+  .zana-destination-card { padding-top: 1.25rem; }
+  .zana-home-section { margin-top: 2.5rem; }
+  .zana-service-tile { min-height: 140px; padding: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .zana-home-section, .zana-destination-wrap, .zana-promo-panel, .zana-wallet-tip {
+    animation: none !important;
+  }
+}
+
+
+/* ── Contrast-safe theme tokens + refined motion (preview branch) ────────
+   Keep text readable on both light and dark surfaces, including legacy
+   Tailwind utility classes that pre-date the theme tokens. */
+:root {
+  color-scheme: light;
+  --zana-canvas: #f7faf8;
+  --zana-card: #ffffff;
+  --zana-card-raised: #ffffff;
+  --zana-text: #14221d;
+  --zana-text-secondary: #53635c;
+  --zana-text-muted: #6c7b74;
+  --zana-line: #e2ebe6;
+  --zana-focus: rgba(0,160,130,.34);
+  --zana-elevation-1: 0 2px 8px rgba(20,50,38,.035);
+  --zana-elevation-2: 0 10px 28px rgba(20,50,38,.07);
+}
+.dark {
+  color-scheme: dark;
+  --background: #0c1210;
+  --foreground: #f2f7f4;
+  --zana-canvas: #0c1210;
+  --zana-card: #151e1a;
+  --zana-card-raised: #1a2520;
+  --zana-text: #f2f7f4;
+  --zana-text-secondary: #c0cec6;
+  --zana-text-muted: #9aaba1;
+  --zana-line: #2b3931;
+  --zana-border: #2b3931;
+  --zana-focus: rgba(70,218,179,.45);
+  --zana-elevation-1: 0 2px 8px rgba(0,0,0,.18);
+  --zana-elevation-2: 0 12px 30px rgba(0,0,0,.25);
+}
+html, body { background-color: var(--background); color: var(--foreground); }
+::selection { background: rgba(0,160,130,.2); color: inherit; }
+:where(button,a,input,textarea,select,[role="button"]):focus-visible {
+  outline: 3px solid var(--zana-focus);
+  outline-offset: 3px;
+}
+/* Readable legacy utility text and borders in dark mode. */
+.dark .text-black,
+.dark .text-gray-950,
+.dark .text-gray-900 { color: var(--foreground) !important; }
+.dark .text-gray-800 { color: #e0e9e4 !important; }
+.dark .text-gray-700 { color: #d0dbd4 !important; }
+.dark .text-gray-600 { color: #b8c7be !important; }
+.dark .text-gray-500 { color: #a5b5ab !important; }
+.dark .text-gray-400 { color: #91a197 !important; }
+.dark .text-gray-300 { color: #83948a !important; }
+.dark .bg-gray-50 { background-color: #111a16 !important; }
+.dark .bg-gray-100 { background-color: #1a2520 !important; }
+.dark .bg-gray-200 { background-color: #29372f !important; }
+.dark .bg-white { background-color: var(--zana-card) !important; }
+.dark .border-gray-50,
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 { border-color: var(--zana-line) !important; }
+.dark input, .dark textarea, .dark select {
+  color: var(--foreground);
+  background-color: var(--zana-card);
+  border-color: var(--zana-line);
+}
+.dark input::placeholder, .dark textarea::placeholder { color: #91a197; opacity: 1; }
+.dark .zana-home { background: var(--zana-canvas); color: var(--zana-text); }
+.dark .zana-home-top { background: var(--zana-canvas); }
+.dark .zana-destination-card { color: var(--zana-text); }
+.dark .zana-search-trigger > div { background: #202c26; }
+.dark .zana-service-tile p.text-\\[11px\\],
+.dark .zana-place-chip p.text-\\[10px\\] { color: var(--zana-text-muted) !important; }
+.dark .zana-promo-panel { color: #fff; }
+.dark .zana-profile-menu-item:active { background: #1d3028 !important; }
+.dark .zana-ride-sheet,
+.dark .zana-topup-modal { background: var(--zana-card) !important; color: var(--foreground); }
+.dark .zana-ride-sheet .text-gray-900,
+.dark .zana-topup-modal .text-gray-900 { color: var(--foreground) !important; }
+.dark .zana-ride-sheet .border-gray-100,
+.dark .zana-ride-sheet .border-gray-200 { border-color: var(--zana-line) !important; }
+.dark .zana-wallet-tip { background: var(--zana-card); border-color: var(--zana-line); }
+.dark .zana-bottom-nav-item { color: #b8c7be; }
+.dark .zana-bottom-nav-active { color: #55d9b5; }
+.dark .zana-profile-menu-item + .zana-profile-menu-item { border-color: var(--zana-line); }
+.dark .fixed.inset-0.z-\\[80\\] { background: rgba(12,18,16,.97) !important; }
+.dark .fixed.inset-0.z-50 > .w-full.bg-white { background: var(--zana-card) !important; color: var(--foreground); }
+/* Ensure contrast even when an old component uses muted text on a white card. */
+.zana-home, .zana-marketplace-page, .zana-wallet-page, .zana-profile-page {
+  color: var(--zana-text);
+}
+.zana-wallet-chip, .zana-search-trigger, .zana-place-chip,
+.zana-service-tile, .zana-wallet-tip, .zana-merchant-card,
+.zana-transaction-row, .zana-profile-menu, .zana-profile-menu-item {
+  transition:
+    transform 220ms cubic-bezier(.2,.75,.25,1),
+    box-shadow 220ms cubic-bezier(.2,.75,.25,1),
+    border-color 220ms ease,
+    background-color 220ms ease,
+    color 180ms ease;
+}
+.zana-service-tile:hover, .zana-merchant-card:hover {
+  box-shadow: var(--zana-elevation-2);
+}
+.zana-search-trigger:focus-visible, .zana-place-chip:focus-visible,
+.zana-service-tile:focus-visible, .zana-wallet-chip:focus-visible {
+  outline: 3px solid var(--zana-focus);
+  outline-offset: 3px;
+}
+/* Subtle, intentional entrance motion: staggered without delaying interaction. */
+@keyframes zanaPremiumEnter {
+  0% { opacity: 0; transform: translate3d(0,10px,0); }
+  100% { opacity: 1; transform: translate3d(0,0,0); }
+}
+.zana-home .zana-destination-wrap { animation: zanaPremiumEnter 420ms cubic-bezier(.2,.75,.25,1) both; }
+.zana-home .zana-home-section { animation: zanaPremiumEnter 480ms cubic-bezier(.2,.75,.25,1) both; }
+.zana-home .zana-home-section:nth-of-type(2) { animation-delay: 45ms; }
+.zana-home .zana-promo-panel { animation: zanaPremiumEnter 520ms cubic-bezier(.2,.75,.25,1) 70ms both; }
+.zana-home .zana-wallet-tip { animation: zanaPremiumEnter 520ms cubic-bezier(.2,.75,.25,1) 100ms both; }
+.zana-service-tile:active, .zana-place-chip:active, .zana-wallet-chip:active {
+  transform: scale(.985);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* ── Wallet refinement: clear hierarchy, premium tactility ─────────────── */
+.zana-wallet-screen { max-width: 920px; margin-inline: auto; }
+.zana-wallet-heading { padding-top: max(.35rem, env(safe-area-inset-top)); }
+.zana-wallet-balance-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(1.35rem, 4vw, 2rem);
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 28px;
+  background:
+    radial-gradient(ellipse at 92% 0%, rgba(255,194,68,.24), transparent 36%),
+    linear-gradient(135deg, #073d32 0%, #00765f 58%, #00a082 100%);
+  box-shadow: 0 18px 38px rgba(0,105,82,.16), inset 0 1px 0 rgba(255,255,255,.13);
+  animation: zanaWalletReveal 460ms cubic-bezier(.2,.75,.25,1) both;
+}
+.zana-wallet-balance-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 240px;
+  height: 240px;
+  top: -145px;
+  right: -50px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 50%;
+  box-shadow: 0 0 0 22px rgba(255,255,255,.035), 0 0 0 46px rgba(255,255,255,.025);
+  pointer-events: none;
+}
+.zana-wallet-balance-card::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 120px;
+  height: 120px;
+  bottom: -78px;
+  right: 18%;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.zana-wallet-card-topline { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.zana-wallet-eyebrow { color:rgba(255,255,255,.76); font-size:.82rem; font-weight:650; }
+.zana-wallet-card-mark {
+  display:grid; place-items:center; width:34px; height:34px; border-radius:12px;
+  color:#153e33; background:#ffc244; font-size:16px; font-weight:950;
+  box-shadow:0 4px 12px rgba(0,0,0,.12);
+}
+.zana-wallet-amount { color:#fff; font-variant-numeric:tabular-nums; letter-spacing:-.055em; line-height:1.08; overflow-wrap:anywhere; }
+.zana-wallet-amount span { font-size:.43em; letter-spacing:-.01em; opacity:.86; font-weight:750; }
+.zana-wallet-card-note { margin-top:.75rem; color:rgba(255,255,255,.76); font-size:.78rem; line-height:1.45; max-width:28rem; }
+.zana-wallet-actions { display:flex; gap:.65rem; margin-top:1.3rem; }
+.zana-wallet-primary-action {
+  min-height:48px; min-width:124px; padding:.8rem 1.15rem; border-radius:15px;
+  color:#173d32; background:#ffc244; box-shadow:0 4px 12px rgba(0,0,0,.08);
+  transition:transform 180ms cubic-bezier(.2,.75,.25,1), background-color 180ms ease, box-shadow 180ms ease;
+}
+.zana-wallet-primary-action:hover { background:#ffd06b; box-shadow:0 8px 18px rgba(0,0,0,.13); transform:translateY(-1px); }
+.zana-transactions-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.zana-transaction-count {
+  display:grid; place-items:center; min-width:32px; height:32px; padding:0 .5rem;
+  border:1px solid var(--zana-border); border-radius:11px; color:var(--zana-text-secondary);
+  background:var(--zana-card); font-size:.75rem; font-weight:800; font-variant-numeric:tabular-nums;
+}
+.zana-transactions-list { display:flex; flex-direction:column; gap:.65rem; }
+.zana-transaction-row {
+  min-height:76px; border-color:var(--zana-line, #e2ebe6) !important;
+  border-radius:18px !important; box-shadow:var(--zana-elevation-1) !important;
+  animation: zanaWalletReveal 380ms cubic-bezier(.2,.75,.25,1) both;
+}
+.zana-transaction-row:hover { transform:translateY(-1px); box-shadow:var(--zana-elevation-2) !important; }
+.zana-wallet-modal { border:1px solid var(--zana-line, #e2ebe6); box-shadow:0 -20px 70px rgba(0,0,0,.18); }
+.zana-wallet-modal input { min-height:48px; border-radius:13px; }
+@keyframes zanaWalletReveal {
+  from { opacity:0; transform:translate3d(0,9px,0); }
+  to { opacity:1; transform:translate3d(0,0,0); }
+}
+.dark .zana-wallet-screen { color:var(--foreground); }
+.dark .zana-wallet-screen .zana-wallet-heading .text-gray-950,
+.dark .zana-wallet-screen .zana-transactions-heading .text-gray-900 { color:var(--foreground) !important; }
+.dark .zana-wallet-screen .zana-transaction-row { background:var(--zana-card) !important; border-color:var(--zana-line) !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-gray-900 { color:var(--foreground) !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-gray-400 { color:var(--zana-text-muted, #9aaba1) !important; }
+.dark .zana-wallet-screen .zana-transaction-row .bg-green-50 { background:#16372b !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-green-600 { color:#63dfa7 !important; }
+.dark .zana-wallet-screen .zana-transaction-row .bg-red-50 { background:#3b2220 !important; }
+.dark .zana-wallet-screen .zana-transaction-row .text-red-500 { color:#ff8c82 !important; }
+.dark .zana-wallet-modal { background:var(--zana-card) !important; border-color:var(--zana-line) !important; }
+.dark .zana-wallet-modal h2,
+.dark .zana-wallet-modal .text-gray-900 { color:var(--foreground) !important; }
+.dark .zana-wallet-modal .bg-gray-100 { background:#25332c !important; }
+.dark .zana-wallet-modal input { color:var(--foreground); background:#111a16; border-color:var(--zana-line); }
+@media (max-width: 390px) {
+  .zana-wallet-screen { padding-inline:1rem; }
+  .zana-wallet-balance-card { padding:1.25rem; border-radius:24px; }
+  .zana-wallet-amount { font-size:clamp(2rem, 10vw, 2.6rem); }
+  .zana-wallet-card-note { max-width:17rem; }
+  .zana-transaction-row { padding:.85rem !important; gap:.65rem !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zana-wallet-balance-card, .zana-transaction-row { animation:none !important; }
+}
+
+
+/* ── Shared ZANA loading language: route transitions, data waits and skeletons ── */
+.zana-loading {
+  --loading-green: #00a082;
+  --loading-yellow: #ffc244;
+  color: #17211e;
+}
+.zana-loading-page {
+  min-height: min(76vh, 760px);
+  width: min(100% - 2rem, 560px);
+  margin: 0 auto;
+  padding: max(3rem, env(safe-area-inset-top)) 0 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+}
+.zana-loading-brand {
+  width: 58px;
+  height: 58px;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.zana-loading-mark {
+  position: relative;
+  z-index: 2;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--loading-green);
+  color: #fff;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: -.08em;
+  box-shadow: 0 8px 20px rgba(0,160,130,.2);
+  animation: zanaLoadingLift 1.5s ease-in-out infinite;
+}
+.zana-loading-orbit {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid rgba(0,160,130,.25);
+  border-radius: 18px;
+  transform: rotate(0);
+  animation: zanaLoadingOrbit 2.4s linear infinite;
+}
+.zana-loading-orbit-a { border-top-color: var(--loading-yellow); border-right-color: transparent; }
+.zana-loading-orbit-b { inset: 5px; border-bottom-color: var(--loading-green); border-left-color: transparent; animation-direction: reverse; animation-duration: 3.2s; }
+.zana-loading-copy { width: 100%; display: flex; flex-direction: column; align-items: center; gap: .8rem; }
+.zana-loading-title { color: #53635c; font-size: .86rem; font-weight: 650; letter-spacing: -.01em; }
+.zana-loading-track { display: block; width: 116px; height: 3px; overflow: hidden; border-radius: 999px; background: #e4efeb; }
+.zana-loading-track > span { display: block; width: 42%; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--loading-green),var(--loading-yellow)); animation: zanaLoadingProgress 1.15s cubic-bezier(.4,0,.2,1) infinite; }
+.zana-loading-skeletons { width: 100%; display: grid; gap: .75rem; margin-top: 1rem; }
+.zana-loading-skeleton { position: relative; overflow: hidden; background: #edf2ef; border: 1px solid rgba(224,233,228,.7); border-radius: 16px; }
+.zana-loading-skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(100deg,transparent 15%,rgba(255,255,255,.8) 48%,transparent 80%); animation: zanaLoadingShimmer 1.5s ease-in-out infinite; }
+.zana-loading-skeleton-wide { height: 88px; }
+.zana-loading-skeleton-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem; }
+.zana-loading-skeleton-card { height: 112px; }
+.zana-loading-skeleton-line { height: 54px; }
+.zana-loading-skeleton-short { width: 68%; }
+.zana-loading-inline { display: inline-flex; align-items: center; gap: .65rem; min-height: 30px; }
+.zana-loading-inline .zana-loading-brand { width: 30px; height: 30px; }
+.zana-loading-inline .zana-loading-mark { width: 24px; height: 24px; border-radius: 8px; font-size: 14px; box-shadow: none; }
+.zana-loading-inline .zana-loading-orbit { border-radius: 10px; }
+.zana-loading-inline .zana-loading-copy { width: auto; align-items: flex-start; gap: .35rem; }
+.zana-loading-inline .zana-loading-title { font-size: .8rem; }
+.zana-loading-inline .zana-loading-track { width: 84px; height: 2px; }
+.zana-loading-inline .zana-loading-skeletons { display: none; }
+.zana-page-enter { animation: zanaPageEnter .32s cubic-bezier(.2,.75,.25,1) both; }
+.zana-skeleton-block { position: relative; overflow: hidden; background: var(--zana-card, #edf2ef); border: 1px solid var(--zana-border, #e5ece8); border-radius: 16px; }
+.zana-skeleton-block::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(100deg,transparent 10%,rgba(255,255,255,.7) 50%,transparent 90%); animation: zanaLoadingShimmer 1.5s ease-in-out infinite; }
+@keyframes zanaLoadingLift { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-3px) scale(1.025); } }
+@keyframes zanaLoadingOrbit { to { transform: rotate(360deg); } }
+@keyframes zanaLoadingProgress { 0% { transform: translateX(-120%); } 100% { transform: translateX(300%); } }
+@keyframes zanaLoadingShimmer { 100% { transform: translateX(100%); } }
+@keyframes zanaPageEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.dark .zana-loading { color: #eef5f1; }
+.dark .zana-loading-title { color: #aab8b1; }
+.dark .zana-loading-track { background: #2b3933; }
+.dark .zana-loading-skeleton, .dark .zana-skeleton-block { background: #1b2822; border-color: #2a3932; }
+.dark .zana-loading-skeleton::after, .dark .zana-skeleton-block::after { background: linear-gradient(100deg,transparent 10%,rgba(255,255,255,.055) 50%,transparent 90%); }
+@media (prefers-reduced-motion: reduce) {
+  .zana-loading *, .zana-loading *::before, .zana-loading *::after, .zana-skeleton-block::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* Micro-interactions for the main app navigation */
+.zana-bottom-nav-item { -webkit-tap-highlight-color: transparent; }
+.zana-bottom-nav-active svg { animation: zanaNavArrive 260ms cubic-bezier(.2,.9,.3,1.25) both; }
+.zana-bottom-nav-active span { animation: zanaNavLabel 220ms ease both; }
+.zana-bottom-nav a:focus-visible { outline-offset: -2px; border-radius: 12px; }
+@keyframes zanaNavArrive { from { transform: translateY(2px) scale(.86); } to { transform: translateY(0) scale(1); } }
+@keyframes zanaNavLabel { from { opacity: .65; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .zana-bottom-nav-active svg, .zana-bottom-nav-active span { animation: none !important; }
+}
+
+
+/* ── Screen-by-screen polish for the remaining customer journey ────────── */
+.zana-ride-search { isolation: isolate; }
+.zana-ride-search input,
+.zana-delivery-page input,
+.zana-schedule-page input,
+.zana-share-page input,
+.zana-auth-page input {
+  min-height: 46px;
+  border-radius: 13px;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.zana-ride-search input:focus,
+.zana-delivery-page input:focus,
+.zana-schedule-page input:focus,
+.zana-share-page input:focus,
+.zana-auth-page input:focus {
+  border-color: rgba(0,160,130,.65);
+  box-shadow: 0 0 0 4px rgba(0,160,130,.09);
+}
+.zana-ride-options { background: #f7faf8; }
+.zana-ride-options .rounded-t-3xl {
+  border: 1px solid #e8eeeb;
+  border-bottom: 0;
+  box-shadow: 0 -12px 38px rgba(18,45,35,.09);
+}
+.zana-tracking-page { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.zana-tracking-page .rounded-2xl,
+.zana-tracking-page .rounded-xl {
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.zana-orders-page { max-width: 960px; margin-inline: auto; }
+.zana-orders-page .rounded-2xl.bg-white {
+  border: 1px solid #e7eeea;
+  box-shadow: 0 4px 18px rgba(17,43,33,.035);
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.zana-orders-page .rounded-2xl.bg-white:hover {
+  border-color: #cce7dd;
+  box-shadow: 0 10px 24px rgba(17,43,33,.055);
+}
+.zana-schedule-page { max-width: 860px; margin-inline: auto; }
+.zana-schedule-page > div:first-child { box-shadow: 0 3px 14px rgba(17,43,33,.035); }
+.zana-share-page { min-height: calc(100dvh - 5rem); background: #f8faf9; }
+.zana-share-page > div.p-4 { width: min(100%, 680px); margin-inline: auto; }
+.zana-delivery-page { width: min(100%, 960px); margin-inline: auto; }
+.zana-places-page { width: min(100%, 760px); margin-inline: auto; }
+.zana-places-page .rounded-2xl,
+.zana-places-page .rounded-xl { transition: border-color .18s ease, box-shadow .18s ease; }
+.zana-auth-page { width: min(100%, 540px); margin-inline: auto; }
+.zana-auth-page input { min-height: 49px; }
+.zana-auth-page button { transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
+.zana-auth-page button:active { transform: scale(.985); }
+.zana-store-page { width: min(100%, 1040px); margin-inline: auto; }
+.zana-store-page > .bg-white { border: 1px solid #e7eeea; box-shadow: 0 5px 22px rgba(17,43,33,.045); }
+.dark .zana-ride-options { background: #101816; }
+.dark .zana-ride-options .rounded-t-3xl,
+.dark .zana-orders-page .rounded-2xl.bg-white,
+.dark .zana-store-page > .bg-white {
+  border-color: #2a3932;
+  box-shadow: 0 -8px 30px rgba(0,0,0,.18);
+}
+.dark .zana-share-page { background: #101816; }
+.dark .zana-orders-page .rounded-2xl.bg-white:hover { border-color: #37584a; }
+@media (min-width: 768px) {
+  .zana-orders-page { padding-top: 2rem; }
+  .zana-schedule-page > div:first-child { border-radius: 0 0 20px 20px; }
+}
+
+
+.zana-settings-page { width: min(100%, 800px); margin-inline: auto; }
+.zana-settings-page .bg-white.rounded-2xl {
+  border: 1px solid #e7eeea;
+  box-shadow: 0 5px 20px rgba(17,43,33,.035);
+}
+.zana-settings-page input { min-height: 36px; }
+.dark .zana-settings-page .bg-white.rounded-2xl { border-color: #2a3932; }
+
+
+/* ── ZANA liquid glass: restrained, readable, touch-friendly ────────────── */
+.zana-bottom-nav {
+  left: 50%;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  width: min(calc(100% - 24px), 640px);
+  transform: translateX(-50%);
+  padding-top: .45rem;
+  padding-bottom: .45rem;
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 26px;
+  background: rgba(250,253,251,.82);
+  box-shadow: 0 12px 36px rgba(12,43,32,.14), inset 0 1px 0 rgba(255,255,255,.92);
+  backdrop-filter: blur(28px) saturate(175%);
+  -webkit-backdrop-filter: blur(28px) saturate(175%);
+  isolation: isolate;
+}
+.zana-bottom-nav::before {
+  content: "";
+  position: absolute;
+  inset: 1px 12% auto;
+  height: 1px;
+  border-radius: 100%;
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);
+  pointer-events: none;
+}
+.zana-bottom-nav-item {
+  min-height: 48px;
+  justify-content: center;
+  border-radius: 18px;
+  gap: 3px;
+  padding-inline: .5rem;
+}
+.zana-bottom-nav-active {
+  color: #007c65 !important;
+}
+.zana-bottom-nav-active::before {
+  top: 2px;
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(0,160,130,.22);
+}
+.zana-bottom-nav-item:active {
+  background: rgba(0,160,130,.07);
+}
+.dark .zana-bottom-nav {
+  background: rgba(18,29,24,.84);
+  border-color: rgba(180,218,201,.16);
+  box-shadow: 0 12px 36px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.09);
+}
+.dark .zana-bottom-nav::before {
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+}
+.dark .zana-bottom-nav-active { color: #70e2c1 !important; }
+.dark .zana-bottom-nav-item:active { background: rgba(112,226,193,.09); }
+
+/* Frosted ride details stay opaque enough to keep prices and actions legible. */
+.zana-glass-sheet {
+  background: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(255,255,255,.78);
+  border-bottom: 0;
+  box-shadow: 0 -16px 46px rgba(10,44,32,.16), inset 0 1px 0 rgba(255,255,255,.9) !important;
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+.zana-glass-control,
+.zana-glass-status {
+  border: 1px solid rgba(255,255,255,.68);
+  box-shadow: 0 8px 24px rgba(10,40,30,.12), inset 0 1px 0 rgba(255,255,255,.85);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+.zana-glass-status:not(.bg-red-50) { background: rgba(255,255,255,.78) !important; }
+.zana-glass-info {
+  background: rgba(232,250,243,.78) !important;
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+}
+.zana-wallet-screen .fixed.inset-0.z-50 > .absolute.inset-0 {
+  background: rgba(7,20,15,.42) !important;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+.zana-wallet-modal {
+  background: rgba(255,255,255,.94) !important;
+  backdrop-filter: blur(26px) saturate(155%);
+  -webkit-backdrop-filter: blur(26px) saturate(155%);
+}
+.dark .zana-glass-sheet {
+  background: rgba(20,31,26,.94) !important;
+  border-color: rgba(190,220,205,.12);
+  box-shadow: 0 -16px 46px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+.dark .zana-glass-control,
+.dark .zana-glass-status {
+  border-color: rgba(190,220,205,.16);
+  box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.dark .zana-glass-status:not(.bg-red-50) { background: rgba(20,31,26,.82) !important; color: #eef8f2 !important; }
+.dark .zana-glass-info { background: rgba(15,75,55,.68) !important; }
+@media (max-width: 360px) {
+  .zana-bottom-nav { width: calc(100% - 16px); bottom: calc(6px + env(safe-area-inset-bottom)); }
+  .zana-bottom-nav-item { padding-inline: .25rem; }
+  .zana-bottom-nav-item span { font-size: 10px; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .zana-bottom-nav { background: rgba(250,253,251,.97); }
+  .zana-glass-sheet, .zana-wallet-modal { background: #fff !important; }
+  .zana-glass-control, .zana-glass-status { background: rgba(255,255,255,.97); }
+  .dark .zana-bottom-nav, .dark .zana-glass-sheet, .dark .zana-wallet-modal { background: #141f1a !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zana-bottom-nav, .zana-glass-sheet, .zana-glass-control, .zana-glass-status {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ── ZANA homepage concept v2: clean, booking-led, map-inspired ── */
+.zana-home-v2 { background:#f7f9f8; color:#14211c; min-height:100dvh; }
+.zana-v2-header { position:relative; z-index:10; background:rgba(255,255,255,.94); border-bottom:1px solid #e9efec; }
+.zana-v2-header-inner { width:min(100% - 40px,1160px); min-height:70px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.zana-v2-logo { display:grid; place-items:center; width:34px; height:34px; border-radius:11px; color:#fff; background:#00a082; font-size:19px; font-weight:950; letter-spacing:-.08em; box-shadow:0 5px 12px rgba(0,160,130,.18); }
+.zana-v2-wallet { min-height:38px; display:flex; align-items:center; gap:8px; padding:0 12px; border:1px solid #e5ece8; border-radius:12px; color:#263c33; background:#fff; font-size:12px; font-weight:750; }
+.zana-v2-wallet svg { color:#008b70; }
+.zana-v2-avatar { display:grid; place-items:center; width:38px; height:38px; border-radius:50%; border:2px solid #e2f2ec; background:#e9f6f1; color:#007e67; font-size:13px; font-weight:850; }
+.zana-v2-container { width:min(100% - 40px,1160px); margin:0 auto; padding:30px 0 42px; }
+.zana-v2-hero { position:relative; overflow:hidden; min-height:230px; display:flex; align-items:center; padding:38px 42px; border-radius:25px; color:#fff; background:linear-gradient(112deg,#063f34 0%,#006e59 58%,#00a082 100%); isolation:isolate; }
+.zana-v2-hero::before { content:""; position:absolute; z-index:-1; width:440px; height:440px; right:3%; top:-270px; border:1px solid rgba(255,255,255,.11); border-radius:50%; box-shadow:0 0 0 42px rgba(255,255,255,.025),0 0 0 88px rgba(255,255,255,.025),0 0 0 134px rgba(255,255,255,.02); }
+.zana-v2-hero-copy { position:relative; z-index:2; max-width:590px; }
+.zana-v2-hero h1 { max-width:570px; margin-top:7px; color:#fff; font-size:clamp(2rem,4.5vw,3.2rem); line-height:1.04; letter-spacing:-.055em; font-weight:850; }
+.zana-v2-hero-mark { position:absolute; width:300px; height:220px; right:7%; top:50%; transform:translateY(-50%); opacity:.95; }
+.zana-v2-orbit { position:absolute; border:1px solid rgba(255,255,255,.18); border-radius:50%; transform:rotate(-28deg); }
+.zana-v2-orbit-one { width:280px; height:118px; top:46px; left:10px; }
+.zana-v2-orbit-two { width:230px; height:170px; top:20px; left:32px; transform:rotate(38deg); }
+.zana-v2-route-line { position:absolute; width:185px; height:95px; top:65px; left:60px; border-top:2px dashed rgba(255,255,255,.58); border-right:2px dashed rgba(255,255,255,.58); border-radius:0 55px 0 0; transform:rotate(13deg); }
+.zana-v2-map-pin { position:absolute; top:47px; right:45px; display:grid; place-items:center; width:54px; height:54px; border:5px solid rgba(255,255,255,.18); border-radius:50% 50% 50% 8px; color:#063f34; background:#ffc244; transform:rotate(-45deg); box-shadow:0 12px 28px rgba(0,0,0,.18); }
+.zana-v2-map-pin svg { transform:rotate(45deg); }
+.zana-v2-map-dot { position:absolute; width:12px; height:12px; border:3px solid #fff; border-radius:50%; background:#00a082; box-shadow:0 0 0 5px rgba(255,255,255,.12); }
+.zana-v2-dot-a { left:35px; bottom:43px; }
+.zana-v2-dot-b { right:20px; bottom:25px; background:#ffc244; }
+.zana-v2-search-section { position:relative; z-index:3; width:min(100%,790px); margin:-25px auto 0; padding:0 22px; }
+.zana-v2-search { width:100%; min-height:78px; display:flex; align-items:center; gap:14px; padding:13px 15px; border:1px solid #e6eeea; border-radius:17px; background:#fff; text-align:left; box-shadow:0 14px 38px rgba(19,54,40,.10); transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease; }
+.zana-v2-search:hover { transform:translateY(-2px); border-color:#c8e7dc; box-shadow:0 18px 42px rgba(19,54,40,.13); }
+.zana-v2-search-icon { display:grid; place-items:center; width:45px; height:45px; flex:none; border-radius:13px; color:#008b70; background:#eaf7f2; }
+.zana-v2-search-arrow { display:grid; place-items:center; width:36px; height:36px; flex:none; border-radius:11px; color:#fff; background:#00a082; }
+.zana-v2-quick-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:11px; }
+.zana-v2-quick-place { min-width:0; min-height:62px; display:flex; align-items:center; gap:9px; padding:9px 10px; border:1px solid #e8efeb; border-radius:13px; background:#fff; text-align:left; transition:border-color .18s ease,transform .18s ease; }
+.zana-v2-quick-place:hover { border-color:#b9dfd1; transform:translateY(-1px); }
+.zana-v2-quick-icon { display:grid; place-items:center; width:32px; height:32px; flex:none; border-radius:10px; color:#008b70; background:#edf7f3; }
+.zana-v2-services-section { margin-top:44px; }
+.zana-v2-eyebrow { margin-bottom:6px; color:#008b70; font-size:10px; font-weight:850; text-transform:uppercase; letter-spacing:.15em; }
+.zana-v2-services-section h2 { color:#14211c; font-size:25px; line-height:1.1; font-weight:850; letter-spacing:-.045em; }
+.zana-v2-services-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.zana-v2-service-card { min-width:0; min-height:106px; display:flex; align-items:center; gap:13px; padding:14px; border:1px solid #e7eeea; border-radius:17px; background:#fff; text-align:left; box-shadow:0 3px 12px rgba(20,50,37,.025); transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+.zana-v2-service-card:hover { transform:translateY(-3px); border-color:#c7e6da; box-shadow:0 12px 26px rgba(20,50,37,.07); }
+.zana-v2-service-art { display:grid; place-items:center; width:54px; height:54px; flex:none; border-radius:15px; }
+.zana-v2-promo { position:relative; overflow:hidden; display:flex; align-items:center; min-height:190px; margin-top:26px; padding:27px 30px; border-radius:20px; color:#fff; background:linear-gradient(110deg,#075344,#00a082); }
+.zana-v2-promo::after { content:""; position:absolute; width:270px; height:270px; right:7%; top:-135px; border:1px solid rgba(255,255,255,.14); border-radius:50%; box-shadow:0 0 0 30px rgba(255,255,255,.035),0 0 0 65px rgba(255,255,255,.025); }
+.zana-v2-promo-label { display:inline-block; margin-bottom:10px; color:#ffe09a; font-size:10px; font-weight:850; text-transform:uppercase; letter-spacing:.14em; }
+.zana-v2-promo h2 { max-width:330px; color:#fff; font-size:clamp(1.35rem,3vw,1.8rem); line-height:1.08; font-weight:850; letter-spacing:-.045em; }
+.zana-v2-promo p { margin-top:8px; color:rgba(255,255,255,.72); font-size:12px; line-height:1.5; }
+.zana-v2-promo-button { display:inline-flex; align-items:center; gap:9px; margin-top:17px; padding:10px 14px; border-radius:11px; color:#174638; background:#ffc244; font-size:11px; font-weight:850; transition:transform .18s ease,background .18s ease; }
+.zana-v2-promo-button:hover { transform:translateY(-1px); background:#ffd16b; }
+.zana-v2-promo-art { position:absolute; z-index:1; width:145px; height:145px; right:11%; bottom:14px; filter:drop-shadow(0 12px 16px rgba(0,0,0,.18)); }
+.zana-v2-bottom-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:20px; }
+.zana-v2-feature-row { min-width:0; min-height:82px; display:flex; align-items:center; gap:12px; padding:14px; border:1px solid #e7eeea; border-radius:15px; background:#fff; text-align:left; transition:border-color .18s ease,transform .18s ease; }
+.zana-v2-feature-row:hover { border-color:#c7e6da; transform:translateY(-1px); }
+.zana-v2-feature-icon { display:grid; place-items:center; width:42px; height:42px; flex:none; border-radius:13px; color:#008b70; background:#eaf7f2; }
+.zana-v2-feature-icon-yellow { color:#8b6413; background:#fff5dc; }
+.zana-v2-footer { display:flex; align-items:center; justify-content:space-between; margin-top:38px; padding-top:18px; border-top:1px solid #e7eeea; color:#a0aaa4; font-size:9px; font-weight:800; letter-spacing:.13em; }
+.zana-v2-ride-modal { box-shadow:0 -20px 70px rgba(10,35,25,.2); }
+.dark .zana-home-v2 { background:#101815; }
+.dark .zana-v2-header { background:rgba(18,29,24,.96); border-color:#293a32; }
+.dark .zana-v2-header .text-slate-950,.dark .zana-v2-service-card .text-slate-900,.dark .zana-v2-feature-row .text-slate-900,.dark .zana-v2-quick-place .text-slate-800,.dark .zana-v2-services-section h2 { color:#edf5f0 !important; }
+.dark .zana-v2-wallet,.dark .zana-v2-search,.dark .zana-v2-quick-place,.dark .zana-v2-service-card,.dark .zana-v2-feature-row { background:#18251f; border-color:#2b3b33; }
+.dark .zana-v2-search .text-slate-800,.dark .zana-v2-search .text-slate-400,.dark .zana-v2-quick-place .text-slate-400,.dark .zana-v2-service-card .text-slate-500,.dark .zana-v2-feature-row .text-slate-500 { color:#9aaba1 !important; }
+.dark .zana-v2-footer { border-color:#293a32; }
+@media (max-width:850px) {
+ .zana-v2-services-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .zana-v2-hero-mark { right:-4%; opacity:.55; }
+}
+@media (max-width:560px) {
+ .zana-v2-header-inner,.zana-v2-container { width:calc(100% - 28px); }
+ .zana-v2-header-inner { min-height:62px; }
+ .zana-v2-container { padding-top:16px; }
+ .zana-v2-hero { min-height:210px; padding:27px 22px 42px; border-radius:21px; }
+ .zana-v2-hero h1 { max-width:310px; font-size:2.15rem; }
+ .zana-v2-hero-mark { width:180px; height:160px; right:-48px; top:62%; opacity:.25; }
+ .zana-v2-orbit-one { width:190px; height:85px; top:38px; left:0; }
+ .zana-v2-orbit-two { width:160px; height:120px; top:20px; left:15px; }
+ .zana-v2-route-line { width:125px; height:70px; top:50px; left:25px; }
+ .zana-v2-map-pin { width:42px; height:42px; top:34px; right:20px; }
+ .zana-v2-map-pin svg { width:20px; }
+ .zana-v2-dot-a { left:15px; bottom:23px; }
+ .zana-v2-dot-b { right:5px; bottom:12px; }
+ .zana-v2-search-section { margin-top:-27px; padding:0 10px; }
+ .zana-v2-search { min-height:70px; padding:10px; gap:10px; }
+ .zana-v2-search-icon { width:40px; height:40px; }
+ .zana-v2-quick-row { gap:7px; }
+ .zana-v2-quick-place { min-height:58px; gap:6px; padding:8px 7px; }
+ .zana-v2-quick-icon { width:28px; height:28px; }
+ .zana-v2-quick-place > svg { display:none; }
+ .zana-v2-services-section { margin-top:34px; }
+ .zana-v2-services-section h2 { font-size:23px; }
+ .zana-v2-services-grid { gap:9px; }
+ .zana-v2-service-card { min-height:91px; gap:9px; padding:10px; border-radius:14px; }
+ .zana-v2-service-art { width:43px; height:43px; border-radius:12px; }
+ .zana-v2-service-art img { width:35px; height:35px; }
+ .zana-v2-service-card > svg { display:none; }
+ .zana-v2-service-card .text-\\[14px\\] { font-size:12px; }
+ .zana-v2-promo { min-height:175px; margin-top:22px; padding:22px 18px; border-radius:17px; }
+ .zana-v2-promo-art { width:105px; height:105px; right:4%; bottom:12px; }
+ .zana-v2-promo::after { right:-20%; }
+ .zana-v2-promo > div:first-child { max-width:68%; }
+ .zana-v2-promo h2 { font-size:1.35rem; }
+ .zana-v2-bottom-grid { grid-template-columns:1fr; gap:9px; margin-top:14px; }
+ .zana-v2-feature-row { min-height:72px; }
+ .zana-v2-footer { margin-top:28px; }
+}
+@media (max-width:360px) {
+ .zana-v2-header-inner,.zana-v2-container { width:calc(100% - 22px); }
+ .zana-v2-wallet { padding:0 8px; font-size:10px; }
+ .zana-v2-hero h1 { font-size:1.9rem; }
+ .zana-v2-quick-place { flex-wrap:wrap; }
+ .zana-v2-quick-icon { width:25px; height:25px; }
+ .zana-v2-service-card { padding:8px; }
+}
+@media (prefers-reduced-motion:reduce) {
+ .zana-home-v2 *, .zana-home-v2 *::before,.zana-home-v2 *::after { transition:none !important; animation:none !important; scroll-behavior:auto !important; }
+}
+
+
+/* ── ZANA homepage v3: destination-first booking + city-map atmosphere ── */
+.zana-home-v3{min-height:100dvh;background:#f6f9f7;color:#15231d}
+.zana-v3-header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.9);border-bottom:1px solid #e8efeb;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.zana-v3-header-inner{width:min(100% - 40px,1120px);min-height:68px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.zana-v3-logo{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:#00a082;color:#fff;font-size:19px;font-weight:950;letter-spacing:-.08em;box-shadow:0 5px 12px rgba(0,160,130,.16)}
+.zana-v3-wallet{min-height:39px;display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid #e4ece7;border-radius:12px;background:#fff;color:#20372d;font-size:12px;font-weight:750}
+.zana-v3-wallet svg{color:#008b70}
+.zana-v3-avatar{width:38px;height:38px;display:grid;place-items:center;border:2px solid #e0f1e9;border-radius:50%;background:#eaf6f0;color:#007e67;font-size:13px;font-weight:850}
+.zana-v3-layout{width:min(100% - 40px,1120px);margin:0 auto;padding:27px 0 45px}
+.zana-v3-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin:0 0 21px}
+.zana-v3-greeting{margin-bottom:7px;color:#73827a;font-size:13px;font-weight:600}
+.zana-v3-intro h1{color:#14231c;font-size:clamp(2rem,4vw,2.7rem);line-height:1.04;font-weight:850;letter-spacing:-.06em}
+.zana-v3-subtitle{margin-top:9px;color:#77857e;font-size:13px;line-height:1.55}
+.zana-v3-city{display:inline-flex;align-items:center;gap:6px;flex:none;margin-bottom:3px;padding:8px 11px;border:1px solid #e4ece7;border-radius:999px;background:#fff;color:#52665b;font-size:11px;font-weight:750}
+.zana-v3-city svg{color:#00a082}
+.zana-v3-booking{position:relative;z-index:2;width:min(100%,760px);padding:22px;border:1px solid #e4ece8;border-radius:21px;background:#fff;box-shadow:0 12px 36px rgba(19,55,39,.065)}
+.zana-v3-booking-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.zana-v3-eyebrow{display:block;margin-bottom:5px;color:#008b70;font-size:9px;font-weight:850;letter-spacing:.15em;text-transform:uppercase}
+.zana-v3-booking-heading h2,.zana-v3-section-heading h2{color:#17251e;font-size:20px;font-weight:850;letter-spacing:-.04em}
+.zana-v3-booking-mark{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#eaf7f2;color:#008b70}
+.zana-v3-destination{width:100%;min-height:65px;display:flex;align-items:center;gap:13px;padding:10px 12px;border:1px solid #e7eeea;border-radius:13px;background:#fbfdfc;text-align:left;transition:border-color .18s ease,background .18s ease,transform .18s ease}
+.zana-v3-destination:hover{border-color:#b9dfd1;background:#f7fcf9}
+.zana-v3-destination:active{transform:scale(.995)}
+.zana-v3-origin-dot{width:11px;height:11px;flex:none;border:3px solid #00a082;border-radius:50%;box-shadow:0 0 0 4px #e7f6f0}
+.zana-v3-destination-dot{width:11px;height:11px;flex:none;border:3px solid #e1a62f;border-radius:3px;background:#ffc244;box-shadow:0 0 0 4px #fff5df}
+.zana-v3-current-label{padding:5px 8px;border-radius:7px;background:#eaf7f2;color:#00856c;font-size:9px;font-weight:800}
+.zana-v3-route-connector{height:13px;margin-left:17px;border-left:1px dashed #c6d8ce}
+.zana-v3-search-action{width:34px;height:34px;display:grid;place-items:center;flex:none;border-radius:10px;background:#00a082;color:#fff}
+.zana-v3-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:13px}
+.zana-v3-shortcut{min-width:0;min-height:51px;display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid #edf1ee;border-radius:11px;background:#fff;text-align:left;transition:border-color .18s ease,background .18s ease}
+.zana-v3-shortcut:hover{border-color:#c5e5d9;background:#f7fcf9}
+.zana-v3-shortcut-icon{width:30px;height:30px;display:grid;place-items:center;flex:none;border-radius:9px;background:#eff7f3;color:#008b70}
+.zana-v3-map-card{position:relative;isolation:isolate;overflow:hidden;min-height:204px;display:flex;align-items:center;margin-top:24px;border:1px solid #dfeae4;border-radius:19px;background:#eaf2ed}
+.zana-v3-map-art{position:absolute;inset:0;z-index:-1;overflow:hidden;background-color:#e8f0e9;background-image:linear-gradient(28deg,transparent 47%,rgba(255,255,255,.86) 48%,rgba(255,255,255,.86) 51%,transparent 52%),linear-gradient(116deg,transparent 46%,rgba(255,255,255,.9) 47%,rgba(255,255,255,.9) 50%,transparent 51%),linear-gradient(76deg,transparent 48%,rgba(255,255,255,.65) 49%,rgba(255,255,255,.65) 51%,transparent 52%);background-size:220px 170px,260px 190px,180px 150px;background-position:0 0,40px -20px,100px 30px}
+.zana-v3-map-block{position:absolute;border-radius:10px;background:#d7e7dc;opacity:.8;transform:rotate(-18deg)}
+.zana-v3-map-block-a{width:125px;height:65px;left:9%;top:12%}
+.zana-v3-map-block-b{width:100px;height:74px;left:39%;bottom:8%}
+.zana-v3-map-block-c{width:145px;height:60px;right:8%;top:10%}
+.zana-v3-map-road{position:absolute;height:13px;border:3px solid rgba(255,255,255,.9);border-left:0;border-right:0;background:#d2dfd5;transform-origin:center}
+.zana-v3-map-road-a{width:120%;left:-10%;top:47%;transform:rotate(-13deg)}
+.zana-v3-map-road-b{width:90%;left:8%;top:36%;transform:rotate(27deg)}
+.zana-v3-map-road-c{width:85%;left:30%;top:71%;transform:rotate(-34deg)}
+.zana-v3-map-route{position:absolute;width:210px;height:105px;left:35%;top:24%;border:3px solid transparent;border-top-color:#00a082;border-right-color:#00a082;border-radius:0 70px 0 0;transform:rotate(10deg);filter:drop-shadow(0 2px 1px rgba(0,90,70,.12))}
+.zana-v3-map-route span,.zana-v3-map-route i,.zana-v3-map-route b{position:absolute;width:12px;height:12px;border:3px solid #fff;border-radius:50%;background:#00a082;box-shadow:0 1px 5px rgba(0,0,0,.18)}
+.zana-v3-map-route span{left:-5px;top:-7px}.zana-v3-map-route i{right:-7px;top:-7px;background:#ffc244}.zana-v3-map-route b{right:-7px;bottom:5px;background:#00a082}
+.zana-v3-map-marker{position:absolute;left:59%;top:26%;width:40px;height:40px;display:grid;place-items:center;border:4px solid #fff;border-radius:50% 50% 50% 7px;background:#00a082;color:#fff;box-shadow:0 8px 18px rgba(0,90,70,.2);transform:rotate(-45deg)}
+.zana-v3-map-marker svg{transform:rotate(45deg)}
+.zana-v3-map-label{position:absolute;color:#789184;font-size:8px;font-weight:900;letter-spacing:.16em}
+.zana-v3-map-label-a{left:12%;bottom:17%}.zana-v3-map-label-b{right:12%;top:18%}
+.zana-v3-map-copy{position:relative;z-index:2;width:47%;margin-left:auto;padding:25px 28px 25px 12px}
+.zana-v3-map-live{display:inline-flex;align-items:center;gap:7px;color:#477164;font-size:9px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}
+.zana-v3-map-live span{width:6px;height:6px;border-radius:50%;background:#00a082;box-shadow:0 0 0 4px rgba(0,160,130,.12)}
+.zana-v3-map-copy h2{margin-top:9px;color:#19392d;font-size:clamp(1.25rem,2.5vw,1.75rem);font-weight:850;line-height:1.06;letter-spacing:-.05em}
+.zana-v3-map-copy p{max-width:240px;margin-top:7px;color:#62786c;font-size:11px;line-height:1.5}
+.zana-v3-map-copy button{display:inline-flex;align-items:center;gap:7px;margin-top:13px;padding:9px 12px;border-radius:9px;background:#fff;color:#007d65;font-size:10px;font-weight:850;box-shadow:0 3px 9px rgba(23,60,40,.07)}
+.zana-v3-services{margin-top:32px}
+.zana-v3-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
+.zana-v3-section-heading h2{font-size:23px}
+.zana-v3-services-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.zana-v3-service{min-width:0;min-height:100px;display:flex;align-items:center;gap:11px;padding:13px;border:1px solid #e7eeea;border-radius:15px;background:#fff;text-align:left;box-shadow:0 3px 10px rgba(20,50,37,.02);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.zana-v3-service:hover{transform:translateY(-2px);border-color:#c5e5d9;box-shadow:0 9px 22px rgba(20,50,37,.06)}
+.zana-v3-service-art{width:48px;height:48px;display:grid;place-items:center;flex:none;border-radius:13px}
+.zana-v3-delivery{position:relative;isolation:isolate;overflow:hidden;min-height:168px;display:flex;align-items:center;margin-top:22px;padding:24px 27px;border-radius:18px;background:linear-gradient(110deg,#064b3d,#008a70);color:#fff}
+.zana-v3-delivery::after{content:"";position:absolute;z-index:-1;width:250px;height:250px;right:10%;top:-130px;border:1px solid rgba(255,255,255,.15);border-radius:50%;box-shadow:0 0 0 30px rgba(255,255,255,.035),0 0 0 62px rgba(255,255,255,.025)}
+.zana-v3-delivery-copy{position:relative;z-index:2;max-width:58%}
+.zana-v3-delivery-copy>span{color:#ffdf96;font-size:9px;font-weight:850;letter-spacing:.14em;text-transform:uppercase}
+.zana-v3-delivery-copy h2{margin-top:8px;color:#fff;font-size:clamp(1.3rem,3vw,1.8rem);font-weight:850;line-height:1.08;letter-spacing:-.045em}
+.zana-v3-delivery-copy p{margin-top:7px;color:rgba(255,255,255,.72);font-size:11px}
+.zana-v3-delivery-copy button{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:9px 12px;border-radius:9px;background:#ffc244;color:#174638;font-size:10px;font-weight:850}
+.zana-v3-delivery-art{position:absolute;z-index:1;width:130px;height:130px;right:12%;bottom:10px;filter:drop-shadow(0 10px 15px rgba(0,0,0,.16))}
+.zana-v3-extras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:17px}
+.zana-v3-extra{min-width:0;min-height:75px;display:flex;align-items:center;gap:11px;padding:12px;border:1px solid #e7eeea;border-radius:14px;background:#fff;text-align:left;transition:border-color .18s ease,transform .18s ease}
+.zana-v3-extra:hover{border-color:#c5e5d9;transform:translateY(-1px)}
+.zana-v3-extra-icon{width:39px;height:39px;display:grid;place-items:center;flex:none;border-radius:12px;background:#eaf7f2;color:#008b70}
+.zana-v3-extra-icon-yellow{background:#fff5dc;color:#8b6413}
+.zana-v3-footer{display:flex;align-items:center;justify-content:space-between;margin-top:30px;padding-top:15px;border-top:1px solid #e7eeea;color:#9aa79f;font-size:9px;font-weight:800;letter-spacing:.14em}
+.zana-v3-footer strong{color:#84958c;font-size:15px;letter-spacing:-.06em}
+.zana-v3-ride-modal{box-shadow:0 -20px 70px rgba(10,35,25,.2)}
+.dark .zana-home-v3{background:#101815;color:#edf5f0}
+.dark .zana-v3-header{background:rgba(18,29,24,.92);border-color:#293a32}
+.dark .zana-v3-header .text-slate-950,.dark .zana-v3-intro h1,.dark .zana-v3-booking-heading h2,.dark .zana-v3-section-heading h2,.dark .zana-v3-service .text-slate-900,.dark .zana-v3-extra .text-slate-900{color:#edf5f0!important}
+.dark .zana-v3-wallet,.dark .zana-v3-booking,.dark .zana-v3-destination,.dark .zana-v3-shortcut,.dark .zana-v3-service,.dark .zana-v3-extra{background:#18251f;border-color:#2b3b33}
+.dark .zana-v3-destination .text-slate-800,.dark .zana-v3-shortcut .text-slate-800{color:#edf5f0!important}
+.dark .zana-v3-greeting,.dark .zana-v3-subtitle,.dark .zana-v3-service .text-slate-500,.dark .zana-v3-extra .text-slate-500{color:#9aaba1!important}
+.dark .zana-v3-map-card{border-color:#2b3b33;background:#1b2b23}
+.dark .zana-v3-map-art{filter:brightness(.62) saturate(.8)}
+.dark .zana-v3-map-copy h2{color:#17382c}
+.dark .zana-v3-extras .zana-v3-extra-icon{background:#163a2d}
+.dark .zana-v3-footer{border-color:#293a32}
+@media(max-width:900px){.zana-v3-services-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.zana-v3-booking{width:100%}}
+@media(max-width:600px){
+ .zana-v3-header-inner,.zana-v3-layout{width:calc(100% - 28px)}
+ .zana-v3-header-inner{min-height:62px}
+ .zana-v3-layout{padding-top:19px}
+ .zana-v3-intro{display:block;margin-bottom:16px}
+ .zana-v3-intro h1{font-size:2.15rem}
+ .zana-v3-city{margin-top:12px}
+ .zana-v3-booking{padding:16px;border-radius:18px}
+ .zana-v3-booking-heading h2{font-size:18px}
+ .zana-v3-shortcuts{gap:6px}
+ .zana-v3-shortcut{gap:6px;padding:7px 6px}
+ .zana-v3-shortcut-icon{width:27px;height:27px}
+ .zana-v3-shortcut .text-xs{font-size:10px}
+ .zana-v3-map-card{min-height:210px;align-items:flex-end}
+ .zana-v3-map-art{inset:0 0 35%}
+ .zana-v3-map-route{left:24%;top:20%;transform:scale(.8) rotate(10deg)}
+ .zana-v3-map-marker{left:55%;top:18%}
+ .zana-v3-map-copy{width:100%;margin:0;padding:16px 17px;background:linear-gradient(0deg,rgba(255,255,255,.98),rgba(255,255,255,.94))}
+ .zana-v3-map-copy h2{font-size:1.35rem}
+ .zana-v3-map-copy p{max-width:100%;font-size:10px}
+ .zana-v3-map-copy button{margin-top:9px}
+ .zana-v3-map-label-a{bottom:45%}
+ .zana-v3-map-label-b{top:10%}
+ .zana-v3-services{margin-top:27px}
+ .zana-v3-section-heading h2{font-size:21px}
+ .zana-v3-services-grid{gap:8px}
+ .zana-v3-service{min-height:87px;gap:8px;padding:9px;border-radius:13px}
+ .zana-v3-service-art{width:41px;height:41px;border-radius:11px}
+ .zana-v3-service-art img{width:34px;height:34px}
+ .zana-v3-service .text-\\[14px\\]{font-size:12px}
+ .zana-v3-service>svg{display:none}
+ .zana-v3-delivery{min-height:158px;margin-top:18px;padding:19px 17px;border-radius:16px}
+ .zana-v3-delivery-copy{max-width:67%}
+ .zana-v3-delivery-copy h2{font-size:1.3rem}
+ .zana-v3-delivery-art{width:100px;height:100px;right:2%;bottom:9px}
+ .zana-v3-extras{grid-template-columns:1fr;gap:8px}
+ .zana-v3-extra{min-height:68px}
+}
+@media(max-width:360px){
+ .zana-v3-header-inner,.zana-v3-layout{width:calc(100% - 22px)}
+ .zana-v3-wallet{padding:0 8px;font-size:10px}
+ .zana-v3-intro h1{font-size:1.9rem}
+ .zana-v3-shortcut{flex-wrap:wrap}
+ .zana-v3-shortcut-icon{width:24px;height:24px}
+ .zana-v3-service{padding:7px}
+}
+@media(prefers-reduced-motion:reduce){.zana-home-v3 *,.zana-home-v3 *:before,.zana-home-v3 *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+
+/* ── v3.1 finishing pass: balance, legibility and honest map presentation ── */
+.zana-v3-layout{width:min(100% - 40px,1000px)}
+.zana-v3-booking{width:100%;padding:24px}
+.zana-v3-map-card{min-height:224px;margin-top:20px}
+.zana-v3-map-art{z-index:0}
+.zana-v3-map-copy{z-index:2}
+.zana-v3-map-marker{z-index:1}
+.zana-v3-map-route{z-index:1}
+.zana-v3-services{margin-top:30px}
+.zana-v3-services-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.zana-v3-service{min-height:104px;padding:14px}
+.zana-v3-service-art{width:50px;height:50px}
+.zana-v3-service:focus-visible,.zana-v3-extra:focus-visible,.zana-v3-shortcut:focus-visible,.zana-v3-destination:focus-visible,.zana-v3-map-copy button:focus-visible{outline:3px solid rgba(0,160,130,.35);outline-offset:3px}
+.zana-v3-wallet,.zana-v3-avatar,.zana-v3-service,.zana-v3-extra,.zana-v3-shortcut,.zana-v3-map-copy button,.zana-v3-delivery-copy button{cursor:pointer}
+.zana-v3-map-copy h2{max-width:270px}
+.zana-v3-map-copy p{font-size:12px}
+.zana-v3-section-heading{margin-bottom:15px}
+.zana-v3-eyebrow{letter-spacing:.13em}
+.dark .zana-v3-map-copy{background:rgba(235,245,238,.92);border-radius:14px}
+@media(max-width:900px){
+ .zana-v3-layout{width:min(100% - 32px,760px)}
+ .zana-v3-booking{padding:20px}
+ .zana-v3-services-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:600px){
+ .zana-v3-layout{width:calc(100% - 28px);padding-top:18px}
+ .zana-v3-booking{padding:15px}
+ .zana-v3-map-card{min-height:220px;margin-top:17px}
+ .zana-v3-map-art{inset:0 0 35%;z-index:0}
+ .zana-v3-map-copy{z-index:2}
+ .zana-v3-services{margin-top:25px}
+ .zana-v3-services-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .zana-v3-service{min-height:86px;padding:9px;gap:8px}
+ .zana-v3-service-art{width:39px;height:39px}
+ .zana-v3-service .text-\\[14px\\]{font-size:12px}
+ .zana-v3-map-copy{background:linear-gradient(0deg,rgba(255,255,255,.99),rgba(255,255,255,.95))}
+ .dark .zana-v3-map-copy{background:rgba(235,245,238,.95)}
+}
+@media(max-width:380px){
+ .zana-v3-shortcuts{grid-template-columns:1fr;gap:7px}
+ .zana-v3-shortcut{min-height:44px;padding:6px 8px}
+ .zana-v3-shortcut-icon{width:28px;height:28px}
+ .zana-v3-service{align-items:flex-start;flex-direction:column}
+ .zana-v3-service-art{width:36px;height:36px}
+ .zana-v3-service>span:nth-child(2){width:100%}
+}
+
+
+/* Correctly target service-card labels without depending on generated utility selectors. */
+@media(max-width:600px){
+ .zana-v3-service>span:nth-child(2)>span:first-child{font-size:12px}
+ .zana-v3-service>span:nth-child(2)>span:last-child{font-size:10px;line-height:1.35}
+}
+@media(max-width:380px){
+ .zana-v3-service>span:nth-child(2)>span:first-child{font-size:12px}
+}
+
+
+/* ── ZANA service discovery: explain the whole platform at a glance ── */
+.zana-v3-services{margin-top:30px}
+.zana-v3-services-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:16px}
+.zana-v3-services-intro h2{color:#17251e;font-size:clamp(1.45rem,3vw,1.9rem);font-weight:880;line-height:1.06;letter-spacing:-.055em}
+.zana-v3-services-intro p{margin-top:7px;color:#718078;font-size:12px;line-height:1.5}
+.zana-v3-services-count{flex:none;margin-bottom:3px;padding:7px 10px;border:1px solid #e4ece7;border-radius:999px;background:#fff;color:#607269;font-size:10px;font-weight:750}
+.zana-v3-service-groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.zana-v3-service-group{min-width:0;padding:16px;border:1px solid #e4ece8;border-radius:18px;background:#fff;box-shadow:0 7px 22px rgba(20,50,37,.035);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.zana-v3-service-group:hover{transform:translateY(-2px);border-color:#c9e4d8;box-shadow:0 12px 28px rgba(20,50,37,.065)}
+.zana-v3-service-group-heading{display:flex;align-items:center;gap:11px;min-height:48px;margin-bottom:13px}
+.zana-v3-service-group-symbol{width:42px;height:42px;display:grid;place-items:center;flex:none;border-radius:13px;background:#eaf7f2;color:#008b70}
+.zana-v3-service-group-symbol-send{background:#fff5df;color:#956b18}
+.zana-v3-service-group-symbol-discover{background:#edf2ff;color:#536caa}
+.zana-v3-service-group-heading h3{color:#1a2b22;font-size:14px;font-weight:850;letter-spacing:-.025em}
+.zana-v3-service-group-heading p{margin-top:3px;color:#849188;font-size:10px;line-height:1.35}
+.zana-v3-service-group-items{display:grid;gap:7px}
+.zana-v3-service-option{width:100%;min-width:0;min-height:65px;display:flex;align-items:center;gap:10px;padding:8px;border:1px solid #edf1ee;border-radius:12px;background:#fbfdfc;text-align:left;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.zana-v3-service-option:hover{border-color:#c9e4d8;background:#f4faf6}
+.zana-v3-service-option:active{transform:scale(.99)}
+.zana-v3-service-option-art{width:43px;height:43px;display:grid;place-items:center;flex:none;border-radius:11px}
+.zana-v3-service-option>span:nth-child(2)>span:first-child{color:#23352b;font-size:12px;font-weight:800;line-height:1.25}
+.zana-v3-service-option>span:nth-child(2)>span:last-child{margin-top:3px;color:#87938c;font-size:10px;line-height:1.3}
+.zana-v3-service-option-arrow{flex:none;color:#a3afa8;transition:transform .18s ease,color .18s ease}
+.zana-v3-service-option:hover .zana-v3-service-option-arrow{color:#008b70;transform:translateX(2px)}
+.zana-v3-service-option:focus-visible{outline:3px solid rgba(0,160,130,.3);outline-offset:2px}
+.dark .zana-v3-services-intro h2,.dark .zana-v3-service-group-heading h3{color:#edf5f0}
+.dark .zana-v3-services-intro p,.dark .zana-v3-service-group-heading p{color:#9aaba1}
+.dark .zana-v3-services-count,.dark .zana-v3-service-group{background:#18251f;border-color:#2b3b33}
+.dark .zana-v3-service-option{background:#142019;border-color:#2b3b33}
+.dark .zana-v3-service-option>span:nth-child(2)>span:first-child{color:#edf5f0}
+.dark .zana-v3-service-option>span:nth-child(2)>span:last-child{color:#9aaba1}
+@media(max-width:900px){.zana-v3-service-groups{grid-template-columns:repeat(2,minmax(0,1fr))}.zana-v3-service-group-discover{grid-column:1/-1}.zana-v3-service-group-discover .zana-v3-service-group-items{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){
+ .zana-v3-services{margin-top:26px}
+ .zana-v3-services-intro{align-items:flex-start;margin-bottom:13px}
+ .zana-v3-services-intro h2{font-size:1.5rem}
+ .zana-v3-services-intro p{max-width:280px;font-size:11px}
+ .zana-v3-service-groups{grid-template-columns:1fr;gap:9px}
+ .zana-v3-service-group-discover{grid-column:auto}
+ .zana-v3-service-group{padding:13px;border-radius:15px}
+ .zana-v3-service-group-heading{margin-bottom:10px}
+ .zana-v3-service-group-items{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .zana-v3-service-group-discover .zana-v3-service-group-items{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .zana-v3-service-option{min-height:64px;gap:7px;padding:7px}
+ .zana-v3-service-option-art{width:36px;height:36px}
+ .zana-v3-service-option-art img{width:32px;height:32px}
+ .zana-v3-service-option>span:nth-child(2)>span:first-child{font-size:11px}
+ .zana-v3-service-option>span:nth-child(2)>span:last-child{font-size:9px}
+ .zana-v3-service-option-arrow{display:none}
+}
+@media(max-width:380px){
+ .zana-v3-service-group-items,.zana-v3-service-group-discover .zana-v3-service-group-items{grid-template-columns:1fr}
+ .zana-v3-service-option{min-height:58px}
+}
+@media(prefers-reduced-motion:reduce){.zana-v3-service-group,.zana-v3-service-option,.zana-v3-service-option-arrow{transition:none!important}}
+
+
+/* Unified ride entry point: one booking action, vehicle choice happens after destination. */
+.zana-v3-move-items{display:block}
+.zana-v3-book-ride-option{width:100%;min-height:88px;display:flex;align-items:center;gap:14px;padding:15px;border:1px solid #cce8dc;border-radius:15px;background:linear-gradient(115deg,#f0faf6 0%,#fff 100%);color:#008b70;text-align:left;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.zana-v3-book-ride-option:hover{transform:translateY(-2px);border-color:#8ed0b8;box-shadow:0 10px 24px rgba(0,139,112,.1)}
+.zana-v3-book-ride-option>span:nth-child(2)>span:first-child{color:#19372c;font-size:15px;font-weight:850;letter-spacing:-.02em}
+.zana-v3-book-ride-option>span:nth-child(2)>span:last-child{margin-top:4px;color:#718078;font-size:11px;line-height:1.4}
+.zana-v3-book-ride-art{width:48px;height:48px;display:grid;place-items:center;flex:none;border-radius:14px;background:#dff3eb;color:#008b70}
+.zana-v3-book-ride-option:focus-visible{outline:3px solid rgba(0,160,130,.3);outline-offset:3px}
+.dark .zana-v3-book-ride-option{border-color:#315c4b;background:linear-gradient(115deg,#19382d 0%,#18251f 100%)}
+.dark .zana-v3-book-ride-option>span:nth-child(2)>span:first-child{color:#edf5f0}
+.dark .zana-v3-book-ride-option>span:nth-child(2)>span:last-child{color:#a8b9af}
+@media(max-width:600px){.zana-v3-book-ride-option{min-height:76px;padding:12px}.zana-v3-book-ride-art{width:42px;height:42px}}
+
+
+/* ── Theme consistency pass: keep legacy and newer screens in sync ── */
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+body { background-color: var(--background); color: var(--foreground); }
+.dark .app-shell { background-color: var(--zana-canvas, var(--background)); }
+
+/* Neutral surfaces used by newer screens and shared controls. */
+.dark .bg-slate-50,
+.dark .bg-slate-100 { background-color: #151f1b !important; }
+.dark .bg-slate-200 { background-color: #202d26 !important; }
+.dark .bg-slate-800,
+.dark .bg-slate-900,
+.dark .bg-slate-950 { background-color: #101713 !important; }
+.dark .text-slate-950,
+.dark .text-slate-900 { color: var(--foreground) !important; }
+.dark .text-slate-800 { color: #e0e9e4 !important; }
+.dark .text-slate-700 { color: #d0dbd4 !important; }
+.dark .text-slate-600 { color: #b8c7be !important; }
+.dark .text-slate-500 { color: #a5b5ab !important; }
+.dark .text-slate-400 { color: #91a197 !important; }
+.dark .border-slate-50,
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300 { border-color: var(--zana-line) !important; }
+
+/* Theme controls and form fields must remain legible in both appearances. */
+.dark .zana-settings-page input,
+.dark .zana-settings-page textarea,
+.dark .zana-settings-page select {
+  color: var(--foreground);
+  background-color: var(--zana-card);
+  border-color: var(--zana-line);
+}
+.dark .zana-settings-page input::placeholder { color: var(--zana-text-muted); opacity: 1; }
+.dark .zana-settings-page .bg-gray-100 { background-color: #202d26 !important; }
+.dark .zana-settings-page .text-zana-primary { color: #55d9b5 !important; }
+.dark .zana-settings-page .border-zana-primary { border-color: #35bd9b !important; }
+
+/* Prevent browser-native controls from reverting to a light palette in dark mode. */
+.dark input,
+.dark textarea,
+.dark select,
+.dark option { color-scheme: dark; }
+
+
+/* Orders page: keep every surface, divider and status chip on the active theme. */
+.dark .zana-orders-page {
+  background-color: var(--background) !important;
+  color: var(--foreground);
+}
+.dark .zana-orders-page [class~="bg-[#E8F5F1]"],
+.dark .zana-orders-page [class~="bg-[#F0F8F5]"],
+.dark .zana-orders-page [class~="bg-[#E9F0ED]"] {
+  background-color: var(--zana-primary-light) !important;
+}
+.dark .zana-orders-page [class~="border-gray-100"],
+.dark .zana-orders-page [class~="border-gray-200"] {
+  border-color: var(--zana-border) !important;
+}
+.dark .zana-orders-page [class~="text-gray-400"] {
+  color: #899995 !important;
+}
+.dark .zana-orders-page [class~="bg-emerald-50"] {
+  background-color: #12352B !important;
+}
+.dark .zana-orders-page [class~="text-emerald-700"] {
+  color: #70DDB2 !important;
+}
+.dark .zana-orders-page [class~="bg-amber-50"] {
+  background-color: #3A2D16 !important;
+}
+.dark .zana-orders-page [class~="text-amber-700"],
+.dark .zana-orders-page [class~="text-amber-800"] {
+  color: #F4CC78 !important;
+}
+.dark .zana-orders-page [class~="bg-teal-50"] {
+  background-color: #12332C !important;
+}
+.dark .zana-orders-page [class~="text-teal-800"] {
+  color: #76DCC3 !important;
+}
+.dark .zana-orders-page [class~="bg-gray-100"] {
+  background-color: #1C2625 !important;
+}
+.dark .zana-orders-page [class~="text-gray-600"],
+.dark .zana-orders-page [class~="text-gray-700"] {
+  color: #C6CECC !important;
+}
+.dark .zana-orders-page [class~="text-[#007D68]"],
+.dark .zana-orders-page [class~="text-[#00866F]"] {
+  color: #55D9B5 !important;
+}
+.dark .zana-orders-page input,
+.dark .zana-orders-page select,
+.dark .zana-orders-page option {
+  color: var(--foreground);
+  background-color: var(--zana-surface);
+  border-color: var(--zana-border);
+}
+.dark .zana-orders-page input::placeholder {
+  color: var(--zana-muted);
+  opacity: 1;
+}
+.dark .zana-orders-page [class~="bg-white"] {
+  background-color: var(--zana-surface) !important;
+}
+
+
+/* Delivery flow: keep its cards and notices aligned with the selected theme. */
+.dark .zana-delivery-page .bg-amber-50 {
+  background-color: #352B17 !important;
+}
+.dark .zana-delivery-page .border-amber-200 {
+  border-color: #675126 !important;
+}
+.dark .zana-delivery-page .text-amber-600,
+.dark .zana-delivery-page .text-amber-900 {
+  color: #F3D18A !important;
+}
+.dark .zana-delivery-page .bg-red-50 {
+  background-color: #3B1E1D !important;
+}
+.dark .zana-delivery-page .text-red-700 {
+  color: #FFB4AB !important;
+}
+.dark .zana-delivery-page .border-red-300 {
+  border-color: #8E4741 !important;
+}
+.dark .zana-delivery-page input,
+.dark .zana-delivery-page textarea,
+.dark .zana-delivery-page select {
+  color: var(--foreground);
+  background-color: var(--zana-surface);
+  border-color: var(--zana-border);
+}
+.dark .zana-delivery-page input::placeholder,
+.dark .zana-delivery-page textarea::placeholder {
+  color: var(--zana-muted);
+  opacity: 1;
+}
+
+
+/* Modern customer profile hub */
+.zana-profile-premium {
+  color: var(--foreground);
+  background: var(--background);
+}
+.zana-profile-cover {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0 0 30px 30px;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(255,194,68,.24), transparent 28%),
+    radial-gradient(circle at 4% 80%, rgba(88,220,183,.15), transparent 34%),
+    linear-gradient(142deg, #073d32 0%, #006d58 56%, #00a082 100%);
+}
+.zana-profile-cover::after {
+  content: "";
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  right: -80px;
+  bottom: -115px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 50%;
+  box-shadow: 0 0 0 24px rgba(255,255,255,.035), 0 0 0 50px rgba(255,255,255,.025);
+  pointer-events: none;
+}
+.zana-profile-shortcut {
+  min-width: 0;
+  min-height: 126px;
+  padding: 14px 11px;
+  border: 1px solid var(--zana-border);
+  border-radius: 19px;
+  background: var(--zana-surface);
+  box-shadow: 0 5px 18px rgba(18,45,37,.045);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.zana-profile-shortcut:active { transform: scale(.97); }
+.zana-profile-shortcut:hover {
+  border-color: rgba(0,160,130,.35);
+  box-shadow: 0 10px 25px rgba(18,45,37,.08);
+}
+.zana-profile-shortcut-icon {
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  border-radius: 13px;
+}
+.zana-profile-section { min-width: 0; }
+.zana-profile-section-title {
+  margin: 0 0 10px 3px;
+  color: var(--zana-muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+.zana-profile-list {
+  overflow: hidden;
+  border: 1px solid var(--zana-border);
+  border-radius: 20px;
+  background: var(--zana-surface);
+  box-shadow: 0 5px 18px rgba(18,45,37,.035);
+}
+.zana-profile-row {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  color: var(--foreground);
+  background: var(--zana-surface);
+  transition: background .16s ease;
+}
+.zana-profile-row + .zana-profile-row { border-top: 1px solid var(--zana-border); }
+.zana-profile-row:hover { background: var(--background); }
+.zana-profile-row-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border: 1px solid var(--zana-border);
+  border-radius: 13px;
+  color: var(--zana-primary);
+  background: var(--background);
+}
+.zana-profile-logout {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid rgba(240,68,56,.22);
+  border-radius: 16px;
+  background: rgba(240,68,56,.055);
+  color: var(--zana-error);
+  font-size: 13px;
+  font-weight: 800;
+  transition: background .16s ease, transform .16s ease;
+}
+.zana-profile-logout:hover { background: rgba(240,68,56,.10); }
+.zana-profile-logout:active { transform: scale(.99); }
+.zana-profile-logout:disabled { opacity: .65; }
+.zana-profile-language-sheet {
+  border: 1px solid var(--zana-border);
+  color: var(--foreground);
+  background: var(--zana-surface);
+}
+.dark .zana-profile-shortcut {
+  box-shadow: 0 5px 18px rgba(0,0,0,.13);
+}
+.dark .zana-profile-shortcut-icon.bg-\\[\\#E5F6F1\\] { background: #12332C !important; color: #64D8BD !important; }
+.dark .zana-profile-shortcut-icon.bg-\\[\\#FFF4D9\\] { background: #352B17 !important; color: #F3D18A !important; }
+.dark .zana-profile-shortcut-icon.bg-\\[\\#F0EAFE\\] { background: #2A2140 !important; color: #C7B2FF !important; }
+@media (min-width: 640px) {
+  .zana-profile-cover { border-radius: 0 0 34px 34px; }
+}
+
+
+/* ── Device-safe app frame and bottom navigation ────────────────────────
+   Reserve the real navigation height in the scrollable document so the
+   final form fields and action buttons can always scroll above the dock.
+   Keep the dock itself transparent to pointer events except its links. */
+:root {
+  --zana-bottom-nav-reserve: 4.85rem;
+}
+html,
+body {
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+  scroll-padding-bottom: calc(var(--zana-bottom-nav-reserve) + env(safe-area-inset-bottom, 0px));
+}
+.app-shell {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 100dvh;
+  padding-bottom: calc(var(--zana-bottom-nav-reserve) + env(safe-area-inset-bottom, 0px)) !important;
+  overflow-x: clip;
+}
+.zana-bottom-nav {
+  box-sizing: border-box;
+  min-height: calc(4.15rem + env(safe-area-inset-bottom, 0px));
+  padding: .35rem max(.5rem, env(safe-area-inset-left, 0px)) calc(.35rem + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+  touch-action: pan-y;
+}
+.zana-bottom-nav-item {
+  min-width: 0;
+  min-height: 3.2rem;
+  max-width: 7rem;
+  justify-content: center;
+  padding: .35rem .4rem;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+.zana-bottom-nav-item span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 380px) {
+  :root { --zana-bottom-nav-reserve: 4.55rem; }
+  .zana-bottom-nav { min-height: calc(3.9rem + env(safe-area-inset-bottom, 0px)); }
+  .zana-bottom-nav-item { min-height: 3rem; gap: .2rem; padding-inline: .2rem; }
+  .zana-bottom-nav-item svg { width: 18px; height: 18px; }
+  .zana-bottom-nav-item span { font-size: 10px; }
+}
+@media (min-width: 768px) {
+  :root { --zana-bottom-nav-reserve: 4.65rem; }
+  .zana-bottom-nav { width: min(100%, 900px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+
+/* ── One persistent navigation dock across every customer route ── */
+.zana-bottom-nav {
+  position: fixed;
+  left: 50%;
+  right: auto;
+  bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: min(520px, calc(100vw - 24px));
+  min-height: 60px;
+  padding: 5px 7px;
+  border: 1px solid rgba(226,235,231,.92);
+  border-radius: 20px;
+  border-bottom: 1px solid rgba(226,235,231,.92);
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 8px 28px rgba(16,47,37,.13);
+  transform: translateX(-50%);
+  backdrop-filter: blur(20px) saturate(155%);
+  -webkit-backdrop-filter: blur(20px) saturate(155%);
+}
+.zana-bottom-nav-item {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 48px;
+  max-width: none;
+  padding: 5px 3px;
+  border-radius: 14px;
+  color: #78857e;
+  font-size: 11px;
+  font-weight: 650;
+}
+.zana-bottom-nav-item svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.zana-bottom-nav-item span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: inherit;
+  font-size: 10px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zana-bottom-nav-active {
+  color: #00856D !important;
+  font-weight: 850;
+  background: #EAF7F2;
+}
+.zana-bottom-nav-active::before { display: none; }
+.dark .zana-bottom-nav {
+  border-color: #34463c;
+  border-bottom-color: #34463c;
+  background: rgba(25,36,30,.97);
+  box-shadow: 0 8px 28px rgba(0,0,0,.32);
+}
+.dark .zana-bottom-nav-item { color: #a5b4aa; }
+.dark .zana-bottom-nav-active {
+  color: #78d9bb !important;
+  background: #203d31;
+}
+@media (max-width: 380px) {
+  .zana-bottom-nav {
+    width: calc(100vw - 20px);
+    min-height: 56px;
+    padding: 4px 5px;
+  }
+  .zana-bottom-nav-item {
+    min-height: 46px;
+    gap: 3px;
+    padding-inline: 2px;
+  }
+  .zana-bottom-nav-item svg { width: 18px; height: 18px; }
+  .zana-bottom-nav-item span { font-size: 9px; }
+}
+@media (min-width: 768px) {
+  .zana-bottom-nav { width: min(520px, calc(100vw - 40px)); }
+}
+
