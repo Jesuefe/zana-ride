@@ -481,15 +481,15 @@ function TrackingContent() {
                   {searchSeconds < 5
                     ? t('Scanning streets near your pickup')
                     : searchSeconds < 15
-                      ? t('Checking nearby routes and available drivers')
-                      : t('Expanding the search around Kigali')}
+                      ? t('Where are the drivers hiding?')
+                      : t('Still searching for your ride professional')}
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
                   {searchSeconds < 5
                     ? t('Looking for a ride professional close to you.')
                     : searchSeconds < 15
-                      ? t('We are checking more nearby areas. Hang tight.')
-                      : t('We are widening the search. Your request is still active.')}
+                      ? t('The search is still active. Hang tight.')
+                      : t('We have not given up. Your request is still active.')}
                 </p>
               </div>
               <div className="relative grid h-[88px] w-[88px] shrink-0 place-items-center">
@@ -512,8 +512,8 @@ function TrackingContent() {
                 {searchSeconds < 8
                   ? t('Checking the closest drivers first…')
                   : searchSeconds < 18
-                    ? t('Looking a little further down the road…')
-                    : t('Good things are worth finding. Still searching…')}
+                    ? t('Our driver radar is still on…')
+                    : t('Your ride professional is worth the wait. Still searching…')}
               </p>
               <span className="ml-auto text-[10px] font-bold tabular-nums text-[#00a082]">{formatElapsed(searchSeconds)}</span>
             </div>
