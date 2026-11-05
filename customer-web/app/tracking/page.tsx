@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { AlertTriangle, Phone, Star, User, Navigation, MessageCircle } from 'lucide-react';
+import { AlertTriangle, Phone, Star, User, Navigation, MessageCircle, Bike } from 'lucide-react';
 import ChatPanel from '../../components/ChatPanel';
 import RatingModal from '../../components/RatingModal';
 import VoiceCall from '../../components/VoiceCall';
