@@ -3,17 +3,19 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useLang } from '../../lib/LangContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ChevronRight, Clock, MapPin, Check } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Clock, MapPin, Check, Bike, CarFront } from 'lucide-react';
 import { estimateRide, createRide, ServiceType, fetchWallet } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 import { getStoredPickup } from '../../lib/location';
+import ZanaLoading from '../../components/ZanaLoading';
 
-type Option = { service: ServiceType; label: string; sub: string; icon: string };
+type Option = { service: ServiceType; label: string; sub: string; icon: 'bike' | 'car' };
 
 const OPTIONS: Option[] = [
-  { service: 'ECONOMY', label: 'Basic Car', sub: 'Comfortable · up to 4', icon: '🚗' },
-  { service: 'COMFORT', label: 'Premium Car', sub: 'Top-rated drivers · up to 4', icon: '🚙' },
+  { service: 'BIKE', label: 'Moto', sub: 'Fast and affordable · 1 passenger', icon: 'bike' },
+  { service: 'ECONOMY', label: 'Basic Car', sub: 'Comfortable · up to 4', icon: 'car' },
+  { service: 'COMFORT', label: 'Premium Car', sub: 'More comfort · up to 4', icon: 'car' },
 ];
 
 const PAYMENT_OPTIONS = [
@@ -77,7 +79,7 @@ function RideOptionsContent() {
   const [fareError, setFareError] = useState<string | null>(null);
   const [loadingFares, setLoadingFares] = useState(true);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [selected, setSelected] = useState<ServiceType | null>(preselected ?? null);
+  const [selected, setSelected] = useState<ServiceType | null>(preselected && ['BIKE', 'ECONOMY', 'COMFORT'].includes(preselected) ? preselected : null);
   const [step, setStep] = useState<'select' | 'confirm'>('select');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [booking, setBooking] = useState(false);
@@ -88,12 +90,19 @@ function RideOptionsContent() {
     setLoadingFares(true);
     (async () => {
       try {
-        const [economy, comfort] = await Promise.all([
+        const estimates = await Promise.allSettled([
+          estimateRide(pickup, { lat: destLat, lng: destLng }, 'BIKE'),
           estimateRide(pickup, { lat: destLat, lng: destLng }, 'ECONOMY'),
           estimateRide(pickup, { lat: destLat, lng: destLng }, 'COMFORT'),
         ]);
-        setFares({ BIKE: 0, ECONOMY: economy.fare, COMFORT: comfort.fare });
-        setFareError(null);
+        const [bike, economy, comfort] = estimates;
+        const nextFares = {
+          BIKE: bike.status === 'fulfilled' ? bike.value.fare : 0,
+          ECONOMY: economy.status === 'fulfilled' ? economy.value.fare : 0,
+          COMFORT: comfort.status === 'fulfilled' ? comfort.value.fare : 0,
+        };
+        setFares(nextFares);
+        setFareError(Object.values(nextFares).some(fare => fare > 0) ? null : t('Could not calculate the ride fare. Please try again.'));
       } catch {
         setFares({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
         setFareError(t('Could not calculate the ride fare. Please try again.'));
@@ -146,7 +155,7 @@ function RideOptionsContent() {
   // ─── STEP 1: Select ride type ───────────────────────────────────────
   if (step === 'select') {
     return (
-      <div className="flex min-h-[100dvh] flex-col overflow-hidden bg-gray-50">
+      <div className="zana-page-enter zana-ride-options flex min-h-[100dvh] flex-col overflow-hidden bg-gray-50">
         {/* Map */}
         <div className="relative flex-shrink-0" style={{ height: 'clamp(220px, 38dvh, 420px)' }}>
           <BrandedMap
@@ -159,14 +168,14 @@ function RideOptionsContent() {
           />
           <button
             onClick={() => router.back()}
-            className="absolute top-10 left-4 z-10 w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"
+            className="zana-glass-control absolute top-10 left-4 z-10 w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"
           >
             <ArrowLeft size={18} className="text-gray-700" />
           </button>
         </div>
 
         {/* Bottom sheet */}
-        <div className="flex-1 bg-white rounded-t-3xl -mt-5 overflow-y-auto shadow-2xl">
+        <div className="zana-glass-sheet flex-1 bg-white rounded-t-3xl -mt-5 overflow-y-auto shadow-2xl">
           <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3" />
 
           {/* Route summary */}
@@ -204,7 +213,7 @@ function RideOptionsContent() {
                 >
                   {/* Icon */}
                   <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center shrink-0 text-3xl">
-                    {opt.icon}
+                    {opt.icon === 'bike' ? <Bike size={27} strokeWidth={1.8} /> : <CarFront size={29} strokeWidth={1.8} />}
                   </div>
 
                   {/* Info */}
@@ -296,7 +305,7 @@ function RideOptionsContent() {
           <div className="bg-zana-primary-light rounded-2xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-3xl">{selectedOption?.icon}</span>
+                <span className="grid h-12 w-12 place-items-center rounded-xl bg-white text-zana-primary">{selectedOption?.icon === 'bike' ? <Bike size={27} strokeWidth={1.8} /> : <CarFront size={29} strokeWidth={1.8} />}</span>
                 <div>
                   <p className="font-bold text-gray-900">{selectedOption?.label}</p>
                   <p className="text-xs text-gray-500">{selectedOption?.sub}</p>
@@ -332,7 +341,7 @@ function RideOptionsContent() {
 
           {/* {t('Payment method')} */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">{t('💳 How will you pay?')}</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">{t('How will you pay?')}</p>
             <div className="space-y-2">
               {PAYMENT_OPTIONS.map(({ id, label, sub, icon }) => {
                 const isWallet = id === 'WALLET';
@@ -379,7 +388,7 @@ function RideOptionsContent() {
             {/* Nudge toward wallet when they've picked something else */}
             {paymentMethod !== 'WALLET' && !walletInsufficient && (
               <div className="mt-3 flex items-center gap-2 bg-zana-primary-light rounded-xl px-3 py-2.5">
-                <span className="text-sm shrink-0">💡</span>
+                <span className="text-sm shrink-0"><Check size={15} className="text-zana-primary" /></span>
                 <p className="text-[11px] text-gray-700 leading-snug">
                   {t('Paying from your Zana Wallet costs less in fees and skips the payment prompt.')}
                 </p>
@@ -389,7 +398,7 @@ function RideOptionsContent() {
             {/* Insufficient funds banner */}
             {walletInsufficient && (
               <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2">
-                <span className="text-amber-500 text-base shrink-0">⚠️</span>
+                <span className="text-amber-500 text-base shrink-0"><MapPin size={16} /></span>
                 <div>
                   <p className="text-xs font-bold text-amber-800">{t('Insufficient wallet balance')}</p>
                   <p className="text-xs text-amber-600 mt-0.5">
@@ -423,7 +432,7 @@ function RideOptionsContent() {
                 {t('Finding your driver...')}
               </>
             ) : (
-              `${t('Confirm')} · ${selected ? fares[selected].toLocaleString() : '—'} RWF`
+              `${t(selected === 'BIKE' ? 'Confirm Moto' : 'Confirm Car')} · ${selected ? fares[selected].toLocaleString() : '—'} RWF`
             )}
           </button>
 
@@ -438,7 +447,7 @@ function RideOptionsContent() {
 
 export default function RideOptionsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}>
       <RideOptionsContent />
     </Suspense>
   );

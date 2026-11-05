@@ -159,7 +159,7 @@ export default function ScheduleRidePage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
+    <div className="zana-page-enter zana-schedule-page min-h-screen bg-gray-50 pb-10">
       <div className="bg-white px-4 pt-12 pb-4 flex items-center gap-3 border-b border-gray-100">
         <button onClick={() => router.back()}
           className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">

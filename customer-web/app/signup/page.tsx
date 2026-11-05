@@ -52,7 +52,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="p-6 animate-fade-in">
+    <div className="zana-page-enter zana-auth-page p-6 animate-fade-in">
       <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center mb-4">
         <ArrowLeft size={16} />
       </button>

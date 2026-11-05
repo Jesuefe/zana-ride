@@ -37,6 +37,7 @@ export default function BrandedMap({
   navigationStart,
   navigationDestination,
   onRouteDeviation,
+  onMapClick,
 }: {
   origin?: LatLng;
   destination?: LatLng;
@@ -50,6 +51,7 @@ export default function BrandedMap({
   navigationStart?: LatLng | null;
   navigationDestination?: LatLng | null;
   onRouteDeviation?: (info: { offRoute: boolean; distanceMeters: number } | null) => void;
+  onMapClick?: (coords: LatLng) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -62,6 +64,8 @@ export default function BrandedMap({
   const routeTimerRef = useRef<any>(null);
   const routePathRef = useRef<any[]>([]);
   const offRouteCountRef = useRef(0);
+  const mapClickRef = useRef(onMapClick);
+  mapClickRef.current = onMapClick;
 
   // Keep live references so callbacks see current values
   const driverRef = useRef(driverPosition);
@@ -139,7 +143,7 @@ export default function BrandedMap({
         center, zoom: 14,
         mapId: 'zana_customer_map',
         disableDefaultUI: true,
-        gestureHandling: draggablePickup ? 'greedy' : 'none',
+        gestureHandling: draggablePickup || onMapClick ? 'greedy' : 'none',
       });
 
       // Route renderer
@@ -188,6 +192,16 @@ export default function BrandedMap({
         catch { driverMarkerRef.current = new G.Marker({ position: driverPosition, map: mapRef.current }); }
       }
 
+      // Let destination search select a point on the existing map.
+      if (mapClickRef.current) {
+        mapRef.current.addListener('click', (event: any) => {
+          const point = event?.latLng;
+          if (point) {
+            mapRef.current.panTo(point);
+            mapClickRef.current?.({ lat: point.lat(), lng: point.lng() });
+          }
+        });
+      }
       // Fetch initial route
       fetchRoute();
     });
