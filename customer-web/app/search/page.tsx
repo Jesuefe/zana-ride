@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Briefcase, Clock3, Home, MapPin, MapPinned, Plus, Search, X, Loader2, ChevronRight } from 'lucide-react';
 import BrandedMap from '../../components/BrandedMap';
 import { getStoredPickup, setStoredPickup } from '../../lib/location';
+import { resolveLocationCode } from '../../lib/api/deliveries';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
 import { api } from '../../lib/api/client';
@@ -30,7 +31,7 @@ function Highlight({text,query}:{text:string;query:string}){const i=text.toLower
 function SearchContent(){
  const {t}=useLang(),router=useRouter(),inputRef=useRef<HTMLInputElement>(null),touch=useRef<{y:number;time:number}|null>(null),debounce=useRef<ReturnType<typeof setTimeout>|null>(null);
  const [pickup,setPickup]=useState(getStoredPickup()),[pickupAddress,setPickupAddress]=useState('Current location'),[pickupEditing,setPickupEditing]=useState(false),[pickupQuery,setPickupQuery]=useState('');
- const [query,setQuery]=useState(''),[suggestions,setSuggestions]=useState<PlaceSuggestion[]>([]);
+ const [query,setQuery]=useState(''),[suggestions,setSuggestions]=useState<PlaceSuggestion[]>([]),[resolvingCode,setResolvingCode]=useState(false);
  const [saved,setSaved]=useState<SavedPlace[]>([]),[recents,setRecents]=useState<RecentPlace[]>([]),[loadingHome,setLoadingHome]=useState(true),[searching,setSearching]=useState(false);
  const [mapPicker,setMapPicker]=useState(false),[mapPoint,setMapPoint]=useState<{lat:number;lng:number}|null>(null),[mapAddress,setMapAddress]=useState(''),[resolvingMap,setResolvingMap]=useState(false),[error,setError]=useState('');
  useEffect(()=>{const id=window.setTimeout(()=>inputRef.current?.focus(),80);return()=>window.clearTimeout(id);},[]);
@@ -51,6 +52,8 @@ function SearchContent(){
  const confirmPin=()=>{if(mapPoint)select({name:mapAddress||'Pinned location',address:mapAddress||'Pinned location',lat:mapPoint.lat,lng:mapPoint.lng})};
  const onTouchEnd=(y:number)=>{if(!touch.current)return;const d=y-touch.current.y,ms=Date.now()-touch.current.time;touch.current=null;if(d>90||(d>45&&ms<240))router.back();};
  const active=query.trim().length>=2;
+ const looksLikeZanaCode=/^(?:ZANA[- ]?)?[A-Z0-9]{5,12}$/i.test(query.trim())&&(/[0-9]/.test(query.trim())||/^ZANA/i.test(query.trim()));
+ const useZanaCode=async()=>{const code=query.trim().replace(/\s+/g,'').toUpperCase();if(!looksLikeZanaCode||resolvingCode)return;setError('');setResolvingCode(true);try{const shared=await resolveLocationCode(code);if(!Number.isFinite(Number(shared.lat))||!Number.isFinite(Number(shared.lng)))throw new Error('Invalid location code');select({name:'Shared location',address:shared.address||'Location shared with Zana Code',lat:Number(shared.lat),lng:Number(shared.lng)});}catch{setError(t('That Zana Code is invalid, expired or already used. Check the code and try again.'));}finally{setResolvingCode(false)}};
  const groups=[{title:t('Saved places'),items:matchingSaved},{title:t('Places & landmarks'),items:suggestions.filter(s=>!(s.types??[]).some(v=>v==='route'||v==='street_address'))},{title:t('Streets & addresses'),items:suggestions.filter(s=>(s.types??[]).some(v=>v==='route'||v==='street_address'))}];
  const style=(i:number)=>({'--row-index':i} as CSSProperties);
  return <main className="zana-search-screen" onTouchStart={e=>{const panel=(e.target as HTMLElement).closest('.zana-search-content') as HTMLElement|null;if(panel&&panel.scrollTop>0)return;touch.current={y:e.touches[0].clientY,time:Date.now()}}} onTouchEnd={e=>onTouchEnd(e.changedTouches[0].clientY)}>
@@ -60,8 +63,9 @@ function SearchContent(){
    <div className="zana-search-fields"><div className="zana-search-route-rail" aria-hidden="true"><span className="pickup-dot"/><i/><span className="destination-square"/></div><div className="zana-search-field-stack">
     <button className="zana-search-pickup" onClick={()=>{setPickupEditing(v=>!v);setPickupQuery('');}} aria-label={t('Edit pickup location')}><span className="zana-search-field-label">{t('PICKUP')}</span><strong>{pickupAddress}</strong><span className="zana-search-edit">{t('Edit')}</span></button>
     {pickupEditing&&<div className="zana-search-pickup-edit"><input id="zana-pickup-edit" value={pickupQuery} onChange={e=>setPickupQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')searchPickup()}} placeholder={t('Search pickup location')}/><button onClick={searchPickup} aria-label={t('Search pickup')}><Search size={16}/></button></div>}
-    <div className="zana-search-destination-row"><div className="zana-search-destination-input"><span className="zana-search-field-label">{t('DESTINATION')}</span><input ref={inputRef} value={query} onChange={e=>setQuery(e.target.value)} placeholder={t('Search a landmark, area or address')} aria-label={t('Destination')} autoComplete="off" autoFocus/></div><button className="zana-search-map-button" onClick={pinOnMap}><MapPinned size={15}/><span>{t('Choose on map')}</span></button></div>
+    <div className="zana-search-destination-row"><div className="zana-search-destination-input"><span className="zana-search-field-label">{t('DESTINATION')}</span><input ref={inputRef} value={query} onChange={e=>{setQuery(e.target.value);setError('');}} onKeyDown={e=>{if(e.key==='Enter'&&looksLikeZanaCode){e.preventDefault();useZanaCode();}}} placeholder={t('Search a place or enter a Zana Code')} aria-label={t('Destination or Zana Code')} autoComplete="off" autoFocus/></div><button className="zana-search-map-button" onClick={pinOnMap}><MapPinned size={15}/><span>{t('Choose on map')}</span></button></div>
    </div></div>
+   {looksLikeZanaCode&&<div className="zana-search-code-action"><span>{t('Zana Code detected')}</span><button type="button" onClick={useZanaCode} disabled={resolvingCode}>{resolvingCode?<><Loader2 size={14} className="animate-spin"/>{t('Checking code…')}</>:t('Use shared location')}</button></div>}
    <div className="zana-search-content" aria-live="polite">
     {active?<>{searching&&<div className="zana-search-skeletons" aria-label={t('Loading places')}><i/><i/><i/><i/></div>}
      {!searching&&matchingSaved.length===0&&suggestions.length===0&&<div className="zana-search-empty"><MapPin size={22}/><strong>{t('No matching places')}</strong><span>{t('Try another spelling, or pin the destination on the map.')}</span><button onClick={pinOnMap}>{t('Pin it on the map')}</button></div>}
