@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { ChevronRight, Gift, MapPin, Package, RefreshCw, Search, ShoppingBag, Store, Utensils, X } from 'lucide-react';
 import DeliveryTracker from '../../components/DeliveryTracker';
@@ -187,9 +188,9 @@ function OrdersContent() {
     </article>;
   };
 
-  if (loading) return <div className="zana-page-enter zana-orders-page min-h-[70vh] bg-[var(--background)] p-4"><div className="h-8 w-36 animate-pulse rounded-lg bg-[#E3EFEB]"/><div className="mt-5 flex gap-2">{[1,2,3].map(i=><div key={i} className="h-9 w-20 animate-pulse rounded-full bg-[#E3EFEB]"/>)}</div>{[1,2].map(i=><div key={i} className="mt-4 h-52 animate-pulse rounded-3xl bg-white shadow-sm"/>)}</div>;
+  if (loading) return <div className="zana-orders-page h-full min-h-0 overflow-y-auto overscroll-y-contain bg-[var(--background)] p-4"><div className="h-8 w-36 animate-pulse rounded-lg bg-[#E3EFEB]"/><div className="mt-5 flex gap-2">{[1,2,3].map(i=><div key={i} className="h-9 w-20 animate-pulse rounded-full bg-[#E3EFEB]"/>)}</div>{[1,2].map(i=><div key={i} className="mt-4 h-52 animate-pulse rounded-3xl bg-white shadow-sm"/>)}</div>;
 
-  return <main className="zana-page-enter zana-orders-page min-h-screen bg-[var(--background)] px-4 pb-28 pt-5 text-gray-900">
+  return <main className="zana-orders-page h-full min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain bg-[var(--background)] px-4 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-5 text-gray-900" style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}>
     <header className="mb-5 flex items-start justify-between gap-3">
       <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#00A082]">ZANA · KIGALI</p><h1 className="mt-1 text-[28px] font-black tracking-tight">{t('Orders')}</h1><p className="mt-1 text-xs text-gray-500">{t('Track your deliveries, food and shopping orders.')}</p></div>
       <button onClick={()=>load(true)} disabled={refreshing} className="grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white text-gray-600" aria-label={t('Refresh orders')}><RefreshCw size={17} className={refreshing?'animate-spin':''}/></button>
@@ -208,12 +209,12 @@ function OrdersContent() {
     <div className="space-y-5">{groups.map(group=><section key={group.title}><h2 className="mb-3 text-xs font-extrabold uppercase tracking-[.12em] text-gray-400">{t(group.title)}</h2><div className="space-y-3">{group.rows.map(renderEntry)}</div></section>)}</div>
     <p className="mt-6 text-center text-[10px] text-gray-400">{t('Tap refresh to check for updates.')}</p>
 
-    {selected && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4 backdrop-blur-[3px]" onClick={()=>setSelected(null)}><section role="dialog" aria-modal="true" aria-label={t('Order details')} className="max-h-[min(82vh,720px)] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl" onClick={e=>e.stopPropagation()}>
+    {selected && typeof document !== 'undefined' && createPortal(<div className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto bg-black/55 px-4 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-[3px]" onClick={()=>setSelected(null)}><section role="dialog" aria-modal="true" aria-label={t('Order details')} className="my-auto max-h-[calc(100dvh-2rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-lg shrink-0 overflow-y-auto overscroll-contain rounded-3xl bg-white p-5 shadow-2xl" style={{ WebkitOverflowScrolling: "touch" }} onClick={e=>e.stopPropagation()}>
       <div className="mb-4 flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-widest text-[#00A082]">{t('Order details')}</p><h2 className="mt-1 text-lg font-black">{selected.title}</h2></div><button onClick={()=>setSelected(null)} className="grid h-9 w-9 place-items-center rounded-full bg-gray-100" aria-label={t('Close details')}><X size={18}/></button></div>
       {selected.kind==='delivery' && <><div className="space-y-3 rounded-2xl bg-gray-50 p-4"><p className="text-sm font-semibold">{selected.raw.itemDescription}</p><p className="text-xs text-gray-500">{t('Pickup')}: {selected.raw.pickupAddress}</p><p className="text-xs text-gray-500">{t('Drop-off')}: {selected.raw.dropoffAddress}</p><p className="text-xs text-gray-500">{dateOf(selected.date).toLocaleString()}</p></div><div className="mt-4 flex justify-between font-black"><span>{t('Delivery fee')}</span><span>{money(selected.amount)}</span></div>{selected.status==='DELIVERED'&&<button onClick={()=>{setReview({target:'DELIVERY',deliveryId:selected.id,title:t('How was this delivery?'),subtitle:selected.raw.itemDescription});setSelected(null)}} className="mt-4 w-full rounded-xl border border-[#00A082] py-3 text-sm font-bold text-[#00866F]">{t('Rate delivery')}</button>}</>}
       {selected.kind==='market' && <><div className="space-y-2">{(selected.raw.items??[]).map((item:any)=><div key={item.id} className="flex justify-between gap-3 text-sm"><span>{item.product?.name??t('Item')} ×{item.quantity}</span><span>{money(Number(item.product?.price??0)*Number(item.quantity??0))}</span></div>)}</div><div className="mt-4 rounded-2xl bg-gray-50 p-4"><div className="flex justify-between text-sm"><span className="text-gray-500">{t('Order total')}</span><strong>{money(selected.amount)}</strong></div>{selected.raw.dropoffAddress&&<p className="mt-2 text-xs text-gray-500">{t('Delivery address')}: {selected.raw.dropoffAddress}</p>}<p className="mt-2 text-xs text-gray-500">{dateOf(selected.date).toLocaleString()}</p></div></>}
       {selected.kind==='market' && ['PENDING','CONFIRMED'].includes(selected.status) && <button disabled={cancelling} onClick={async()=>{setCancelling(true);try{await cancelOrder(selected.id);await load(true);setSelected(null)}catch(e:any){window.alert(e?.message??t('Could not cancel this order.'))}finally{setCancelling(false)}}} className="mt-4 w-full rounded-xl border border-red-200 py-3 text-sm font-bold text-red-600 disabled:opacity-50">{cancelling?t('Cancelling…'):t('Cancel order')}</button>}
-    </section></div>}
+    </section></div>, document.body)}
     {review && <ReviewSheet target={review.target} deliveryId={review.deliveryId} merchantId={review.merchantId} orderId={review.orderId} title={review.title} subtitle={review.subtitle} onDone={()=>setReview(null)}/>}
   </main>;
 }
