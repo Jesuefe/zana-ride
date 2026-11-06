@@ -2512,7 +2512,7 @@ body:has(.zana-dispatch-minimal) {
   height: 100%;
   overflow: hidden !important;
   overscroll-behavior: none !important;
-  touch-action: pan-x pan-y;
+  touch-action: none;
 }
 body:has(.zana-dispatch-minimal) {
   position: fixed;
