@@ -437,7 +437,7 @@ function TrackingContent() {
   }, [status, allCompleted, receiptShown, primaryTrip?.id]);
 
   return (
-    <div className="zana-page-enter zana-tracking-page">
+    <div className={status === 'SEARCHING_DRIVER' ? 'zana-tracking-page' : 'zana-page-enter zana-tracking-page'}>
       {callNotice && (
         <div className="fixed top-4 left-4 right-4 z-[70] bg-gray-900 text-white text-sm text-center py-3 rounded-xl shadow-lg">
           {callNotice}
