@@ -2535,12 +2535,12 @@ body:has(.zana-dispatch-minimal) .app-shell,
 .zana-dispatch-minimal {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100svh;
+  width: 100%;
+  max-width: 100vw;
   height: 100dvh;
+  min-height: 0;
   max-height: 100dvh;
-  overflow: clip !important;
+  overflow: hidden !important;
   overscroll-behavior: none !important;
-  touch-action: pan-y;
+  touch-action: none !important;
 }
