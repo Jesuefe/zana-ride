@@ -2502,3 +2502,45 @@ img, video, canvas, iframe { max-width: 100%; }
   .zana-dispatch-minimal-note { margin-top:14px; padding:10px 13px; }
 }
 @media (prefers-reduced-motion:reduce) { .zana-dispatch-minimal-spinner span { animation:none; } }
+
+
+/* Ride dispatch is a true single-screen state. Lock the page underneath the
+   fixed search surface so touch gestures cannot move the hidden tracking view. */
+html:has(.zana-dispatch-minimal),
+body:has(.zana-dispatch-minimal) {
+  width: 100%;
+  height: 100%;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: pan-x pan-y;
+}
+body:has(.zana-dispatch-minimal) {
+  position: fixed;
+  inset: 0;
+}
+body:has(.zana-dispatch-minimal) .app-shell,
+.zana-tracking-page:has(.zana-dispatch-minimal) {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0 !important;
+  max-height: 100dvh;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+.zana-tracking-page:has(.zana-dispatch-minimal) {
+  position: fixed;
+  inset: 0;
+  padding: 0 !important;
+}
+.zana-dispatch-minimal {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: clip !important;
+  overscroll-behavior: none !important;
+  touch-action: pan-y;
+}
