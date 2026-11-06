@@ -26,3 +26,75 @@
 .zana-search-content{scroll-padding-block:18px}
 @media(prefers-contrast:more){.zana-search-result-copy small,.zana-search-saved-card small,.zana-search-popular-row small,.zana-search-distance{color:#596b60}.zana-search-saved-card,.zana-search-result,.zana-search-popular-row{border-color:#9aa99f}.zana-search-map-button{border-color:#008f74}}
 @media(max-width:360px){.zana-search-map-button{padding:8px}.zana-search-map-button span{font-size:9px}.zana-search-header h1{font-size:20px}.zana-search-saved-card{padding:9px;grid-template-columns:30px 1fr}.zana-search-saved-card>span{width:30px;height:30px}}
+
+
+/* Shared-location code entry and compact mobile search layout. */
+.zana-search-code-action {
+  flex:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 18px;
+  border-bottom:1px solid #e5f0ea;
+  background:#f1faf6;
+}
+.zana-search-code-action span {
+  color:#24715c;
+  font-size:10px;
+  font-weight:800;
+}
+.zana-search-code-action button {
+  min-height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:0 12px;
+  border-radius:10px;
+  color:#fff;
+  background:#008f74;
+  font-size:10px;
+  font-weight:850;
+}
+.zana-search-code-action button:disabled { opacity:.55; }
+@media(max-width:700px) {
+  .zana-search-screen { background:#fbfdfc; }
+  .zana-search-map,.zana-search-map-dim { display:none; }
+  .zana-search-sheet {
+    inset:0;
+    width:100%;
+    border-radius:0;
+    box-shadow:none;
+  }
+  .zana-search-header {
+    gap:11px;
+    padding-top:calc(env(safe-area-inset-top, 0px) + 10px);
+    padding-bottom:12px;
+  }
+  .zana-search-header h1 { font-size:21px; }
+  .zana-search-fields { padding-top:13px; padding-bottom:12px; }
+  .zana-search-content {
+    padding-top:14px;
+    padding-bottom:calc(18px + env(safe-area-inset-bottom, 0px));
+    scrollbar-width:none;
+  }
+  .zana-search-content::-webkit-scrollbar { display:none; }
+  .zana-search-code-action { padding-left:18px; padding-right:18px; }
+}
+@media(max-height:720px) {
+  .zana-search-header { padding-bottom:10px; }
+  .zana-search-fields { padding-top:10px; padding-bottom:9px; }
+  .zana-search-content { padding-top:11px; }
+  .zana-search-saved { margin-bottom:15px; }
+  .zana-search-recents { margin-bottom:15px; }
+  .zana-search-saved-card { min-height:76px; }
+  .zana-search-result { min-height:54px; }
+}
+@media(max-width:360px) {
+  .zana-search-fields { gap:9px; }
+  .zana-search-content { padding-left:14px; padding-right:14px; }
+  .zana-search-code-action { padding-left:14px; padding-right:14px; }
+}
+.dark .zana-search-code-action { background:#19372b; border-color:#2b4c3b; }
+.dark .zana-search-code-action span { color:#8ed9bb; }
