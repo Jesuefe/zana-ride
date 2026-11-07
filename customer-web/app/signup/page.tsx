@@ -20,6 +20,7 @@ export default function SignupPage() {
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
   const [password, setPassword] = useState('');
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,9 +30,11 @@ export default function SignupPage() {
     /\S+@\S+\.\S+/.test(email) &&
     phone.replace(/\D/g, '').length >= country.minDigits &&
     phone.replace(/\D/g, '').length <= country.maxDigits &&
-    password.length >= 6;
+    password.length >= 6 &&
+    acceptedLegal;
 
   const handleSignup = async () => {
+    if (!valid || loading) return;
     setLoading(true);
     setError(null);
     try {
@@ -102,6 +105,22 @@ export default function SignupPage() {
           onKeyDown={(e) => e.key === 'Enter' && valid && handleSignup()}
         />
       </div>
+
+      <label className="mt-4 flex items-start gap-2.5 text-xs leading-5 text-zana-muted cursor-pointer">
+        <input
+          type="checkbox"
+          checked={acceptedLegal}
+          onChange={(e) => setAcceptedLegal(e.target.checked)}
+          required
+          className="mt-1 h-4 w-4 shrink-0 accent-zana-primary"
+        />
+        <span>
+          I have read and agree to Zana&apos;s{" "}
+          <a href="https://zanaride.rw/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-zana-primary underline">Terms of Service</a>
+          {" "}and{" "}
+          <a href="https://zanaride.rw/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold text-zana-primary underline">Privacy Policy</a>.
+        </span>
+      </label>
 
       {error && <p className="text-xs text-zana-error mt-3">{error}</p>}
 
