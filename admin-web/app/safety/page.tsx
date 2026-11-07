@@ -7,6 +7,8 @@ import { io } from 'socket.io-client';
 
 const MAPS_KEY = 'AIzaSyD4o-fXIpmGozrClaP1niC407cgRCrzSTI';
 
+type SosEvent = { id: string; action: string; actor?: { firstName: string | null; lastName: string | null; role: string } | null; afterJson?: string | null; createdAt: string };
+
 type SosAlert = {
   id: string;
   tripId?: string | null;
@@ -153,6 +155,9 @@ export default function SafetyDashboard() {
   const [actionError, setActionError] = useState('');
   const [now, setNow] = useState(Date.now());
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [queueFilter, setQueueFilter] = useState<'OPEN' | 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED' | 'ALL'>('OPEN');
+  const [responseNote, setResponseNote] = useState('');
+  const [events, setEvents] = useState<SosEvent[]>([]);
 
   useEffect(() => {
     if (getToken()) setAuthed(true);
@@ -160,7 +165,7 @@ export default function SafetyDashboard() {
 
   const poll = useCallback(async () => {
     try {
-      const data = await api.get<SosAlert[]>('/sos/active');
+      const data = await api.get<SosAlert[]>('/sos/active?status=ALL');
       setAlerts(data);
       setLastRefresh(new Date());
       // New alert arrived — sound alarm
@@ -187,13 +192,16 @@ export default function SafetyDashboard() {
       setAlarmActive(true);
       setLastRefresh(new Date());
     };
+    const handleStatus = () => { void poll(); };
     socket.on('sos:alert', handleIncoming);
     socket.on('sos:new', handleIncoming);
+    socket.on('sos:status', handleStatus);
     const interval = setInterval(poll, 5000);
     const clock = setInterval(() => setNow(Date.now()), 1000);
     return () => {
       socket.off('sos:alert', handleIncoming);
       socket.off('sos:new', handleIncoming);
+      socket.off('sos:status', handleStatus);
       socket.disconnect();
       clearInterval(interval);
       clearInterval(clock);
@@ -211,10 +219,18 @@ export default function SafetyDashboard() {
     finally { setLogging(false); }
   };
 
+  useEffect(() => {
+    if (!focused || !authed) { setEvents([]); return; }
+    api.get<SosEvent[]>(`/sos/${focused.id}/events`).then(setEvents).catch(() => setEvents([]));
+  }, [focused?.id, authed]);
+
+  const visibleAlerts = alerts.filter(a => queueFilter === 'OPEN' ? a.status !== 'RESOLVED' : queueFilter === 'ALL' ? true : a.status === queueFilter);
+
   const acknowledge = async (id: string) => {
     setAcknowledging(id);
     try {
-      await api.patch(`/sos/${id}/acknowledge`);
+      await api.patch(`/sos/${id}/acknowledge`, { note: responseNote });
+      setResponseNote('');
       setAlarmActive(false);
       await poll();
     } catch {
@@ -235,7 +251,8 @@ export default function SafetyDashboard() {
 
   const resolve = async (id: string) => {
     try {
-      await api.patch(`/sos/${id}/resolve`);
+      await api.patch(`/sos/${id}/resolve`, { note: responseNote });
+      setResponseNote('');
       setFocused(null);
       await poll();
     } catch {
@@ -301,16 +318,18 @@ export default function SafetyDashboard() {
           ].map(([label,value,style]) => <div key={String(label)} className={`rounded-2xl p-4 border ${style}`}><p className="text-[10px] uppercase tracking-wider font-bold">{label}</p><p className="text-3xl font-black mt-1 text-white">{value}</p></div>)}
         </div>
 
-        {alerts.length===0 ? (
+        <div className="flex flex-wrap gap-2 mb-4">{([['OPEN','Open queue'],['ACTIVE','Active'],['ACKNOWLEDGED','Acknowledged'],['RESOLVED','History'],['ALL','All incidents']] as const).map(([value,label]) => <button key={value} onClick={()=>setQueueFilter(value)} className={`px-3 py-2 rounded-xl text-xs font-bold border ${queueFilter===value?'bg-red-600 border-red-500 text-white':'bg-slate-900 border-slate-700 text-slate-400'}`}>{label}{value==='OPEN' ? ` (${alerts.filter(a=>a.status!=='RESOLVED').length})` : value==='RESOLVED' ? ` (${alerts.filter(a=>a.status==='RESOLVED').length})` : ''}</button>)}</div>
+
+        {visibleAlerts.length===0 ? (
           <section className="min-h-[62vh] rounded-3xl border border-slate-800 bg-slate-900/50 flex flex-col items-center justify-center text-center px-6">
             <div className="w-20 h-20 rounded-full bg-emerald-900/30 flex items-center justify-center mb-5"><Shield size={34} className="text-emerald-400"/></div>
-            <p className="text-xl font-black text-emerald-400">All Clear</p><p className="text-sm text-slate-500 mt-1">No active SOS incidents require response.</p>
+            <p className="text-xl font-black text-emerald-400">All Clear</p><p className="text-sm text-slate-500 mt-1">No incidents match this view.</p>
             <div className="mt-5 flex items-center gap-2 text-xs text-slate-500"><Radio size={13} className="text-emerald-400"/> Safety monitoring is active</div>
             {lastRefresh && <p className="text-[10px] text-slate-600 mt-2">Last reconciliation {lastRefresh.toLocaleTimeString()}</p>}
           </section>
         ) : (
-          <section><div className="flex items-center justify-between mb-3"><div><p className="text-lg font-black">Incident queue</p><p className="text-xs text-slate-500">Open an incident to coordinate the response.</p></div><span className="text-xs font-bold text-red-400">{alerts.length} open</span></div>
-            <div className="grid gap-3 lg:grid-cols-2">{alerts.map(alert => (
+          <section><div className="flex items-center justify-between mb-3"><div><p className="text-lg font-black">Incident queue</p><p className="text-xs text-slate-500">Open an incident to coordinate the response.</p></div><span className="text-xs font-bold text-red-400">{visibleAlerts.length} shown</span></div>
+            <div className="grid gap-3 lg:grid-cols-2">{visibleAlerts.map(alert => (
               <button key={alert.id} onClick={()=>setFocused(alert)} className={`w-full text-left rounded-2xl p-4 border bg-slate-900 ${alert.status==='ACTIVE'?'border-red-700':'border-amber-800'}`}>
                 <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><AlertTriangle size={16} className={alert.status==='ACTIVE'?'text-red-500':'text-amber-400'}/><span className="font-black text-sm">{alert.role==='DRIVER'?'DRIVER SOS':'CUSTOMER SOS'}</span></div><span className="font-mono text-xs text-slate-400 flex items-center gap-1"><Clock size={11}/>{elapsed(alert.createdAt)}</span></div>
                 <div className="mt-3 flex items-start justify-between gap-4"><div><p className="font-bold">{alert.customer.firstName} {alert.customer.lastName}</p><p className="text-xs text-slate-500 mt-0.5">{alert.customer.phone}</p>{alert.trip&&<p className="text-xs text-slate-500 mt-2 truncate">{alert.trip.pickupAddress} → {alert.trip.destinationAddress}</p>}</div><span className={`shrink-0 px-2 py-1 rounded-full text-[9px] font-black ${alert.status==='ACTIVE'?'bg-red-950 text-red-300':'bg-amber-950 text-amber-300'}`}>{alert.status}</span></div>
@@ -338,7 +357,9 @@ export default function SafetyDashboard() {
 
           {focused.trip && <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4"><p className="text-[10px] text-slate-500 uppercase font-bold mb-3">Trip context</p><div className="grid md:grid-cols-2 gap-3 text-sm"><div><p className="text-slate-500 text-xs">Pickup</p><p className="mt-1">{focused.trip.pickupAddress}</p></div><div><p className="text-slate-500 text-xs">Destination</p><p className="mt-1">{focused.trip.destinationAddress}</p></div>{focused.trip.driver&&<div><p className="text-slate-500 text-xs">Driver / vehicle</p><p className="mt-1">{focused.trip.driver.user.firstName} {focused.trip.driver.user.lastName} · {focused.trip.driver.vehicle} · {focused.trip.driver.plate}</p></div>}{focused.trip.driver&&<a href={`tel:${focused.trip.driver.user.phone}`} className="flex items-center justify-center gap-2 bg-blue-700 text-white font-bold py-3 rounded-xl text-sm"><Phone size={15}/> Call driver</a>}</div></div>}
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4"><p className="text-[10px] text-slate-500 uppercase font-bold mb-3">Response actions</p><div className="grid md:grid-cols-3 gap-2">{focused.status==='ACTIVE'&&<button onClick={()=>acknowledge(focused.id)} disabled={acknowledged===focused.id} className="flex items-center justify-center gap-2 bg-amber-600 text-white font-bold py-3 rounded-xl text-sm disabled:opacity-40"><CheckCircle size={15}/>{acknowledged===focused.id?'Acknowledging…':'Acknowledge'}</button>}<button onClick={()=>focused.status==='ACKNOWLEDGED'&&resolve(focused.id)} disabled={focused.status!=='ACKNOWLEDGED'} className="flex items-center justify-center gap-2 bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm disabled:opacity-30"><CheckCircle size={15}/>Mark resolved</button><a href="tel:112" className="flex items-center justify-center gap-2 bg-red-600 text-white font-bold py-3 rounded-xl text-sm"><Phone size={15}/>Call 112</a></div></div>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4"><p className="text-[10px] text-slate-500 uppercase font-bold mb-2">Response note</p><textarea value={responseNote} onChange={e=>setResponseNote(e.target.value)} maxLength={2000} rows={3} placeholder="Record who was contacted, instructions given, escalation or outcome…" className="w-full resize-y bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm outline-none focus:border-red-500"/><p className="text-[10px] text-slate-500 mt-1 mb-3">Notes are permanently recorded in the incident audit trail.</p><p className="text-[10px] text-slate-500 uppercase font-bold mb-3">Response actions</p><div className="grid md:grid-cols-3 gap-2">{focused.status==='ACTIVE'&&<button onClick={()=>acknowledge(focused.id)} disabled={acknowledged===focused.id} className="flex items-center justify-center gap-2 bg-amber-600 text-white font-bold py-3 rounded-xl text-sm disabled:opacity-40"><CheckCircle size={15}/>{acknowledged===focused.id?'Acknowledging…':'Acknowledge'}</button>}<button onClick={()=>focused.status==='ACKNOWLEDGED'&&resolve(focused.id)} disabled={focused.status!=='ACKNOWLEDGED'} className="flex items-center justify-center gap-2 bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm disabled:opacity-30"><CheckCircle size={15}/>Mark resolved</button><a href="tel:112" className="flex items-center justify-center gap-2 bg-red-600 text-white font-bold py-3 rounded-xl text-sm"><Phone size={15}/>Call 112</a></div></div>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4"><p className="text-[10px] text-slate-500 uppercase font-bold mb-3">Incident activity log</p>{events.length===0 ? <p className="text-xs text-slate-500">No recorded activity yet.</p> : <div className="space-y-3">{events.map(event=><div key={event.id} className="border-l-2 border-slate-700 pl-3"><p className="text-xs font-bold">{event.action.replaceAll('_',' ')}</p><p className="text-[10px] text-slate-500">{event.actor ? `${event.actor.firstName??''} ${event.actor.lastName??''} · ${event.actor.role}` : 'System'} · {new Date(event.createdAt).toLocaleString('en-GB')}</p>{event.afterJson && <p className="text-xs text-slate-400 mt-1">{(()=>{try{return JSON.parse(event.afterJson).note || ''}catch{return ''}})()}</p>}</div>)}</div>}</div>
+
           <a href={`https://maps.google.com/?q=${focused.lat??focused.trip?.pickupLat},${focused.lng??focused.trip?.pickupLng}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 text-sm text-blue-400 py-2"><ExternalLink size={14}/>Open incident in Google Maps</a>
         </div>
       </div>}
