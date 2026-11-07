@@ -6,7 +6,7 @@ import { api } from '../../../lib/api/client';
 import { MapPin, Plus, Pencil, Undo2, Save, Power, Layers3, AlertTriangle, LoaderCircle, Check, X } from 'lucide-react';
 
 type Point = [number, number];
-type Zone = { id:string; name:string; city:string; boundary:{type:'Polygon';coordinates:number[][][]}; serviceTypes:string[]; nearbyZoneIds:string[]; active:boolean };
+type Zone = { id:string; name:string; city:string; boundary:{type:'Polygon'|'MultiPolygon';coordinates:any}; serviceTypes:string[]; nearbyZoneIds:string[]; active:boolean; zoneLevel:'MAIN'|'MINI'; parentZoneId:string|null };
 declare global { interface Window { L?: any } }
 
 const serviceOptions = [
@@ -35,7 +35,7 @@ export default function ServiceZonesPage() {
   const mapNode=useRef<HTMLDivElement>(null), mapRef=useRef<any>(null), zonesLayer=useRef<any>(null), draftLayer=useRef<any>(null);
   const pointsRef=useRef<Point[]>([]), drawingRef=useRef(false);
   const [zones,setZones]=useState<Zone[]>([]), [city,setCity]=useState('Kigali'), [name,setName]=useState('');
-  const [services,setServices]=useState<string[]>(['ALL']), [nearby,setNearby]=useState<string[]>([]), [active,setActive]=useState(true);
+  const [services,setServices]=useState<string[]>(['ALL']), [nearby,setNearby]=useState<string[]>([]), [active,setActive]=useState(false);
   const [selected,setSelected]=useState<string|null>(null), [points,setPoints]=useState<Point[]>([]), [drawing,setDrawing]=useState(false);
   const [ready,setReady]=useState(false), [loading,setLoading]=useState(true), [saving,setSaving]=useState(false);
   const [error,setError]=useState(''), [message,setMessage]=useState('');
@@ -101,7 +101,7 @@ export default function ServiceZonesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[zones,selected,ready]);
 
-  const newZone=()=>{clearDraft();setSelected(null);setName('');setServices(['ALL']);setNearby([]);setActive(true);setMessage('Draw a boundary on the map, then save your zone.');setError('');};
+  const newZone=()=>{clearDraft();setSelected(null);setName('');setServices(['ALL']);setNearby([]);setActive(false);setMessage('Draw a boundary on the map, then save your zone.');setError('');};
   const beginDraw=()=>{clearDraft();drawingRef.current=true;setDrawing(true);setMessage('Tap the map to add boundary points. Add at least 3 points, then finish.');};
   const finish=()=>{if(pointsRef.current.length<3){setError('Add at least 3 boundary points.');return;}drawingRef.current=false;setDrawing(false);setMessage('Boundary ready. Save your zone when the outline looks right.');};
   const undo=()=>{const next=pointsRef.current.slice(0,-1);pointsRef.current=next;setPoints(next);paintDraft(next);};
@@ -156,7 +156,7 @@ export default function ServiceZonesPage() {
         <div ref={mapNode} className="z-0 h-[430px] w-full bg-gray-100 sm:h-[560px]"/>
         <div className="flex flex-wrap items-center gap-4 border-t border-gray-100 px-4 py-3 text-[11px] text-gray-500">
           <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-[#00a082]"/>Active zone</span><span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-gray-400"/>Inactive zone</span>
-          <span className="ml-auto">{ready?'Map ready':'Loading map…'} · {zones.length} zones</span>
+          <span className="ml-auto">{ready?'Map ready':'Loading map…'} · {zones.filter(z=>z.zoneLevel==='MAIN').length} main · {zones.filter(z=>z.zoneLevel==='MINI').length} mini zones</span>
         </div>
       </section>
       <div className="space-y-5">
@@ -176,9 +176,9 @@ export default function ServiceZonesPage() {
           {current&&<button onClick={newZone} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600">Cancel editing</button>}
         </section>
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold text-gray-900">Operating zones</p><p className="text-xs text-gray-500">Choose a zone to edit it.</p></div><button onClick={refresh} className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600">Refresh</button></div>
+          <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold text-gray-900">Operating zones</p><p className="text-xs text-gray-500">6 main zones · 35 mini-zones. Choose one to edit it.</p></div><button onClick={refresh} className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600">Refresh</button></div>
           {loading?<div className="flex items-center gap-2 py-5 text-xs text-gray-400"><LoaderCircle size={15} className="animate-spin"/>Loading zones…</div>:zones.length===0?<div className="rounded-xl bg-gray-50 p-4 text-center"><MapPin size={22} className="mx-auto mb-2 text-gray-300"/><p className="text-sm font-semibold text-gray-700">No zones created yet</p><p className="mt-1 text-xs text-gray-400">Draw your first service area.</p></div>:<div className="space-y-2">{zones.map(z=><div key={z.id} className={'flex items-center gap-2 rounded-xl border p-3 '+(selected===z.id?'border-zana-primary bg-emerald-50/50':'border-gray-100')}>
-            <button onClick={()=>selectZone(z)} className="min-w-0 flex-1 text-left"><b className="block truncate text-sm text-gray-800">{z.name}</b><span className="mt-0.5 block text-[10px] text-gray-500">{z.city} · {z.serviceTypes.includes('ALL')?'All services':z.serviceTypes.join(', ')}</span></button>
+            <button onClick={()=>selectZone(z)} className="min-w-0 flex-1 text-left"><b className="block truncate text-sm text-gray-800">{z.name}</b><span className="mt-0.5 block text-[10px] text-gray-500">{z.zoneLevel==='MAIN'?'MAIN ZONE':('MINI ZONE · '+(zones.find(p=>p.id===z.parentZoneId)?.name||'Unassigned'))} · {z.city}</span></button>
             <span className={'rounded-full px-2 py-1 text-[9px] font-bold '+(z.active?'bg-emerald-100 text-emerald-700':'bg-gray-100 text-gray-500')}>{z.active?'ACTIVE':'OFF'}</span>
             <button onClick={()=>toggleZone(z)} title="Toggle zone" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"><Power size={14}/></button><button onClick={()=>selectZone(z)} title="Edit zone" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"><Pencil size={14}/></button>
           </div>)}</div>}
