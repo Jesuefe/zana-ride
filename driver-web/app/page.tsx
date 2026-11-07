@@ -6,12 +6,12 @@ import { Menu, Bell, MapPin, Navigation, ChevronRight, X, AlertTriangle } from '
 import LanguageSelector from '../components/LanguageSelector';
 import { useLang } from '../lib/LangContext';
 import {
-  fetchMyDriverProfile, acceptTrip,
+  fetchMyDriverProfile, fetchDriverZone, acceptTrip,
   goOnline, goOffline, updateDriverLocation, updateDriverMode,
   fetchPendingDeliveries, acceptDelivery, fetchEarnings, fetchMyActiveTrip,
   fetchRecentlyCompletedRide, logRecoveryEvent,
   fetchMyOffers, declineOffer, triggerSOS, RideOffer,
-  DriverProfile, DriverTrip, PendingDelivery,
+  DriverProfile, DriverTrip, PendingDelivery, DriverZone,
 } from '../lib/api/driver';
 import { io } from 'socket.io-client';
 import { getToken } from '../lib/api/client';
@@ -300,6 +300,8 @@ export default function DriverHome() {
   // impossible by construction instead of needing careful sequencing.
   const [topBannerError, setTopBannerError] = useState('');
   const [coords, setCoords] = useState<Coords | null>(null);
+  const [operatingZone, setOperatingZone] = useState<DriverZone | null>(null);
+  const [zoneLookupDone, setZoneLookupDone] = useState(false);
   // Was a single incoming ride at a time — now a real list, each entry a
   // genuine, individually-tracked offer from the backend, not just
   // whatever happened to be first in a shared queue.
@@ -354,6 +356,21 @@ export default function DriverHome() {
       });
     });
   }, [checkingActiveRide]);
+
+  // Resolve the driver's live GPS point into the official Kigali service-zone hierarchy.
+  // The lookup runs for both online and offline drivers so they can always see their area.
+  useEffect(() => {
+    if (!coords) return;
+    let cancelled = false;
+    fetchDriverZone(coords.lat, coords.lng).then(result => {
+      if (cancelled) return;
+      setOperatingZone(result.serviceable ? result.zone : null);
+      setZoneLookupDone(true);
+    }).catch(() => {
+      if (!cancelled) setZoneLookupDone(true);
+    });
+    return () => { cancelled = true; };
+  }, [coords?.lat, coords?.lng]);
 
   // Update marker when coords change
   useEffect(() => {
@@ -838,6 +855,25 @@ export default function DriverHome() {
             >
               {dt('Details')} <ChevronRight size={12} />
             </button>
+          </div>
+
+          {/* Automatically detected operating district and service zone */}
+          <div className="rounded-2xl border border-[#00A082]/15 bg-[#00A082]/[0.045] px-4 py-3">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-gray-500">Your operating area</p>
+              <span className={`text-[9px] font-bold rounded-full px-2 py-1 ${operatingZone ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                {operatingZone ? 'ZONE IDENTIFIED' : zoneLookupDone ? 'OUTSIDE COVERAGE' : 'DETECTING LOCATION'}
+              </span>
+            </div>
+            {operatingZone ? (
+              <div className="grid grid-cols-3 gap-2">
+                <div><p className="text-[9px] text-gray-400">District</p><p className="text-sm font-extrabold text-gray-900 truncate">{operatingZone.district ?? operatingZone.city}</p></div>
+                <div><p className="text-[9px] text-gray-400">Main zone</p><p className="text-sm font-bold text-gray-800 truncate">{operatingZone.mainZone ?? '—'}</p></div>
+                <div><p className="text-[9px] text-gray-400">Mini-zone</p><p className="text-sm font-bold text-gray-800 truncate">{operatingZone.miniZone}</p></div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500">{zoneLookupDone ? 'Your current GPS position is outside an active Zana service zone.' : 'Waiting for a GPS fix to identify your district and zone.'}</p>
+            )}
           </div>
 
           {/* ZANA online/offline control */}
