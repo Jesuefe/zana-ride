@@ -188,3 +188,5 @@ export default function ServiceZonesPage() {
     <p className="text-[11px] text-gray-400">Map data © OpenStreetMap contributors. Boundaries are stored as GeoJSON. Existing driver matching remains unchanged until active zones are configured.</p>
   </div></AdminShell>;
 }
+
+// Production admin route: polygon-based service-zone management.
