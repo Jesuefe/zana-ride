@@ -36,7 +36,8 @@ export default function SignupPage() {
     phone.replace(/\D/g, '').length >= 9 &&
     password.length >= 6 &&
     vehicle.trim() &&
-    plate.trim();
+    plate.trim() &&
+    acceptedLegal;
 
   const handleSignup = async () => {
     if (!valid || loading) return;
