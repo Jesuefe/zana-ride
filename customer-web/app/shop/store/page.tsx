@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ShoppingCart, Plus, Minus, MapPin, Loader2, Store, Package, Search } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Plus, Minus, MapPin, Loader2, Store, Package, Search, Star, Clock3 } from 'lucide-react';
 import { fetchMarketplaceWithLocation, placeOrder, MarketplaceMerchant, MarketplaceProduct, CartItem } from '../../../lib/api/marketplace';
 import { getStoredPickup } from '../../../lib/location';
 import OrderRecipient, { OrderRecipient as OrderRecipientValue } from '../../../components/OrderRecipient';
@@ -173,6 +173,19 @@ function StoreContent() {
         <div className="p-4">
           <p className="font-black text-xl text-gray-900">{merchant.businessName}</p>
           {merchant.branch && <p className="text-sm text-gray-400">{merchant.branch}</p>}
+          {category === 'FOOD' && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs">
+              {typeof merchant.averageRating === 'number' ? (
+                <>
+                  <Star size={14} className="fill-amber-400 text-amber-400" />
+                  <strong className="text-gray-900">{merchant.averageRating.toFixed(1)}</strong>
+                  <span className="text-gray-400">({merchant.reviewCount ?? 0} {t('reviews')})</span>
+                </>
+              ) : (
+                <span className="font-semibold text-gray-400">{t('New restaurant — be the first to review')}</span>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-2.5 mt-2 text-[11px] flex-wrap">
             <span className="flex items-center gap-1 text-gray-500">
               <MapPin size={10} /> {merchant.distanceText}
@@ -182,9 +195,16 @@ function StoreContent() {
               {t('Delivery from')} {merchant.deliveryFee.toLocaleString()} RWF
             </span>
           </div>
-          <div className="mt-3 rounded-xl bg-zana-primary-light px-3 py-2.5">
-            <p className="text-xs font-bold text-zana-primary">Estimated arrival: {merchant.prepMinutes + merchant.deliveryMinutes} min</p>
-            <p className="text-[10px] text-gray-500 mt-0.5">Preparation {merchant.prepMinutes} min · delivery {merchant.deliveryMinutes} min</p>
+          <div className="mt-3 rounded-xl bg-zana-primary-light px-3 py-3">
+            <p className="text-xs font-extrabold text-zana-primary">{t('Estimated arrival')} · {merchant.etaMinutes ?? (merchant.prepMinutes + merchant.deliveryMinutes)} min</p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-600">
+              <span className="flex items-center gap-1"><Clock3 size={11} />{t('Preparation')} <strong className="text-gray-900">{merchant.prepMinutes} min</strong></span>
+              <span>·</span>
+              <span>{t('Delivery')} <strong className="text-gray-900">{merchant.deliveryMinutes} min</strong></span>
+            </div>
+            {merchant.prepTimeSource === 'RECENT_ORDER_HISTORY' && (
+              <p className="mt-1.5 text-[10px] text-gray-500">{t('Preparation estimate based on recent completed orders')} ({merchant.prepSampleCount ?? 0})</p>
+            )}
           </div>
         </div>
       </div>
