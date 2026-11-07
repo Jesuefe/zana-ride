@@ -50,14 +50,14 @@ export default function MediaPage() {
             <p className="text-sm text-gray-500 mt-1">Browse Zana uploads, including product photos, delivery evidence and private business verification documents.</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500 bg-white border border-gray-200 rounded-lg px-3 py-2">
-            <ImageIcon size={14} /> {items.length} images
+            <ImageIcon size={14} /> {items.length} media items
           </div>
         </div>
 
         <div className="bg-white rounded-xl p-3 mb-4 shadow-sm flex flex-col md:flex-row gap-3">
           <div className="flex-1 relative">
             <Search size={15} className="absolute left-3 top-3 text-gray-400" />
-            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search image name or owner…" className="w-full border border-gray-200 rounded-lg pl-9 pr-3 py-2.5 text-sm outline-none" />
+            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search media name or owner…" className="w-full border border-gray-200 rounded-lg pl-9 pr-3 py-2.5 text-sm outline-none" />
           </div>
           <select value={filter} onChange={e => setFilter(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white">
             {types.map(t => <option key={t} value={t}>{t === 'all' ? 'All images' : t.replaceAll('-', ' ')}</option>)}
