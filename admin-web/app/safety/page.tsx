@@ -7,6 +7,8 @@ import { io } from 'socket.io-client';
 
 const MAPS_KEY = 'AIzaSyD4o-fXIpmGozrClaP1niC407cgRCrzSTI';
 
+type TripReport = { id: string; tripId: string; reason: string; details?: string | null; status: string; createdAt: string; reporter: { firstName: string | null; lastName: string | null; phone: string }; trip: { pickupAddress: string; destinationAddress: string; customer: { firstName: string | null; lastName: string | null; phone: string }; driver?: { user: { firstName: string | null; lastName: string | null; phone: string } } | null } };
+
 type SosEvent = { id: string; action: string; actor?: { firstName: string | null; lastName: string | null; role: string } | null; afterJson?: string | null; createdAt: string };
 
 type SosAlert = {
@@ -158,6 +160,10 @@ export default function SafetyDashboard() {
   const [queueFilter, setQueueFilter] = useState<'OPEN' | 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED' | 'ALL'>('OPEN');
   const [responseNote, setResponseNote] = useState('');
   const [events, setEvents] = useState<SosEvent[]>([]);
+  const [section, setSection] = useState<'INCIDENTS' | 'REPORTS'>('INCIDENTS');
+  const [tripReports, setTripReports] = useState<TripReport[]>([]);
+  const [reportBusy, setReportBusy] = useState<string | null>(null);
+  const [reportFilter, setReportFilter] = useState<'OPEN' | 'RESOLVED' | 'ALL'>('OPEN');
 
   useEffect(() => {
     if (getToken()) setAuthed(true);
@@ -225,6 +231,22 @@ export default function SafetyDashboard() {
   }, [focused?.id, authed]);
 
   const visibleAlerts = alerts.filter(a => queueFilter === 'OPEN' ? a.status !== 'RESOLVED' : queueFilter === 'ALL' ? true : a.status === queueFilter);
+
+  const loadTripReports = useCallback(async () => {
+    try { setTripReports(await api.get<TripReport[]>('/admin/trips/reports')); } catch { setTripReports([]); }
+  }, []);
+
+  useEffect(() => { if (authed) void loadTripReports(); }, [authed, loadTripReports]);
+
+  const resolveTripReport = async (reportId: string) => {
+    setReportBusy(reportId);
+    try { await api.patch(`/admin/trips/reports/${reportId}/resolve`); await loadTripReports(); }
+    catch { setActionError('Could not resolve this safety report. Please try again.'); }
+    finally { setReportBusy(null); }
+  };
+
+  const visibleReports = tripReports.filter(report => reportFilter === 'ALL' ? true : report.status === reportFilter);
+
 
   const acknowledge = async (id: string) => {
     setAcknowledging(id);
@@ -318,6 +340,9 @@ export default function SafetyDashboard() {
           ].map(([label,value,style]) => <div key={String(label)} className={`rounded-2xl p-4 border ${style}`}><p className="text-[10px] uppercase tracking-wider font-bold">{label}</p><p className="text-3xl font-black mt-1 text-white">{value}</p></div>)}
         </div>
 
+        <div className="flex gap-2 mb-4 border-b border-slate-800 pb-3"><button onClick={()=>setSection('INCIDENTS')} className={`px-4 py-2 rounded-xl text-sm font-bold ${section==='INCIDENTS'?'bg-red-600 text-white':'bg-slate-900 text-slate-400'}`}>SOS incidents</button><button onClick={()=>setSection('REPORTS')} className={`px-4 py-2 rounded-xl text-sm font-bold ${section==='REPORTS'?'bg-red-600 text-white':'bg-slate-900 text-slate-400'}`}>Ride safety reports ({tripReports.filter(r=>r.status==='OPEN').length})</button></div>
+
+        {section === 'INCIDENTS' ? <>
         <div className="flex flex-wrap gap-2 mb-4">{([['OPEN','Open queue'],['ACTIVE','Active'],['ACKNOWLEDGED','Acknowledged'],['RESOLVED','History'],['ALL','All incidents']] as const).map(([value,label]) => <button key={value} onClick={()=>setQueueFilter(value)} className={`px-3 py-2 rounded-xl text-xs font-bold border ${queueFilter===value?'bg-red-600 border-red-500 text-white':'bg-slate-900 border-slate-700 text-slate-400'}`}>{label}{value==='OPEN' ? ` (${alerts.filter(a=>a.status!=='RESOLVED').length})` : value==='RESOLVED' ? ` (${alerts.filter(a=>a.status==='RESOLVED').length})` : ''}</button>)}</div>
 
         {visibleAlerts.length===0 ? (
@@ -338,6 +363,10 @@ export default function SafetyDashboard() {
             ))}</div>
           </section>
         )}
+        </> : <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-lg font-black">Ride safety reports</p><p className="text-xs text-slate-500">Customer-submitted reports linked to a ride.</p></div><div className="flex gap-2">{(['OPEN','RESOLVED','ALL'] as const).map(value=><button key={value} onClick={()=>setReportFilter(value)} className={`px-3 py-2 rounded-lg text-xs font-bold ${reportFilter===value?'bg-slate-700 text-white':'bg-slate-900 text-slate-400'}`}>{value==='ALL'?'All':value}</button>)}<button onClick={()=>void loadTripReports()} className="p-2 rounded-lg bg-slate-900 text-slate-300"><RefreshCw size={14}/></button></div></div>
+          {visibleReports.length===0 ? <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-10 text-center text-sm text-slate-500">No reports in this view.</div> : visibleReports.map(report=><article key={report.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-4 space-y-3"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-sm">{report.reason.replaceAll('_',' ').toUpperCase()}</p><p className="text-xs text-slate-500 mt-1">{new Date(report.createdAt).toLocaleString('en-GB')} · {report.status}</p></div><span className={`px-2 py-1 rounded-full text-[10px] font-bold ${report.status==='OPEN'?'bg-amber-950 text-amber-300':'bg-emerald-950 text-emerald-300'}`}>{report.status}</span></div><p className="text-sm text-slate-200">{report.details || 'No additional details supplied.'}</p><div className="grid md:grid-cols-3 gap-3 text-xs"><div><p className="text-slate-500">Reporter</p><p className="font-semibold mt-1">{report.reporter.firstName} {report.reporter.lastName}</p><p className="text-slate-400">{report.reporter.phone}</p></div><div><p className="text-slate-500">Customer</p><p className="font-semibold mt-1">{report.trip.customer.firstName} {report.trip.customer.lastName}</p><p className="text-slate-400">{report.trip.customer.phone}</p></div><div><p className="text-slate-500">Driver</p><p className="font-semibold mt-1">{report.trip.driver ? `${report.trip.driver.user.firstName??''} ${report.trip.driver.user.lastName??''}` : 'Not assigned'}</p><p className="text-slate-400">{report.trip.driver?.user.phone ?? '—'}</p></div></div><div className="rounded-xl bg-slate-950 p-3 text-xs"><p>{report.trip.pickupAddress}</p><p className="text-slate-500 my-1">↓</p><p>{report.trip.destinationAddress}</p></div>{report.status==='OPEN'&&<button onClick={()=>void resolveTripReport(report.id)} disabled={reportBusy===report.id} className="w-full md:w-auto px-4 py-2.5 rounded-xl bg-emerald-700 text-white text-xs font-bold disabled:opacity-50">{reportBusy===report.id?'Saving…':'Mark report resolved'}</button>}</article>)}
+        </section>}
       </main>
 
       {focused && <div className="fixed inset-0 z-50 bg-slate-950 overflow-auto">
