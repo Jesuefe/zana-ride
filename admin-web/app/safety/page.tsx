@@ -173,6 +173,7 @@ export default function SafetyDashboard() {
     try {
       const data = await api.get<SosAlert[]>('/sos/active?status=ALL');
       setAlerts(data);
+      setFocused(current => current ? (data.find(alert => alert.id === current.id) ?? current) : current);
       setLastRefresh(new Date());
       // New alert arrived — sound alarm
       if (data.length > lastCount && lastCount >= 0) {
