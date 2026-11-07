@@ -6,7 +6,7 @@ on:
         description: Frontend to deploy
         required: true
         type: choice
-        options: [admin, customer, landing]
+        options: [admin, customer, driver, landing]
 permissions:
   contents: read
 jobs:
@@ -25,12 +25,14 @@ jobs:
           TARGET: ${{ inputs.target }}
           ADMIN_PROJECT: ${{ vars.CLOUDFLARE_ADMIN_PAGES_PROJECT }}
           CUSTOMER_PROJECT: ${{ vars.CLOUDFLARE_CUSTOMER_PAGES_PROJECT }}
+          DRIVER_PROJECT: ${{ vars.CLOUDFLARE_DRIVER_PAGES_PROJECT }}
           LANDING_PROJECT: ${{ vars.CLOUDFLARE_LANDING_PAGES_PROJECT }}
         run: |
           set -eu
           case "$TARGET" in
             admin) PROJECT="${ADMIN_PROJECT:-zana-admin}"; DIRECTORY=admin-web ;;
             customer) PROJECT="${CUSTOMER_PROJECT:-zana-ride}"; DIRECTORY=customer-web ;;
+            driver) PROJECT="${DRIVER_PROJECT:-zana-driver}"; DIRECTORY=driver-web ;;
             landing) PROJECT="${LANDING_PROJECT:-zana-landing}"; DIRECTORY=landing ;;
             *) exit 1 ;;
           esac
