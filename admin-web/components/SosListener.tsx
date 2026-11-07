@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
+import { usePathname } from 'next/navigation';
 import { getToken } from '../lib/api/client';
 
 type Alert = {
@@ -22,6 +23,8 @@ type Alert = {
 export default function SosListener() {
   const ringRef = useRef<HTMLAudioElement | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [muted, setMuted] = useState(false);
+  const pathname = usePathname();
 
   const stopRing = () => {
     if (ringRef.current) {
@@ -39,6 +42,7 @@ export default function SosListener() {
 
     socket.on('sos:alert', (data: Alert) => {
       setAlerts(prev => [data, ...prev]);
+      setMuted(false);
       try {
         const audio = new Audio('/ringtone.mp3');
         audio.loop = true;
@@ -52,12 +56,12 @@ export default function SosListener() {
   }, []);
 
   const current = alerts[0];
-  if (!current) return null;
+  // The global interrupt is a shortcut into the real incident queue, not an
+  // acknowledgement. Only the Safety Center may change incident status.
+  if (!current || pathname === '/safety') return null;
 
-  const dismiss = () => {
-    stopRing();
-    setAlerts(prev => prev.slice(1));
-  };
+  const mute = () => { stopRing(); setMuted(true); };
+  const openSafetyCenter = () => { stopRing(); window.location.assign('/safety'); };
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-red-900/80 px-6">
@@ -110,11 +114,11 @@ export default function SosListener() {
           </a>
         )}
 
-        <button
-          onClick={dismiss}
-          className="w-full border-2 border-gray-200 text-gray-700 font-bold py-3 rounded-2xl"
-        >
-          Acknowledge{alerts.length > 1 ? ` (${alerts.length - 1} more)` : ''}
+        <button onClick={openSafetyCenter} className="w-full bg-red-600 text-white font-bold py-3 rounded-2xl mb-2">
+          Open Safety Center{alerts.length > 1 ? ` · ${alerts.length} alerts` : ''}
+        </button>
+        <button onClick={mute} className="w-full border-2 border-gray-200 text-gray-700 font-bold py-3 rounded-2xl">
+          {muted ? 'Alarm muted' : 'Mute alarm'}
         </button>
       </div>
     </div>
