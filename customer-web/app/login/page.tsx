@@ -51,22 +51,41 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="zana-page-enter zana-auth-page flex flex-col min-h-screen">
-      <div className="bg-zana-primary-light flex-1 flex items-center justify-center animate-fade-in py-10">
-        <div className="w-32 h-32 rounded-3xl bg-white shadow-lg flex items-center justify-center overflow-hidden animate-fade-slide-up">
-          <Image src="/zana-mark.png" alt="Zana" width={128} height={128} className="object-cover" priority />
+    <div className="zana-page-enter zana-auth-page zana-login-page flex flex-col min-h-screen">
+      <div className="zana-login-hero animate-fade-in">
+        <div className="zana-login-topline">
+          <Image src="/zana-horizontal.png" alt="Zana" width={116} height={42} className="zana-login-wordmark" priority />
+          <span className="zana-login-city">KIGALI · RWANDA</span>
+        </div>
+        <div className="zana-login-map" aria-hidden="true">
+          <span className="zana-map-road zana-map-road-one" />
+          <span className="zana-map-road zana-map-road-two" />
+          <span className="zana-map-route" />
+          <span className="zana-map-pin zana-map-pin-start" />
+          <span className="zana-map-pin zana-map-pin-end" />
+          <span className="zana-map-vehicle"><span /></span>
+          <span className="zana-map-label">YOUR CITY, IN MOTION</span>
+        </div>
+        <div className="zana-login-hero-copy">
+          <p>MOVE WITH ZANA</p>
+          <h2>Your city.<br />Your journey.<br /><span>Your Zana.</span></h2>
         </div>
       </div>
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('Welcome back')}</h1>
-        <p className="text-sm text-zana-muted mt-1">{t('Log in with your email or phone number.')}</p>
+      <div className="zana-login-content">
+        <div className="zana-login-heading">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{t('Welcome back')}</h1>
+            <p className="text-sm text-zana-muted mt-1">{t('Log in with your email or phone number.')}</p>
+          </div>
+          <span className="zana-login-lock" aria-hidden="true">↗</span>
+        </div>
 
         <div className="mt-6 space-y-3">
           <input
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             placeholder={t('Email or phone number')}
-            className="w-full border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
+            className="zana-login-input w-full border border-zana-border rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             autoFocus
           />
           <PasswordField
@@ -74,7 +93,7 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder={t('Password')}
             autoComplete="current-password"
-            className="border border-zana-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
+            className="zana-login-input border border-zana-border rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
             onKeyDown={(e) => e.key === 'Enter' && valid && handleLogin()}
           />
         </div>
@@ -84,7 +103,7 @@ export default function LoginPage() {
         <button
           disabled={!valid || loading}
           onClick={handleLogin}
-          className="w-full mt-6 bg-zana-primary text-white font-semibold py-3 rounded-lg disabled:opacity-40 hover:bg-zana-primary-dark transition-colors active:scale-[0.98]"
+          className="zana-login-submit w-full mt-6 bg-zana-primary text-white font-semibold py-3.5 rounded-xl disabled:opacity-40 hover:bg-zana-primary-dark transition-colors active:scale-[0.98]"
         >
           {loading ? 'Logging in…' : 'Log In'}
         </button>
