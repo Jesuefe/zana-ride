@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Pause, RefreshCw, Play, Download } from 'lucide-react';
+import { Pause, RefreshCw, Download } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
 import { getMerchants, approveMerchant, suspendMerchant } from '../../../lib/api/admin';
 
@@ -134,7 +134,7 @@ export default function MerchantsPage() {
                       {m.user?.phone} · {m.user?.email}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {m.products?.length ?? 0} product{m.products?.length !== 1 ? 's' : ''}
+                      {m._count?.products ?? m.products?.length ?? 0} product{(m._count?.products ?? m.products?.length ?? 0) !== 1 ? 's' : ''}
                       {m.branch ? ` · ${m.branch}` : ''}
                     </p>
                   </div>
@@ -142,19 +142,6 @@ export default function MerchantsPage() {
                   {/* Application review and account actions */}
                   <div className="flex flex-col gap-2 shrink-0">
                     <button onClick={() => router.push('/dashboard/merchant-review?id=' + encodeURIComponent(m.id))} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-zana-primary">Review application</button>
-                    {m.status !== 'APPROVED' && (
-                      <button
-                        onClick={() => act(m.id, () => approveMerchant(m.id), `${m.businessName} approved`)}
-                        disabled={acting === m.id}
-                        className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl disabled:opacity-50 transition-colors min-w-[90px] justify-center"
-                      >
-                        {acting === m.id ? (
-                          <div className="w-3 h-3 border border-white/50 border-t-white rounded-full animate-spin" />
-                        ) : (
-                          <><Check size={13} /> Approve</>
-                        )}
-                      </button>
-                    )}
                     {m.status === 'APPROVED' && (
                       <button
                         onClick={() => act(m.id, () => suspendMerchant(m.id), `${m.businessName} suspended`)}
@@ -166,15 +153,6 @@ export default function MerchantsPage() {
                         ) : (
                           <><Pause size={13} /> Suspend</>
                         )}
-                      </button>
-                    )}
-                    {m.status === 'SUSPENDED' && (
-                      <button
-                        onClick={() => act(m.id, () => approveMerchant(m.id), `${m.businessName} reinstated`)}
-                        disabled={acting === m.id}
-                        className="flex items-center gap-1.5 bg-zana-primary hover:bg-zana-primary-dark text-white font-semibold text-xs px-4 py-2.5 rounded-xl disabled:opacity-50 transition-colors min-w-[90px] justify-center"
-                      >
-                        <><Play size={13} /> Reinstate</>
                       </button>
                     )}
                   </div>
