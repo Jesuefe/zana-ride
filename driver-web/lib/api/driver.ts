@@ -26,6 +26,23 @@ export type DriverTrip = {
   customer: { firstName: string | null; lastName: string | null; phone: string; role?: string };
 };
 
+
+export type DriverZone = {
+  id: string;
+  name: string;
+  miniZone: string;
+  city: string;
+  district: string | null;
+  mainZone: string | null;
+  parentZoneId: string | null;
+};
+
+export async function fetchDriverZone(lat: number, lng: number) {
+  return api.get<{ serviceable: boolean; zone: DriverZone | null }>(
+    `/service-areas/check?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`
+  );
+}
+
 export async function fetchMyDriverProfile() {
   return api.get<DriverProfile>('/driver/me');
 }
