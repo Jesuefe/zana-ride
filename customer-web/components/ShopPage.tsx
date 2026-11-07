@@ -4,7 +4,7 @@ import { useLang } from '../lib/LangContext';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MapPin, Store } from 'lucide-react';
+import { ArrowLeft, Clock3, MapPin, Star, Store } from 'lucide-react';
 import { fetchMarketplaceWithLocation, MarketplaceMerchant } from '../lib/api/marketplace';
 import { getStoredPickup } from '../lib/location';
 
@@ -106,7 +106,21 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 mt-3 text-[11px] flex-wrap">
+              {category === 'FOOD' && (
+                <div className="mt-2 flex items-center gap-1.5 text-[11px]">
+                  {typeof m.averageRating === 'number' ? (
+                    <>
+                      <Star size={12} className="fill-amber-400 text-amber-400" />
+                      <strong className="text-gray-800">{m.averageRating.toFixed(1)}</strong>
+                      <span className="text-gray-400">({m.reviewCount ?? 0} {t('reviews')})</span>
+                    </>
+                  ) : (
+                    <span className="font-semibold text-gray-400">{t('New restaurant')}</span>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[11px]">
                 <span className="flex items-center gap-1 text-gray-500">
                   <MapPin size={10} /> {m.distanceText}
                 </span>
@@ -119,6 +133,20 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
                   {m.products.length} {t(m.products.length === 1 ? 'item' : 'items')}
                 </span>
               </div>
+
+              {category === 'FOOD' && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-[#F0F8F5] px-3 py-2.5 text-[11px] text-gray-600">
+                  <span className="flex items-center gap-1.5">
+                    <Clock3 size={12} className="text-[#00866F]" />
+                    {t('Prep')} <strong className="text-gray-900">{m.prepMinutes} min</strong>
+                  </span>
+                  <span className="text-gray-300">·</span>
+                  <span>{t('Delivery')} <strong className="text-gray-900">{m.deliveryMinutes} min</strong></span>
+                  <span className="ml-auto font-extrabold text-[#007D68]">
+                    {t('Total')} {m.etaMinutes ?? (m.prepMinutes + m.deliveryMinutes)} min
+                  </span>
+                </div>
+              )}
             </div>
           </button>
         ))}
