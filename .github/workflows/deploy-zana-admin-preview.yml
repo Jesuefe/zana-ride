@@ -22,14 +22,16 @@ jobs:
           cache: npm
           cache-dependency-path: admin-web/package-lock.json
       - name: Build and deploy isolated preview
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
         working-directory: admin-web
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -eu
-          test -n "$CLOUDFLARE_API_TOKEN"
-          test -n "$CLOUDFLARE_ACCOUNT_ID"
           npm ci
           npm run build
           npx --yes wrangler pages deploy out --project-name zana-admin --branch safety-command-center
+      - name: Explain preview deployment requirement
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN == '' || secrets.CLOUDFLARE_ACCOUNT_ID == '' }}
+        run: echo "::warning::Preview build is ready, but Cloudflare deployment is waiting for CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in the production GitHub environment."
