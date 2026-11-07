@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { getToken } from '../lib/api/client';
 
-const PUBLIC_PATHS = ['/login'];
+// Registration and password recovery must remain reachable without a session.
+const PUBLIC_PATHS = ['/login', '/register', '/forgot-password'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -18,10 +19,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
     if (!getToken()) {
+      setChecked(false);
       router.replace('/login');
-    } else {
-      setChecked(true);
+      return;
     }
+    setChecked(true);
   }, [isPublic, router, pathname]);
 
   if (!checked) return null;
