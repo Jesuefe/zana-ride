@@ -214,3 +214,9 @@ export async function updateRiderRegistrationStatus(id: string, status: 'NEW' | 
 export async function getRiderRegistrationDailyStats() {
   return api.get<Array<{ day: string; count: number }>>('/admin/rider-registrations/daily');
 }
+
+
+export type ServiceZone = { id:string; name:string; city:string; boundary:{type:'Polygon';coordinates:number[][][]}; serviceTypes:string[]; nearbyZoneIds:string[]; active:boolean };
+export async function getServiceZones(city?:string) { return api.get<ServiceZone[]>('/admin/service-zones'+(city?'?city='+encodeURIComponent(city):'')); }
+export async function createServiceZone(data:Omit<ServiceZone,'id'>) { return api.post<ServiceZone>('/admin/service-zones',data); }
+export async function updateServiceZone(id:string,data:Partial<Omit<ServiceZone,'id'>>) { return api.patch<ServiceZone>('/admin/service-zones/'+id,data); }
