@@ -119,9 +119,17 @@ export default function LoginPage() { const {t}=useLang();
             Forgot your password?
           </button>
         </div>
-        <p className="text-xs text-gray-400 text-center mt-4">
-            {t("Don't have an account? Contact")} <a href="mailto:support@zana.rw" className="text-zana-primary">support@zana.rw</a>
-          </p>
+        <div className="mt-5 border-t border-gray-100 pt-5 text-center">
+          <p className="text-sm text-gray-500">New to Zana Business?</p>
+          <button
+            type="button"
+            onClick={() => router.push('/register')}
+            className="mt-2 w-full rounded-xl border border-zana-primary px-4 py-3 text-sm font-bold text-zana-primary transition-colors hover:bg-zana-primary/5"
+          >
+            Create a merchant account
+          </button>
+          <p className="mt-3 text-xs text-gray-400">Register your restaurant or shop. New accounts are reviewed before going live.</p>
+        </div>
         </div>
 
         <p className="text-xs text-gray-400 text-center mt-4">
