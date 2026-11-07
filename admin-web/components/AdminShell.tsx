@@ -27,6 +27,7 @@ const SENIOR_NAV = [
   { label: 'Rides', href: '/dashboard/rides', icon: TrendingUp, group: 'Operations' },
   { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send, group: 'Operations' },
   { label: 'Tracking', href: '/dashboard/tracking', icon: Search, group: 'Operations' },
+  { label: 'Service Zones', href: '/dashboard/service-zones', icon: MapPin, group: 'Operations' },
   { label: 'Support', href: '/dashboard/support', icon: MessageCircle, group: 'Operations' },
   { label: 'Products', href: '/dashboard/products', icon: Package, group: 'Commerce' },
   { label: 'Markets', href: '/dashboard/markets', icon: MapPin, group: 'Commerce' },
@@ -70,7 +71,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       const role = payload?.role;
       if (role === 'STAFF') {
         setMode('worker');
-        const adminOnly = ['/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/test-accounts', '/dashboard/invites'];
+        const adminOnly = ['/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/test-accounts', '/dashboard/invites', '/dashboard/service-zones'];
         if (adminOnly.some(path => pathname === path || pathname.startsWith(path + '/'))) router.replace('/dashboard');
       } else if (role === 'ADMIN') {
         setMode('senior');
