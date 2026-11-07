@@ -98,3 +98,20 @@
 }
 .dark .zana-search-code-action { background:#19372b; border-color:#2b4c3b; }
 .dark .zana-search-code-action span { color:#8ed9bb; }
+
+
+/* Keep the editable pickup search readable in dark mode: its field surface stays light. */
+.dark .zana-search-pickup-edit {
+  background: #f7faf8;
+  border-color: #dce9e3;
+}
+.dark .zana-search-pickup-edit input {
+  color: #17231e;
+  caret-color: #00a082;
+  -webkit-text-fill-color: #17231e;
+}
+.dark .zana-search-pickup-edit input::placeholder {
+  color: #84918b;
+  -webkit-text-fill-color: #84918b;
+  opacity: 1;
+}
