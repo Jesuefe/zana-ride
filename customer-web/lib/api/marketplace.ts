@@ -10,6 +10,8 @@ export type MarketplaceMerchant = {
   id: string; businessName: string; branch?: string;
   businessAddress?: string; businessLat?: number; businessLng?: number;
   deliveryFee: number; distanceText: string; distKm: number; prepMinutes: number; deliveryMinutes: number;
+  etaMinutes?: number; prepTimeSource?: 'RECENT_ORDER_HISTORY' | 'MERCHANT_DEFAULT'; prepSampleCount?: number;
+  averageRating?: number | null; reviewCount?: number;
   products: MarketplaceProduct[];
 };
 
