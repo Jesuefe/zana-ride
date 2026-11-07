@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Check, Pause, RefreshCw, Play, Download } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
 import { getMerchants, approveMerchant, suspendMerchant } from '../../../lib/api/admin';
 
 export default function MerchantsPage() {
+  const router = useRouter();
   const [merchants, setMerchants] = useState<any[]>([]);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,7 @@ export default function MerchantsPage() {
     PENDING: merchants.filter(m => m.status === 'PENDING').length,
     APPROVED: merchants.filter(m => m.status === 'APPROVED').length,
     SUSPENDED: merchants.filter(m => m.status === 'SUSPENDED').length,
+    REJECTED: merchants.filter(m => m.status === 'REJECTED').length,
   };
 
   return (
@@ -86,6 +89,7 @@ export default function MerchantsPage() {
             { val: 'PENDING', label: `Pending (${counts.PENDING})` },
             { val: 'APPROVED', label: `Approved (${counts.APPROVED})` },
             { val: 'SUSPENDED', label: `Suspended (${counts.SUSPENDED})` },
+            { val: 'REJECTED', label: `Rejected (${counts.REJECTED})` },
           ].map(({ val, label }) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${
@@ -135,8 +139,9 @@ export default function MerchantsPage() {
                     </p>
                   </div>
 
-                  {/* Action buttons */}
+                  {/* Application review and account actions */}
                   <div className="flex flex-col gap-2 shrink-0">
+                    <button onClick={() => router.push('/dashboard/merchant-review?id=' + encodeURIComponent(m.id))} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-zana-primary">Review application</button>
                     {m.status !== 'APPROVED' && (
                       <button
                         onClick={() => act(m.id, () => approveMerchant(m.id), `${m.businessName} approved`)}
