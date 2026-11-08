@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, Clock3, Crosshair, MapPin, Navigation, RefreshCw, Search, Users } from 'lucide-react';
-import AdminShell from '../../../../components/AdminShell';
-import { api, getToken } from '../../../../lib/api/client';
+import AdminShell from '../../../components/AdminShell';
+import { api, getToken } from '../../../lib/api/client';
 import { io } from 'socket.io-client';
-import { loadGoogleMaps } from '../../../../lib/mapsLoader';
+import { loadGoogleMaps } from '../../../lib/mapsLoader';
 
 type Trip = {
   id: string; status: string; serviceType: string; requestedAt: string;
