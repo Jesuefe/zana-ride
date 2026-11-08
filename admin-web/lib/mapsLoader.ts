@@ -6,19 +6,25 @@ export function loadGoogleMaps(): Promise<void> {
   if (loadPromise) return loadPromise;
   loadPromise = new Promise((resolve, reject) => {
     const callbackName = '__zanaAdminMapsReady';
-    (window as any)[callbackName] = () => resolve();
-    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      if (error) { loadPromise = null; reject(error); } else resolve();
+    };
+    const timeout = setTimeout(() => finish(new Error('Google Maps did not respond within 15 seconds. Check network access, API key restrictions and Maps JavaScript API billing.')), 15000);
+    (window as any)[callbackName] = () => finish();
+    const existing = document.querySelector('script[src*="maps.googleapis.com"]') as HTMLScriptElement | null;
     if (existing) {
-      const poll = setInterval(() => {
-        if ((window as any).google?.maps?.Map) { clearInterval(poll); resolve(); }
-      }, 100);
-      setTimeout(() => { clearInterval(poll); reject(new Error('Maps timeout')); }, 15000);
+      const poll = setInterval(() => { if ((window as any).google?.maps?.Map) { clearInterval(poll); finish(); } }, 150);
+      existing.addEventListener('error', () => { clearInterval(poll); finish(new Error('Google Maps script failed to download.')); }, { once: true });
       return;
     }
     const script = document.createElement('script');
     script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyD4o-fXIpmGozrClaP1niC407cgRCrzSTI&libraries=geometry,places&loading=async&callback=' + callbackName + '&v=3';
     script.async = true; script.defer = true;
-    script.onerror = () => { loadPromise = null; reject(new Error('Failed to load Google Maps')); };
+    script.onerror = () => finish(new Error('Google Maps script failed to download.'));
     document.head.appendChild(script);
   });
   return loadPromise;
