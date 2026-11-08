@@ -1,0 +1,55 @@
+name: Build Private Zana Driver APK
+
+on:
+  push:
+    branches:
+      - feature/driver-background-gps-ride-monitor
+    paths:
+      - 'native/driver/**'
+      - 'driver-web/**'
+      - '.github/workflows/android-driver-private-apk.yml'
+  pull_request:
+    paths:
+      - 'native/driver/**'
+      - 'driver-web/**'
+      - '.github/workflows/android-driver-private-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-driver-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install native driver dependencies
+        working-directory: native/driver
+        run: npm install
+      - name: Sync Capacitor Android
+        working-directory: native/driver
+        run: npx cap sync android
+      - name: Build private debug APK
+        working-directory: native/driver/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - name: Collect APK
+        run: |
+          mkdir -p out
+          cp native/driver/android/app/build/outputs/apk/debug/app-debug.apk out/zana-driver-private-debug.apk
+      - name: Upload private APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: zana-driver-private-debug-apk
+          path: out/zana-driver-private-debug.apk
+          retention-days: 30
