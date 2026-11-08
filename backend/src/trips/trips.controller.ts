@@ -194,6 +194,11 @@ export class DriverTripsController {
 export class AdminTripsController {
   constructor(private tripsService: TripsService) {}
 
+  @Get('monitor')
+  findActiveForMonitor() {
+    return this.tripsService.findActiveForAdmin();
+  }
+
   @Get()
   findAll() {
     return this.tripsService.findAllForAdmin();
