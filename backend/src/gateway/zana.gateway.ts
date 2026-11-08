@@ -33,13 +33,14 @@ export class ZanaGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const payload = this.jwt.verify(token, {
         secret: this.config.get<string>('JWT_SECRET'),
-      }) as { sub: string };
+      }) as { sub: string; role?: string };
 
       const userId = payload.sub;
       client.data.userId = userId;
 
       // Join user's personal room
       client.join(`user:${userId}`);
+      if (payload.role === 'ADMIN' || payload.role === 'STAFF') client.join('zana:admins');
 
       // Track socket
       if (!this.userSockets.has(userId)) this.userSockets.set(userId, new Set());
@@ -65,6 +66,10 @@ export class ZanaGateway implements OnGatewayConnection, OnGatewayDisconnect {
   sendToUser(userId: string, event: string, data: any) {
     this.server.to(`user:${userId}`).emit(event, data);
     console.log(`[WS] → ${event} to user:${userId}`);
+  }
+
+  sendToAdmins(event: string, data: any) {
+    this.server.to('zana:admins').emit(event, data);
   }
 
   isUserOnline(userId: string): boolean {
