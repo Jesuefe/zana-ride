@@ -731,6 +731,24 @@ export class TripsService {
     });
   }
 
+  // The live operations map must never hide an active ride because it fell
+  // outside the historical admin list's 100-record window.
+  async findActiveForAdmin() {
+    return this.prisma.trip.findMany({
+      where: {
+        status: { in: [
+          TripStatus.SEARCHING_DRIVER,
+          TripStatus.DRIVER_ASSIGNED,
+          TripStatus.DRIVER_EN_ROUTE,
+          TripStatus.DRIVER_ARRIVED,
+          TripStatus.RIDE_IN_PROGRESS,
+        ] },
+      },
+      include: { customer: true, driver: { include: { user: true } } },
+      orderBy: { requestedAt: 'asc' },
+    });
+  }
+
   async findActiveForDriver(driverId: string) {
     return this.prisma.trip.findFirst({
       where: {
