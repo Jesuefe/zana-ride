@@ -54,7 +54,7 @@ export default function RideMonitorPage() {
   const load = useCallback(async () => {
     try {
       const [rideData,driverData] = await Promise.all([
-        api.get<Trip[]>('/admin/trips'), api.get<Driver[]>('/admin/drivers'),
+        api.get<Trip[]>('/admin/trips/monitor'), api.get<Driver[]>('/admin/drivers'),
       ]);
       setRides(Array.isArray(rideData) ? rideData : []);
       setDrivers(Array.isArray(driverData) ? driverData : []);
