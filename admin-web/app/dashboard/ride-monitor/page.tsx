@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, Clock3, Crosshair, MapPin, Navigation, RefreshCw, Search, Users } from 'lucide-react';
 import AdminShell from '../../../../components/AdminShell';
-import { api } from '../../../../lib/api/client';
+import { api, getToken } from '../../../../lib/api/client';
+import { io } from 'socket.io-client';
 import { loadGoogleMaps } from '../../../../lib/mapsLoader';
 
 type Trip = {
@@ -62,6 +63,18 @@ export default function RideMonitorPage() {
   },[]);
 
   useEffect(() => { load(); const timer=setInterval(load,5000); return () => clearInterval(timer); },[load]);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    const socket = io('https://zana.ajumalink.com', { auth: { token }, transports: ['websocket'] });
+    socket.on('admin:driver-position', (event: { driverId: string; lat: number; lng: number; at: string }) => {
+      setDrivers(current => current.map(driver => driver.id === event.driverId
+        ? { ...driver, lastLat: event.lat, lastLng: event.lng, lastLocationAt: event.at }
+        : driver));
+    });
+    return () => { socket.disconnect(); };
+  }, []);
 
   useEffect(() => {
     let cancelled=false;
