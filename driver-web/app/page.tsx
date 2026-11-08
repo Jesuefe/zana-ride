@@ -16,6 +16,7 @@ import {
 import { io } from 'socket.io-client';
 import { getToken } from '../lib/api/client';
 import { getCurrentPosition, watchPosition, Coords } from '../lib/location';
+import { startDriverBackgroundLocation, stopDriverBackgroundLocation } from '../lib/nativeBackgroundLocation';
 import { startRideAlert, stopRideAlert } from '../lib/rideAlert';
 import { api } from '../lib/api/client';
 import { loadGoogleMaps } from '../lib/mapsLoader';
@@ -420,6 +421,10 @@ export default function DriverHome() {
       if (!p) return;
       setProfile(p);
       setOnline(p.onlineStatus === 'ONLINE');
+      if (p.onlineStatus === 'ONLINE') {
+        const sessionId = (() => { try { return localStorage.getItem('zana_driver_session_id'); } catch { return null; } })();
+        startDriverBackgroundLocation(sessionId).catch(() => {});
+      }
       setDriverMode((p as any).driverMode ?? 'BOTH');
     }).catch(() => {});
     fetchEarnings().then(e => {
@@ -618,6 +623,15 @@ export default function DriverHome() {
     try {
       await updateDriverMode(driverMode);
       const updated = await goOnline();
+      // On the private Android APK, start the native foreground GPS service
+      // only after the backend has created this driver's online session.
+      // Browser sessions continue using the existing foreground geolocation.
+      try {
+        await startDriverBackgroundLocation((updated as any).sessionId);
+      } catch (locationError) {
+        await goOffline().catch(() => {});
+        throw locationError;
+      }
       setOnline(true);
       setProfile(updated as any);
       await new Promise(resolve => setTimeout(resolve, 900));
@@ -641,6 +655,7 @@ export default function DriverHome() {
     setLoading(true);
     try {
       await goOffline();
+      await stopDriverBackgroundLocation().catch(() => {});
       setOnline(false);
       setOffers([]);
       setIncomingDelivery(null);
