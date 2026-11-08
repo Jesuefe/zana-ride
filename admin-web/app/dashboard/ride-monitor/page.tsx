@@ -87,7 +87,7 @@ export default function RideMonitorPage() {
     const q=query.toLowerCase();
     return [r.id,r.pickupAddress,r.destinationAddress,name(r.customer),name(r.driver?.user),r.customer?.phone].some(v=>String(v??'').toLowerCase().includes(q));
   }),[rides,filter,query]);
-  const closest=(ride:Trip)=>available.filter(d=>d.lastLat!=null&&d.lastLng!=null&&d.onlineStatus==='ONLINE').map(d=>({...d,distance:km(ride.pickupLat,ride.pickupLng,d.lastLat!,d.lastLng!)})).sort((a,b)=>a.distance-b.distance)[0];
+  const closest=(ride:Trip)=>available.filter(d=>d.lastLat!=null&&d.lastLng!=null&&d.onlineStatus==='ONLINE'&&d.serviceType===ride.serviceType).map(d=>({...d,distance:km(ride.pickupLat,ride.pickupLng,d.lastLat!,d.lastLng!)})).sort((a,b)=>a.distance-b.distance)[0];
 
   useEffect(()=>{
     if(!mapReady || !map.current) return;
