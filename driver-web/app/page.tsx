@@ -409,7 +409,12 @@ export default function DriverHome() {
       setOnline(p.onlineStatus === 'ONLINE');
       if (p.onlineStatus === 'ONLINE') {
         const sessionId = (() => { try { return localStorage.getItem('zana_driver_session_id'); } catch { return null; } })();
-        startDriverBackgroundLocation(sessionId).catch(() => {});
+        startDriverBackgroundLocation(sessionId).catch(async () => {
+          // If location permission was revoked in Android settings, do not
+          // leave the account marked online without a working GPS service.
+          await goOffline().catch(() => {});
+          setOnline(false);
+        });
       }
       setDriverMode((p as any).driverMode ?? 'BOTH');
     }).catch(() => {});
