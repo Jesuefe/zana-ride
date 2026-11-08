@@ -399,22 +399,8 @@ export default function DriverHome() {
 
   // Load profile and earnings
 
-  // Request screen wake lock so GPS keeps running while driver is online
-  useEffect(() => {
-    let wakeLock: any = null;
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await (navigator as any).wakeLock.request('screen');
-        }
-      } catch { /* not supported */ }
-    };
-    requestWakeLock();
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') requestWakeLock();
-    });
-    return () => { wakeLock?.release?.(); };
-  }, []);
+  // Android background GPS is handled by the native foreground service;
+  // do not keep the driver's screen awake to maintain location updates.
 
   useEffect(() => {
     fetchMyDriverProfile().then(p => {
