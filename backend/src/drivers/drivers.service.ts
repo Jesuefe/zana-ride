@@ -154,13 +154,15 @@ export class DriversService {
     // The driver's own client listens for this too. In particular, an admin
     // Test Lab move reaches the driver's map even when the real phone GPS is
     // somewhere else.
-    this.gateway.sendToUser(updated.userId, 'driver:position', {
+    const positionEvent = {
       driverId,
       lat: finalLat,
       lng: finalLng,
       testOverride: driver?.testOverrideLat != null && driver?.testOverrideLng != null,
       at: new Date().toISOString(),
-    });
+    };
+    this.gateway.sendToUser(updated.userId, 'driver:position', positionEvent);
+    this.gateway.sendToAdmins('admin:driver-position', positionEvent);
 
     return updated;
   }
