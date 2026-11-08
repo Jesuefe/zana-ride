@@ -25,6 +25,7 @@ const SENIOR_NAV = [
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag, group: 'Operations' },
   { label: 'Deliveries', href: '/dashboard/deliveries', icon: Truck, group: 'Operations' },
   { label: 'Rides', href: '/dashboard/rides', icon: TrendingUp, group: 'Operations' },
+  { label: 'Ride Monitor', href: '/dashboard/ride-monitor', icon: Activity, group: 'Operations' },
   { label: 'Dispatch', href: '/dashboard/dispatch', icon: Send, group: 'Operations' },
   { label: 'Tracking', href: '/dashboard/tracking', icon: Search, group: 'Operations' },
   { label: 'Service Zones', href: '/dashboard/service-zones', icon: MapPin, group: 'Operations' },
