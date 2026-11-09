@@ -39,7 +39,7 @@ export default function MerchantBottomNav() {
   };
 
   return (
-    <nav aria-label="Merchant navigation" className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] md:max-w-[640px] lg:max-w-[760px] bg-white border-t border-zana-border flex items-center justify-around py-2 z-30">
+    <nav aria-label="Merchant navigation" className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] md:max-w-[640px] lg:max-w-[760px] bg-white border-t border-zana-border flex items-center justify-around px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-30">
       {items.map((item) => {
         const Icon = item.icon;
         const view = item.href.includes('?view=') ? item.href.split('?view=')[1] : null;
