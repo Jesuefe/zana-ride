@@ -53,6 +53,8 @@ export default function Landing() {
           <p className="hero-lede">A meal you love. Market essentials for the week. A parcel on its way or a gift for someone special. One simple way to get it there.</p>
           <div className="hero-actions">
             <a className="button button-primary" href={APP}>Get moving <span aria-hidden="true">↗</span></a>
+            <a className="button button-dark" href="https://cloud.173-212-255-134.sslip.io/driver/zana-driver.apk">Get the Driver App <span aria-hidden="true">↓</span></a>
+            <span className="button button-light" aria-disabled="true">Merchant App · Coming soon</span>
             <a className="text-link" href="#services">Explore Zana <span aria-hidden="true">↓</span></a>
           </div>
           <div className="hero-trust">
