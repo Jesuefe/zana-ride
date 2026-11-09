@@ -27,7 +27,7 @@ const STATUS_LABEL: Record<string, string> = {
   PENDING:          'New order',
   CONFIRMED:        'Confirmed',
   PREPARING:        'Preparing',
-  READY_FOR_PICKUP: 'Ready — driver en route',
+  READY_FOR_PICKUP: 'Ready for pickup',
   OUT_FOR_DELIVERY: 'Driver delivering',
   DELIVERED:        'Delivered',
   CANCELLED:        'Cancelled',
@@ -71,7 +71,7 @@ export default function OrdersPage() { const {t}=useLang();
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-xl font-bold text-gray-900">{t('Orders')}</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           {[['active','Active'],['done','Done'],['all','All']].map(([val,label]) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`text-xs px-3 py-1.5 rounded-lg font-semibold border transition-colors ${
@@ -186,7 +186,13 @@ export default function OrdersPage() { const {t}=useLang();
                     <Truck size={14} className="text-cyan-600 shrink-0" />
                     <p className="text-xs text-cyan-700 font-semibold">
                       {o.status === 'READY_FOR_PICKUP'
-                        ? t('A Zana driver has been dispatched to collect this order.')
+                        ? (o.delivery?.status === 'COURIER_ASSIGNED'
+                            ? (o.delivery.driver?.user?.firstName ? `${o.delivery.driver.user.firstName} has been assigned to collect this order.` : 'A Zana driver has been assigned to collect this order.')
+                            : o.delivery?.status === 'PICKED_UP'
+                              ? 'The driver has picked up this order and is on the way to your customer.'
+                              : o.delivery
+                                ? 'Your order is ready. Zana is arranging a driver for pickup.'
+                                : 'The delivery request is not visible yet. Please contact Zana support.')
                         : t('Driver is delivering to your customer.')}
                     </p>
                   </div>
