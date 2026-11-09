@@ -317,7 +317,21 @@ export class OrdersService {
   async findForMerchant(merchantId: string) {
     return this.prisma.order.findMany({
       where: { merchantId },
-      include: { items: { include: { product: true } }, customer: true, merchant: { select: { businessName: true, prepMinutes: true, deliveryMinutes: true } } },
+      include: {
+        items: { include: { product: true } },
+        customer: true,
+        merchant: { select: { businessName: true, prepMinutes: true, deliveryMinutes: true } },
+        delivery: {
+          include: {
+            driver: {
+              select: {
+                id: true, vehicle: true, plate: true,
+                user: { select: { firstName: true, phone: true } },
+              },
+            },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -325,7 +339,21 @@ export class OrdersService {
   async findForMerchantById(merchantId: string, id: string) {
     const order = await this.prisma.order.findFirst({
       where: { id, merchantId },
-      include: { items: { include: { product: true } }, customer: true, merchant: { select: { businessName: true, prepMinutes: true, deliveryMinutes: true } } },
+      include: {
+        items: { include: { product: true } },
+        customer: true,
+        merchant: { select: { businessName: true, prepMinutes: true, deliveryMinutes: true } },
+        delivery: {
+          include: {
+            driver: {
+              select: {
+                id: true, vehicle: true, plate: true,
+                user: { select: { firstName: true, phone: true } },
+              },
+            },
+          },
+        },
+      },
     });
     if (!order) throw new NotFoundException('Order not found');
     return order;
