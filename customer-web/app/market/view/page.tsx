@@ -22,6 +22,7 @@ function MarketContent() {
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
+  const [promoCode, setPromoCode] = useState('');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
   const [quote, setQuote] = useState<{ items: { productId: string; name: string; quantity: number; unitPrice: number; lineTotal: number }[]; itemsSubtotal: number; deliveryFee: number; total: number; distanceKm: number } | null>(null);
@@ -103,6 +104,7 @@ function MarketContent() {
         dropoffLng: pos.lng,
         dropoffAddress: 'Current location',
         paymentMethod,
+        promoCode: promoCode.trim() || undefined,
       } as any);
       router.push(`/orders?highlight=${order.id}`);
     } catch (e: any) {
@@ -234,6 +236,11 @@ function MarketContent() {
               <p className="text-[10px] text-gray-400">
                 {quote ? `${t('Delivery from')} ${market?.name ?? t('the market')} · ${quote.distanceKm.toFixed(1)} km` : t('Delivery is calculated from the market to your destination.')}
               </p>
+            </div>
+
+            <div className="mb-4 rounded-xl border border-gray-200 px-3 py-3">
+              <label htmlFor="market-promo-code" className="mb-1.5 block text-xs font-bold text-gray-600">{t('Promo code')}</label>
+              <input id="market-promo-code" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 32))} placeholder={t('Enter promo code (optional)')} autoCapitalize="characters" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-gray-900 outline-none focus:border-zana-primary" />
             </div>
 
             <p className="text-xs font-bold text-gray-500 uppercase mb-2">{t("Payment")}</p>

@@ -33,6 +33,7 @@ export async function placeOrder(data: {
   items: { productId: string; quantity: number }[];
   dropoffLat: number; dropoffLng: number; dropoffAddress: string;
   paymentMethod: 'WALLET' | 'MOBILE_MONEY';
+  promoCode?: string;
   deliveryFee?: number;
   receiverName?: string;
   receiverPhone?: string;

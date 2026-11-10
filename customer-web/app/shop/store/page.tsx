@@ -26,6 +26,7 @@ function StoreContent() {
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
+  const [promoCode, setPromoCode] = useState('');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [recipient, setRecipient] = useState<OrderRecipientValue>({ forSomeoneElse: false, name: '', phone: '', address: pickup.address ?? 'Current location', lat: pickup.lat, lng: pickup.lng, note: '' });
 
@@ -102,6 +103,7 @@ function StoreContent() {
         dropoffLng: recipient.lng,
         dropoffAddress: recipient.address || 'Current location',
         paymentMethod,
+        promoCode: promoCode.trim() || undefined,
         deliveryFee,
         receiverName: recipient.forSomeoneElse ? recipient.name.trim() : undefined,
         receiverPhone: recipient.forSomeoneElse ? recipient.phone.trim() : undefined,
@@ -329,6 +331,11 @@ function StoreContent() {
                   {grandTotal.toLocaleString()} RWF
                 </span>
               </div>
+            </div>
+
+            <div className="mb-4 rounded-xl border border-gray-200 px-3 py-3">
+              <label htmlFor="store-promo-code" className="mb-1.5 block text-xs font-bold text-gray-600">{t('Promo code')}</label>
+              <input id="store-promo-code" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 32))} placeholder={t('Enter promo code (optional)')} autoCapitalize="characters" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-gray-900 outline-none focus:border-zana-primary" />
             </div>
 
             <p className="text-xs font-bold text-gray-500 uppercase mb-2">{t("Payment")}</p>

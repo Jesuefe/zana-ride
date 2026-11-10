@@ -82,6 +82,7 @@ function RideOptionsContent() {
   const [selected, setSelected] = useState<ServiceType | null>(preselected && ['BIKE', 'ECONOMY', 'COMFORT'].includes(preselected) ? preselected : null);
   const [step, setStep] = useState<'select' | 'confirm'>('select');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('WALLET');
+  const [promoCode, setPromoCode] = useState('');
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
@@ -148,6 +149,7 @@ function RideOptionsContent() {
         destinationLng: destLng,
         paymentMethod,
         expectedFare: fares[selected],
+        promoCode: promoCode.trim() || undefined,
       });
       router.push(`/tracking?tripId=${trip.id}`);
     } catch (err) {
@@ -414,6 +416,11 @@ function RideOptionsContent() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white px-3 py-3">
+            <label htmlFor="ride-promo-code" className="mb-1.5 block text-xs font-bold text-gray-600">{t('Promo code')}</label>
+            <input id="ride-promo-code" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 32))} placeholder={t('Enter promo code (optional)')} autoCapitalize="characters" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-gray-900 outline-none focus:border-zana-primary" />
           </div>
 
           {/* Fare breakdown note */}
