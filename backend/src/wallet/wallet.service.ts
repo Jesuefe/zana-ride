@@ -1,4 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { randomInt } from 'crypto';
+import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaypackService } from './paypack.service';
 import { WalletTransactionStatus } from '@prisma/client';
@@ -10,7 +13,93 @@ export class WalletService {
   constructor(
     private prisma: PrismaService,
     private paypack: PaypackService,
+    private redis: RedisService,
+    private config: ConfigService,
   ) {}
+
+
+  private normalizePayoutPhone(input: string) {
+    let digits = String(input ?? '').replace(/\D/g, '');
+    if (digits.startsWith('250')) digits = digits.slice(3);
+    digits = digits.replace(/^0+/, '');
+    if (!/^7\d{8}$/.test(digits)) throw new BadRequestException('Enter a valid Rwanda mobile-money number');
+    return '+250' + digits;
+  }
+
+  async getMerchantPayoutAccount(userId: string) {
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { userId },
+      select: { payoutPhone: true, payoutProvider: true, payoutVerifiedAt: true, payoutLockedAt: true },
+    });
+    if (!merchant) throw new NotFoundException('Merchant account not found');
+    const phone = merchant.payoutPhone;
+    return {
+      configured: Boolean(merchant.payoutLockedAt && phone),
+      locked: Boolean(merchant.payoutLockedAt),
+      provider: merchant.payoutProvider,
+      phone: phone ? phone.replace(/(\+?\d{3})\d+(\d{3})$/, '$1••••$2') : null,
+      verifiedAt: merchant.payoutVerifiedAt,
+    };
+  }
+
+  async requestMerchantPayoutOtp(userId: string, inputPhone: string, providerInput: string) {
+    const merchant = await this.prisma.merchant.findUnique({ where: { userId } });
+    if (!merchant) throw new NotFoundException('Merchant account not found');
+    if (merchant.payoutLockedAt) throw new BadRequestException('PAYOUT_ACCOUNT_ALREADY_LOCKED');
+    const phone = this.normalizePayoutPhone(inputPhone);
+    const provider = String(providerInput ?? '').toUpperCase();
+    if (!['MTN_MOMO', 'AIRTEL_MONEY'].includes(provider)) throw new BadRequestException('Select MTN MoMo or Airtel Money');
+    const digits = phone.slice(-9);
+    const mtn = digits.startsWith('78') || digits.startsWith('79');
+    const airtel = digits.startsWith('72') || digits.startsWith('73');
+    if ((provider === 'MTN_MOMO' && !mtn) || (provider === 'AIRTEL_MONEY' && !airtel)) {
+      throw new BadRequestException('The number prefix does not match the selected mobile-money provider');
+    }
+    const rate = await this.redis.incr('merchant-payout-otp:req:' + userId, 10 * 60);
+    if (rate > 5) throw new BadRequestException('Too many code requests. Please wait and try again.');
+    const code = String(randomInt(100000, 1000000));
+    await this.redis.set('merchant-payout-otp:' + userId, JSON.stringify({ code, phone, provider }), 5 * 60);
+    const apiKey = this.config.get<string>('AT_API_KEY');
+    const username = this.config.get<string>('AT_USERNAME');
+    if (!apiKey || !username) {
+      await this.redis.del('merchant-payout-otp:' + userId);
+      throw new BadRequestException('SMS verification is temporarily unavailable. Please contact Zana support.');
+    }
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const AfricasTalking = require('africastalking');
+      const at = AfricasTalking({ apiKey, username });
+      const payload: any = { to: [phone], message: 'Your Zana merchant payout verification code is: ' + code + '. Valid for 5 minutes.' };
+      const senderId = this.config.get<string>('AT_SENDER_ID');
+      if (senderId?.trim()) payload.from = senderId;
+      await at.SMS.send(payload);
+    } catch {
+      await this.redis.del('merchant-payout-otp:' + userId);
+      throw new BadRequestException('Could not send verification SMS. Please try again.');
+    }
+    return { sent: true, expiresInSeconds: 300 };
+  }
+
+  async verifyMerchantPayoutOtp(userId: string, codeInput: string) {
+    const key = 'merchant-payout-otp:' + userId;
+    const attempts = await this.redis.incr(key + ':attempts', 5 * 60);
+    if (attempts > 5) throw new BadRequestException('Too many incorrect attempts. Request a new code.');
+    const raw = await this.redis.get(key);
+    if (!raw) throw new BadRequestException('The code has expired. Request a new code.');
+    let entry: { code: string; phone: string; provider: string };
+    try { entry = JSON.parse(raw); } catch { throw new BadRequestException('Invalid verification session. Request a new code.'); }
+    if (!/^\d{6}$/.test(String(codeInput)) || entry.code !== String(codeInput)) {
+      throw new BadRequestException('Invalid verification code.');
+    }
+    const updated = await this.prisma.merchant.updateMany({
+      where: { userId, payoutLockedAt: null, payoutPhone: null },
+      data: { payoutPhone: entry.phone, payoutProvider: entry.provider, payoutVerifiedAt: new Date(), payoutLockedAt: new Date() },
+    });
+    await this.redis.del(key);
+    await this.redis.del(key + ':attempts');
+    if (!updated.count) throw new BadRequestException('PAYOUT_ACCOUNT_ALREADY_LOCKED');
+    return this.getMerchantPayoutAccount(userId);
+  }
 
   async findByUserId(userId: string) {
     const wallet = await this.prisma.wallet.findUnique({
@@ -285,7 +374,18 @@ export class WalletService {
     // real account holder's.
     // Payout destination is always the driver's/merchant's registered
     // account number. Never accept a payout destination from the client.
-    const phone = account.phone;
+    let phone = account.phone;
+    if (account.role === 'MERCHANT') {
+      const payout = await this.prisma.merchant.findUnique({
+        where: { userId },
+        select: { payoutPhone: true, payoutLockedAt: true },
+      });
+      if (!payout?.payoutLockedAt || !payout.payoutPhone) {
+        throw new BadRequestException('MERCHANT_PAYOUT_ACCOUNT_NOT_VERIFIED');
+      }
+      phone = payout.payoutPhone;
+    }
+    if (!phone) throw new BadRequestException('PAYOUT_PHONE_NOT_AVAILABLE');
     // This early check is only a fast, friendly rejection for the common
     // case. It is NOT what protects against overdraft — the atomic
     // conditional decrement further down is what actually guards that,
