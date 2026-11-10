@@ -18,7 +18,7 @@ CREATE TABLE "PayrollLine" (
   "employeeMaternity" INTEGER NOT NULL, "employerMaternity" INTEGER NOT NULL, "cbhi" INTEGER NOT NULL,
   "employeeDeductions" INTEGER NOT NULL, "netPay" INTEGER NOT NULL, "employerStatutoryCost" INTEGER NOT NULL,
   "totalEmployerCost" INTEGER NOT NULL, "paidAmount" INTEGER NOT NULL DEFAULT 0,
-  "status" TEXT NOT NULL DEFAULT 'AWAITING_APPROVAL', "payslipSnapshot" TEXT NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'APPROVED_PENDING_PAYMENT', "payslipSnapshot" TEXT NOT NULL,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL,
   CONSTRAINT "PayrollLine_pkey" PRIMARY KEY ("id")
 );
