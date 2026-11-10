@@ -176,21 +176,21 @@ export class AdminController {
     if (from) { const date = new Date(from); if (!Number.isNaN(date.getTime())) where.createdAt = { ...(where.createdAt ?? {}), gte: date }; }
     if (to) { const date = new Date(to); if (!Number.isNaN(date.getTime())) where.createdAt = { ...(where.createdAt ?? {}), lte: date }; }
     if (sourceType && ['RIDE', 'DELIVERY', 'FOOD_ORDER', 'SHOPPING_ORDER'].includes(sourceType)) where.sourceType = sourceType;
-    const [config, entries, allAccruals, allEntries] = await Promise.all([
+    const [config, entries, allRows] = await Promise.all([
       this.prisma.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} }),
       this.prisma.impactFundEntry.findMany({ where, orderBy: { createdAt: 'desc' }, take: 2000 }),
-      this.prisma.impactFundEntry.findMany({ where: { eventType: 'ACCRUAL' }, select: { contributionAmount: true, createdAt: true, sourceType: true, sourceId: true } }),
-      this.prisma.impactFundEntry.findMany({ select: { contributionAmount: true } }),
+      this.prisma.impactFundEntry.findMany({ select: { contributionAmount: true, createdAt: true, eventType: true } }),
     ]);
-    const currentBalance = allEntries.reduce((sum, row) => sum + row.contributionAmount, 0);
+    const currentBalance = allRows.reduce((sum, row) => sum + row.contributionAmount, 0);
+    const allAccruals = allRows.filter(row => row.eventType === 'ACCRUAL');
     const lifetimeContributions = allAccruals.reduce((sum, row) => sum + row.contributionAmount, 0);
     const monthKey = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Kigali', year: 'numeric', month: '2-digit' }).format(date);
     const monthMap = new Map<string, { month: string; contributions: number; transactions: number }>();
-    for (const row of allAccruals) {
+    for (const row of allRows) {
       const key = monthKey(row.createdAt);
       const item = monthMap.get(key) ?? { month: key, contributions: 0, transactions: 0 };
       item.contributions += row.contributionAmount;
-      item.transactions += 1;
+      if (row.eventType === 'ACCRUAL') item.transactions += 1;
       monthMap.set(key, item);
     }
     const thisMonth = monthKey(new Date());
