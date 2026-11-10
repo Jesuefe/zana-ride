@@ -265,5 +265,3 @@ export async function getStatutoryRemittances(period?: string) { return api.get<
 export async function generateStatutoryRemittances(period: string) { return api.post('/admin/statutory-remittances/generate', { period }); }
 export async function approveStatutoryRemittance(id: string) { return api.post(`/admin/statutory-remittances/${id}/approve`, {}); }
 export async function payStatutoryRemittance(id: string, data: any) { return api.post(`/admin/statutory-remittances/${id}/payment`, data); }
-
-[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
