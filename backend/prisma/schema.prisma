@@ -998,3 +998,267 @@ model MerchantLead {
   @@index([phone])
   @@index([businessName])
 }
+
+model ServiceZone {
+  id            String   @id
+  name          String
+  city          String
+  boundary      Json
+  serviceTypes  String[] @default(["ALL"])
+  nearbyZoneIds String[] @default([])
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  parentZoneId  String?
+  zoneLevel     String   @default("MINI")
+
+  @@index([parentZoneId])
+  @@index([city, zoneLevel])
+  @@index([city, active])
+  @@index([active])
+}
+
+model AgentPurchaseFund {
+  id               String    @id
+  orderId          String    @unique
+  agentId          String
+  agentUserId      String
+  authorizedAmount Int
+  withdrawnAmount  Int       @default(0)
+  actualSpend      Int?
+  remainingAmount  Int?
+  destinationPhone String
+  status           String    @default("AVAILABLE")
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
+  withdrawnAt      DateTime? @db.Timestamptz(6)
+  reconciledAt     DateTime? @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([agentId, status, createdAt], map: "AgentPurchaseFund_agent_status_idx")
+  @@index([orderId], map: "AgentPurchaseFund_order_idx")
+}
+
+enum UserRole {
+  CUSTOMER
+  DRIVER
+  ADMIN
+  STAFF
+  MERCHANT
+  AGENT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum DriverApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum DriverOnlineStatus {
+  OFFLINE
+  ONLINE
+  BUSY
+}
+
+enum ServiceType {
+  BIKE
+  ECONOMY
+  COMFORT
+}
+
+enum DriverMode {
+  RIDES
+  DELIVERIES
+  BOTH
+}
+
+enum MerchantCategory {
+  FOOD
+  GIFTS
+  GOODS
+}
+
+enum MerchantStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}
+
+enum ProductStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DISABLED
+}
+
+enum TripStatus {
+  REQUESTED
+  SEARCHING_DRIVER
+  DRIVER_ASSIGNED
+  DRIVER_EN_ROUTE
+  DRIVER_ARRIVED
+  RIDE_IN_PROGRESS
+  RIDE_COMPLETED
+  CUSTOMER_CANCELLED
+  DRIVER_CANCELLED
+  NO_DRIVER_FOUND
+}
+
+enum WalletTransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum DeliveryStatus {
+  REQUESTED
+  COURIER_ASSIGNED
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+enum PackageWeight {
+  UNDER_1KG
+  KG_1_TO_5
+  KG_5_TO_10
+  KG_10_TO_20
+  OVER_20KG
+}
+
+enum PaymentMethod {
+  CASH
+  WALLET
+  MOBILE_MONEY
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum CallStatus {
+  INITIATING
+  RINGING
+  ACCEPTED
+  CONNECTING
+  CONNECTED
+  DECLINED
+  MISSED
+  CANCELLED
+  BUSY
+  FAILED
+  ENDED
+}
+
+enum ReviewTarget {
+  DELIVERY
+  MERCHANT
+  MARKET
+}
+
+
+model SalaryAdvance {
+  id                String                  @id @default(uuid())
+  staffMemberId     String
+  principalAmount   Int
+  outstandingAmount Int
+  monthlyDeduction  Int
+  issuedAt          DateTime                @default(now())
+  dueDate           DateTime?
+  status            String                  @default("REQUESTED")
+  approvedBy        String?
+  approvedAt        DateTime?
+  paymentReference  String?
+  paymentMethod     String?
+  paidAt            DateTime?
+  note              String?
+  createdBy         String?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  staff             StaffMember             @relation(fields: [staffMemberId], references: [id])
+  recoveries        SalaryAdvanceRecovery[]
+
+  @@index([staffMemberId, status])
+}
+
+model SalaryAdvanceRecovery {
+  id            String        @id @default(uuid())
+  advanceId     String
+  payrollLineId String
+  amount        Int
+  status        String        @default("RESERVED")
+  postedAt      DateTime?
+  createdAt     DateTime      @default(now())
+  advance       SalaryAdvance @relation(fields: [advanceId], references: [id])
+  payrollLine   PayrollLine   @relation(fields: [payrollLineId], references: [id], onDelete: Cascade)
+
+  @@unique([advanceId, payrollLineId])
+  @@index([payrollLineId, status])
+}
+
+model ContractorInvoice {
+  id                String       @id @default(uuid())
+  staffMemberId     String?
+  contractorName    String
+  invoiceNumber     String
+  invoiceDate       DateTime
+  dueDate           DateTime?
+  description       String
+  grossAmount       Int
+  withholdingRate   Float        @default(0)
+  withholdingAmount Int          @default(0)
+  netPayable        Int
+  amountPaid        Int          @default(0)
+  currency          String       @default("RWF")
+  status            String       @default("SUBMITTED")
+  paymentReference  String?
+  paymentMethod     String?
+  paidAt            DateTime?
+  evidenceUrl       String?
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  createdBy         String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  staff             StaffMember? @relation(fields: [staffMemberId], references: [id])
+
+  @@unique([contractorName, invoiceNumber])
+  @@index([status, invoiceDate])
+}
+
+model StatutoryRemittance {
+  id                 String    @id @default(uuid())
+  period             String
+  obligationType     String
+  amount             Int
+  currency           String    @default("RWF")
+  dueDate            DateTime?
+  status             String    @default("DRAFT")
+  sourcePayrollRunId String?
+  paymentReference   String?
+  paymentMethod      String?
+  paidAt             DateTime?
+  evidenceUrl        String?
+  notes              String?
+  createdBy          String?
+  approvedBy         String?
+  approvedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([period, obligationType])
+  @@index([status, dueDate])
+}
