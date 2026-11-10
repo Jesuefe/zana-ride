@@ -92,6 +92,19 @@ export default function ImpactFundsPage() {
       </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div><h3 className="font-bold text-slate-900">Commission reconciliation</h3><p className="mt-1 text-xs text-slate-500">Compares the Impact Funds ledger with Zana's ride, delivery, merchant-order and market-shopping commission sources since ledger activation.</p></div>
+          <span className={`w-fit rounded-full px-3 py-1.5 text-[10px] font-bold ${data?.reconciliation?.status === 'RECONCILED' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{data?.reconciliation?.status === 'RECONCILED' ? 'Reconciled' : 'Review required'}</span>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] font-semibold text-slate-500">Source commission</p><p className="mt-1 text-lg font-bold text-slate-900">{money(data?.reconciliation?.sourceCommissionTotal)}</p></div>
+          <div className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] font-semibold text-slate-500">Ledger commission</p><p className="mt-1 text-lg font-bold text-slate-900">{money(data?.reconciliation?.ledgerCommissionTotal)}</p></div>
+          <div className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] font-semibold text-slate-500">Difference</p><p className={`mt-1 text-lg font-bold ${data?.reconciliation?.difference === 0 ? 'text-emerald-700' : 'text-amber-700'}`}>{money(data?.reconciliation?.difference)}</p></div>
+        </div>
+        <p className="mt-3 text-[10px] text-slate-400">Reconciliation period starts {data?.reconciliation?.since ? dateTime(data.reconciliation.since) : 'when the ledger is activated'}.</p>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-2"><ShieldCheck size={17} className="text-[#00806A]"/><h3 className="font-bold text-slate-900">Contribution rate control</h3></div>
         <p className="mt-1 text-xs leading-relaxed text-slate-500">Only administrators can change this rate. Every change is recorded in the audit log. Existing ledger entries retain the rate applied when they were created.</p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
