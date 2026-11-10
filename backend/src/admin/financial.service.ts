@@ -262,7 +262,8 @@ export class FinancialService {
     const adjustmentMap = new Map<string, any>();
     for (const item of adjustments) {
       if (!item?.staffMemberId || adjustmentMap.has(item.staffMemberId)) throw new BadRequestException('PAYROLL_ADJUSTMENT_STAFF_ID_INVALID_OR_DUPLICATED');
-      const values = ['taxableAllowances', 'nonTaxableAllowances', 'pensionableAllowances', 'bonus', 'otherDeductions', 'advanceDeduction'];
+      const values = ['taxableAllowances', 'nonTaxableAllowances', 'pensionableAllowances', 'bonus', 'otherDeductions'];
+      if (Number(item.advanceDeduction ?? 0) !== 0) throw new BadRequestException('MANUAL_ADVANCE_DEDUCTION_DISABLED; use the salary advance ledger for automatic recovery');
       const clean: any = {};
       for (const key of values) {
         const value = Number(item[key] ?? 0);
@@ -275,6 +276,9 @@ export class FinancialService {
     const previewIds = new Set(employeeLines.map(line => line.staffMemberId));
     for (const id of adjustmentMap.keys()) if (!previewIds.has(id)) throw new BadRequestException('ADJUSTMENT_REFERENCES_STAFF_OUTSIDE_THIS_PAYROLL');
     if (!employeeLines.length) throw new BadRequestException('NO_EMPLOYEE_PAYROLL_LINES_TO_PROCESS');
+    const activeAdvances = await this.prisma.salaryAdvance.findMany({ where: { staffMemberId: { in: employeeLines.map(line => line.staffMemberId) }, status: 'ACTIVE', outstandingAmount: { gt: 0 } }, orderBy: { issuedAt: 'asc' } });
+    const advancesByStaff = new Map<string, any[]>();
+    for (const advance of activeAdvances) advancesByStaff.set(advance.staffMemberId, [...(advancesByStaff.get(advance.staffMemberId) ?? []), advance]);
     const prepared = employeeLines.map(line => {
       const a = adjustmentMap.get(line.staffMemberId) ?? {};
       let statutory: any;
@@ -287,14 +291,17 @@ export class FinancialService {
           bonus: a.bonus ?? 0,
         });
       } catch (error: any) { throw new BadRequestException(error.message || 'PAYROLL_CALCULATION_FAILED'); }
-      const extraDeductions = (a.otherDeductions ?? 0) + (a.advanceDeduction ?? 0);
+      const scheduledAdvanceDeduction = (advancesByStaff.get(line.staffMemberId) ?? []).reduce((sum, advance) => sum + Math.min(advance.monthlyDeduction, advance.outstandingAmount), 0);
+      const autoAdvanceDeduction = Math.min(scheduledAdvanceDeduction, Math.max(0, statutory.netPay - (a.otherDeductions ?? 0)));
+      const advanceDeduction = autoAdvanceDeduction;
+      const extraDeductions = (a.otherDeductions ?? 0) + advanceDeduction;
       const netPay = statutory.netPay - extraDeductions;
       if (netPay < 0) throw new BadRequestException('PAYROLL_NET_PAY_CANNOT_BE_NEGATIVE:' + line.staffMemberId);
       const snapshot = {
         month, currency: 'RWF', staffMemberId: line.staffMemberId, name: line.name,
         employmentType: line.employmentType, baseSalary: line.gross, ...a,
         ...statutory, otherDeductions: a.otherDeductions ?? 0,
-        advanceDeduction: a.advanceDeduction ?? 0,
+        advanceDeduction, autoAdvanceDeduction,
         totalDeductions: statutory.employeeDeductions + extraDeductions,
         netPay, generatedAt: new Date().toISOString(),
       };
@@ -302,7 +309,7 @@ export class FinancialService {
         staffMemberId: line.staffMemberId, baseSalary: line.gross,
         taxableAllowances: a.taxableAllowances ?? 0, nonTaxableAllowances: a.nonTaxableAllowances ?? 0,
         pensionableAllowances: a.pensionableAllowances ?? 0, bonus: a.bonus ?? 0,
-        otherDeductions: a.otherDeductions ?? 0, advanceDeduction: a.advanceDeduction ?? 0,
+        otherDeductions: a.otherDeductions ?? 0, advanceDeduction, autoAdvanceDeduction,
         taxableGross: statutory.taxableGross, pensionableGross: statutory.pensionableGross,
         paye: statutory.paye, employeePension: statutory.employeePension,
         employerPension: statutory.employerPension, employerOccupational: statutory.employerOccupationalHazards,
@@ -327,13 +334,25 @@ export class FinancialService {
             totalGross: totals.gross, totalNetPay: totals.net,
             totalEmployeeDeductions: totals.employeeDeductions,
             totalEmployerStatutory: totals.employerStatutory, totalEmployerCost: totals.employerCost,
-            lines: { create: prepared },
+            lines: { create: prepared.map(({ autoAdvanceDeduction: _auto, ...line }) => line) },
           },
           include: { lines: { include: { staff: true } } },
         });
+        for (const line of run.lines) {
+          const planned = prepared.find(item => item.staffMemberId === line.staffMemberId)?.autoAdvanceDeduction ?? 0;
+          let remaining = planned;
+          for (const advance of advancesByStaff.get(line.staffMemberId) ?? []) {
+            if (remaining <= 0) break;
+            const amount = Math.min(remaining, advance.monthlyDeduction, advance.outstandingAmount);
+            if (amount > 0) {
+              await tx.salaryAdvanceRecovery.create({ data: { advanceId: advance.id, payrollLineId: line.id, amount, status: 'RESERVED' } });
+              remaining -= amount;
+            }
+          }
+        }
         await tx.auditLog.create({ data: {
           actorId, action: 'PAYROLL_RUN_CREATED', entityType: 'PayrollRun', entityId: run.id,
-          afterJson: JSON.stringify({ month, status: run.status, lineCount: prepared.length, totals }),
+          afterJson: JSON.stringify({ month, status: run.status, lineCount: prepared.length, totals, autoAdvanceRecovery: prepared.reduce((sum, line) => sum + line.autoAdvanceDeduction, 0) }),
         }});
         return run;
       });
@@ -363,6 +382,13 @@ export class FinancialService {
       if (!run) throw new NotFoundException('Payroll run not found');
       if (run.status !== 'DRAFT') throw new BadRequestException('Only a draft payroll run can be approved.');
       if (!run.lines.length) throw new BadRequestException('Cannot approve an empty payroll run.');
+      const recoveries = await tx.salaryAdvanceRecovery.findMany({ where: { payrollLineId: { in: run.lines.map(line => line.id) }, status: 'RESERVED' }, include: { advance: true } });
+      for (const recovery of recoveries) {
+        if (recovery.amount > recovery.advance.outstandingAmount) throw new ConflictException('SALARY_ADVANCE_BALANCE_CHANGED; discard and rebuild this payroll draft');
+        const outstandingAmount = recovery.advance.outstandingAmount - recovery.amount;
+        await tx.salaryAdvance.update({ where: { id: recovery.advanceId }, data: { outstandingAmount, status: outstandingAmount === 0 ? 'SETTLED' : 'ACTIVE' } });
+        await tx.salaryAdvanceRecovery.update({ where: { id: recovery.id }, data: { status: 'POSTED', postedAt: new Date() } });
+      }
       const after = await tx.payrollRun.update({
         where: { id }, data: { status: 'APPROVED', approvedBy: actorId, approvedAt: new Date() },
       });
@@ -581,7 +607,7 @@ export class FinancialService {
     const start = new Date(`${month}-01T00:00:00+02:00`);
     const end = new Date(new Date(`${month}-01T00:00:00+02:00`).getTime());
     end.setUTCMonth(end.getUTCMonth() + 1);
-    const [rideDelivery, merchant, agent, expenses, staff, payrollRun, existingZif] = await Promise.all([
+    const [rideDelivery, merchant, agent, expenses, staff, payrollRun, existingZif, contractorInvoices] = await Promise.all([
       db.commission.aggregate({ where: { createdAt: { gte: start, lt: end } }, _sum: { amount: true } }),
       db.merchantSettlement.aggregate({ where: { createdAt: { gte: start, lt: end }, status: { not: 'CANCELLED' } }, _sum: { commissionAmount: true } }),
       db.agentSettlement.aggregate({ where: { createdAt: { gte: start, lt: end }, status: { not: 'CANCELLED' } }, _sum: { zanaEarning: true } }),
@@ -589,6 +615,7 @@ export class FinancialService {
       db.staffMember.findMany({ where: { startDate: { lt: end }, OR: [{ active: true }, { endDate: { gte: start } }] }, include: { salaryHistory: { where: { effectiveFrom: { lt: end } }, orderBy: { effectiveFrom: 'asc' } } } }),
       db.payrollRun.findUnique({ where: { month }, include: { lines: { select: { staffMemberId: true } } } }),
       db.impactFundEntry.findUnique({ where: { idempotencyKey: `MONTHLY_NET_PROFIT:${month}` } }),
+      db.contractorInvoice.findMany({ where: { invoiceDate: { gte: start, lt: end }, status: { in: ['APPROVED', 'PARTIALLY_PAID', 'PAID'] } } }),
     ]);
     const rideDeliveryCommission = rideDelivery._sum.amount ?? 0;
     const merchantCommission = merchant._sum.commissionAmount ?? 0;
@@ -599,9 +626,15 @@ export class FinancialService {
     const legacySalaryExpenseCount = expenses.filter(e => salaryCategories.includes(String(e.category).trim().toUpperCase())).length;
     const approvedExpenses = expenses.filter(e => e.status === 'APPROVED');
     const pendingExpenseCount = expenses.filter(e => e.status === 'PENDING').length;
-    const operatingExpenses = approvedExpenses.filter(e => !salaryCategories.includes(String(e.category).trim().toUpperCase())).reduce((sum, e) => sum + e.amount, 0);
+    const approvedOperatingExpenses = approvedExpenses.filter(e => !salaryCategories.includes(String(e.category).trim().toUpperCase())).reduce((sum, e) => sum + e.amount, 0);
+    const contractorInvoiceExpenses = contractorInvoices.reduce((sum, invoice) => sum + invoice.grossAmount, 0);
+    const operatingExpenses = approvedOperatingExpenses + contractorInvoiceExpenses;
+    const pendingContractorInvoiceCount = await db.contractorInvoice.count({ where: { invoiceDate: { gte: start, lt: end }, status: 'SUBMITTED' } });
     const employeeStaffCount = staff.filter(member => member.employmentType !== 'CONTRACTOR').length;
-    const contractorCount = staff.length - employeeStaffCount;
+    const contractorStaff = staff.filter(member => member.employmentType === 'CONTRACTOR');
+    const contractorCount = contractorStaff.length;
+    const coveredContractors = new Set(contractorInvoices.map(invoice => invoice.staffMemberId).filter(Boolean));
+    const contractorCoverageMatches = contractorStaff.every(member => coveredContractors.has(member.id));
     const payrollAccrual = payrollRun
       ? payrollRun.totalEmployerCost
       : staff.filter(member => member.employmentType !== 'CONTRACTOR').reduce((sum, member) => sum + this.calculateStaffSalaryForMonth(member, month), 0);
@@ -612,15 +645,16 @@ export class FinancialService {
     const netProfit = platformEarnings - operatingExpenses - payrollAccrual;
     const impactFundRate = 3;
     const contribution = calculateMonthlyZifContribution(netProfit, impactFundRate);
-    const canClose = employeeStaffCount === 0 && contractorCount === 0 || payrollApproved && contractorCount === 0;
+    const canClose = (employeeStaffCount === 0 || payrollApproved) && contractorCoverageMatches && pendingContractorInvoiceCount === 0;
     const warnings = [
       payrollRun ? 'Payroll expense uses the stored monthly payroll run, including employer statutory costs. The run must be approved before the month can close.' : 'No stored payroll run exists. The preview uses base-salary accrual only and cannot be used to close a month with employees.',
-      contractorCount ? 'Contractor invoices and withholding-tax review are not yet integrated; months containing contractors remain blocked from close.' : 'Contractor payroll is not included in employee payroll.',
+      contractorCount ? `Contractor invoice coverage: ${coveredContractors.size}/${contractorCount}; approved invoice gross amounts are included in operating expenses. Verify withholding classification before remittance.` : 'Contractor payroll is not included in employee payroll.',
+      pendingContractorInvoiceCount ? `${pendingContractorInvoiceCount} contractor invoice(s) remain submitted and unapproved.` : 'No submitted contractor invoices remain outstanding for this period.',
       'Only approved operating expenses are included. Pending expenses must be resolved before month close.',
       'Only recognized platform commissions and recorded marketplace earnings are included; gross customer payments and pass-through balances are excluded.',
       'This is an accrual estimate. Cash availability and ZIF disbursements are not included.',
     ];
-    return { month, currency: 'RWF', basis: 'ACCRUAL_ESTIMATE', platformEarnings, breakdown: { rideAndDeliveryCommission: rideDeliveryCommission, merchantCommission, shoppingEarnings }, operatingExpenses, payrollAccrual, payrollRunStatus: payrollRun?.status ?? 'NOT_CREATED', payrollApproved, netProfit, impactFundRatePercent: impactFundRate, impactFundContribution: contribution, alreadyClosed: !!existingZif, closedEntryId: existingZif?.id ?? null, expenseCount: approvedExpenses.length, pendingExpenseCount, activeStaffCount: staff.length, employeeStaffCount, contractorCount, legacySalaryExpenseCount, payrollLineCount, payrollCoverageMatches, canClose: canClose && payrollCoverageMatches && legacySalaryExpenseCount === 0 && pendingExpenseCount === 0, warnings };
+    return { month, currency: 'RWF', basis: 'ACCRUAL_ESTIMATE', platformEarnings, breakdown: { rideAndDeliveryCommission: rideDeliveryCommission, merchantCommission, shoppingEarnings }, operatingExpenses, payrollAccrual, payrollRunStatus: payrollRun?.status ?? 'NOT_CREATED', payrollApproved, netProfit, impactFundRatePercent: impactFundRate, impactFundContribution: contribution, alreadyClosed: !!existingZif, closedEntryId: existingZif?.id ?? null, expenseCount: approvedExpenses.length, pendingExpenseCount, pendingContractorInvoiceCount, contractorInvoiceExpenses, contractorCoverageMatches, activeStaffCount: staff.length, employeeStaffCount, contractorCount, legacySalaryExpenseCount, payrollLineCount, payrollCoverageMatches, canClose: canClose && payrollCoverageMatches && legacySalaryExpenseCount === 0 && pendingExpenseCount === 0 && pendingContractorInvoiceCount === 0 && contractorCoverageMatches, warnings };
   }
 
   async closeMonthlyProfit(month: string, actorId?: string) {
@@ -645,3 +679,5 @@ export class FinancialService {
     return { ...profitability, totalRevenue: profitability.platformEarnings, totalCommission: profitability.platformEarnings, totalExpenses: profitability.operatingExpenses, monthlySalaryBurden: profitability.payrollAccrual, netProfit: profitability.netProfit };
   }
 }
+
+[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
