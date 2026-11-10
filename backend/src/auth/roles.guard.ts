@@ -32,7 +32,7 @@ export class RolesGuard implements CanActivate {
     const accessRole = user.accessRole || 'OPERATIONS';
 
     const readOnly = method === 'GET';
-    const commonReads = ['/admin/search', '/admin/users', '/admin/users/'];
+    const commonReads = ['/admin/me', '/admin/search', '/admin/users', '/admin/users/'];
     const operationReads = ['/admin/operations/live', '/admin/delivery-kpis', '/admin/trips', '/admin/deliveries', '/admin/orders', '/admin/orders/'];
     const marketReads = ['/admin/markets', '/admin/markets/', '/admin/agents', '/admin/agents/'];
     const peopleReads = ['/admin/users', '/admin/users/', '/admin/merchants', '/admin/merchants/', '/admin/orders', '/admin/orders/', '/admin/deliveries', '/admin/trips'];
@@ -57,6 +57,11 @@ export class RolesGuard implements CanActivate {
     if (accessRole === 'CUSTOMER_SUPPORT') {
       return (readOnly && (matches(commonReads) || matches(peopleReads) || matches(supportReads))) ||
         ((!readOnly) && (matches(['/admin/notifications']) || matches(['/admin/support/tickets', '/admin/support/tickets/'])));
+    }
+
+    if (accessRole === 'FINANCE') {
+      const financeReads = ['/admin/me', '/admin/financial', '/admin/expenses', '/admin/staff', '/admin/payroll', '/admin/salary-payments', '/admin/impact-funds', '/admin/commissions', '/admin/accounting/ledger', '/admin/settlements', '/admin/audit'];
+      return (readOnly && matches(financeReads)) || (method === 'POST' && path === '/admin/impact-funds/disbursements');
     }
 
     return false;
