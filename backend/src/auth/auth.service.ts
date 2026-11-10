@@ -359,7 +359,7 @@ export class AuthService {
     if (!data.password || data.password.length < 8) throw new BadRequestException('Password must be at least 8 characters.');
     if (!['FOOD', 'GIFTS', 'GOODS'].includes(data.category)) throw new BadRequestException('Choose a valid business category.');
     if (!Number.isFinite(data.businessLat) || !Number.isFinite(data.businessLng) || data.businessLat! < -90 || data.businessLat! > 90 || data.businessLng! < -180 || data.businessLng! > 180) throw new BadRequestException('Select the exact business location on the map.');
-    if (!data.locationPhotoBase64 || data.locationPhotoBase64.length > 7_000_000) throw new BadRequestException('Upload a clear business premises photo (maximum 5 MB).');
+    if (!data.locationPhotoBase64 || data.locationPhotoBase64.length > 3_000_000) throw new BadRequestException('Upload a clear business premises photo (maximum 5 MB).');
     const locationPhotoUrl = await this.storage.uploadImage(data.locationPhotoBase64, 'merchant-locations');
     if (!locationPhotoUrl) throw new BadRequestException('Business photo upload is unavailable. Please contact Zana support.');
 
