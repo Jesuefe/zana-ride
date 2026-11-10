@@ -220,3 +220,19 @@ export type ServiceZone = { id:string; name:string; city:string; boundary:{type:
 export async function getServiceZones(city?:string) { return api.get<ServiceZone[]>('/admin/service-zones'+(city?'?city='+encodeURIComponent(city):'')); }
 export async function createServiceZone(data:Omit<ServiceZone,'id'>) { return api.post<ServiceZone>('/admin/service-zones',data); }
 export async function updateServiceZone(id:string,data:Partial<Omit<ServiceZone,'id'>>) { return api.patch<ServiceZone>('/admin/service-zones/'+id,data); }
+
+
+export async function getImpactFunds(params?: { from?: string; to?: string; sourceType?: string }) {
+  const query = new URLSearchParams();
+  if (params?.from) query.set('from', params.from);
+  if (params?.to) query.set('to', params.to);
+  if (params?.sourceType) query.set('sourceType', params.sourceType);
+  const q = query.toString();
+  return api.get<any>(`/admin/impact-funds${q ? `?${q}` : ''}`);
+}
+export async function updateImpactFundsRate(ratePercent: number, confirm: boolean) {
+  return api.patch<any>('/admin/impact-funds/rate', { ratePercent, confirm });
+}
+export async function reverseImpactFundsEntry(id: string, reason: string) {
+  return api.post<any>(`/admin/impact-funds/${encodeURIComponent(id)}/reverse`, { reason });
+}
