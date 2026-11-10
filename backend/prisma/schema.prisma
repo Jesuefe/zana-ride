@@ -1253,6 +1253,9 @@ model StatutoryRemittance {
   paidAt             DateTime?
   evidenceUrl        String?
   notes              String?
+  accountantVerifiedBy String?
+  accountantVerifiedAt DateTime?
+  accountantVerificationNote String?
   createdBy          String?
   approvedBy         String?
   approvedAt         DateTime?
