@@ -1,84 +1,37 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, RefreshCw, Ban } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
 import { api } from '../../../lib/api/client';
+import { updateExpensePayment, approveExpense } from '../../../lib/api/admin';
 
-type Expense = { id: string; description: string; amount: number; category: string; createdAt: string };
-
+type Expense = { id: string; title: string; amount: number; category: string; description?: string | null; vendor?: string | null; invoiceNumber?: string | null; paymentStatus: string; amountPaid: number; status: string; date: string; dueDate?: string | null; paidAt?: string | null; voidReason?: string | null };
+const categories = ['OPERATIONS','MARKETING','TECH','OFFICE_RENT','UTILITIES','FUEL_TRANSPORT','MAINTENANCE','INSURANCE','PROFESSIONAL_SERVICES','LOGISTICS','TAXES_FEES','OTHER'];
+const money = (n:number) => `RWF ${n.toLocaleString('en-US')}`;
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [desc, setDesc] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('OPERATIONS');
-  const [adding, setAdding] = useState(false);
-
-  const load = () => api.get<Expense[]>('/admin/expenses').then(setExpenses).catch(() => {});
-  useEffect(() => { load(); }, []);
-
-  const handleAdd = async () => {
-    if (!desc || !amount) return;
-    setAdding(true);
-    await api.post('/admin/expenses', { description: desc, amount: Number(amount), category }).catch(() => {});
-    setDesc(''); setAmount('');
-    load();
-    setAdding(false);
-  };
-
-  const handleDelete = async (id: string) => {
-    await api.delete(`/admin/expenses/${id}`).catch(() => {});
-    load();
-  };
-
-  const total = expenses.reduce((s, e) => s + e.amount, 0);
-
-  return (
-    <AdminShell>
-      <h1 className="text-2xl font-bold text-gray-900 mb-5">Expenses</h1>
-
-      {/* Add expense */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm mb-5">
-        <p className="font-semibold text-gray-900 mb-3">Add Expense</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description"
-            className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none" />
-          <input value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g,''))} placeholder="Amount (RWF)" inputMode="numeric"
-            className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none" />
-          <select value={category} onChange={e => setCategory(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none bg-white">
-            {['OPERATIONS','SALARIES','MARKETING','TECH','OTHER'].map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <button onClick={handleAdd} disabled={adding || !desc || !amount}
-          className="mt-3 flex items-center gap-2 bg-zana-primary text-white font-semibold px-5 py-2.5 rounded-xl text-sm disabled:opacity-40">
-          <Plus size={15} /> Add Expense
-        </button>
-      </div>
-
-      {/* Total */}
-      <div className="bg-red-50 border border-red-100 rounded-xl px-5 py-3 mb-4 flex justify-between">
-        <p className="font-semibold text-red-800">Total expenses</p>
-        <p className="font-black text-red-800">{total.toLocaleString()} RWF</p>
-      </div>
-
-      {/* List */}
-      <div className="space-y-2">
-        {expenses.map(e => (
-          <div key={e.id} className="bg-white rounded-xl p-4 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-sm text-gray-900">{e.description}</p>
-              <p className="text-xs text-gray-400">{e.category} · {new Date(e.createdAt).toLocaleDateString()}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <p className="font-bold text-red-600">{e.amount.toLocaleString()} RWF</p>
-              <button onClick={() => handleDelete(e.id)} className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
-                <Trash2 size={13} className="text-red-400" />
-              </button>
-            </div>
-          </div>
-        ))}
-        {expenses.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No expenses recorded.</p>}
-      </div>
-    </AdminShell>
-  );
+  const [expenses,setExpenses] = useState<Expense[]>([]); const [title,setTitle]=useState(''); const [amount,setAmount]=useState(''); const [category,setCategory]=useState('OPERATIONS');
+  const [vendor,setVendor]=useState(''); const [invoice,setInvoice]=useState(''); const [date,setDate]=useState(new Date().toISOString().slice(0,10)); const [dueDate,setDueDate]=useState('');
+  const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false); const [error,setError]=useState('');
+  const load=async()=>{setLoading(true);try{setExpenses(await api.get<Expense[]>('/admin/expenses'));}catch(e:any){setError(e?.message||'Could not load expenses.');}finally{setLoading(false);}};
+  useEffect(()=>{load();},[]);
+  const add=async()=>{setSaving(true);setError('');try{await api.post('/admin/expenses',{title,amount:Number(amount),category,vendor:vendor||undefined,invoiceNumber:invoice||undefined,date,dueDate:dueDate||undefined});setTitle('');setAmount('');setVendor('');setInvoice('');setDueDate('');await load();}catch(e:any){setError(e?.message||'Could not save expense.');}finally{setSaving(false);}};
+  const approve=async(e:Expense)=>{try{await approveExpense(e.id);await load();}catch(err:any){setError(err?.message||'Could not approve expense.');}};
+  const markPaid=async(e:Expense)=>{const remaining=e.amount-(e.amountPaid||0);const raw=window.prompt('Amount paid now (RWF):',String(remaining));if(raw===null)return;const amount=Number(raw);if(!Number.isSafeInteger(amount)||amount<=0||amount>remaining){setError('Enter a positive whole-RWF amount no greater than the outstanding balance.');return;}const ref=window.prompt('Payment reference (bank / mobile money):');if(ref===null)return;try{await updateExpensePayment(e.id,(e.amountPaid||0)+amount,ref||undefined);await load();}catch(err:any){setError(err?.message||'Could not update payment.');}};
+  const voidEntry=async(e:Expense)=>{const reason=window.prompt('Why must this expense be voided?');if(!reason||reason.trim().length<5)return;try{await api.post(`/admin/expenses/${e.id}/void`,{reason});await load();}catch(err:any){setError(err?.message||'Could not void expense.');}};
+  const active=expenses.filter(e=>e.status!=='VOID'); const total=active.reduce((s,e)=>s+e.amount,0); const unpaid=active.reduce((s,e)=>s+Math.max(0,e.amount-(e.amountPaid||0)),0);
+  return <AdminShell><div className="space-y-6">
+    <div className="flex items-center justify-between"><div><h1 className="text-2xl font-bold text-slate-950">Expense management</h1><p className="mt-1 text-sm text-slate-500">Record, classify and track Zana's operating costs. Corrections are audited, never silently deleted.</p></div><button onClick={load} className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-600"><RefreshCw size={16}/></button></div>
+    {error&&<p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+    <div className="grid gap-3 sm:grid-cols-3"><div className="rounded-2xl border border-slate-200 bg-white p-4"><p className="text-xs text-slate-500">Recorded active expenses</p><p className="mt-2 text-xl font-bold">{money(total)}</p></div><div className="rounded-2xl border border-slate-200 bg-white p-4"><p className="text-xs text-slate-500">Unpaid obligations</p><p className="mt-2 text-xl font-bold text-amber-700">{money(unpaid)}</p></div><div className="rounded-2xl border border-slate-200 bg-white p-4"><p className="text-xs text-slate-500">Expense records</p><p className="mt-2 text-xl font-bold">{active.length}</p></div></div>
+    <section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-bold text-slate-900">Record an expense</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Expense title / description" className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm"/>
+      <input value={amount} onChange={e=>setAmount(e.target.value.replace(/[^0-9]/g,''))} placeholder="Amount (RWF)" inputMode="numeric" className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm"/>
+      <select value={category} onChange={e=>setCategory(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm">{categories.map(c=><option key={c}>{c}</option>)}</select>
+      <input value={vendor} onChange={e=>setVendor(e.target.value)} placeholder="Vendor / supplier (optional)" className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm"/>
+      <input value={invoice} onChange={e=>setInvoice(e.target.value)} placeholder="Invoice / receipt number" className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm"/>
+      <input type="date" value={date} onChange={e=>setDate(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm"/>
+      <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm" aria-label="Due date"/>
+    </div><p className="mt-3 text-xs text-slate-500">New expenses require approval before payment can be recorded. Record payment amounts and references after approval.</p><button onClick={add} disabled={saving||!title.trim()||!amount||Number(amount)<=0} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#008F77] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40"><Plus size={15}/>{saving?'Saving…':'Save expense'}</button></section>
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="border-b border-slate-100 px-5 py-4 font-bold text-slate-900">Expense register</div><div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{['Expense','Category / vendor','Date','Payment','Amount','Status',''].map(x=><th key={x} className="px-4 py-3">{x}</th>)}</tr></thead><tbody>{expenses.map(e=><tr key={e.id} className="border-t border-slate-100"><td className="px-4 py-3"><p className="font-semibold text-slate-900">{e.title}</p>{e.invoiceNumber&&<p className="text-xs text-slate-400">Invoice {e.invoiceNumber}</p>}</td><td className="px-4 py-3 text-slate-600">{e.category}<p className="text-xs text-slate-400">{e.vendor||'—'}</p></td><td className="px-4 py-3 text-slate-600">{new Date(e.date).toLocaleDateString()}</td><td className="px-4 py-3 text-slate-600">{e.paymentStatus||'UNPAID'}<p className="text-xs text-slate-400">Paid {money(e.amountPaid||0)} · Due {money(Math.max(0,e.amount-(e.amountPaid||0)))}</p></td><td className="px-4 py-3 font-bold">{money(e.amount)}</td><td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${e.status==='VOID'?'bg-rose-50 text-rose-700':e.status==='PENDING'?'bg-amber-50 text-amber-700':'bg-emerald-50 text-emerald-700'}`}>{e.status||'APPROVED'}</span></td><td className="px-4 py-3">{e.status!=='VOID'&&<div className="flex gap-2">{e.status==='PENDING'&&<button onClick={()=>approve(e)} title="Approve expense" className="rounded-lg border border-emerald-200 px-2 py-1 text-[10px] font-bold text-emerald-700">Approve</button>}{e.status==='APPROVED'&&e.paymentStatus!=='PAID'&&<button onClick={()=>markPaid(e)} title="Record full payment" className="rounded-lg border border-emerald-200 px-2 py-1 text-[10px] font-bold text-emerald-700">Record payment</button>}<button onClick={()=>voidEntry(e)} title="Void with reason" className="rounded-lg border border-rose-200 p-2 text-rose-700"><Ban size={14}/></button></div>}</td></tr>)}{!expenses.length&&<tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400">{loading?'Loading expenses…':'No expenses recorded yet.'}</td></tr>}</tbody></table></div></section>
+  </div></AdminShell>;
 }
