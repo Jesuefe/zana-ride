@@ -115,3 +115,41 @@ body { -webkit-tap-highlight-color: transparent; }
   box-shadow: 0 0 0 1000px #ffffff inset !important;
   caret-color: #00a082;
 }
+
+
+/* Merchant signup is intentionally light, even when the merchant dashboard
+   is using dark mode. Keep every section and control on the same white canvas. */
+.merchant-register,
+.merchant-register section,
+.merchant-register form {
+  background: #ffffff !important;
+  color: #10221d;
+  color-scheme: light;
+}
+.merchant-register form > div {
+  background-color: #ffffff;
+}
+.merchant-register input,
+.merchant-register textarea,
+.merchant-register select {
+  background-color: #ffffff !important;
+  color: #10221d !important;
+  -webkit-text-fill-color: #10221d !important;
+}
+.merchant-register .pac-container {
+  z-index: 10000 !important;
+  border: 1px solid #e5eee9;
+  border-radius: 12px;
+  margin-top: 6px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(16, 34, 29, 0.16);
+  font-family: inherit;
+}
+.merchant-register .pac-item {
+  padding: 10px 12px;
+  color: #30433a;
+  cursor: pointer;
+}
+.merchant-register .pac-item:hover {
+  background: #f4faf7;
+}
