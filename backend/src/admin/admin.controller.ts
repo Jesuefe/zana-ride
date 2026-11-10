@@ -174,7 +174,7 @@ export class AdminController {
   async getImpactFunds(@Query('from') from?: string, @Query('to') to?: string, @Query('sourceType') sourceType?: string) {
     const where: any = {};
     if (from) { const date = new Date(from); if (!Number.isNaN(date.getTime())) where.createdAt = { ...(where.createdAt ?? {}), gte: date }; }
-    if (to) { const date = new Date(to); if (!Number.isNaN(date.getTime())) where.createdAt = { ...(where.createdAt ?? {}), lte: date }; }
+    if (to) { const date = new Date(to); if (!Number.isNaN(date.getTime())) { date.setHours(23, 59, 59, 999); where.createdAt = { ...(where.createdAt ?? {}), lte: date }; } }
     if (sourceType && ['RIDE', 'DELIVERY', 'FOOD_ORDER', 'SHOPPING_ORDER'].includes(sourceType)) where.sourceType = sourceType;
     const config = await this.prisma.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} });
     const [entries, allRows, rideDeliveryCommission, foodCommission, shoppingRows] = await Promise.all([
@@ -241,24 +241,32 @@ export class AdminController {
   async reverseImpactFundsEntry(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() body: { reason?: string }) {
     const reason = body.reason?.trim();
     if (!reason || reason.length < 5 || reason.length > 500) throw new BadRequestException('Provide a reversal reason between 5 and 500 characters.');
-    return this.prisma.$transaction(async tx => {
-      const original = await tx.impactFundEntry.findUnique({ where: { id } });
-      if (!original || original.eventType !== 'ACCRUAL') throw new BadRequestException('Only original accrual entries can be reversed.');
-      const idempotencyKey = `REVERSAL:${original.id}`;
-      const existing = await tx.impactFundEntry.findUnique({ where: { idempotencyKey } });
-      if (existing) return existing;
-      const reversal = await tx.impactFundEntry.create({ data: {
-        sourceType: original.sourceType, sourceId: original.sourceId, eventType: 'REVERSAL',
-        grossAmount: -original.grossAmount, platformCommission: -original.platformCommission,
-        contributionAmount: -original.contributionAmount, ratePercent: original.ratePercent,
-        status: 'REVERSED', idempotencyKey, description: reason,
-      }});
-      await tx.auditLog.create({ data: {
-        actorId: user.sub, action: 'IMPACT_FUNDS_ENTRY_REVERSED', entityType: 'ImpactFundEntry', entityId: original.id,
-        beforeJson: JSON.stringify(original), afterJson: JSON.stringify(reversal), metadataJson: JSON.stringify({ reason }),
-      }});
-      return reversal;
-    });
+    try {
+      return await this.prisma.$transaction(async tx => {
+        const original = await tx.impactFundEntry.findUnique({ where: { id } });
+        if (!original || original.eventType !== 'ACCRUAL') throw new BadRequestException('Only original accrual entries can be reversed.');
+        const idempotencyKey = `REVERSAL:${original.id}`;
+        const existing = await tx.impactFundEntry.findUnique({ where: { idempotencyKey } });
+        if (existing) return existing;
+        const reversal = await tx.impactFundEntry.create({ data: {
+          sourceType: original.sourceType, sourceId: original.sourceId, eventType: 'REVERSAL',
+          grossAmount: -original.grossAmount, platformCommission: -original.platformCommission,
+          contributionAmount: -original.contributionAmount, ratePercent: original.ratePercent,
+          status: 'REVERSED', idempotencyKey, description: reason,
+        }});
+        await tx.auditLog.create({ data: {
+          actorId: user.sub, action: 'IMPACT_FUNDS_ENTRY_REVERSED', entityType: 'ImpactFundEntry', entityId: original.id,
+          beforeJson: JSON.stringify(original), afterJson: JSON.stringify(reversal), metadataJson: JSON.stringify({ reason }),
+        }});
+        return reversal;
+      });
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        const existing = await this.prisma.impactFundEntry.findUnique({ where: { idempotencyKey: `REVERSAL:${id}` } });
+        if (existing) return existing;
+      }
+      throw error;
+    }
   }
 
   // Commissions
