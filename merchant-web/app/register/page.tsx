@@ -2,7 +2,8 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, CheckCircle2, FileCheck2, Loader2, MapPin, Store, UploadCloud, X } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FileCheck2, Loader2, MapPin, Store, UploadCloud, X, Navigation, Camera } from 'lucide-react';
+import BrandedMap from '../../components/BrandedMap';
 import { api, setToken } from '../../lib/api/client';
 
 type FormState = { businessName: string; contactName: string; email: string; password: string; phone: string; whatsappPhone: string; category: 'FOOD' | 'GIFTS' | 'GOODS'; branch: string; businessAddress: string };
@@ -17,14 +18,42 @@ function RegisterContent() {
   const [submitted, setSubmitted] = useState(false);
   const [certificateData, setCertificateData] = useState('');
   const [certificateName, setCertificateName] = useState('');
+  const [businessLocation, setBusinessLocation] = useState<{lat:number;lng:number}|null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
+  const [locationPhotoData, setLocationPhotoData] = useState('');
+  const [locationPhotoName, setLocationPhotoName] = useState('');
   const update = (key: keyof FormState, value: string) => setForm(current => ({ ...current, [key]: value }));
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) { setLocationError('Location is not supported by this browser.'); return; }
+    setLocating(true); setLocationError('');
+    navigator.geolocation.getCurrentPosition(
+      position => { setBusinessLocation({ lat: position.coords.latitude, lng: position.coords.longitude }); setLocating(false); },
+      error => { setLocationError(error.code === 1 ? 'Allow location access in your browser, or drag the pin on the map.' : 'Could not get your location. Please drag the pin on the map.'); setLocating(false); },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
+  const handleLocationPhoto = (file?: File) => {
+    if (!file) return;
+    if (!['image/jpeg','image/png','image/webp'].includes(file.type)) { setError('Business photo must be JPG, PNG or WEBP.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setError('Business photo must be 5 MB or smaller.'); return; }
+    const reader = new FileReader();
+    reader.onload = () => { setLocationPhotoData(String(reader.result || '')); setLocationPhotoName(file.name); setError(''); };
+    reader.onerror = () => setError('We could not read that business photo. Please try again.');
+    reader.readAsDataURL(file);
+  };
 
   const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setError('');
     if (!certificateData) { setError('Please upload your business registration certificate before submitting.'); return; }
+    if (!businessLocation) { setError('Please set your business location using GPS or the map pin.'); return; }
+    if (!locationPhotoData) { setError('Please upload a photo of your business premises.'); return; }
+    if (!form.businessAddress.trim()) { setError('Please enter your full business address.'); return; }
     setLoading(true);
     try {
-      const payload = { ...form, whatsappPhone: form.whatsappPhone.trim() || form.phone, businessCertificateBase64: certificateData, businessCertificateFileName: certificateName };
+      const payload = { ...form, whatsappPhone: form.whatsappPhone.trim() || form.phone, businessCertificateBase64: certificateData, businessCertificateFileName: certificateName, businessLat: businessLocation.lat, businessLng: businessLocation.lng, locationPhotoBase64: locationPhotoData };
       const result = token
         ? await api.post<{ token: string }>('/auth/register-merchant', { ...payload, token })
         : await api.post<{ token: string }>('/auth/register-merchant-public', payload);
@@ -49,7 +78,19 @@ function RegisterContent() {
     <div className="grid gap-5 sm:grid-cols-2"><label className={label}>Business phone *<input className={field} value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="+250 7XX XXX XXX" required type="tel" autoComplete="tel" /></label><label className={label}>WhatsApp number<input className={field} value={form.whatsappPhone} onChange={e => update('whatsappPhone', e.target.value)} placeholder="Same as business phone" type="tel" /></label></div>
     <label className={label}>Email address *<input className={field} value={form.email} onChange={e => update('email', e.target.value)} placeholder="you@yourbusiness.com" required type="email" autoComplete="email" /></label>
     <div className="grid gap-5 sm:grid-cols-2"><label className={label}>Password *<input className={field} value={form.password} onChange={e => update('password', e.target.value)} placeholder="At least 8 characters" required type="password" minLength={8} autoComplete="new-password" /></label><label className={label}>Branch / outlet<input className={field} value={form.branch} onChange={e => update('branch', e.target.value)} placeholder="e.g. Kimihurura" /></label></div>
-    <label className={label}><span className="inline-flex items-center gap-2">Business location <MapPin size={15} className="text-[#00a082]" /></span><input className={field} value={form.businessAddress} onChange={e => update('businessAddress', e.target.value)} placeholder="Street, neighbourhood, Kigali" autoComplete="street-address" /></label>
+    <div className="rounded-2xl border border-[#dce5df] bg-white p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="inline-flex items-center gap-2 text-sm font-bold text-[#10221d]">Exact business location <MapPin size={16} className="text-[#00a082]" /><span className="text-red-500">*</span></p><p className="mt-1 text-xs leading-5 text-gray-500">Set the pin at your shop entrance. Use GPS while standing at the business, or drag the green pin to the correct spot.</p></div><button type="button" onClick={useCurrentLocation} disabled={locating} className="inline-flex items-center gap-2 rounded-xl bg-[#e7f6f1] px-3 py-2.5 text-xs font-bold text-[#087d68] disabled:opacity-60">{locating?<Loader2 size={15} className="animate-spin"/>:<Navigation size={15}/>} {locating?'Finding you…':'Use my current location'}</button></div>
+      <div className="mt-4 overflow-hidden rounded-xl border border-[#dce5df]"><BrandedMap origin={businessLocation ?? {lat:-1.9536,lng:30.0605}} draggablePickup onPickupChange={setBusinessLocation} height={250}/></div>
+      <p className="mt-2 text-xs text-gray-500">Tip: drag the green marker to your exact shop entrance.</p>
+      {businessLocation ? <p className="mt-2 rounded-lg bg-[#effaf5] px-3 py-2 text-xs font-semibold text-[#087d68]">Location selected · {businessLocation.lat.toFixed(6)}, {businessLocation.lng.toFixed(6)}</p> : <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">Location not set yet. Select GPS or move the map pin before submitting.</p>}
+      {locationError && <p role="alert" className="mt-2 text-xs text-red-600">{locationError}</p>}
+      <label className={label+" mt-4"}>Full business address *<input className={field} value={form.businessAddress} onChange={e => update('businessAddress', e.target.value)} placeholder="Village, street, building, landmark, district" autoComplete="street-address" required /></label>
+    </div>
+    <div className="rounded-2xl border border-[#dce5df] bg-white p-4 sm:p-5">
+      <div className="flex items-start gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#e7f6f1] text-[#008f73]"><Camera size={20}/></div><div><p className="text-sm font-bold text-[#10221d]">Photo of your business premises <span className="text-red-500">*</span></p><p className="mt-1 text-xs leading-5 text-gray-500">Take or upload a clear photo showing the storefront, entrance or business sign. This helps Zana verify the location. JPG, PNG or WEBP · Up to 5 MB.</p></div></div>
+      <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#b9d5c9] bg-[#f8fcfa] px-4 py-5 text-center hover:border-[#00a082]"><UploadCloud size={23} className="text-[#008f73]"/><span className="mt-2 text-sm font-bold text-[#087d68]">{locationPhotoName?'Replace business photo':'Take / choose business photo'}</span><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" onChange={e=>handleLocationPhoto(e.target.files?.[0])}/></label>
+      {locationPhotoData && <div className="mt-3 flex items-center gap-3 rounded-xl bg-[#f0faf6] p-3"><img src={locationPhotoData} alt="Business premises preview" className="h-16 w-20 rounded-lg object-cover"/><span className="min-w-0 flex-1 truncate text-xs font-semibold text-[#30433a]">{locationPhotoName}</span><button type="button" onClick={()=>{setLocationPhotoData('');setLocationPhotoName('')}} className="grid h-7 w-7 place-items-center rounded-full text-gray-500 hover:bg-white" aria-label="Remove business photo"><X size={15}/></button></div>}
+    </div>
     <div className="rounded-2xl border border-[#dce5df] bg-white p-4 sm:p-5">
       <div className="flex items-start gap-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#e7f6f1] text-[#008f73]"><FileCheck2 size={20} /></div>
