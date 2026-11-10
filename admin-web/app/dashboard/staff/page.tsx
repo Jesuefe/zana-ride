@@ -1,114 +1,42 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Plus, Check, DollarSign } from 'lucide-react';
+import { Plus, Check, RefreshCw } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
-import { getStaff, createStaff, updateStaff, getSalaryPayments, recordSalaryPayment } from '../../../lib/api/admin';
-
+import { getStaff, createStaff, getSalaryPayments, getPayrollPreview, getPayrollRun, createPayrollRun, approvePayrollRun, discardDraftPayrollRun, recordPayrollLinePayment } from '../../../lib/api/admin';
+const money=(n:number)=>`RWF ${Number(n||0).toLocaleString('en-US')}`;
 export default function StaffPage() {
-  const [staff, setStaff] = useState<any[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', role: '', accessRole: 'OPERATIONS', phone: '', email: '', password: '', salary: '' });
-  const [saving, setSaving] = useState(false);
-
-  const load = () => {
-    getStaff().then(setStaff).catch(() => {});
-    getSalaryPayments(month).then(setPayments).catch(() => {});
-  };
-  useEffect(() => { load(); }, [month]);
-
-  const handleCreate = async () => {
-    setSaving(true);
-    await createStaff({ ...form, salary: Number(form.salary) });
-    setShowForm(false);
-    setForm({ name: '', role: '', accessRole: 'OPERATIONS', phone: '', email: '', password: '', salary: '' });
-    load();
-    setSaving(false);
-  };
-
-  const handlePay = async (staffId: string, salary: number) => {
-    await recordSalaryPayment({ staffMemberId: staffId, month, amount: salary });
-    load();
-  };
-
-  const paidIds = new Set(payments.filter(p => p.paid).map((p: any) => p.staffMemberId));
-  const totalPaid = payments.filter(p => p.paid).reduce((s: number, p: any) => s + p.amount, 0);
-  const totalDue = staff.reduce((s, st) => s + st.salary, 0);
-
-  return (
-    <AdminShell>
-      <div>
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Staff & Payroll</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Create staff accounts with operational access. Monthly salary burden: {totalDue.toLocaleString()} RWF</p>
-          </div>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm"><Plus size={15} /> Add Staff</button>
-        </div>
-
-        <div className="flex items-center gap-3 mb-5">
-          <label className="text-sm font-medium text-gray-700">Payroll month:</label>
-          <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm" />
-          <span className="text-sm text-gray-500">{totalPaid.toLocaleString()} / {totalDue.toLocaleString()} RWF paid</span>
-        </div>
-
-        {showForm && (
-          <div className="bg-white rounded-xl p-5 shadow-sm mb-5">
-            <h2 className="font-semibold text-gray-900 mb-3">New Staff Member</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder="Full name" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              <input value={form.role} onChange={e => setForm(f => ({...f, role: e.target.value}))} placeholder="Role (e.g. Driver Coordinator)" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              <input value={form.phone} onChange={e => setForm(f => ({...f, phone: e.target.value}))} placeholder="Phone (login)" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              <input value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))} placeholder="Email (login, optional)" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              <input value={form.password} onChange={e => setForm(f => ({...f, password: e.target.value}))} placeholder="Temporary password (min 8)" type="password" className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              <select value={form.accessRole} onChange={e => setForm(f => ({...f, accessRole: e.target.value}))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
-                <option value="OPERATIONS">Operations</option>
-                <option value="DRIVER_OPERATIONS">Driver Operations</option>
-                <option value="MARKET_OPERATIONS">Market Operations</option>
-                <option value="CUSTOMER_SUPPORT">Customer Support</option>
-              </select>
-              <input value={form.salary} onChange={e => setForm(f => ({...f, salary: e.target.value}))} placeholder="Monthly salary (RWF)" type="number" className="border border-gray-200 rounded-lg px-3 py-2 text-sm col-span-2" />
-            </div>
-            <div className="flex gap-2 mt-3">
-              <button onClick={handleCreate} disabled={saving || !form.name || !form.phone || !form.password || !form.salary} className="bg-zana-primary text-white font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-40">{saving ? 'Saving…' : 'Add Staff'}</button>
-              <button onClick={() => setShowForm(false)} className="border border-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm">Cancel</button>
-            </div>
-          </div>
-        )}
-
-        <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className="border-b border-gray-100 text-left">
-              {['Name','Role','Phone','Monthly Salary',`${month} Status`,'Action'].map(h => <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>)}
-            </tr></thead>
-            <tbody>
-              {staff.map(s => (
-                <tr key={s.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{s.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{s.role}</td>
-                  <td className="px-4 py-3 text-gray-600">{s.phone ?? '—'}</td>
-                  <td className="px-4 py-3 font-semibold">{s.salary?.toLocaleString()} RWF</td>
-                  <td className="px-4 py-3">
-                    {paidIds.has(s.id)
-                      ? <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Paid</span>
-                      : <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Unpaid</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    {!paidIds.has(s.id) && (
-                      <button onClick={() => handlePay(s.id, s.salary)} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold">
-                        <DollarSign size={12} /> Mark Paid
-                      </button>
-                    )}
-                    {paidIds.has(s.id) && <Check size={15} className="text-green-600 ml-2" />}
-                  </td>
-                </tr>
-              ))}
-              {staff.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-sm">No staff members added yet.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </AdminShell>
-  );
+ const [staff,setStaff]=useState<any[]>([]); const [payments,setPayments]=useState<any[]>([]); const [preview,setPreview]=useState<any>(null); const [run,setRun]=useState<any>(null); const [adjustments,setAdjustments]=useState<Record<string,any>>({}); const [busy,setBusy]=useState(false); const [month,setMonth]=useState(new Date().toISOString().slice(0,7)); const [showForm,setShowForm]=useState(false); const [saving,setSaving]=useState(false); const [error,setError]=useState('');
+ const [form,setForm]=useState({name:'',role:'',department:'',employmentType:'EMPLOYEE',accessRole:'OPERATIONS',phone:'',email:'',password:'',salary:''});
+ const load=()=>{getStaff(month).then(setStaff).catch((e:any)=>setError(e?.message||'Could not load staff'));getSalaryPayments(month).then(setPayments).catch((e:any)=>setError(e?.message||'Could not load payroll'));getPayrollPreview(month).then(setPreview).catch((e:any)=>setError(e?.message||'Could not calculate payroll preview'));getPayrollRun(month).then(setRun).catch((e:any)=>setError(e?.message||'Could not load payroll run'));};
+ useEffect(()=>{load();},[month]);
+ const create=async()=>{setSaving(true);setError('');try{await createStaff({...form,salary:Number(form.salary)});setShowForm(false);setForm({name:'',role:'',department:'',employmentType:'EMPLOYEE',accessRole:'OPERATIONS',phone:'',email:'',password:'',salary:''});load();}catch(e:any){setError(e?.message||'Could not create staff profile');}finally{setSaving(false);}};
+ const paidById=new Map<string,number>(); payments.forEach(p=>paidById.set(p.staffMemberId,(paidById.get(p.staffMemberId)||0)+p.amount)); const payrollLineById=new Map<string,any>((run?.lines||[]).map((line:any)=>[line.staffMemberId,line])); const paidIds=new Set((run?.lines||[]).filter((line:any)=>line.status==='PAID').map((line:any)=>line.staffMemberId)); const totalPaid=payments.reduce((s:number,p:any)=>s+p.amount,0); const monthStaff=run?.lines?.length?run.lines:staff.filter((s:any)=>s.payrollAmount>0); const totalDue=run?run.totalNetPay:monthStaff.reduce((s:number,sx:any)=>s+sx.payrollAmount,0);
+ const setAdjustment=(id:string,key:string,value:string)=>setAdjustments(prev=>({...prev,[id]:{...(prev[id]||{}),[key]:value.replace(/[^0-9]/g,'')}}));
+ const buildRun=async()=>{setBusy(true);setError('');try{const payload=Object.entries(adjustments).map(([staffMemberId,a])=>({staffMemberId,...Object.fromEntries(Object.entries(a).map(([k,v])=>[k,Number(v||0)]))}));await createPayrollRun(month,payload);await load();}catch(e:any){setError(e?.message||'Could not create payroll run');}finally{setBusy(false);}};
+ const approveRun=async()=>{if(!run||!window.confirm('Approve and lock this payroll run? Payments will then be enabled.'))return;setBusy(true);setError('');try{await approvePayrollRun(run.id);await load();}catch(e:any){setError(e?.message||'Could not approve payroll');}finally{setBusy(false);}};
+ const discardDraft=async()=>{if(!run||run.status!=='DRAFT')return;const reason=window.prompt('Why are you discarding this unapproved draft? (minimum 8 characters)');if(reason===null)return;if(reason.trim().length<8){setError('Please provide a clear reason of at least 8 characters.');return;}if(!window.confirm('Discard this draft? Its figures will be removed, but the action and reason will remain in the audit log.'))return;setBusy(true);setError('');try{await discardDraftPayrollRun(run.id,reason.trim());setAdjustments({});await load();}catch(e:any){setError(e?.message||'Could not discard draft payroll');}finally{setBusy(false);}};
+ const payLine=async(line:any)=>{const remaining=line.netPay-line.paidAmount;const raw=window.prompt('Amount to pay now (remaining '+money(remaining)+'):',String(remaining));if(raw===null)return;const amount=Number(raw);if(!Number.isSafeInteger(amount)||amount<=0||amount>remaining){setError('Enter a positive whole-RWF amount within the outstanding net pay.');return;}const ref=window.prompt('Bank or mobile-money transaction reference:');if(!ref)return;const method=(window.prompt('Payment method: BANK, MOMO or CASH','MOMO')||'').toUpperCase();setBusy(true);setError('');try{await recordPayrollLinePayment(line.id,{amount,paymentReference:ref,paymentMethod:method});await load();}catch(e:any){setError(e?.message||'Could not record payroll payment');}finally{setBusy(false);}};
+ const printPayslip=(line:any)=>{let data:any={};try{data=JSON.parse(line.payslipSnapshot||'{}');}catch{}const esc=(v:any)=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]!));const w=window.open('','_blank','width=800,height=900');if(!w){setError('Allow pop-ups to print payslips.');return;}w.document.write('<!doctype html><html><head><title>Payslip '+esc(data.month)+'</title><style>body{font:14px Arial;padding:36px;color:#172033}h1{font-size:22px}table{width:100%;border-collapse:collapse;margin-top:20px}td{padding:10px;border-bottom:1px solid #ddd}td:last-child{text-align:right;font-weight:bold}.total{font-size:18px;font-weight:bold;margin-top:24px}</style></head><body><h1>ZANA RIDE — PAYSLIP</h1><p>Period: '+esc(data.month)+'</p><p>Employee: '+esc(data.name)+'</p><table>'+[['Base salary',data.baseSalary],['Taxable allowances',data.taxableAllowances],['Non-taxable allowances',data.nonTaxableAllowances],['Bonus',data.bonus],['PAYE',-data.paye],['Employee pension',-data.employeePension],['Employee maternity',-data.employeeMaternity],['CBHI',-data.cbhi],['Other deductions',-data.otherDeductions],['Advance recovery',-data.advanceDeduction]].map(x=>'<tr><td>'+esc(x[0])+'</td><td>'+money(Math.abs(Number(x[1]||0)))+'</td></tr>').join('')+'</table><p class="total">NET PAY: '+money(data.netPay)+'</p><p>Employer pension: '+money(data.employerPension)+' · Occupational hazards: '+money(data.employerOccupationalHazards)+' · Employer maternity: '+money(data.employerMaternity)+'</p><p>Generated from the approved Zana payroll record.</p><script>window.onload=()=>window.print()</script></body></html>');w.document.close();};
+ return <AdminShell><div className="space-y-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-bold text-slate-950">Staff & payroll</h1><p className="mt-1 text-sm text-slate-500">Staff records, monthly salary obligations and payment evidence.</p></div><button onClick={()=>setShowForm(!showForm)} className="inline-flex items-center gap-2 rounded-xl bg-[#008F77] px-4 py-2.5 text-sm font-semibold text-white"><Plus size={15}/> Add staff</button></div>
+ {error&&<p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+ <div className="grid gap-3 sm:grid-cols-3"><div className="rounded-2xl border bg-white p-4"><p className="text-xs text-slate-500">Staff with salary due</p><p className="mt-2 text-2xl font-bold">{monthStaff.length}</p></div><div className="rounded-2xl border bg-white p-4"><p className="text-xs text-slate-500">Monthly base salary obligation</p><p className="mt-2 text-xl font-bold">{money(totalDue)}</p></div><div className="rounded-2xl border bg-white p-4"><p className="text-xs text-slate-500">Recorded paid this month</p><p className="mt-2 text-xl font-bold">{money(totalPaid)}</p></div></div>
+ <div className="flex flex-wrap items-center gap-3"><label className="text-sm font-semibold text-slate-700">Payroll period <input type="month" value={month} onChange={e=>setMonth(e.target.value)} className="ml-2 rounded-lg border border-slate-200 px-3 py-2 font-normal"/></label><button onClick={load} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600"><RefreshCw size={15}/></button><span className="text-xs text-slate-500">Payments are recorded against approved monthly payroll lines.</span></div>
+ {showForm&&<section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-bold">New staff profile</h2><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[['name','Full name'],['role','Job title'],['department','Department'],['phone','Phone / login'],['email','Email (optional)'],['password','Temporary password (min 8)'],['salary','Monthly base salary (RWF)']].map(([k,label])=><input key={k} type={k==='password'?'password':k==='salary'?'number':'text'} value={(form as any)[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={label} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm"/>)}<select value={form.employmentType} onChange={e=>setForm(f=>({...f,employmentType:e.target.value}))} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"><option value="EMPLOYEE">Employee</option><option value="CONTRACTOR">Contractor</option></select><select value={form.accessRole} onChange={e=>setForm(f=>({...f,accessRole:e.target.value}))} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"><option value="OPERATIONS">Operations</option><option value="DRIVER_OPERATIONS">Driver operations</option><option value="MARKET_OPERATIONS">Market operations</option><option value="CUSTOMER_SUPPORT">Customer support</option></select></div><div className="mt-4 flex gap-2"><button onClick={create} disabled={saving||!form.name||!form.role||!form.phone||form.password.length<8||!form.salary} className="rounded-xl bg-[#008F77] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">{saving?'Saving…':'Create staff profile'}</button><button onClick={()=>setShowForm(false)} className="rounded-xl border px-4 py-2 text-sm">Cancel</button></div></section>}
+ <section className="rounded-2xl border border-slate-200 bg-white p-5">
+  <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-bold text-slate-900">Statutory payroll estimate</h2><p className="mt-1 text-xs text-slate-500">Draft preview for {month}; not approved or filed.</p></div><span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">DRAFT · NOT APPROVED</span></div>
+  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+   {[['Gross payroll',preview?.totals?.gross],['Employee net pay',preview?.totals?.employeeNetPay],['PAYE to remit',preview?.totals?.paye],['Employer statutory cost',preview?.totals?.employerStatutoryCost]].map(([label,value])=><div key={label} className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 font-bold">{money(Number(value||0))}</p></div>)}
+  </div>
+  {!!preview?.lines?.length&&<div className="mt-4 overflow-x-auto rounded-xl border border-slate-100"><table className="w-full min-w-[680px] text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr>{['Staff','Gross','PAYE','Employee pension','CBHI','Net pay'].map(h=><th key={h} className="px-3 py-2">{h}</th>)}</tr></thead><tbody>{preview.lines.map((line:any)=><tr key={line.staffMemberId} className="border-t border-slate-100"><td className="px-3 py-2 font-semibold">{line.name}</td><td className="px-3 py-2">{money(line.gross)}</td><td className="px-3 py-2">{money(line.statutory?.paye||0)}</td><td className="px-3 py-2">{money(line.statutory?.employeePension||0)}</td><td className="px-3 py-2">{money(line.statutory?.cbhi||0)}</td><td className="px-3 py-2 font-bold">{money(line.netPay)}</td></tr>)}</tbody></table></div>}
+  {preview?.warnings?.map((warning:string)=><p key={warning} className="mt-3 text-xs leading-relaxed text-amber-800">{warning}</p>)}
+ </section>
+ <section className="rounded-2xl border border-slate-200 bg-white p-5">
+  <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold text-slate-900">Monthly payroll run</h2><p className="mt-1 text-xs text-slate-500">Store the calculated payroll, review each adjustment, then approve before making payments.</p></div><span className={"rounded-full px-3 py-1 text-xs font-bold "+(run?.status==='PAID'?'bg-emerald-50 text-emerald-700':run?.status==='DRAFT'?'bg-amber-50 text-amber-700':'bg-slate-100 text-slate-700')}>{run?.status||'NOT CREATED'}</span></div>
+  {!run&&<><p className="mt-3 text-sm text-slate-600">Enter allowances, bonuses and deductions for each employee below, then create the immutable monthly draft.</p><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[900px] text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr>{['Employee','Taxable allowance','Non-taxable allowance','Pensionable allowance','Bonus','Other deduction','Advance recovery'].map(h=><th key={h} className="px-2 py-2">{h}</th>)}</tr></thead><tbody>{(preview?.lines||[]).filter((l:any)=>l.employmentType!=='CONTRACTOR').map((line:any)=><tr key={line.staffMemberId} className="border-t"><td className="px-2 py-2 font-semibold">{line.name}<p className="font-normal text-slate-400">{money(line.gross)} base</p></td>{['taxableAllowances','nonTaxableAllowances','pensionableAllowances','bonus','otherDeductions','advanceDeduction'].map(key=><td key={key} className="px-2 py-2"><input inputMode="numeric" value={adjustments[line.staffMemberId]?.[key]||''} onChange={e=>setAdjustment(line.staffMemberId,key,e.target.value)} placeholder="0" className="w-24 rounded-lg border px-2 py-1.5"/></td>)}</tr>)}</tbody></table></div><button disabled={busy||!preview?.lines?.some((l:any)=>l.employmentType!=='CONTRACTOR')} onClick={buildRun} className="mt-4 rounded-xl bg-[#008F77] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">{busy?'Saving…':'Create draft payroll run'}</button></>}
+  {run&&<><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{[['Gross',run.totalGross],['Net pay',run.totalNetPay],['Employee deductions',run.totalEmployeeDeductions],['Employer statutory',run.totalEmployerStatutory],['Total employer cost',run.totalEmployerCost]].map(([k,v])=><div key={k} className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">{k}</p><p className="mt-1 font-bold">{money(Number(v||0))}</p></div>)}</div><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[900px] text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr>{['Employee','Gross','PAYE','Employee deductions','Net pay','Paid','Payslip','Payment'].map(h=><th key={h} className="px-3 py-2">{h}</th>)}</tr></thead><tbody>{run.lines?.map((line:any)=><tr key={line.id} className="border-t"><td className="px-3 py-3 font-semibold">{line.staff?.name||line.staffMemberId}</td><td className="px-3 py-3">{money(line.taxableGross+line.nonTaxableAllowances)}</td><td className="px-3 py-3">{money(line.paye)}</td><td className="px-3 py-3">{money(line.employeeDeductions)}</td><td className="px-3 py-3 font-bold">{money(line.netPay)}</td><td className="px-3 py-3">{money(line.paidAmount)} / {money(line.netPay)}</td><td className="px-3 py-3"><button onClick={()=>printPayslip(line)} className="rounded-lg border px-2 py-1">Print</button></td><td className="px-3 py-3">{['APPROVED','PARTIALLY_PAID'].includes(run.status)&&line.paidAmount<line.netPay?<button disabled={busy} onClick={()=>payLine(line)} className="rounded-lg bg-emerald-600 px-3 py-1.5 font-semibold text-white disabled:opacity-40">Record payment</button>:<span className="text-slate-500">{line.status}</span>}</td></tr>)}</tbody></table></div>{run.status==='DRAFT'&&<div className="mt-4 flex flex-wrap gap-2"><button disabled={busy} onClick={approveRun} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Approve and lock payroll</button><button disabled={busy} onClick={discardDraft} className="rounded-xl border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-700 disabled:opacity-40">Discard draft and rebuild</button></div>}<p className="mt-3 text-xs text-slate-500">Draft runs cannot be paid. You can discard an unapproved draft with a recorded reason and rebuild it. Approval locks the stored figures; payments cannot exceed each employee's approved net pay.</p></>}
+ </section>
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="border-b px-5 py-4 font-bold">Staff register</div><div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{['Staff member','Department / type','Access','Monthly salary',`${month} payroll`,'Action'].map(x=><th key={x} className="px-4 py-3">{x}</th>)}</tr></thead><tbody>{staff.map(s=><tr key={s.id} className="border-t border-slate-100"><td className="px-4 py-3"><p className="font-semibold">{s.name}</p><p className="text-xs text-slate-400">{s.role} · {s.phone||'No phone'}</p></td><td className="px-4 py-3 text-slate-600">{s.department||'—'}<p className="text-xs text-slate-400">{s.employmentType||'EMPLOYEE'}</p></td><td className="px-4 py-3 text-slate-600">{s.accessRole}</td><td className="px-4 py-3 font-semibold">{money(s.payrollAmount||0)}</td><td className="px-4 py-3">{s.payrollAmount<=0?<span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500">Not employed this month</span>:payrollLineById.get(s.id)?.status==='PAID'?<span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">Paid</span>:payrollLineById.get(s.id)?.status==='PARTIALLY_PAID'?<span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">Partial · {money(payrollLineById.get(s.id)?.paidAmount||0)}</span>:<span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">{run?.status==='DRAFT'?'Draft':'Due'}</span>}</td><td className="px-4 py-3">{run&&payrollLineById.get(s.id)?.status==='PAID'&&<Check size={16} className="text-emerald-600"/>}{s.payrollAmount>0&&!run&&<span className="text-xs font-medium text-amber-700">Create payroll run</span>}{run?.status==='DRAFT'&&payrollLineById.has(s.id)&&<span className="text-xs font-medium text-amber-700">Approval pending</span>}</td></tr>)}{!staff.length&&<tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">No staff records yet.</td></tr>}</tbody></table></div></section>
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="border-b px-5 py-4 font-bold">Payroll payment history · {month}</div><div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{['Date','Staff member','Payment method','Reference','Amount','Status'].map(x=><th key={x} className="px-4 py-3">{x}</th>)}</tr></thead><tbody>{payments.map(p=><tr key={p.id} className="border-t border-slate-100"><td className="px-4 py-3">{new Date(p.paidAt||p.createdAt).toLocaleDateString()}</td><td className="px-4 py-3">{p.staff?.name||'Staff'}</td><td className="px-4 py-3">{p.paymentMethod||'—'}</td><td className="px-4 py-3 font-mono text-xs">{p.paymentReference||'—'}</td><td className="px-4 py-3 font-semibold">{money(p.amount)}</td><td className="px-4 py-3">{p.paid?'Fully paid':'Partial payment'}</td></tr>)}{!payments.length&&<tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No payroll payments recorded for this month.</td></tr>}</tbody></table></div></section>
+  <p className="text-xs leading-relaxed text-slate-500">Employee payroll runs now store base pay, allowances, bonuses, deductions, statutory estimates, employer costs and payslip snapshots. Contractor invoice and withholding-tax accounting, statutory filing, and accountant validation remain outstanding.</p>
+ </div></AdminShell>;
 }
