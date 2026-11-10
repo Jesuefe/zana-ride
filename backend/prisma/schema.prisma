@@ -526,7 +526,7 @@ model PayrollLine {
   employerStatutoryCost    Int
   totalEmployerCost        Int
   paidAmount               Int           @default(0)
-  status                   String        @default("APPROVED_PENDING_PAYMENT")
+  status                   String        @default("AWAITING_APPROVAL")
   payslipSnapshot          String
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt
