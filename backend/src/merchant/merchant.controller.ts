@@ -33,6 +33,21 @@ export class MerchantController {
     return this.walletService.findByUserId(user.sub);
   }
 
+  @Get('wallet/payout-account')
+  getPayoutAccount(@CurrentUser() user: JwtPayload) {
+    return this.walletService.getMerchantPayoutAccount(user.sub);
+  }
+
+  @Post('wallet/payout-account/request-otp')
+  requestPayoutOtp(@CurrentUser() user: JwtPayload, @Body() body: { phone: string; provider: string }) {
+    return this.walletService.requestMerchantPayoutOtp(user.sub, body.phone, body.provider);
+  }
+
+  @Post('wallet/payout-account/verify-otp')
+  verifyPayoutOtp(@CurrentUser() user: JwtPayload, @Body() body: { code: string }) {
+    return this.walletService.verifyMerchantPayoutOtp(user.sub, body.code);
+  }
+
   @Post('wallet/withdraw')
   withdrawWallet(@CurrentUser() user: JwtPayload, @Body() body: { amount: number }) {
     return this.walletService.withdraw(user.sub, body.amount);
