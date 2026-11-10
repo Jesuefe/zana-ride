@@ -32,4 +32,20 @@ describe('FinanceExtensionsService', () => {
     const service = new FinanceExtensionsService(prisma);
     await expect(service.payContractorInvoice('admin-1', 'inv-1', { amount: 10000, paymentReference: 'TX-1234', paymentMethod: 'MOMO' })).rejects.toThrow('PAYMENT_EXCEEDS_NET_PAYABLE');
   });
+  it('requires a separate accountant verification before statutory remittance approval', async () => {
+    const tx: any = {
+      statutoryRemittance: { findUnique: jest.fn().mockResolvedValue({ id: 'rem-1', status: 'DRAFT', createdBy: 'finance-1', accountantVerifiedAt: null, accountantVerifiedBy: null }) },
+    };
+    const prisma: any = { $transaction: jest.fn(fn => fn(tx)) };
+    const service = new FinanceExtensionsService(prisma);
+    await expect(service.approveRemittance('admin-2', 'rem-1')).rejects.toThrow('ACCOUNTANT_VERIFICATION_REQUIRED_BEFORE_APPROVAL');
+  });
+
+  it('prevents the remittance creator from self-verifying the statutory amount', async () => {
+    const tx: any = { statutoryRemittance: { findUnique: jest.fn().mockResolvedValue({ id: 'rem-1', status: 'DRAFT', createdBy: 'creator' }) } };
+    const prisma: any = { $transaction: jest.fn(fn => fn(tx)) };
+    const service = new FinanceExtensionsService(prisma);
+    await expect(service.verifyRemittance('creator', 'rem-1', 'Accountant confirmed the filed amount')).rejects.toThrow('Remittance creator cannot verify their own statutory amount');
+  });
+
 });
