@@ -152,12 +152,41 @@ export class FinanceExtensionsService {
     }, { isolationLevel: 'Serializable' });
   }
 
+  async updateRemittanceDraft(actorId: string, id: string, body: any) {
+    const amount = Number(body.amount);
+    if (!Number.isSafeInteger(amount) || amount <= 0) throw new BadRequestException('REMITTANCE_AMOUNT_MUST_BE_A_POSITIVE_WHOLE_RWF_AMOUNT');
+    if (body.dueDate && Number.isNaN(new Date(body.dueDate).getTime())) throw new BadRequestException('INVALID_REMITTANCE_DUE_DATE');
+    return this.prisma.$transaction(async tx => {
+      const before = await tx.statutoryRemittance.findUnique({ where: { id } });
+      if (!before) throw new NotFoundException('Statutory remittance not found');
+      if (before.status !== 'DRAFT') throw new ConflictException('Only draft remittances can be adjusted');
+      const after = await tx.statutoryRemittance.update({ where: { id }, data: { amount, dueDate: body.dueDate ? new Date(body.dueDate) : before.dueDate, notes: String(body.notes ?? before.notes ?? '').slice(0, 1000), accountantVerifiedBy: null, accountantVerifiedAt: null, accountantVerificationNote: null } });
+      await tx.auditLog.create({ data: { actorId, action: 'STATUTORY_REMITTANCE_ADJUSTED', entityType: 'StatutoryRemittance', entityId: id, beforeJson: JSON.stringify(before), afterJson: JSON.stringify(after) } });
+      return after;
+    });
+  }
+
+  async verifyRemittance(actorId: string, id: string, verificationNote: string) {
+    const note = verificationNote?.trim();
+    if (!note || note.length < 10 || note.length > 1000) throw new BadRequestException('ACCOUNTANT_VERIFICATION_NOTE_MUST_BE_10_TO_1000_CHARACTERS');
+    return this.prisma.$transaction(async tx => {
+      const before = await tx.statutoryRemittance.findUnique({ where: { id } });
+      if (!before) throw new NotFoundException('Statutory remittance not found');
+      if (before.status !== 'DRAFT') throw new ConflictException('Only draft remittances can be verified');
+      if (before.createdBy === actorId) throw new ForbiddenException('Remittance creator cannot verify their own statutory amount');
+      const after = await tx.statutoryRemittance.update({ where: { id }, data: { accountantVerifiedBy: actorId, accountantVerifiedAt: new Date(), accountantVerificationNote: note } });
+      await tx.auditLog.create({ data: { actorId, action: 'STATUTORY_REMITTANCE_ACCOUNTANT_VERIFIED', entityType: 'StatutoryRemittance', entityId: id, beforeJson: JSON.stringify(before), afterJson: JSON.stringify(after), metadataJson: JSON.stringify({ verificationNote: note }) } });
+      return after;
+    });
+  }
+
   async approveRemittance(actorId: string, id: string) {
     return this.prisma.$transaction(async tx => {
       const before = await tx.statutoryRemittance.findUnique({ where: { id } });
       if (!before) throw new NotFoundException('Statutory remittance not found');
       if (before.status !== 'DRAFT') throw new ConflictException('Only draft remittances can be approved');
-      if (before.createdBy === actorId) throw new ForbiddenException('Creator cannot approve their own remittance');
+      if (!before.accountantVerifiedAt || !before.accountantVerifiedBy) throw new BadRequestException('ACCOUNTANT_VERIFICATION_REQUIRED_BEFORE_APPROVAL');
+      if (before.createdBy === actorId || before.accountantVerifiedBy === actorId) throw new ForbiddenException('Creator or accountant verifier cannot approve the same remittance');
       const after = await tx.statutoryRemittance.update({ where: { id }, data: { status: 'APPROVED', approvedBy: actorId, approvedAt: new Date() } });
       await tx.auditLog.create({ data: { actorId, action: 'STATUTORY_REMITTANCE_APPROVED', entityType: 'StatutoryRemittance', entityId: id, beforeJson: JSON.stringify(before), afterJson: JSON.stringify(after) } });
       return after;
