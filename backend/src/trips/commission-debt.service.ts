@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FareService } from './fare.service';
 import { ServiceType } from '@prisma/client';
-import { calculateImpactFundContribution } from '../finance/impact-funds.util';
 
 const SAFETY_POOL = 5000; // RWF — drivers always keep this minimum
 type Source = { tripId: string } | { deliveryId: string };
@@ -46,20 +45,7 @@ export class CommissionDebtService {
             data: { deliveryId: source.deliveryId, amount: commission, ratePercent: 15, walletCoveredAmount: 0, debtCreatedAmount: 0 },
           });
         }
-        const config = await tx.impactFundConfig.upsert({
-          where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {},
-        });
-        const sourceType = 'tripId' in source ? 'RIDE' : 'DELIVERY';
-        const sourceId = 'tripId' in source ? source.tripId : source.deliveryId;
-        const contributionAmount = calculateImpactFundContribution(commission, config.ratePercent);
-        await tx.impactFundEntry.create({
-          data: {
-            sourceType, sourceId, eventType: 'ACCRUAL', grossAmount: fare,
-            platformCommission: commission, contributionAmount, ratePercent: config.ratePercent,
-            idempotencyKey: `ACCRUAL:${sourceType}:${sourceId}`,
-            description: `3% allocation from recognized Zana ${sourceType.toLowerCase()} commission`,
-          },
-        });
+
       });
     } catch (e: any) {
       if (e?.code === 'P2002') return; // The source commission or accrual was already claimed.
