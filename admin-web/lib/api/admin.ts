@@ -236,6 +236,11 @@ export async function updateImpactFundsRate(ratePercent: number, confirm: boolea
 export async function reverseImpactFundsEntry(id: string, reason: string) {
   return api.post<any>(`/admin/impact-funds/${encodeURIComponent(id)}/reverse`, { reason });
 }
+export async function getImpactFundDisbursements() { return api.get<any>('/admin/impact-funds/disbursements'); }
+export async function requestImpactFundDisbursement(data: { amount: number; recipientName: string; recipientType: string; purpose: string }) { return api.post<any>('/admin/impact-funds/disbursements', data); }
+export async function approveImpactFundDisbursement(id: string) { return api.post<any>(`/admin/impact-funds/disbursements/${encodeURIComponent(id)}/approve`, {}); }
+export async function rejectImpactFundDisbursement(id: string, reason: string) { return api.post<any>(`/admin/impact-funds/disbursements/${encodeURIComponent(id)}/reject`, { reason }); }
+export async function markImpactFundDisbursementPaid(id: string, data: { paymentMethod: string; paymentReference: string; evidenceUrl?: string }) { return api.post<any>(`/admin/impact-funds/disbursements/${encodeURIComponent(id)}/paid`, data); }
 
 export async function getMonthlyProfitability(month: string) { return api.get<any>(`/admin/financial/monthly-profit?month=${encodeURIComponent(month)}`); }
 export async function closeMonthlyProfit(month: string) { return api.post<any>('/admin/financial/monthly-profit/close', { month, confirm: true }); }
