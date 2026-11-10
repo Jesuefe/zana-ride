@@ -484,3 +484,36 @@ body {
   .legal-body { padding: 2.4rem 22px 3.5rem; font-size: 0.98rem; }
   .legal-body h2 { font-size: 1.18rem; margin-top: 2.1rem; }
 }
+
+
+/* Official Google Play download badge */
+.play-badge-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 190px;
+  min-height: 58px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  transition: transform 160ms ease, filter 160ms ease;
+}
+.play-badge-link:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+}
+.play-badge-link:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: 4px;
+}
+.play-badge {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 74px;
+  object-fit: contain;
+}
+.play-badge-link--finish { margin-top: 0; }
+@media (max-width: 760px) {
+  .play-badge-link { width: 190px; min-height: 58px; align-self: flex-start; }
+  .play-badge-link--finish { align-self: stretch; margin: 0 auto; }
+}
