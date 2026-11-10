@@ -484,6 +484,14 @@ export class AdminController {
   generateStatutoryRemittances(@CurrentUser() admin: JwtPayload, @Body() body: { period: string }) { return this.financeExtensions.generatePayrollRemittances(admin.sub, body.period); }
 
   @Roles('ADMIN')
+  @Patch('statutory-remittances/:id')
+  updateStatutoryRemittance(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: any) { return this.financeExtensions.updateRemittanceDraft(admin.sub, id, body); }
+
+  @Roles('ADMIN')
+  @Post('statutory-remittances/:id/verify')
+  verifyStatutoryRemittance(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { verificationNote: string }) { return this.financeExtensions.verifyRemittance(admin.sub, id, body.verificationNote); }
+
+  @Roles('ADMIN')
   @Post('statutory-remittances/:id/approve')
   approveStatutoryRemittance(@CurrentUser() admin: JwtPayload, @Param('id') id: string) { return this.financeExtensions.approveRemittance(admin.sub, id); }
 
