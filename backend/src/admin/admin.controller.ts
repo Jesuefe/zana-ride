@@ -168,6 +168,86 @@ export class AdminController {
   @Get('settlements/drivers')
   driverSettlements() { return this.financialService.getDriverSettlements(); }
 
+  // Zana Impact Funds — separate append-only ledger funded from Zana's recognized commission only.
+  @Roles('ADMIN')
+  @Get('impact-funds')
+  async getImpactFunds(@Query('from') from?: string, @Query('to') to?: string, @Query('sourceType') sourceType?: string) {
+    const where: any = {};
+    if (from) { const date = new Date(from); if (!Number.isNaN(date.getTime())) where.createdAt = { ...(where.createdAt ?? {}), gte: date }; }
+    if (to) { const date = new Date(to); if (!Number.isNaN(date.getTime())) where.createdAt = { ...(where.createdAt ?? {}), lte: date }; }
+    if (sourceType && ['RIDE', 'DELIVERY', 'FOOD_ORDER', 'SHOPPING_ORDER'].includes(sourceType)) where.sourceType = sourceType;
+    const [config, entries, allAccruals, allEntries] = await Promise.all([
+      this.prisma.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} }),
+      this.prisma.impactFundEntry.findMany({ where, orderBy: { createdAt: 'desc' }, take: 2000 }),
+      this.prisma.impactFundEntry.findMany({ where: { eventType: 'ACCRUAL' }, select: { contributionAmount: true, createdAt: true, sourceType: true, sourceId: true } }),
+      this.prisma.impactFundEntry.findMany({ select: { contributionAmount: true } }),
+    ]);
+    const currentBalance = allEntries.reduce((sum, row) => sum + row.contributionAmount, 0);
+    const lifetimeContributions = allAccruals.reduce((sum, row) => sum + row.contributionAmount, 0);
+    const monthKey = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Kigali', year: 'numeric', month: '2-digit' }).format(date);
+    const monthMap = new Map<string, { month: string; contributions: number; transactions: number }>();
+    for (const row of allAccruals) {
+      const key = monthKey(row.createdAt);
+      const item = monthMap.get(key) ?? { month: key, contributions: 0, transactions: 0 };
+      item.contributions += row.contributionAmount;
+      item.transactions += 1;
+      monthMap.set(key, item);
+    }
+    const thisMonth = monthKey(new Date());
+    return {
+      ratePercent: config.ratePercent,
+      currentBalance,
+      lifetimeContributions,
+      thisMonthContributions: monthMap.get(thisMonth)?.contributions ?? 0,
+      thisMonthTransactions: monthMap.get(thisMonth)?.transactions ?? 0,
+      lifetimeTransactions: allAccruals.length,
+      monthly: [...monthMap.values()].sort((a, b) => b.month.localeCompare(a.month)),
+      entries,
+    };
+  }
+
+  @Roles('ADMIN')
+  @Patch('impact-funds/rate')
+  async updateImpactFundsRate(@CurrentUser() user: JwtPayload, @Body() body: { ratePercent?: number; confirm?: boolean }) {
+    if (body.confirm !== true) throw new BadRequestException('Explicit confirmation is required to change the Impact Funds rate.');
+    if (!Number.isFinite(body.ratePercent) || body.ratePercent! < 0 || body.ratePercent! > 100) throw new BadRequestException('Rate must be between 0 and 100.');
+    return this.prisma.$transaction(async tx => {
+      const before = await tx.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} });
+      const after = await tx.impactFundConfig.update({ where: { id: 'default' }, data: { ratePercent: body.ratePercent! } });
+      await tx.auditLog.create({ data: {
+        actorId: user.sub, action: 'IMPACT_FUNDS_RATE_CHANGED', entityType: 'ImpactFundConfig', entityId: 'default',
+        beforeJson: JSON.stringify({ ratePercent: before.ratePercent }), afterJson: JSON.stringify({ ratePercent: after.ratePercent }),
+        metadataJson: JSON.stringify({ confirmed: true }),
+      }});
+      return after;
+    });
+  }
+
+  @Roles('ADMIN')
+  @Post('impact-funds/:id/reverse')
+  async reverseImpactFundsEntry(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() body: { reason?: string }) {
+    const reason = body.reason?.trim();
+    if (!reason || reason.length < 5 || reason.length > 500) throw new BadRequestException('Provide a reversal reason between 5 and 500 characters.');
+    return this.prisma.$transaction(async tx => {
+      const original = await tx.impactFundEntry.findUnique({ where: { id } });
+      if (!original || original.eventType !== 'ACCRUAL') throw new BadRequestException('Only original accrual entries can be reversed.');
+      const idempotencyKey = `REVERSAL:${original.id}`;
+      const existing = await tx.impactFundEntry.findUnique({ where: { idempotencyKey } });
+      if (existing) return existing;
+      const reversal = await tx.impactFundEntry.create({ data: {
+        sourceType: original.sourceType, sourceId: original.sourceId, eventType: 'REVERSAL',
+        grossAmount: -original.grossAmount, platformCommission: -original.platformCommission,
+        contributionAmount: -original.contributionAmount, ratePercent: original.ratePercent,
+        status: 'REVERSED', idempotencyKey, description: reason,
+      }});
+      await tx.auditLog.create({ data: {
+        actorId: user.sub, action: 'IMPACT_FUNDS_ENTRY_REVERSED', entityType: 'ImpactFundEntry', entityId: original.id,
+        beforeJson: JSON.stringify(original), afterJson: JSON.stringify(reversal), metadataJson: JSON.stringify({ reason }),
+      }});
+      return reversal;
+    });
+  }
+
   // Commissions
   @Roles('ADMIN')
   @Get('commissions')
