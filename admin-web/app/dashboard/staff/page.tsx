@@ -40,5 +40,3 @@ export default function StaffPage() {
   <p className="text-xs leading-relaxed text-slate-500">Employee payroll runs now store base pay, allowances, bonuses, deductions, statutory estimates, employer costs and payslip snapshots. Contractor invoice and withholding-tax accounting, statutory filing, and accountant validation remain outstanding.</p>
  </div></AdminShell>;
 }
-
-[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
