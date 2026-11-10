@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Home, ShoppingBag, Truck, Wallet, LogOut } from 'lucide-react';
+import { Home, ShoppingBag, Truck, Wallet, UserRound } from 'lucide-react';
 import { useLang } from '../lib/LangContext';
 import { clearToken } from '../lib/api/client';
 
@@ -10,6 +10,7 @@ const merchantItems = [
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/deliveries', label: 'Deliveries', icon: Truck },
   { href: '/wallet', label: 'Wallet', icon: Wallet },
+  { href: '/profile', label: 'Profile', icon: UserRound },
 ];
 
 const agentItems = [
@@ -17,12 +18,12 @@ const agentItems = [
   { href: '/agent?view=orders', label: 'Orders', icon: ShoppingBag },
   { href: '/agent?view=deliveries', label: 'Deliveries', icon: Truck },
   { href: '/agent?view=wallet', label: 'Wallet', icon: Wallet },
+  { href: '/profile', label: 'Profile', icon: UserRound },
 ];
 
 export default function MerchantBottomNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const { t } = useLang();
 
   // Do not show authenticated navigation on sign-in or onboarding screens.
@@ -32,11 +33,7 @@ export default function MerchantBottomNav() {
   const items = isAgent ? agentItems : merchantItems;
   const currentView = searchParams.get('view') || 'overview';
 
-  const handleLogout = () => {
-    clearToken();
-    router.replace('/login');
-    router.refresh();
-  };
+
 
   return (
     <nav aria-label="Merchant navigation" className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] md:max-w-[640px] lg:max-w-[760px] bg-white border-t border-zana-border flex items-center justify-around px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-30">
@@ -59,15 +56,7 @@ export default function MerchantBottomNav() {
           </a>
         );
       })}
-      <button
-        type="button"
-        onClick={handleLogout}
-        className="flex flex-col items-center gap-1 px-2 py-1 min-w-0 text-red-600 hover:text-red-700"
-        aria-label="Sign out of Zana Business"
-      >
-        <LogOut size={19} />
-        <span className="text-[10px]">Sign out</span>
-      </button>
+
     </nav>
   );
 }
