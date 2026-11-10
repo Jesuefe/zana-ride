@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useLang } from '../lib/LangContext';
 import { ZanaMark } from '../components/ZanaLogo';
 import Link from 'next/link';
-import { Package, Truck, Wallet, ShoppingBag, Plus, TrendingUp } from 'lucide-react';
+import { Package, Truck, Wallet, ShoppingBag, Plus, TrendingUp, Clock3, RefreshCw } from 'lucide-react';
 import Topbar from '../components/Topbar';
 import { fetchMyMerchant, fetchDeliveries, fetchWallet, fetchMyOrders, updateMerchantTimings, ApiMerchant, ApiDelivery } from '../lib/api/merchant';
 import { ApiError, api } from '../lib/api/client';
@@ -130,6 +130,29 @@ export default function OverviewPage() {
     };
     reader.readAsDataURL(file);
   };
+
+  if (!loading && (merchant as any)?.status === 'PENDING') {
+    return (
+      <div className="min-h-[calc(100vh-5rem)] bg-[#f7f8f8] px-5 py-10 flex items-center justify-center">
+        <section className="w-full max-w-md rounded-3xl border border-amber-100 bg-white p-7 text-center shadow-sm">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+            <Clock3 size={32} />
+          </div>
+          <p className="text-[11px] font-extrabold tracking-[.2em] text-amber-700">BUSINESS VERIFICATION</p>
+          <h1 className="mt-3 text-2xl font-black tracking-tight text-gray-900">We’re verifying your business</h1>
+          <p className="mt-3 text-sm leading-6 text-gray-600">Your registration has been received. Our team is reviewing your business details and certificate. Verification usually takes <strong className="text-gray-900">24–48 hours</strong>.</p>
+          <div className="mt-5 rounded-2xl bg-amber-50 px-4 py-3 text-left">
+            <p className="text-xs font-bold text-amber-900">What happens next?</p>
+            <p className="mt-1 text-xs leading-5 text-amber-800">We’ll notify you when your business is approved or if we need any more information. Your shop will become available to customers after approval.</p>
+          </div>
+          <button onClick={() => window.location.reload()} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#00a082] px-4 py-3 text-sm font-bold text-white hover:bg-[#087d68]">
+            <RefreshCw size={16} /> Refresh verification status
+          </button>
+          <p className="mt-4 text-xs text-gray-400">Zana Business · Thank you for your patience</p>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div>
