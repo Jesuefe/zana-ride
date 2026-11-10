@@ -6,6 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { EmailService } from '../email/email.service';
+import { StorageService } from '../deliveries/storage.service';
 
 type OtpEntry = { code: string; expiresAt: number };
 
@@ -48,6 +49,7 @@ export class AuthService {
     private config: ConfigService,
     private redis: RedisService,
     private emailService: EmailService,
+    private storage: StorageService,
   ) {}
 
   async requestOtp(phone: string, email?: string) {
@@ -346,6 +348,7 @@ export class AuthService {
   async registerMerchantPublic(data: {
     email: string; password: string; businessName: string; category: string; phone: string;
     contactName?: string; branch?: string; whatsappPhone?: string; businessAddress?: string;
+    businessLat?: number; businessLng?: number; locationPhotoBase64?: string;
   }) {
     const email = data.email?.trim().toLowerCase();
     const phone = data.phone?.trim();
@@ -355,6 +358,10 @@ export class AuthService {
     if (!businessName || businessName.length < 2 || businessName.length > 120) throw new BadRequestException('Business name must be between 2 and 120 characters.');
     if (!data.password || data.password.length < 8) throw new BadRequestException('Password must be at least 8 characters.');
     if (!['FOOD', 'GIFTS', 'GOODS'].includes(data.category)) throw new BadRequestException('Choose a valid business category.');
+    if (!Number.isFinite(data.businessLat) || !Number.isFinite(data.businessLng) || data.businessLat! < -90 || data.businessLat! > 90 || data.businessLng! < -180 || data.businessLng! > 180) throw new BadRequestException('Select the exact business location on the map.');
+    if (!data.locationPhotoBase64 || data.locationPhotoBase64.length > 7_000_000) throw new BadRequestException('Upload a clear business premises photo (maximum 5 MB).');
+    const locationPhotoUrl = await this.storage.uploadImage(data.locationPhotoBase64, 'merchant-locations');
+    if (!locationPhotoUrl) throw new BadRequestException('Business photo upload is unavailable. Please contact Zana support.');
 
     const [existingPhone, existingEmail] = await Promise.all([
       this.prisma.user.findUnique({ where: { phone } }),
@@ -378,6 +385,9 @@ export class AuthService {
           branch: data.branch?.trim() || undefined,
           whatsappPhone: data.whatsappPhone?.trim() || phone,
           businessAddress: data.businessAddress?.trim() || undefined,
+          businessLat: data.businessLat,
+          businessLng: data.businessLng,
+          coverUrl: locationPhotoUrl,
           status: 'PENDING' as any,
         },
       });
