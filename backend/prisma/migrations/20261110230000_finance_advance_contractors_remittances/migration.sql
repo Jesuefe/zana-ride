@@ -54,3 +54,5 @@ CREATE TABLE "StatutoryRemittance" (
 );
 CREATE UNIQUE INDEX "StatutoryRemittance_period_obligationType_key" ON "StatutoryRemittance"("period","obligationType");
 CREATE INDEX "StatutoryRemittance_status_dueDate_idx" ON "StatutoryRemittance"("status","dueDate");
+
+ALTER TABLE "StatutoryRemittance" ADD COLUMN "accountantVerifiedBy" TEXT, ADD COLUMN "accountantVerifiedAt" TIMESTAMP(3), ADD COLUMN "accountantVerificationNote" TEXT;
