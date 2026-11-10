@@ -38,6 +38,7 @@ const SENIOR_NAV = [
   { label: 'Reconciliation', href: '/dashboard/financial/reconciliation', icon: Activity, group: 'Finance & system' },
   { label: 'Expenses', href: '/dashboard/expenses', icon: DollarSign, group: 'Finance & system' },
   { label: 'Staff & Payroll', href: '/dashboard/staff', icon: Users, group: 'Finance & system' },
+  { label: 'Finance Controls', href: '/dashboard/finance-controls', icon: ClipboardList, group: 'Finance & system' },
   { label: 'Security', href: '/dashboard/security', icon: ShieldCheck, group: 'Finance & system' },
   { label: 'System Health', href: '/dashboard/system-health', icon: Activity, group: 'Finance & system' },
   { label: 'Test Lab', href: '/dashboard/test-locations', icon: Smartphone, group: 'Finance & system' },
@@ -46,7 +47,7 @@ const SENIOR_NAV = [
   { label: 'Settings', href: '/dashboard/settings', icon: Settings, group: 'Finance & system' },
 ];
 
-const FINANCE_NAV = SENIOR_NAV.filter(item => ['Financial', 'Zana Impact Funds', 'Reconciliation', 'Expenses'].includes(item.label));
+const FINANCE_NAV = SENIOR_NAV.filter(item => ['Financial', 'Zana Impact Funds', 'Reconciliation', 'Expenses', 'Finance Controls'].includes(item.label));
 
 const WORKER_NAV = [
   { label: 'Pending Drivers', href: '/dashboard/drivers', icon: Car, group: 'Work queue' },
@@ -80,10 +81,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           const accessRole = me?.accessRole || 'OPERATIONS';
           setStaffAccessRole(accessRole);
           if (accessRole === 'FINANCE') {
-            const financePaths = ['/dashboard/financial', '/dashboard/impact-funds', '/dashboard/expenses'];
+            const financePaths = ['/dashboard/financial', '/dashboard/impact-funds', '/dashboard/expenses', '/dashboard/finance-controls'];
             if (pathname === '/dashboard' || !financePaths.some(path => pathname === path || pathname.startsWith(path + '/'))) router.replace('/dashboard/financial');
           } else {
-            const adminOnly = ['/dashboard/impact-funds', '/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/test-accounts', '/dashboard/invites', '/dashboard/service-zones'];
+            const adminOnly = ['/dashboard/impact-funds', '/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/finance-controls', '/dashboard/test-locations', '/dashboard/test-accounts', '/dashboard/invites', '/dashboard/service-zones'];
             if (adminOnly.some(path => pathname === path || pathname.startsWith(path + '/'))) router.replace('/dashboard');
           }
         }).catch(() => router.replace('/dashboard'));
@@ -171,3 +172,5 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     </div>
   );
 }
+
+[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
