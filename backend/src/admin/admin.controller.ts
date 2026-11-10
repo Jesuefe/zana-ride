@@ -176,13 +176,25 @@ export class AdminController {
     if (from) { const date = new Date(from); if (!Number.isNaN(date.getTime())) where.createdAt = { ...(where.createdAt ?? {}), gte: date }; }
     if (to) { const date = new Date(to); if (!Number.isNaN(date.getTime())) where.createdAt = { ...(where.createdAt ?? {}), lte: date }; }
     if (sourceType && ['RIDE', 'DELIVERY', 'FOOD_ORDER', 'SHOPPING_ORDER'].includes(sourceType)) where.sourceType = sourceType;
-    const [config, entries, allRows] = await Promise.all([
-      this.prisma.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} }),
+    const config = await this.prisma.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} });
+    const [entries, allRows, rideDeliveryCommission, foodCommission, shoppingRows] = await Promise.all([
       this.prisma.impactFundEntry.findMany({ where, orderBy: { createdAt: 'desc' }, take: 2000 }),
-      this.prisma.impactFundEntry.findMany({ select: { contributionAmount: true, createdAt: true, eventType: true } }),
+      this.prisma.impactFundEntry.findMany({ select: { contributionAmount: true, platformCommission: true, createdAt: true, eventType: true } }),
+      this.prisma.commission.aggregate({ where: { createdAt: { gte: config.createdAt } }, _sum: { amount: true } }),
+      this.prisma.merchantSettlement.aggregate({ where: { createdAt: { gte: config.createdAt } }, _sum: { commissionAmount: true } }),
+      this.prisma.agentSettlement.findMany({ where: { createdAt: { gte: config.createdAt } }, select: { zanaEarning: true } }),
     ]);
     const currentBalance = allRows.reduce((sum, row) => sum + row.contributionAmount, 0);
     const allAccruals = allRows.filter(row => row.eventType === 'ACCRUAL');
+    const sourceCommissionTotal = (rideDeliveryCommission._sum.amount ?? 0) + (foodCommission._sum.commissionAmount ?? 0) + shoppingRows.reduce((sum, row) => sum + Math.max(0, row.zanaEarning), 0);
+    const ledgerCommissionTotal = allAccruals.reduce((sum, row) => sum + row.platformCommission, 0);
+    const reconciliation = {
+      sourceCommissionTotal,
+      ledgerCommissionTotal,
+      difference: sourceCommissionTotal - ledgerCommissionTotal,
+      status: sourceCommissionTotal === ledgerCommissionTotal ? 'RECONCILED' : 'REVIEW_REQUIRED',
+      since: config.createdAt,
+    };
     const lifetimeContributions = allAccruals.reduce((sum, row) => sum + row.contributionAmount, 0);
     const monthKey = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Kigali', year: 'numeric', month: '2-digit' }).format(date);
     const monthMap = new Map<string, { month: string; contributions: number; transactions: number }>();
@@ -201,6 +213,7 @@ export class AdminController {
       thisMonthContributions: monthMap.get(thisMonth)?.contributions ?? 0,
       thisMonthTransactions: monthMap.get(thisMonth)?.transactions ?? 0,
       lifetimeTransactions: allAccruals.length,
+      reconciliation,
       monthly: [...monthMap.values()].sort((a, b) => b.month.localeCompare(a.month)),
       entries,
     };
