@@ -54,5 +54,3 @@ CREATE TABLE "StatutoryRemittance" (
 );
 CREATE UNIQUE INDEX "StatutoryRemittance_period_obligationType_key" ON "StatutoryRemittance"("period","obligationType");
 CREATE INDEX "StatutoryRemittance_status_dueDate_idx" ON "StatutoryRemittance"("status","dueDate");
-
-[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
