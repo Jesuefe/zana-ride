@@ -158,6 +158,17 @@ export class AdminController {
   @Get('financial')
   financial() { return this.financialService.getFinancialSnapshot(); }
 
+  @Roles('ADMIN')
+  @Get('financial/monthly-profit')
+  monthlyProfit(@Query('month') month: string) { return this.financialService.getMonthlyProfitability(month); }
+
+  @Roles('ADMIN')
+  @Post('financial/monthly-profit/close')
+  closeMonthlyProfit(@CurrentUser() user: JwtPayload, @Body() body: { month: string; confirm?: boolean }) {
+    if (body.confirm !== true) throw new BadRequestException('Explicit confirmation is required to close a financial month.');
+    return this.financialService.closeMonthlyProfit(body.month, user.sub);
+  }
+
   // Driver settlement monitor — reads the same existing ledger, not a
   // separate financial system.
   @Roles('ADMIN')
@@ -175,31 +186,33 @@ export class AdminController {
     const where: any = {};
     if (from) { const date = new Date(from); if (!Number.isNaN(date.getTime())) where.createdAt = { ...(where.createdAt ?? {}), gte: date }; }
     if (to) { const date = new Date(to); if (!Number.isNaN(date.getTime())) { date.setHours(23, 59, 59, 999); where.createdAt = { ...(where.createdAt ?? {}), lte: date }; } }
-    if (sourceType && ['RIDE', 'DELIVERY', 'FOOD_ORDER', 'SHOPPING_ORDER'].includes(sourceType)) where.sourceType = sourceType;
+    if (sourceType && ['RIDE', 'DELIVERY', 'FOOD_ORDER', 'SHOPPING_ORDER', 'NET_PROFIT'].includes(sourceType)) where.sourceType = sourceType;
     const config = await this.prisma.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} });
     const [entries, allRows, rideDeliveryCommission, foodCommission, shoppingRows] = await Promise.all([
       this.prisma.impactFundEntry.findMany({ where, orderBy: { createdAt: 'desc' }, take: 2000 }),
-      this.prisma.impactFundEntry.findMany({ select: { contributionAmount: true, platformCommission: true, createdAt: true, eventType: true } }),
-      this.prisma.commission.aggregate({ where: { createdAt: { gte: config.createdAt } }, _sum: { amount: true } }),
-      this.prisma.merchantSettlement.aggregate({ where: { createdAt: { gte: config.createdAt } }, _sum: { commissionAmount: true } }),
-      this.prisma.agentSettlement.findMany({ where: { createdAt: { gte: config.createdAt } }, select: { zanaEarning: true } }),
+      this.prisma.impactFundEntry.findMany({ select: { sourceType: true, sourceId: true, contributionAmount: true, platformCommission: true, createdAt: true, eventType: true } }),
+      this.prisma.commission.aggregate({ where: { createdAt: { gte: config.createdAt, lt: config.profitBasedFrom } }, _sum: { amount: true } }),
+      this.prisma.merchantSettlement.aggregate({ where: { createdAt: { gte: config.createdAt, lt: config.profitBasedFrom }, status: { not: 'CANCELLED' } }, _sum: { commissionAmount: true } }),
+      this.prisma.agentSettlement.findMany({ where: { createdAt: { gte: config.createdAt, lt: config.profitBasedFrom }, status: { not: 'CANCELLED' } }, select: { zanaEarning: true } }),
     ]);
     const currentBalance = allRows.reduce((sum, row) => sum + row.contributionAmount, 0);
     const allAccruals = allRows.filter(row => row.eventType === 'ACCRUAL');
+    const commissionAccruals = allAccruals.filter(row => row.sourceType !== 'NET_PROFIT' && row.createdAt < config.profitBasedFrom);
     const sourceCommissionTotal = (rideDeliveryCommission._sum.amount ?? 0) + (foodCommission._sum.commissionAmount ?? 0) + shoppingRows.reduce((sum, row) => sum + Math.max(0, row.zanaEarning), 0);
-    const ledgerCommissionTotal = allAccruals.reduce((sum, row) => sum + row.platformCommission, 0);
+    const ledgerCommissionTotal = commissionAccruals.reduce((sum, row) => sum + row.platformCommission, 0);
     const reconciliation = {
       sourceCommissionTotal,
       ledgerCommissionTotal,
       difference: sourceCommissionTotal - ledgerCommissionTotal,
       status: sourceCommissionTotal === ledgerCommissionTotal ? 'RECONCILED' : 'REVIEW_REQUIRED',
       since: config.createdAt,
+      legacyCommissionLedgerThrough: config.profitBasedFrom,
     };
     const lifetimeContributions = allAccruals.reduce((sum, row) => sum + row.contributionAmount, 0);
     const monthKey = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Kigali', year: 'numeric', month: '2-digit' }).format(date);
     const monthMap = new Map<string, { month: string; contributions: number; transactions: number }>();
     for (const row of allRows) {
-      const key = monthKey(row.createdAt);
+      const key = row.sourceType === 'NET_PROFIT' && /^\d{4}-(0[1-9]|1[0-2])$/.test(row.sourceId) ? row.sourceId : monthKey(row.createdAt);
       const item = monthMap.get(key) ?? { month: key, contributions: 0, transactions: 0 };
       item.contributions += row.contributionAmount;
       if (row.eventType === 'ACCRUAL') item.transactions += 1;
@@ -223,7 +236,7 @@ export class AdminController {
   @Patch('impact-funds/rate')
   async updateImpactFundsRate(@CurrentUser() user: JwtPayload, @Body() body: { ratePercent?: number; confirm?: boolean }) {
     if (body.confirm !== true) throw new BadRequestException('Explicit confirmation is required to change the Impact Funds rate.');
-    if (!Number.isFinite(body.ratePercent) || body.ratePercent! < 0 || body.ratePercent! > 100) throw new BadRequestException('Rate must be between 0 and 100.');
+    if (body.ratePercent !== 3) throw new BadRequestException('The monthly ZIF allocation is fixed at 3% of positive net profit.');
     return this.prisma.$transaction(async tx => {
       const before = await tx.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} });
       const after = await tx.impactFundConfig.update({ where: { id: 'default' }, data: { ratePercent: body.ratePercent! } });
@@ -281,27 +294,35 @@ export class AdminController {
   // Expenses
   @Roles('ADMIN')
   @Get('expenses')
-  getExpenses() { return this.financialService.getExpenses(); }
+  getExpenses(@Query('from') from?: string, @Query('to') to?: string) { return this.financialService.getExpenses(from, to); }
 
   @Roles('ADMIN')
   @Post('expenses')
-  createExpense(@Body() body: { title: string; amount: number; category: string; description?: string }) {
-    return this.financialService.createExpense(body);
+  createExpense(@CurrentUser() admin: JwtPayload, @Body() body: { title: string; amount: number; category: string; description?: string; vendor?: string; invoiceNumber?: string; dueDate?: string; date?: string; paymentReference?: string; amountPaid?: number }) {
+    return this.financialService.createExpense(body, admin.sub);
   }
 
   @Roles('ADMIN')
-  @Delete('expenses/:id')
-  deleteExpense(@Param('id') id: string) { return this.financialService.deleteExpense(id); }
+  @Post('expenses/:id/approve')
+  approveExpense(@CurrentUser() admin: JwtPayload, @Param('id') id: string) { return this.financialService.approveExpense(id, admin.sub); }
+
+  @Roles('ADMIN')
+  @Patch('expenses/:id/payment')
+  updateExpensePayment(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { amountPaid: number; paymentReference?: string }) { return this.financialService.updateExpensePayment(id, Number(body.amountPaid), body.paymentReference, admin.sub); }
+
+  @Roles('ADMIN')
+  @Post('expenses/:id/void')
+  voidExpense(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { reason: string }) { return this.financialService.voidExpense(id, body.reason, admin.sub); }
 
   // Staff
   @Roles('ADMIN')
   @Get('staff')
-  getStaff() { return this.financialService.getStaff(); }
+  getStaff(@Query('month') month?: string) { return this.financialService.getStaff(month); }
 
   @Roles('ADMIN')
   @Post('staff')
-  createStaff(@Body() body: { name: string; role: string; accessRole?: string; phone: string; email?: string; password: string; salary: number }) {
-    return this.financialService.createStaff(body);
+  createStaff(@CurrentUser() admin: JwtPayload, @Body() body: { name: string; role: string; accessRole?: string; phone: string; email?: string; password: string; salary: number; department?: string; employmentType?: string }) {
+    return this.financialService.createStaff(body, admin.sub);
   }
 
   @Roles('ADMIN')
@@ -328,6 +349,38 @@ export class AdminController {
     return this.adminService.getAuditLog(Number(limit) || 100, action, entityType);
   }
 
+  @Roles('ADMIN')
+  @Get('payroll/run')
+  getPayrollRun(@Query('month') month: string) { return this.financialService.getPayrollRun(month); }
+
+  @Roles('ADMIN')
+  @Post('payroll/run')
+  createPayrollRun(@CurrentUser() admin: JwtPayload, @Body() body: { month: string; adjustments?: any[] }) {
+    return this.financialService.createPayrollRun(body.month, body.adjustments || [], admin.sub);
+  }
+
+  @Roles('ADMIN')
+  @Post('payroll/run/:id/discard-draft')
+  discardDraftPayrollRun(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { reason: string }) {
+    return this.financialService.discardDraftPayrollRun(id, body.reason, admin.sub);
+  }
+
+  @Roles('ADMIN')
+  @Post('payroll/run/:id/approve')
+  approvePayrollRun(@CurrentUser() admin: JwtPayload, @Param('id') id: string) {
+    return this.financialService.approvePayrollRun(id, admin.sub);
+  }
+
+  @Roles('ADMIN')
+  @Post('payroll/lines/:id/payment')
+  recordPayrollLinePayment(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { amount: number; paymentReference: string; paymentMethod: string }) {
+    return this.financialService.recordPayrollPayment(id, Number(body.amount), body.paymentReference, body.paymentMethod, admin.sub);
+  }
+
+  @Roles('ADMIN')
+  @Get('payroll/preview')
+  payrollPreview(@Query('month') month: string) { return this.financialService.getPayrollPreview(month); }
+
   // Salary payments
   @Roles('ADMIN')
   @Get('salary-payments')
@@ -337,8 +390,8 @@ export class AdminController {
 
   @Roles('ADMIN')
   @Post('salary-payments')
-  recordPayment(@Body() body: { staffMemberId: string; month: string; amount?: number; note?: string }) {
-    return this.financialService.recordSalaryPayment(body.staffMemberId, body.month, body.amount, body.note);
+  recordPayment(@CurrentUser() admin: JwtPayload, @Body() body: { staffMemberId: string; month: string; amount?: number; note?: string; paymentReference?: string; paymentMethod?: string }) {
+    return this.financialService.recordSalaryPayment(body.staffMemberId, body.month, body.amount, body.note, body.paymentReference, body.paymentMethod, admin.sub);
   }
 
   // Users
