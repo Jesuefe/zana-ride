@@ -44,6 +44,17 @@ export async function fetchWallet() {
   }>('/wallet/me');
 }
 
+export type MerchantPayoutAccount = { configured: boolean; locked: boolean; provider: string | null; phone: string | null; verifiedAt: string | null };
+export async function fetchMerchantPayoutAccount() {
+  return api.get<MerchantPayoutAccount>('/merchant/wallet/payout-account');
+}
+export async function requestMerchantPayoutOtp(phone: string, provider: string) {
+  return api.post<{ sent: boolean; expiresInSeconds: number }>('/merchant/wallet/payout-account/request-otp', { phone, provider });
+}
+export async function verifyMerchantPayoutOtp(code: string) {
+  return api.post<MerchantPayoutAccount>('/merchant/wallet/payout-account/verify-otp', { code });
+}
+
 export async function withdrawWallet(amount: number) {
   return api.post<{ ok?: boolean; status?: string; reference?: string }>('/wallet/withdraw', { amount });
 }
