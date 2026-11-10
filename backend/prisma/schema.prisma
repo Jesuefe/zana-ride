@@ -168,6 +168,10 @@ model Merchant {
   category        MerchantCategory @default(GOODS)
   status          MerchantStatus   @default(PENDING)
   whatsappPhone   String?
+  payoutPhone     String?
+  payoutProvider  String?
+  payoutVerifiedAt DateTime?
+  payoutLockedAt  DateTime?
   businessLat     Float?
   businessLng     Float?
   businessAddress String?
