@@ -6,6 +6,7 @@ import { AdminService } from './admin.service';
 import { CommissionService } from './commission.service';
 import { FinancialService } from './financial.service';
 import { ImpactFundDisbursementService } from './impact-fund-disbursement.service';
+import { FinanceExtensionsService } from './finance-extensions.service';
 import { AdminAuditInterceptor } from './admin-audit.interceptor';
 import { createCipheriv, createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -23,6 +24,7 @@ export class AdminController {
     private commissionService: CommissionService,
     private financialService: FinancialService,
     private impactFundDisbursements: ImpactFundDisbursementService,
+    private financeExtensions: FinanceExtensionsService,
     private prisma: PrismaService,
     private paypackService: PaypackService,
     private zanaAiService: ZanaAiService,
@@ -430,6 +432,65 @@ export class AdminController {
     return this.financialService.recordSalaryPayment(body.staffMemberId, body.month, body.amount, body.note, body.paymentReference, body.paymentMethod, admin.sub);
   }
 
+  // Salary advances: issue/cancel is administrator-only; payroll recovers approved schedules automatically.
+  @Roles('ADMIN', 'STAFF')
+  @Get('payroll/advances')
+  listSalaryAdvances(@Query('staffMemberId') staffMemberId?: string) { return this.financeExtensions.listAdvances(staffMemberId); }
+
+  @Roles('ADMIN')
+  @Post('payroll/advances')
+  issueSalaryAdvance(@CurrentUser() admin: JwtPayload, @Body() body: any) { return this.financeExtensions.issueAdvance(admin.sub, body); }
+
+  @Roles('ADMIN')
+  @Post('payroll/advances/:id/approve')
+  approveSalaryAdvance(@CurrentUser() admin: JwtPayload, @Param('id') id: string) { return this.financeExtensions.approveAdvance(admin.sub, id); }
+
+  @Roles('ADMIN')
+  @Post('payroll/advances/:id/payment')
+  paySalaryAdvance(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: any) { return this.financeExtensions.payAdvance(admin.sub, id, body); }
+
+  @Roles('ADMIN')
+  @Post('payroll/advances/:id/cancel')
+  cancelSalaryAdvance(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { reason: string }) { return this.financeExtensions.cancelAdvance(admin.sub, id, body.reason); }
+
+  // Contractor invoices: withholding rate is explicitly entered and must be verified by Finance/accountant.
+  @Roles('ADMIN', 'STAFF')
+  @Get('contractor-invoices')
+  listContractorInvoices(@Query('status') status?: string) { return this.financeExtensions.listContractorInvoices(status); }
+
+  @Roles('ADMIN')
+  @Post('contractor-invoices')
+  createContractorInvoice(@CurrentUser() admin: JwtPayload, @Body() body: any) { return this.financeExtensions.createContractorInvoice(admin.sub, body); }
+
+  @Roles('ADMIN')
+  @Post('contractor-invoices/:id/approve')
+  approveContractorInvoice(@CurrentUser() admin: JwtPayload, @Param('id') id: string) { return this.financeExtensions.reviewContractorInvoice(admin.sub, id, true); }
+
+  @Roles('ADMIN')
+  @Post('contractor-invoices/:id/reject')
+  rejectContractorInvoice(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { reason: string }) { return this.financeExtensions.reviewContractorInvoice(admin.sub, id, false, body.reason); }
+
+  @Roles('ADMIN')
+  @Post('contractor-invoices/:id/payment')
+  payContractorInvoice(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: any) { return this.financeExtensions.payContractorInvoice(admin.sub, id, body); }
+
+  // Statutory remittances are calculated from approved payroll snapshots, then approved and marked paid separately.
+  @Roles('ADMIN', 'STAFF')
+  @Get('statutory-remittances')
+  listStatutoryRemittances(@Query('period') period?: string) { return this.financeExtensions.listRemittances(period); }
+
+  @Roles('ADMIN')
+  @Post('statutory-remittances/generate')
+  generateStatutoryRemittances(@CurrentUser() admin: JwtPayload, @Body() body: { period: string }) { return this.financeExtensions.generatePayrollRemittances(admin.sub, body.period); }
+
+  @Roles('ADMIN')
+  @Post('statutory-remittances/:id/approve')
+  approveStatutoryRemittance(@CurrentUser() admin: JwtPayload, @Param('id') id: string) { return this.financeExtensions.approveRemittance(admin.sub, id); }
+
+  @Roles('ADMIN')
+  @Post('statutory-remittances/:id/payment')
+  payStatutoryRemittance(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: any) { return this.financeExtensions.payRemittance(admin.sub, id, body); }
+
   // Users
   @Get('users')
   getUsers(@Query('role') role?: UserRole, @Query('status') status?: UserStatus, @Query('search') search?: string) {
@@ -786,3 +847,5 @@ export class AdminController {
   }
 
 }
+
+[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
