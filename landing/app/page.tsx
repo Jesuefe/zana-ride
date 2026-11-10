@@ -167,6 +167,21 @@ export default function Landing() {
           <a className="btn btn--ghost" href="#ride">
             See what it does
           </a>
+          <a
+            className="play-badge-link"
+            href="https://play.google.com/store/apps/details?id=com.showminetventertainment.showminetvapptv"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Get Zana Ride on Google Play"
+          >
+            <img
+              className="play-badge"
+              src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+              alt="Get it on Google Play"
+              width={646}
+              height={250}
+            />
+          </a>
         </div>
 
         <div className="scroll-hint">
@@ -226,6 +241,21 @@ export default function Landing() {
             </a>
             <a className="btn btn--ghost" href={MERCHANT}>
               Sell on Zana
+            </a>
+            <a
+              className="play-badge-link play-badge-link--finish"
+              href="https://play.google.com/store/apps/details?id=com.showminetventertainment.showminetvapptv"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Download Zana Ride on Google Play"
+            >
+              <img
+                className="play-badge"
+                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                alt="Get it on Google Play"
+                width={646}
+                height={250}
+              />
             </a>
           </div>
         </div>
