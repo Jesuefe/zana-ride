@@ -4,6 +4,7 @@ import { AdminService } from './admin.service';
 import { CommissionService } from './commission.service';
 import { FinancialService } from './financial.service';
 import { ImpactFundDisbursementService } from './impact-fund-disbursement.service';
+import { FinanceExtensionsService } from './finance-extensions.service';
 import { AdminAuditInterceptor } from './admin-audit.interceptor';
 import { StorageService } from '../deliveries/storage.service';
 import { EmailModule } from '../email/email.module';
@@ -15,7 +16,9 @@ import { ZanaAiModule } from '../zana-ai/zana-ai.module';
 @Module({
   imports: [EmailModule, SmsModule, DriversModule, ZanaAiModule],
   controllers: [AdminController],
-  providers: [AdminService, CommissionService, FinancialService, ImpactFundDisbursementService, AdminAuditInterceptor, StorageService, PaypackService],
+  providers: [AdminService, CommissionService, FinancialService, ImpactFundDisbursementService, FinanceExtensionsService, AdminAuditInterceptor, StorageService, PaypackService],
   exports: [CommissionService],
 })
 export class AdminModule {}
+
+[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
