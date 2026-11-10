@@ -428,24 +428,26 @@ model Expense {
 }
 
 model StaffMember {
-  id             String          @id @default(uuid())
-  userId         String?         @unique
-  name           String
-  role           String
-  accessRole     String          @default("OPERATIONS")
-  phone          String?
-  email          String?
-  salary         Int
-  department     String?
-  employmentType String          @default("EMPLOYEE")
-  active         Boolean         @default(true)
-  startDate      DateTime        @default(now())
-  endDate        DateTime?
-  createdAt      DateTime        @default(now())
-  payments       SalaryPayment[]
-  salaryHistory  StaffSalaryHistory[]
-  payrollLines   PayrollLine[]
-  user           User?           @relation(fields: [userId], references: [id])
+  id                 String               @id @default(uuid())
+  userId             String?              @unique
+  name               String
+  role               String
+  accessRole         String               @default("OPERATIONS")
+  phone              String?
+  email              String?
+  salary             Int
+  department         String?
+  employmentType     String               @default("EMPLOYEE")
+  active             Boolean              @default(true)
+  startDate          DateTime             @default(now())
+  endDate            DateTime?
+  createdAt          DateTime             @default(now())
+  payments           SalaryPayment[]
+  salaryHistory      StaffSalaryHistory[]
+  payrollLines       PayrollLine[]
+  salaryAdvances     SalaryAdvance[]
+  contractorInvoices ContractorInvoice[]
+  user               User?                @relation(fields: [userId], references: [id])
 }
 
 model StaffSalaryHistory {
@@ -460,17 +462,17 @@ model StaffSalaryHistory {
 }
 
 model SalaryPayment {
-  id               String      @id @default(uuid())
+  id               String       @id @default(uuid())
   staffMemberId    String
   amount           Int
   month            String
-  paid             Boolean     @default(false)
+  paid             Boolean      @default(false)
   paidAt           DateTime?
   paymentReference String?
   paymentMethod    String?
   note             String?
-  createdAt        DateTime    @default(now())
-  staff            StaffMember @relation(fields: [staffMemberId], references: [id])
+  createdAt        DateTime     @default(now())
+  staff            StaffMember  @relation(fields: [staffMemberId], references: [id])
   payrollLineId    String?
   payrollLine      PayrollLine? @relation(fields: [payrollLineId], references: [id])
 
@@ -479,60 +481,60 @@ model SalaryPayment {
   @@index([payrollLineId])
 }
 
-
 model PayrollRun {
-  id                       String        @id @default(uuid())
-  month                    String        @unique
-  status                   String        @default("DRAFT")
-  currency                 String        @default("RWF")
-  totalGross               Int           @default(0)
-  totalNetPay              Int           @default(0)
-  totalEmployeeDeductions  Int           @default(0)
-  totalEmployerStatutory   Int           @default(0)
-  totalEmployerCost        Int           @default(0)
-  createdBy                String?
-  approvedBy               String?
-  approvedAt               DateTime?
-  paidAt                   DateTime?
-  createdAt                DateTime      @default(now())
-  updatedAt                DateTime      @updatedAt
-  lines                    PayrollLine[]
+  id                      String        @id @default(uuid())
+  month                   String        @unique
+  status                  String        @default("DRAFT")
+  currency                String        @default("RWF")
+  totalGross              Int           @default(0)
+  totalNetPay             Int           @default(0)
+  totalEmployeeDeductions Int           @default(0)
+  totalEmployerStatutory  Int           @default(0)
+  totalEmployerCost       Int           @default(0)
+  createdBy               String?
+  approvedBy              String?
+  approvedAt              DateTime?
+  paidAt                  DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  lines                   PayrollLine[]
 
   @@index([status, month])
 }
 
 model PayrollLine {
-  id                       String        @id @default(uuid())
-  payrollRunId             String
-  staffMemberId            String
-  baseSalary               Int
-  taxableAllowances        Int           @default(0)
-  nonTaxableAllowances     Int           @default(0)
-  pensionableAllowances    Int           @default(0)
-  bonus                    Int           @default(0)
-  otherDeductions          Int           @default(0)
-  advanceDeduction         Int           @default(0)
-  taxableGross             Int
-  pensionableGross         Int
-  paye                     Int
-  employeePension          Int
-  employerPension          Int
-  employerOccupational     Int
-  employeeMaternity        Int
-  employerMaternity        Int
-  cbhi                     Int
-  employeeDeductions       Int
-  netPay                   Int
-  employerStatutoryCost    Int
-  totalEmployerCost        Int
-  paidAmount               Int           @default(0)
-  status                   String        @default("AWAITING_APPROVAL")
-  payslipSnapshot          String
-  createdAt                DateTime      @default(now())
-  updatedAt                DateTime      @updatedAt
-  payrollRun               PayrollRun    @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
-  staff                    StaffMember   @relation(fields: [staffMemberId], references: [id])
-  payments                 SalaryPayment[]
+  id                    String                  @id @default(uuid())
+  payrollRunId          String
+  staffMemberId         String
+  baseSalary            Int
+  taxableAllowances     Int                     @default(0)
+  nonTaxableAllowances  Int                     @default(0)
+  pensionableAllowances Int                     @default(0)
+  bonus                 Int                     @default(0)
+  otherDeductions       Int                     @default(0)
+  advanceDeduction      Int                     @default(0)
+  taxableGross          Int
+  pensionableGross      Int
+  paye                  Int
+  employeePension       Int
+  employerPension       Int
+  employerOccupational  Int
+  employeeMaternity     Int
+  employerMaternity     Int
+  cbhi                  Int
+  employeeDeductions    Int
+  netPay                Int
+  employerStatutoryCost Int
+  totalEmployerCost     Int
+  paidAmount            Int                     @default(0)
+  status                String                  @default("AWAITING_APPROVAL")
+  payslipSnapshot       String
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  payrollRun            PayrollRun              @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  staff                 StaffMember             @relation(fields: [staffMemberId], references: [id])
+  payments              SalaryPayment[]
+  advanceRecoveries     SalaryAdvanceRecovery[]
 
   @@unique([payrollRunId, staffMemberId])
   @@index([staffMemberId, payrollRunId])
@@ -996,172 +998,5 @@ model MerchantLead {
   @@index([businessName])
 }
 
-model ServiceZone {
-  id            String   @id
-  name          String
-  city          String
-  boundary      Json
-  serviceTypes  String[] @default(["ALL"])
-  nearbyZoneIds String[] @default([])
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  parentZoneId  String?
-  zoneLevel     String   @default("MINI")
 
-  @@index([parentZoneId])
-  @@index([city, zoneLevel])
-  @@index([city, active])
-  @@index([active])
-}
-
-model AgentPurchaseFund {
-  id               String    @id
-  orderId          String    @unique
-  agentId          String
-  agentUserId      String
-  authorizedAmount Int
-  withdrawnAmount  Int       @default(0)
-  actualSpend      Int?
-  remainingAmount  Int?
-  destinationPhone String
-  status           String    @default("AVAILABLE")
-  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
-  withdrawnAt      DateTime? @db.Timestamptz(6)
-  reconciledAt     DateTime? @db.Timestamptz(6)
-  updatedAt        DateTime  @default(now()) @db.Timestamptz(6)
-
-  @@index([agentId, status, createdAt], map: "AgentPurchaseFund_agent_status_idx")
-  @@index([orderId], map: "AgentPurchaseFund_order_idx")
-}
-
-enum UserRole {
-  CUSTOMER
-  DRIVER
-  ADMIN
-  STAFF
-  MERCHANT
-  AGENT
-}
-
-enum UserStatus {
-  ACTIVE
-  SUSPENDED
-  BANNED
-}
-
-enum DriverApprovalStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  SUSPENDED
-}
-
-enum DriverOnlineStatus {
-  OFFLINE
-  ONLINE
-  BUSY
-}
-
-enum ServiceType {
-  BIKE
-  ECONOMY
-  COMFORT
-}
-
-enum DriverMode {
-  RIDES
-  DELIVERIES
-  BOTH
-}
-
-enum MerchantCategory {
-  FOOD
-  GIFTS
-  GOODS
-}
-
-enum MerchantStatus {
-  PENDING
-  APPROVED
-  SUSPENDED
-  REJECTED
-}
-
-enum ProductStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  DISABLED
-}
-
-enum TripStatus {
-  REQUESTED
-  SEARCHING_DRIVER
-  DRIVER_ASSIGNED
-  DRIVER_EN_ROUTE
-  DRIVER_ARRIVED
-  RIDE_IN_PROGRESS
-  RIDE_COMPLETED
-  CUSTOMER_CANCELLED
-  DRIVER_CANCELLED
-  NO_DRIVER_FOUND
-}
-
-enum WalletTransactionStatus {
-  PENDING
-  COMPLETED
-  FAILED
-}
-
-enum DeliveryStatus {
-  REQUESTED
-  COURIER_ASSIGNED
-  PICKED_UP
-  DELIVERED
-  CANCELLED
-}
-
-enum PackageWeight {
-  UNDER_1KG
-  KG_1_TO_5
-  KG_5_TO_10
-  KG_10_TO_20
-  OVER_20KG
-}
-
-enum PaymentMethod {
-  CASH
-  WALLET
-  MOBILE_MONEY
-}
-
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  PREPARING
-  READY_FOR_PICKUP
-  OUT_FOR_DELIVERY
-  DELIVERED
-  CANCELLED
-}
-
-enum CallStatus {
-  INITIATING
-  RINGING
-  ACCEPTED
-  CONNECTING
-  CONNECTED
-  DECLINED
-  MISSED
-  CANCELLED
-  BUSY
-  FAILED
-  ENDED
-}
-
-enum ReviewTarget {
-  DELIVERY
-  MERCHANT
-  MARKET
-}
+[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
