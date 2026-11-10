@@ -33,5 +33,3 @@ describe('FinanceExtensionsService', () => {
     await expect(service.payContractorInvoice('admin-1', 'inv-1', { amount: 10000, paymentReference: 'TX-1234', paymentMethod: 'MOMO' })).rejects.toThrow('PAYMENT_EXCEEDS_NET_PAYABLE');
   });
 });
-
-[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
