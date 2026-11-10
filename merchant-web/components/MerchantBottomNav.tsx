@@ -1,9 +1,8 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Home, ShoppingBag, Truck, Wallet, UserRound } from 'lucide-react';
 import { useLang } from '../lib/LangContext';
-import { clearToken } from '../lib/api/client';
 
 const merchantItems = [
   { href: '/', label: 'Home', icon: Home },
