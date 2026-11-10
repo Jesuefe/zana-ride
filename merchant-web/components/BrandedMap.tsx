@@ -226,6 +226,17 @@ export default function BrandedMap({
     }
   }, [driverPosition?.lat, driverPosition?.lng, onRouteDeviation]);
 
+  // Keep a draggable business/pickup pin aligned when GPS or a form selection changes it.
+  useEffect(() => {
+    if (!origin || !mapRef.current) return;
+    const pos = { lat: origin.lat, lng: origin.lng };
+    const marker = originMarkerRef.current;
+    if (marker) {
+      try { marker.position = pos; } catch { marker.setPosition?.(pos); }
+    }
+    if (draggablePickup) mapRef.current.panTo(pos);
+  }, [origin?.lat, origin?.lng, draggablePickup]);
+
   // Nearby driver markers (search screen)
   useEffect(() => {
     const G = (window as any).google?.maps;
