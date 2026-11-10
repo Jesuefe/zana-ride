@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Loader2, Check, X } from 'lucide-react';
 import { useLang } from '../../lib/LangContext';
 import Topbar from '../../components/Topbar';
-import { fetchWallet, ApiWallet, withdrawWallet } from '../../lib/api/merchant';
+import { fetchWallet, ApiWallet, withdrawWallet, fetchMerchantPayoutAccount, requestMerchantPayoutOtp, verifyMerchantPayoutOtp, MerchantPayoutAccount } from '../../lib/api/merchant';
 
 export default function WalletPage() { const {t}=useLang();
   const [wallet, setWallet] = useState<ApiWallet | null>(null);
@@ -14,13 +14,21 @@ export default function WalletPage() { const {t}=useLang();
   const [withdrawing, setWithdrawing] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [payout, setPayout] = useState<MerchantPayoutAccount | null>(null);
+  const [payoutPhone, setPayoutPhone] = useState('');
+  const [payoutProvider, setPayoutProvider] = useState('MTN_MOMO');
+  const [payoutCode, setPayoutCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [payoutBusy, setPayoutBusy] = useState(false);
+  const [payoutMessage, setPayoutMessage] = useState('');
 
-  const load = () => fetchWallet().then(setWallet).catch(() => {}).finally(() => setLoading(false));
+  const load = () => { fetchWallet().then(setWallet).catch(() => {}).finally(() => setLoading(false)); fetchMerchantPayoutAccount().then(setPayout).catch(() => {}); };
   useEffect(() => { load(); const timer = window.setInterval(load, 15000); return () => window.clearInterval(timer); }, []);
 
   const handleWithdraw = async () => {
     const amt = Number(amount);
     if (!Number.isInteger(amt) || amt < 1000) { setError(t('Minimum withdrawal is 1,000 RWF')); return; }
+    if (!payout?.locked) { setError('Verify your payout account before withdrawing.'); return; }
     if (amt > (wallet?.balance ?? 0)) { setError(t('Insufficient balance')); return; }
     
     setWithdrawing(true); setError('');
@@ -41,8 +49,25 @@ export default function WalletPage() { const {t}=useLang();
         <div className="bg-zana-primary-dark text-white rounded-2xl p-6">
           <p className="text-white/60 text-sm">{t('Available balance')}</p>
           <p className="text-4xl font-black mt-1">{loading ? '…' : (wallet?.balance ?? 0).toLocaleString()} RWF</p>
-          <button disabled={loading || (wallet?.balance ?? 0) < 1000} onClick={() => { setError(''); setShowWithdraw(true); }} className="mt-4 flex items-center gap-2 bg-zana-secondary text-gray-900 font-bold text-sm px-5 py-2.5 rounded-xl"><ArrowUpRight size={16} /> Withdraw to MoMo</button>
+          <button disabled={loading || !payout?.locked || (wallet?.balance ?? 0) < 1000} onClick={() => { setError(''); setShowWithdraw(true); }} className="mt-4 flex items-center gap-2 bg-zana-secondary text-gray-900 font-bold text-sm px-5 py-2.5 rounded-xl"><ArrowUpRight size={16} /> Withdraw to MoMo</button>
         </div>
+        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div><h2 className="font-bold text-gray-900">Merchant payout account</h2><p className="text-xs text-gray-500 mt-1">Verify the mobile-money number that should receive withdrawals. This can be set only once.</p></div>
+          {payout?.locked ? (
+            <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4"><p className="text-sm font-bold text-emerald-800">Verified and permanently locked</p><p className="text-sm text-gray-700 mt-1">{payout.provider === 'MTN_MOMO' ? 'MTN MoMo' : 'Airtel Money'} · {payout.phone}</p><p className="text-xs text-gray-500 mt-1">For an exceptional change, contact Zana Support for review and fresh OTP verification.</p></div>
+          ) : (
+            <div className="space-y-3">
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Mobile-money provider</label><select value={payoutProvider} disabled={otpSent || payoutBusy} onChange={e => setPayoutProvider(e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm bg-white"><option value="MTN_MOMO">MTN MoMo</option><option value="AIRTEL_MONEY">Airtel Money</option></select></div>
+              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Payout phone number</label><input value={payoutPhone} disabled={otpSent || payoutBusy} onChange={e => setPayoutPhone(e.target.value)} placeholder="078 XXX XXXX" className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm" /></div>
+              {!otpSent ? <button disabled={payoutBusy || !payoutPhone.trim()} onClick={async () => { setPayoutBusy(true); setPayoutMessage(''); try { await requestMerchantPayoutOtp(payoutPhone, payoutProvider); setOtpSent(true); setPayoutMessage('Verification code sent to the payout number.'); } catch (e: any) { setPayoutMessage(e.message || 'Could not send verification code.'); } finally { setPayoutBusy(false); } }} className="w-full rounded-xl bg-zana-primary text-white font-bold py-3 disabled:opacity-50">{payoutBusy ? 'Sending…' : 'Send verification code'}</button> : <>
+                <div><label className="block text-xs font-semibold text-gray-600 mb-1">6-digit verification code</label><input value={payoutCode} onChange={e => setPayoutCode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" maxLength={6} placeholder="Enter OTP" className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm tracking-widest" /></div>
+                <button disabled={payoutBusy || payoutCode.length !== 6} onClick={async () => { setPayoutBusy(true); setPayoutMessage(''); try { const saved = await verifyMerchantPayoutOtp(payoutCode); setPayout(saved); setOtpSent(false); setPayoutCode(''); setPayoutMessage('Payout account verified and locked.'); } catch (e: any) { setPayoutMessage(e.message || 'Verification failed.'); } finally { setPayoutBusy(false); } }} className="w-full rounded-xl bg-zana-primary text-white font-bold py-3 disabled:opacity-50">{payoutBusy ? 'Verifying…' : 'Verify and lock payout account'}</button>
+              </>}
+              {payoutMessage && <p className="text-xs text-gray-600">{payoutMessage}</p>}
+              <p className="text-[11px] text-gray-400">A different number from your login number is allowed. Failed or expired codes do not use up your one-time setup.</p>
+            </div>
+          )}
+        </section>
         {success && <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2 text-green-800 text-sm"><Check size={15} /> {success}</div>}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100"><p className="font-bold text-gray-900">{t('Transaction History')}</p></div>
