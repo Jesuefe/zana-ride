@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { calculateImpactFundContribution } from './impact-funds.util';
 
 @Injectable()
 export class FinanceService {
@@ -37,6 +38,14 @@ export class FinanceService {
         const commission = Math.round(gross * rate / 100);
         const net = gross - commission;
         const settlement = await tx.merchantSettlement.create({ data: { orderId, merchantId: order.merchantId, grossAmount: gross, commissionRate: rate, commissionAmount: commission, merchantNet: net }});
+        const impactConfig = await tx.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} });
+        await tx.impactFundEntry.create({ data: {
+          sourceType: 'FOOD_ORDER', sourceId: orderId, eventType: 'ACCRUAL',
+          grossAmount: gross, platformCommission: commission,
+          contributionAmount: calculateImpactFundContribution(commission, impactConfig.ratePercent),
+          ratePercent: impactConfig.ratePercent, idempotencyKey: `ACCRUAL:FOOD_ORDER:${orderId}`,
+          description: 'Impact Funds allocation from recognized merchant-order commission',
+        }});
         if (order.merchant?.userId && net > 0) {
           const wallet = await tx.wallet.upsert({ where: { userId: order.merchant.userId }, create: { userId: order.merchant.userId }, update: {} });
           const updated = await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: net } }});
@@ -80,6 +89,14 @@ export class FinanceService {
           orderId, agentId: agent.id, underlyingAmount, customerAmount, markupAmount,
           markupPercent: cfg.markupPercent, agentRate, zanaRate,
           agentEarning, zanaEarning, actualPurchaseCost,
+        }});
+        const impactConfig = await tx.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} });
+        await tx.impactFundEntry.create({ data: {
+          sourceType: 'SHOPPING_ORDER', sourceId: orderId, eventType: 'ACCRUAL',
+          grossAmount: customerAmount, platformCommission: Math.max(0, zanaEarning),
+          contributionAmount: calculateImpactFundContribution(Math.max(0, zanaEarning), impactConfig.ratePercent),
+          ratePercent: impactConfig.ratePercent, idempotencyKey: `ACCRUAL:SHOPPING_ORDER:${orderId}`,
+          description: 'Impact Funds allocation from Zana share of market-shopping markup',
         }});
         if (agentEarning > 0) {
           const wallet = await tx.wallet.upsert({ where: { userId: agent.userId }, create: { userId: agent.userId }, update: {} });
