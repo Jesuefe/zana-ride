@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Car, Store, Package, MapPin, UserCheck, TrendingUp,
   LogOut, Truck, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
   Sun, Moon, Smartphone, Settings, Image as ImageIcon, ClipboardList, MessageCircle,
-  ChevronRight, Bell, Command, Activity
+  ChevronRight, Bell, Command, Activity, HeartHandshake
 } from 'lucide-react';
 import { getToken, clearToken } from '../lib/api/client';
 import { useTheme } from '../lib/ThemeContext';
@@ -34,6 +34,7 @@ const SENIOR_NAV = [
   { label: 'Markets', href: '/dashboard/markets', icon: MapPin, group: 'Commerce' },
   { label: 'Media Library', href: '/dashboard/media', icon: ImageIcon, group: 'Commerce' },
   { label: 'Financial', href: '/dashboard/financial', icon: DollarSign, group: 'Finance & system' },
+  { label: 'Zana Impact Funds', href: '/dashboard/impact-funds', icon: HeartHandshake, group: 'Finance & system' },
   { label: 'Reconciliation', href: '/dashboard/financial/reconciliation', icon: Activity, group: 'Finance & system' },
   { label: 'Expenses', href: '/dashboard/expenses', icon: DollarSign, group: 'Finance & system' },
   { label: 'Staff & Payroll', href: '/dashboard/staff', icon: Users, group: 'Finance & system' },
@@ -72,7 +73,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       const role = payload?.role;
       if (role === 'STAFF') {
         setMode('worker');
-        const adminOnly = ['/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/test-accounts', '/dashboard/invites', '/dashboard/service-zones'];
+        const adminOnly = ['/dashboard/impact-funds', '/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/test-accounts', '/dashboard/invites', '/dashboard/service-zones'];
         if (adminOnly.some(path => pathname === path || pathname.startsWith(path + '/'))) router.replace('/dashboard');
       } else if (role === 'ADMIN') {
         setMode('senior');

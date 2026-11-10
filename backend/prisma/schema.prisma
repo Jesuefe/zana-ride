@@ -954,6 +954,34 @@ model MarketPriceHistory {
   @@index([marketId, status])
 }
 
+// Separate append-only accounting ledger for the Zana Impact Funds allocation.
+// contributionAmount is signed: accruals are positive and reversals are negative.
+model ImpactFundConfig {
+  id          String   @id @default("default")
+  ratePercent Float    @default(3)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ImpactFundEntry {
+  id                  String   @id @default(uuid())
+  sourceType          String
+  sourceId            String
+  eventType           String
+  grossAmount         Int
+  platformCommission  Int
+  contributionAmount  Int
+  ratePercent         Float
+  status              String   @default("ACCRUED")
+  idempotencyKey      String   @unique
+  description         String?
+  createdAt           DateTime @default(now())
+
+  @@index([sourceType, sourceId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([createdAt])
+}
+
 model AuditLog {
   id           String   @id @default(uuid())
   actorId      String?
