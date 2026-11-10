@@ -250,3 +250,20 @@ export async function createPayrollRun(month: string, adjustments: any[]) { retu
 export async function approvePayrollRun(id: string) { return api.post<any>('/admin/payroll/run/' + id + '/approve', {}); }
 export async function discardDraftPayrollRun(id: string, reason: string) { return api.post<any>('/admin/payroll/run/' + id + '/discard-draft', { reason }); }
 export async function recordPayrollLinePayment(id: string, data: { amount: number; paymentReference: string; paymentMethod: string }) { return api.post<any>('/admin/payroll/lines/' + id + '/payment', data); }
+
+// Advanced finance controls
+export async function getSalaryAdvances(staffMemberId?: string) { return api.get<any[]>(`/admin/payroll/advances${staffMemberId ? `?staffMemberId=${encodeURIComponent(staffMemberId)}` : ''}`); }
+export async function issueSalaryAdvance(data: any) { return api.post('/admin/payroll/advances', data); }
+export async function approveSalaryAdvance(id: string) { return api.post(`/admin/payroll/advances/${id}/approve`, {}); }
+export async function paySalaryAdvance(id: string, data: any) { return api.post(`/admin/payroll/advances/${id}/payment`, data); }
+export async function cancelSalaryAdvance(id: string, reason: string) { return api.post(`/admin/payroll/advances/${id}/cancel`, { reason }); }
+export async function getContractorInvoices(status?: string) { return api.get<any[]>(`/admin/contractor-invoices${status ? `?status=${encodeURIComponent(status)}` : ''}`); }
+export async function createContractorInvoice(data: any) { return api.post('/admin/contractor-invoices', data); }
+export async function reviewContractorInvoice(id: string, approve: boolean, reason?: string) { return api.post(`/admin/contractor-invoices/${id}/${approve ? 'approve' : 'reject'}`, approve ? {} : { reason }); }
+export async function payContractorInvoice(id: string, data: any) { return api.post(`/admin/contractor-invoices/${id}/payment`, data); }
+export async function getStatutoryRemittances(period?: string) { return api.get<any[]>(`/admin/statutory-remittances${period ? `?period=${encodeURIComponent(period)}` : ''}`); }
+export async function generateStatutoryRemittances(period: string) { return api.post('/admin/statutory-remittances/generate', { period }); }
+export async function approveStatutoryRemittance(id: string) { return api.post(`/admin/statutory-remittances/${id}/approve`, {}); }
+export async function payStatutoryRemittance(id: string, data: any) { return api.post(`/admin/statutory-remittances/${id}/payment`, data); }
+
+[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
