@@ -86,7 +86,7 @@ export class FinancialService {
 
   async getAccountingLedger(limit = 500) {
     const take = Math.min(Math.max(limit, 50), 1000);
-    const [wallet, commissions, debts, debtSettlements, merchantSettlements, agentSettlements, expenses, salaryPayments, impactEntries, trips, deliveries, orders] = await Promise.all([
+    const [wallet, commissions, debts, debtSettlements, merchantSettlements, agentSettlements, expenses, salaryPayments, impactEntries, impactDisbursements, trips, deliveries, orders] = await Promise.all([
       this.prisma.walletTransaction.findMany({ take, orderBy: { createdAt: 'desc' }, include: { wallet: { select: { user: { select: { firstName: true, lastName: true, phone: true, role: true } } } } } }),
       this.prisma.commission.findMany({ take, orderBy: { createdAt: 'desc' } }),
       this.prisma.commissionDebt.findMany({ take, orderBy: { createdAt: 'desc' } }),
@@ -96,6 +96,7 @@ export class FinancialService {
       this.prisma.expense.findMany({ where: { status: { not: 'VOID' } }, take, orderBy: { createdAt: 'desc' } }),
       this.prisma.salaryPayment.findMany({ take, orderBy: { createdAt: 'desc' }, include: { staff: { select: { name: true } } } }),
       this.prisma.impactFundEntry.findMany({ take, orderBy: { createdAt: 'desc' } }),
+      this.prisma.impactFundDisbursement.findMany({ take, orderBy: { createdAt: 'desc' } }),
       this.prisma.trip.findMany({ where: { status: 'RIDE_COMPLETED' }, take, orderBy: { completedAt: 'desc' }, select: { id: true, finalFare: true, estimatedFare: true, paymentMethod: true, serviceType: true, completedAt: true } }),
       this.prisma.delivery.findMany({ where: { status: 'DELIVERED' }, take, orderBy: { deliveredAt: 'desc' }, select: { id: true, fee: true, paymentMethod: true, deliveredAt: true } }),
       this.prisma.order.findMany({ take, orderBy: { createdAt: 'desc' }, select: { id: true, total: true, deliveryFee: true, status: true, paid: true, paymentMethod: true, createdAt: true } }),
@@ -111,6 +112,7 @@ export class FinancialService {
       ...expenses.map(t => ({ at: t.createdAt, type: 'EXPENSE', direction: 'EXPENSE', amount: t.amount, reference: t.id, status: t.paymentStatus, entityId: t.id, description: t.title, account: t.category })),
       ...salaryPayments.map(t => ({ at: t.createdAt, type: 'SALARY_PAYMENT', direction: 'CASH_OUT', amount: t.amount, reference: t.paymentReference ?? `PAYROLL:${t.month}`, status: t.paid ? 'FULLY_PAID' : 'PARTIAL_PAYMENT', entityId: t.id, description: `Salary payment for ${t.month}`, account: t.staff.name })),
       ...impactEntries.map(t => ({ at: t.createdAt, type: 'ZIF_LEDGER', direction: t.contributionAmount >= 0 ? 'RESERVED' : 'REVERSAL', amount: t.contributionAmount, reference: `${t.sourceType}:${t.sourceId}`, status: t.status, entityId: t.id, description: t.description ?? `ZIF ${t.eventType.toLowerCase()}`, account: 'ZANA IMPACT FUND' })),
+      ...impactDisbursements.map(t => ({ at: t.paidAt ?? t.requestedAt, type: 'ZIF_DISBURSEMENT', direction: 'CASH_OUT', amount: t.amount, reference: t.paymentReference ?? `ZIF-REQUEST:${t.id}`, status: t.status, entityId: t.id, description: `ZIF payout to ${t.recipientName}: ${t.purpose}`, account: 'ZANA IMPACT FUND' })),
       ...trips.map(t => ({ at: t.completedAt ?? new Date(), type: 'RIDE_GMV', direction: 'GROSS', amount: t.finalFare ?? t.estimatedFare, reference: `TRIP:${t.id}`, status: 'COMPLETED', entityId: t.id, description: `${t.serviceType} ${t.paymentMethod}`, account: 'RIDES' })),
       ...deliveries.map(t => ({ at: t.deliveredAt ?? new Date(), type: 'DELIVERY_GMV', direction: 'GROSS', amount: t.fee, reference: `DELIVERY:${t.id}`, status: 'DELIVERED', entityId: t.id, description: t.paymentMethod, account: 'DELIVERIES' })),
       ...orders.map(t => ({ at: t.createdAt, type: 'ORDER', direction: 'GROSS', amount: t.total + t.deliveryFee, reference: `ORDER:${t.id}`, status: t.status, entityId: t.id, description: `${t.paymentMethod} · ${t.paid ? 'PAID' : 'UNPAID'}`, account: 'MARKETPLACE' })),
@@ -126,7 +128,7 @@ export class FinancialService {
     return {
       generatedAt: new Date(),
       totals: { rideGmv, deliveryGmv, marketplaceGmv: orderGmv, gmv: rideGmv + deliveryGmv + orderGmv, commission: commissionTotal, outstandingDriverDebt: outstandingDebt, expenses: expensesTotal },
-      counts: { rides: trips.length, deliveries: deliveries.length, orders: orders.length, salaryPayments: salaryPayments.length, impactFundEntries: impactEntries.length, ledgerRows: rows.length },
+      counts: { rides: trips.length, deliveries: deliveries.length, orders: orders.length, salaryPayments: salaryPayments.length, impactFundEntries: impactEntries.length, impactFundDisbursements: impactDisbursements.length, ledgerRows: rows.length },
       rows,
     };
   }
@@ -149,6 +151,7 @@ export class FinancialService {
     if (!data.password || data.password.length < 8) throw new BadRequestException('STAFF_PASSWORD_TOO_SHORT');
     if (!Number.isSafeInteger(Number(data.salary)) || Number(data.salary) <= 0) throw new BadRequestException('STAFF_MONTHLY_SALARY_MUST_BE_POSITIVE_RWF');
     if (data.employmentType && !['EMPLOYEE', 'CONTRACTOR'].includes(data.employmentType)) throw new BadRequestException('INVALID_EMPLOYMENT_TYPE');
+    if (data.accessRole && !['OPERATIONS', 'DRIVER_OPERATIONS', 'MARKET_OPERATIONS', 'CUSTOMER_SUPPORT', 'FINANCE'].includes(data.accessRole)) throw new BadRequestException('INVALID_STAFF_ACCESS_ROLE');
     const phone = data.phone.trim();
     const email = data.email?.trim() || undefined;
     const existing = await this.prisma.user.findFirst({ where: { OR: [{ phone }, ...(email ? [{ email }] : [])] } });
@@ -203,6 +206,7 @@ export class FinancialService {
     for (const key of ['name', 'role', 'accessRole', 'salary', 'active', 'department', 'employmentType']) if ((data as any)[key] !== undefined) update[key] = key === 'salary' ? Number((data as any)[key]) : (data as any)[key];
     if (update.salary !== undefined && (!Number.isSafeInteger(update.salary) || update.salary <= 0)) throw new BadRequestException('STAFF_MONTHLY_SALARY_MUST_BE_POSITIVE_RWF');
     if (update.employmentType !== undefined && !['EMPLOYEE', 'CONTRACTOR'].includes(update.employmentType)) throw new BadRequestException('INVALID_EMPLOYMENT_TYPE');
+    if (update.accessRole !== undefined && !['OPERATIONS', 'DRIVER_OPERATIONS', 'MARKET_OPERATIONS', 'CUSTOMER_SUPPORT', 'FINANCE'].includes(update.accessRole)) throw new BadRequestException('INVALID_STAFF_ACCESS_ROLE');
     if (update.active === false && before.active && !before.endDate) update.endDate = new Date();
     if (update.active === true && !before.active) throw new BadRequestException('Reactivating former staff is not supported by this payroll history version. Create a new employment record through the HR rehire workflow.');
     const result = await this.prisma.$transaction(async tx => {
