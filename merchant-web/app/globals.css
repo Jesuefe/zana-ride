@@ -93,3 +93,25 @@ body { -webkit-tap-highlight-color: transparent; }
 @media (min-width: 768px) {
   body { background: var(--background); }
 }
+
+
+/* Merchant registration: keep typed text readable in every browser theme. */
+.merchant-register { color-scheme: light; }
+.merchant-register input:not([type="file"]) {
+  color: #10221d !important;
+  -webkit-text-fill-color: #10221d !important;
+  background-color: #ffffff !important;
+  caret-color: #00a082;
+}
+.merchant-register input:not([type="file"])::placeholder {
+  color: #7b8982 !important;
+  -webkit-text-fill-color: #7b8982 !important;
+  opacity: 1;
+}
+.merchant-register input:not([type="file"]):-webkit-autofill,
+.merchant-register input:not([type="file"]):-webkit-autofill:hover,
+.merchant-register input:not([type="file"]):-webkit-autofill:focus {
+  -webkit-text-fill-color: #10221d !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  caret-color: #00a082;
+}
