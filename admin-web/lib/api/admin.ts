@@ -84,15 +84,15 @@ export async function getCommissionSummary() { return api.get<any>('/admin/commi
 
 export async function getExpenses() { return api.get<any[]>('/admin/expenses'); }
 export async function createExpense(data: any) { return api.post('/admin/expenses', data); }
-export async function deleteExpense(id: string) {
-  const token = (await import('./client')).getToken();
-  await fetch(`https://zana.ajumalink.com/api/v1/admin/expenses/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-}
+export async function approveExpense(id: string) { return api.post('/admin/expenses/' + id + '/approve', {}); }
+export async function voidExpense(id: string, reason: string) { return api.post(`/admin/expenses/${id}/void`, { reason }); }
+export async function updateExpensePayment(id: string, amountPaid: number, paymentReference?: string) { return api.patch(`/admin/expenses/${id}/payment`, { amountPaid, paymentReference }); }
 
-export async function getStaff() { return api.get<any[]>('/admin/staff'); }
+export async function getStaff(month?: string) { return api.get<any[]>(`/admin/staff${month ? `?month=${encodeURIComponent(month)}` : ''}`); }
 export async function createStaff(data: { name: string; role: string; accessRole: string; phone: string; email?: string; password: string; salary: number }) { return api.post('/admin/staff', data); }
 export async function updateStaff(id: string, data: any) { return api.patch(`/admin/staff/${id}`, data); }
 
+export async function getPayrollPreview(month: string) { return api.get<any>('/admin/payroll/preview?month=' + encodeURIComponent(month)); }
 export async function getSalaryPayments(month?: string) {
   return api.get<any[]>(`/admin/salary-payments${month ? `?month=${month}` : ''}`);
 }
@@ -236,3 +236,12 @@ export async function updateImpactFundsRate(ratePercent: number, confirm: boolea
 export async function reverseImpactFundsEntry(id: string, reason: string) {
   return api.post<any>(`/admin/impact-funds/${encodeURIComponent(id)}/reverse`, { reason });
 }
+
+export async function getMonthlyProfitability(month: string) { return api.get<any>(`/admin/financial/monthly-profit?month=${encodeURIComponent(month)}`); }
+export async function closeMonthlyProfit(month: string) { return api.post<any>('/admin/financial/monthly-profit/close', { month, confirm: true }); }
+
+export async function getPayrollRun(month: string) { return api.get<any>('/admin/payroll/run?month=' + encodeURIComponent(month)); }
+export async function createPayrollRun(month: string, adjustments: any[]) { return api.post<any>('/admin/payroll/run', { month, adjustments }); }
+export async function approvePayrollRun(id: string) { return api.post<any>('/admin/payroll/run/' + id + '/approve', {}); }
+export async function discardDraftPayrollRun(id: string, reason: string) { return api.post<any>('/admin/payroll/run/' + id + '/discard-draft', { reason }); }
+export async function recordPayrollLinePayment(id: string, data: { amount: number; paymentReference: string; paymentMethod: string }) { return api.post<any>('/admin/payroll/lines/' + id + '/payment', data); }
