@@ -63,7 +63,7 @@ export class AuthController {
 
   // Open self-service onboarding. All new stores remain pending until reviewed.
   @Post('register-merchant-public')
-  registerMerchantPublic(@Body() body: { email: string; password: string; businessName: string; category: string; phone: string; contactName?: string; branch?: string; whatsappPhone?: string; businessAddress?: string }) {
+  registerMerchantPublic(@Body() body: { email: string; password: string; businessName: string; category: string; phone: string; contactName?: string; branch?: string; whatsappPhone?: string; businessAddress?: string; businessLat?: number; businessLng?: number; locationPhotoBase64?: string }) {
     return this.authService.registerMerchantPublic(body);
   }
 
