@@ -10,7 +10,7 @@ import {
   Sun, Moon, Smartphone, Settings, Image as ImageIcon, ClipboardList, MessageCircle,
   ChevronRight, Bell, Command, Activity, HeartHandshake
 } from 'lucide-react';
-import { getToken, clearToken } from '../lib/api/client';
+import { getToken, clearToken, api } from '../lib/api/client';
 import { useTheme } from '../lib/ThemeContext';
 
 const SENIOR_NAV = [
@@ -46,6 +46,8 @@ const SENIOR_NAV = [
   { label: 'Settings', href: '/dashboard/settings', icon: Settings, group: 'Finance & system' },
 ];
 
+const FINANCE_NAV = SENIOR_NAV.filter(item => ['Financial', 'Zana Impact Funds', 'Reconciliation', 'Expenses'].includes(item.label));
+
 const WORKER_NAV = [
   { label: 'Pending Drivers', href: '/dashboard/drivers', icon: Car, group: 'Work queue' },
   { label: 'Pending Products', href: '/dashboard/products', icon: Package, group: 'Work queue' },
@@ -61,6 +63,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const pathname = usePathname();
   const [mode, setMode] = useState<'senior' | 'worker'>('senior');
+  const [staffAccessRole, setStaffAccessRole] = useState('');
   const { choice, setChoice } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -73,8 +76,17 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       const role = payload?.role;
       if (role === 'STAFF') {
         setMode('worker');
-        const adminOnly = ['/dashboard/impact-funds', '/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/test-accounts', '/dashboard/invites', '/dashboard/service-zones'];
-        if (adminOnly.some(path => pathname === path || pathname.startsWith(path + '/'))) router.replace('/dashboard');
+        api.get<any>('/admin/me').then(me => {
+          const accessRole = me?.accessRole || 'OPERATIONS';
+          setStaffAccessRole(accessRole);
+          if (accessRole === 'FINANCE') {
+            const financePaths = ['/dashboard/financial', '/dashboard/impact-funds', '/dashboard/expenses'];
+            if (pathname === '/dashboard' || !financePaths.some(path => pathname === path || pathname.startsWith(path + '/'))) router.replace('/dashboard/financial');
+          } else {
+            const adminOnly = ['/dashboard/impact-funds', '/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/test-locations', '/dashboard/test-accounts', '/dashboard/invites', '/dashboard/service-zones'];
+            if (adminOnly.some(path => pathname === path || pathname.startsWith(path + '/'))) router.replace('/dashboard');
+          }
+        }).catch(() => router.replace('/dashboard'));
       } else if (role === 'ADMIN') {
         setMode('senior');
       } else {
@@ -87,7 +99,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     }
   }, [router, pathname]);
 
-  const nav = mode === 'senior' ? SENIOR_NAV : WORKER_NAV;
+  const nav = mode === 'senior' ? SENIOR_NAV : staffAccessRole === 'FINANCE' ? FINANCE_NAV : WORKER_NAV;
   const activeItem = nav.find(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))) || nav.find(item => item.href === pathname);
   const pageTitle = pathname === '/dashboard' ? 'Overview' : (activeItem?.label || pathname.split('/').filter(Boolean).pop()?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Workspace');
   const handleLogout = () => { clearToken(); router.push('/login'); };
