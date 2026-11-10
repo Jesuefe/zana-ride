@@ -58,6 +58,7 @@ export class WalletService {
     const rate = await this.redis.incr('merchant-payout-otp:req:' + userId, 10 * 60);
     if (rate > 5) throw new BadRequestException('Too many code requests. Please wait and try again.');
     const code = String(randomInt(100000, 1000000));
+    await this.redis.del('merchant-payout-otp:' + userId + ':attempts');
     await this.redis.set('merchant-payout-otp:' + userId, JSON.stringify({ code, phone, provider }), 5 * 60);
     const apiKey = this.config.get<string>('AT_API_KEY');
     const username = this.config.get<string>('AT_USERNAME');
