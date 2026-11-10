@@ -38,7 +38,7 @@ function RegisterContent() {
   const handleLocationPhoto = (file?: File) => {
     if (!file) return;
     if (!['image/jpeg','image/png','image/webp'].includes(file.type)) { setError('Business photo must be JPG, PNG or WEBP.'); return; }
-    if (file.size > 5 * 1024 * 1024) { setError('Business photo must be 5 MB or smaller.'); return; }
+    if (file.size > 2 * 1024 * 1024) { setError('Business photo must be 2 MB or smaller.'); return; }
     const reader = new FileReader();
     reader.onload = () => { setLocationPhotoData(String(reader.result || '')); setLocationPhotoName(file.name); setError(''); };
     reader.onerror = () => setError('We could not read that business photo. Please try again.');
@@ -87,24 +87,24 @@ function RegisterContent() {
       <label className={label+" mt-4"}>Full business address *<input className={field} value={form.businessAddress} onChange={e => update('businessAddress', e.target.value)} placeholder="Village, street, building, landmark, district" autoComplete="street-address" required /></label>
     </div>
     <div className="rounded-2xl border border-[#dce5df] bg-white p-4 sm:p-5">
-      <div className="flex items-start gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#e7f6f1] text-[#008f73]"><Camera size={20}/></div><div><p className="text-sm font-bold text-[#10221d]">Photo of your business premises <span className="text-red-500">*</span></p><p className="mt-1 text-xs leading-5 text-gray-500">Take or upload a clear photo showing the storefront, entrance or business sign. This helps Zana verify the location. JPG, PNG or WEBP · Up to 5 MB.</p></div></div>
+      <div className="flex items-start gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#e7f6f1] text-[#008f73]"><Camera size={20}/></div><div><p className="text-sm font-bold text-[#10221d]">Photo of your business premises <span className="text-red-500">*</span></p><p className="mt-1 text-xs leading-5 text-gray-500">Take or upload a clear photo showing the storefront, entrance or business sign. This helps Zana verify the location. JPG, PNG or WEBP · Up to 2 MB.</p></div></div>
       <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#b9d5c9] bg-[#f8fcfa] px-4 py-5 text-center hover:border-[#00a082]"><UploadCloud size={23} className="text-[#008f73]"/><span className="mt-2 text-sm font-bold text-[#087d68]">{locationPhotoName?'Replace business photo':'Take / choose business photo'}</span><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" onChange={e=>handleLocationPhoto(e.target.files?.[0])}/></label>
       {locationPhotoData && <div className="mt-3 flex items-center gap-3 rounded-xl bg-[#f0faf6] p-3"><img src={locationPhotoData} alt="Business premises preview" className="h-16 w-20 rounded-lg object-cover"/><span className="min-w-0 flex-1 truncate text-xs font-semibold text-[#30433a]">{locationPhotoName}</span><button type="button" onClick={()=>{setLocationPhotoData('');setLocationPhotoName('')}} className="grid h-7 w-7 place-items-center rounded-full text-gray-500 hover:bg-white" aria-label="Remove business photo"><X size={15}/></button></div>}
     </div>
     <div className="rounded-2xl border border-[#dce5df] bg-white p-4 sm:p-5">
       <div className="flex items-start gap-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#e7f6f1] text-[#008f73]"><FileCheck2 size={20} /></div>
-        <div className="min-w-0 flex-1"><p className="text-sm font-bold text-[#10221d]">Business registration certificate <span className="text-red-500">*</span></p><p className="mt-1 text-xs leading-5 text-gray-500">Upload your official business registration certificate (PDF, JPG or PNG). Maximum 8 MB. Only Zana verification staff can access this document.</p></div>
+        <div className="min-w-0 flex-1"><p className="text-sm font-bold text-[#10221d]">Business registration certificate <span className="text-red-500">*</span></p><p className="mt-1 text-xs leading-5 text-gray-500">Upload your official business registration certificate (PDF, JPG or PNG). Maximum 4 MB. Only Zana verification staff can access this document.</p></div>
       </div>
       <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#b9d5c9] bg-[#f8fcfa] px-4 py-5 text-center transition hover:border-[#00a082] hover:bg-[#f0faf6]">
         <UploadCloud size={23} className="text-[#008f73]" />
         <span className="mt-2 text-sm font-bold text-[#087d68]">{certificateName ? 'Replace certificate' : 'Choose certificate file'}</span>
-        <span className="mt-1 text-xs text-gray-500">PDF, JPG or PNG · Up to 8 MB</span>
+        <span className="mt-1 text-xs text-gray-500">PDF, JPG or PNG · Up to 4 MB</span>
         <input type="file" accept="application/pdf,image/jpeg,image/png" className="sr-only" onChange={event => {
           const file = event.target.files?.[0];
           if (!file) return;
           if (!['application/pdf','image/jpeg','image/png'].includes(file.type)) { setError('Choose a PDF, JPG or PNG certificate.'); event.target.value = ''; return; }
-          if (file.size > 8 * 1024 * 1024) { setError('Certificate must be 8 MB or smaller.'); event.target.value = ''; return; }
+          if (file.size > 4 * 1024 * 1024) { setError('Certificate must be 4 MB or smaller.'); event.target.value = ''; return; }
           const reader = new FileReader();
           reader.onload = () => { setCertificateData(String(reader.result || '')); setCertificateName(file.name); setError(''); };
           reader.onerror = () => setError('We could not read that file. Please try again.');
