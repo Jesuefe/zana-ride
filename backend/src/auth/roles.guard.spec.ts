@@ -32,6 +32,18 @@ describe('RolesGuard staff access matrix', () => {
     expect(canActivate({ role: 'STAFF', accessRole: 'DRIVER_OPERATIONS' }, 'PATCH', '/api/v1/admin/support/tickets/ticket-id')).toBe(false);
   });
 
+  it('gives finance staff read-only access to finance data and request-only ZIF disbursements', () => {
+    const staff = { role: 'STAFF', accessRole: 'FINANCE' };
+    expect(canActivate(staff, 'GET', '/api/v1/admin/financial/reconciliation')).toBe(true);
+    expect(canActivate(staff, 'GET', '/api/v1/admin/impact-funds')).toBe(true);
+    expect(canActivate(staff, 'GET', '/api/v1/admin/impact-funds/disbursements')).toBe(true);
+    expect(canActivate(staff, 'POST', '/api/v1/admin/impact-funds/disbursements')).toBe(true);
+    expect(canActivate(staff, 'POST', '/api/v1/admin/impact-funds/disbursements/id/approve')).toBe(false);
+    expect(canActivate(staff, 'POST', '/api/v1/admin/impact-funds/disbursements/id/paid')).toBe(false);
+    expect(canActivate(staff, 'POST', '/api/v1/admin/expenses')).toBe(false);
+    expect(canActivate(staff, 'POST', '/api/v1/admin/support/tickets')).toBe(false);
+  });
+
   it('keeps the role decorator as the first authorization boundary', () => {
     expect(canActivate({ role: 'CUSTOMER' }, 'GET', '/api/v1/admin/support/tickets')).toBe(false);
     expect(canActivate({ role: 'ADMIN' }, 'GET', '/api/v1/admin/financial/reconciliation')).toBe(true);

@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { TrendingUp, DollarSign, Users, Plus, Trash2, RefreshCw, Check, X } from 'lucide-react';
+import { TrendingUp, DollarSign, Users, Plus, Ban, RefreshCw, Check, X } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
-import { getFinancial, getCommissionSummary, getExpenses, createExpense, deleteExpense, getMarketPriceConfig, getMarketPriceReviews, reviewMarketPrice, getFinanceAudit, getAccountingLedger } from '../../../lib/api/admin';
+import { getFinancial, getCommissionSummary, getExpenses, createExpense, approveExpense, voidExpense, getMarketPriceConfig, getMarketPriceReviews, reviewMarketPrice, getFinanceAudit, getAccountingLedger } from '../../../lib/api/admin';
 
 function Card({ label, value, sub, color = 'green' }: any) {
   const colors: Record<string, string> = { green: 'bg-green-50 text-green-700', red: 'bg-red-50 text-red-700', blue: 'bg-blue-50 text-blue-700', amber: 'bg-amber-50 text-amber-700' };
@@ -20,12 +20,12 @@ export default function FinancialPage() {
   const [commissions, setCommissions] = useState<any>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
-  const [form, setForm] = useState({ title: '', amount: '', category: 'Office', description: '' });
+  const [form, setForm] = useState({ title: '', amount: '', category: 'OPERATIONS', description: '' });
   const [marketConfig, setMarketConfig] = useState<any>(null);
   const [priceReviews, setPriceReviews] = useState<any[]>([]);
   const [audit, setAudit] = useState<any[]>([]);
   const [ledger, setLedger] = useState<any>(null);
-  const CATEGORIES = ['Office', 'Fuel', 'Marketing', 'Software', 'Salaries', 'Equipment', 'Other'];
+  const CATEGORIES = ['OPERATIONS', 'MARKETING', 'TECH', 'OFFICE_RENT', 'UTILITIES', 'FUEL_TRANSPORT', 'MAINTENANCE', 'INSURANCE', 'LOGISTICS', 'OTHER'];
 
   const load = () => {
     getFinancial().then(setSnapshot).catch(() => {});
@@ -39,12 +39,14 @@ export default function FinancialPage() {
   const handleAddExpense = async () => {
     await createExpense({ ...form, amount: Number(form.amount) });
     setShowExpenseForm(false);
-    setForm({ title: '', amount: '', category: 'Office', description: '' });
+    setForm({ title: '', amount: '', category: 'OPERATIONS', description: '' });
     load();
   };
 
   const handleDeleteExpense = async (id: string) => {
-    await deleteExpense(id);
+    const reason = window.prompt('Reason for voiding this expense (minimum 5 characters):');
+    if (!reason || reason.trim().length < 5) return;
+    await voidExpense(id, reason.trim());
     load();
   };
 
@@ -56,8 +58,8 @@ export default function FinancialPage() {
         <h1 className="text-2xl font-bold text-gray-900 mb-5">Financial Dashboard</h1>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <Card label="Total Revenue (rides)" value={fmt(snapshot?.totalRevenue)} />
-          <Card label="Total Commission Earned" value={fmt(snapshot?.totalCommission)} sub="Live ride commission policy" color="green" />
+          <Card label="Platform Earnings" value={fmt(snapshot?.totalRevenue)} />
+          <Card label="Recognized Platform Earnings" value={fmt(snapshot?.totalCommission)} sub="Recognized Zana income" color="green" />
           <Card label="Total Expenses" value={fmt(snapshot?.totalExpenses)} color="red" />
           <Card label="Net Profit" value={fmt(snapshot?.netProfit)} color={snapshot?.netProfit >= 0 ? 'green' : 'red'} />
         </div>
@@ -158,8 +160,8 @@ export default function FinancialPage() {
                   <td className="px-4 py-3">{e.title}{e.description && <span className="text-gray-400 text-xs"> — {e.description}</span>}</td>
                   <td className="px-4 py-3"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{e.category}</span></td>
                   <td className="px-4 py-3 font-medium">{e.amount?.toLocaleString()} RWF</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{new Date(e.date).toLocaleDateString()}</td>
-                  <td className="px-4 py-3"><button onClick={() => handleDeleteExpense(e.id)} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100"><Trash2 size={13} /></button></td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{new Date(e.date).toLocaleDateString()}<p className="mt-1 text-[10px] font-semibold">{e.status || 'APPROVED'}</p></td>
+                  <td className="px-4 py-3">{e.status === 'PENDING' && <button onClick={async () => { await approveExpense(e.id); load(); }} title="Approve expense" className="mr-2 rounded-lg bg-emerald-50 p-1.5 text-emerald-700"><Check size={13}/></button>}{e.status !== 'VOID' && e.status !== 'REJECTED' && <button onClick={() => handleDeleteExpense(e.id)} title="Void expense with reason" className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100"><Ban size={13} /></button>}</td>
                 </tr>
               ))}
               {expenses.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400 text-sm">No expenses recorded yet.</td></tr>}

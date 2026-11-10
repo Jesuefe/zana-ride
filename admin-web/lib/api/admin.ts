@@ -84,15 +84,15 @@ export async function getCommissionSummary() { return api.get<any>('/admin/commi
 
 export async function getExpenses() { return api.get<any[]>('/admin/expenses'); }
 export async function createExpense(data: any) { return api.post('/admin/expenses', data); }
-export async function deleteExpense(id: string) {
-  const token = (await import('./client')).getToken();
-  await fetch(`https://zana.ajumalink.com/api/v1/admin/expenses/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-}
+export async function approveExpense(id: string) { return api.post('/admin/expenses/' + id + '/approve', {}); }
+export async function voidExpense(id: string, reason: string) { return api.post(`/admin/expenses/${id}/void`, { reason }); }
+export async function updateExpensePayment(id: string, amountPaid: number, paymentReference?: string) { return api.patch(`/admin/expenses/${id}/payment`, { amountPaid, paymentReference }); }
 
-export async function getStaff() { return api.get<any[]>('/admin/staff'); }
+export async function getStaff(month?: string) { return api.get<any[]>(`/admin/staff${month ? `?month=${encodeURIComponent(month)}` : ''}`); }
 export async function createStaff(data: { name: string; role: string; accessRole: string; phone: string; email?: string; password: string; salary: number }) { return api.post('/admin/staff', data); }
 export async function updateStaff(id: string, data: any) { return api.patch(`/admin/staff/${id}`, data); }
 
+export async function getPayrollPreview(month: string) { return api.get<any>('/admin/payroll/preview?month=' + encodeURIComponent(month)); }
 export async function getSalaryPayments(month?: string) {
   return api.get<any[]>(`/admin/salary-payments${month ? `?month=${month}` : ''}`);
 }
@@ -236,3 +236,35 @@ export async function updateImpactFundsRate(ratePercent: number, confirm: boolea
 export async function reverseImpactFundsEntry(id: string, reason: string) {
   return api.post<any>(`/admin/impact-funds/${encodeURIComponent(id)}/reverse`, { reason });
 }
+export async function getImpactFundDisbursements() { return api.get<any>('/admin/impact-funds/disbursements'); }
+export async function requestImpactFundDisbursement(data: { amount: number; recipientName: string; recipientType: string; purpose: string }) { return api.post<any>('/admin/impact-funds/disbursements', data); }
+export async function approveImpactFundDisbursement(id: string) { return api.post<any>(`/admin/impact-funds/disbursements/${encodeURIComponent(id)}/approve`, {}); }
+export async function rejectImpactFundDisbursement(id: string, reason: string) { return api.post<any>(`/admin/impact-funds/disbursements/${encodeURIComponent(id)}/reject`, { reason }); }
+export async function markImpactFundDisbursementPaid(id: string, data: { paymentMethod: string; paymentReference: string; evidenceUrl?: string }) { return api.post<any>(`/admin/impact-funds/disbursements/${encodeURIComponent(id)}/paid`, data); }
+
+export async function getMonthlyProfitability(month: string) { return api.get<any>(`/admin/financial/monthly-profit?month=${encodeURIComponent(month)}`); }
+export async function closeMonthlyProfit(month: string) { return api.post<any>('/admin/financial/monthly-profit/close', { month, confirm: true }); }
+
+export async function getPayrollRun(month: string) { return api.get<any>('/admin/payroll/run?month=' + encodeURIComponent(month)); }
+export async function createPayrollRun(month: string, adjustments: any[]) { return api.post<any>('/admin/payroll/run', { month, adjustments }); }
+export async function approvePayrollRun(id: string) { return api.post<any>('/admin/payroll/run/' + id + '/approve', {}); }
+export async function discardDraftPayrollRun(id: string, reason: string) { return api.post<any>('/admin/payroll/run/' + id + '/discard-draft', { reason }); }
+export async function recordPayrollLinePayment(id: string, data: { amount: number; paymentReference: string; paymentMethod: string }) { return api.post<any>('/admin/payroll/lines/' + id + '/payment', data); }
+
+// Advanced finance controls
+export async function getSalaryAdvances(staffMemberId?: string) { return api.get<any[]>(`/admin/payroll/advances${staffMemberId ? `?staffMemberId=${encodeURIComponent(staffMemberId)}` : ''}`); }
+export async function issueSalaryAdvance(data: any) { return api.post('/admin/payroll/advances', data); }
+export async function approveSalaryAdvance(id: string) { return api.post(`/admin/payroll/advances/${id}/approve`, {}); }
+export async function paySalaryAdvance(id: string, data: any) { return api.post(`/admin/payroll/advances/${id}/payment`, data); }
+export async function cancelSalaryAdvance(id: string, reason: string) { return api.post(`/admin/payroll/advances/${id}/cancel`, { reason }); }
+export async function getContractorInvoices(status?: string) { return api.get<any[]>(`/admin/contractor-invoices${status ? `?status=${encodeURIComponent(status)}` : ''}`); }
+export async function createContractorInvoice(data: any) { return api.post('/admin/contractor-invoices', data); }
+export async function reviewContractorInvoice(id: string, approve: boolean, reason?: string) { return api.post(`/admin/contractor-invoices/${id}/${approve ? 'approve' : 'reject'}`, approve ? {} : { reason }); }
+export async function payContractorInvoice(id: string, data: any) { return api.post(`/admin/contractor-invoices/${id}/payment`, data); }
+export async function getStatutoryRemittances(period?: string) { return api.get<any[]>(`/admin/statutory-remittances${period ? `?period=${encodeURIComponent(period)}` : ''}`); }
+export async function generateStatutoryRemittances(period: string) { return api.post('/admin/statutory-remittances/generate', { period }); }
+export async function approveStatutoryRemittance(id: string) { return api.post(`/admin/statutory-remittances/${id}/approve`, {}); }
+export async function payStatutoryRemittance(id: string, data: any) { return api.post(`/admin/statutory-remittances/${id}/payment`, data); }
+
+export async function updateStatutoryRemittance(id: string, data: any) { return api.patch(`/admin/statutory-remittances/${id}`, data); }
+export async function verifyStatutoryRemittance(id: string, verificationNote: string) { return api.post(`/admin/statutory-remittances/${id}/verify`, { verificationNote }); }

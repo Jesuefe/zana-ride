@@ -1,10 +1,13 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth/roles.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.strategy';
 import { AdminService } from './admin.service';
 import { CommissionService } from './commission.service';
 import { FinancialService } from './financial.service';
+import { ImpactFundDisbursementService } from './impact-fund-disbursement.service';
+import { FinanceExtensionsService } from './finance-extensions.service';
+import { AdminAuditInterceptor } from './admin-audit.interceptor';
 import { createCipheriv, createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaypackService } from '../wallet/paypack.service';
@@ -13,16 +16,23 @@ import { UserRole, UserStatus, DriverApprovalStatus, MerchantStatus, ProductStat
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@UseInterceptors(AdminAuditInterceptor)
 @Roles('ADMIN', 'STAFF')
 export class AdminController {
   constructor(
     private adminService: AdminService,
     private commissionService: CommissionService,
     private financialService: FinancialService,
+    private impactFundDisbursements: ImpactFundDisbursementService,
+    private financeExtensions: FinanceExtensionsService,
     private prisma: PrismaService,
     private paypackService: PaypackService,
     private zanaAiService: ZanaAiService,
   ) {}
+
+  @Roles('ADMIN', 'STAFF')
+  @Get('me')
+  getAdminSession(@CurrentUser() user: JwtPayload) { return { role: user.role, accessRole: user.accessRole || (user.role === 'ADMIN' ? 'ADMIN' : 'OPERATIONS') }; }
 
   @Roles('ADMIN')
   @Get('rider-registrations')
@@ -147,59 +157,72 @@ export class AdminController {
   liveOperations() { return this.adminService.getLiveOperations(); }
 
   // Unified accounting ledger for the operations/AI accounting layer.
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @Get('accounting/ledger')
   accountingLedger(@Query('limit') limit?: string) {
     return this.financialService.getAccountingLedger(limit ? Number(limit) : 500);
   }
 
   // Financial snapshot
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @Get('financial')
   financial() { return this.financialService.getFinancialSnapshot(); }
 
+  @Roles('ADMIN', 'STAFF')
+  @Get('financial/monthly-profit')
+  monthlyProfit(@Query('month') month: string) { return this.financialService.getMonthlyProfitability(month); }
+
+  @Roles('ADMIN')
+  @Post('financial/monthly-profit/close')
+  closeMonthlyProfit(@CurrentUser() user: JwtPayload, @Body() body: { month: string; confirm?: boolean }) {
+    if (body.confirm !== true) throw new BadRequestException('Explicit confirmation is required to close a financial month.');
+    return this.financialService.closeMonthlyProfit(body.month, user.sub);
+  }
+
   // Driver settlement monitor — reads the same existing ledger, not a
   // separate financial system.
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @Get('settlements/overview')
   settlementOverview() { return this.financialService.getSettlementOverview(); }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @Get('settlements/drivers')
   driverSettlements() { return this.financialService.getDriverSettlements(); }
 
   // Zana Impact Funds — separate append-only ledger funded from Zana's recognized commission only.
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @Get('impact-funds')
   async getImpactFunds(@Query('from') from?: string, @Query('to') to?: string, @Query('sourceType') sourceType?: string) {
     const where: any = {};
     if (from) { const date = new Date(from); if (!Number.isNaN(date.getTime())) where.createdAt = { ...(where.createdAt ?? {}), gte: date }; }
     if (to) { const date = new Date(to); if (!Number.isNaN(date.getTime())) { date.setHours(23, 59, 59, 999); where.createdAt = { ...(where.createdAt ?? {}), lte: date }; } }
-    if (sourceType && ['RIDE', 'DELIVERY', 'FOOD_ORDER', 'SHOPPING_ORDER'].includes(sourceType)) where.sourceType = sourceType;
+    if (sourceType && ['RIDE', 'DELIVERY', 'FOOD_ORDER', 'SHOPPING_ORDER', 'NET_PROFIT'].includes(sourceType)) where.sourceType = sourceType;
     const config = await this.prisma.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} });
     const [entries, allRows, rideDeliveryCommission, foodCommission, shoppingRows] = await Promise.all([
       this.prisma.impactFundEntry.findMany({ where, orderBy: { createdAt: 'desc' }, take: 2000 }),
-      this.prisma.impactFundEntry.findMany({ select: { contributionAmount: true, platformCommission: true, createdAt: true, eventType: true } }),
-      this.prisma.commission.aggregate({ where: { createdAt: { gte: config.createdAt } }, _sum: { amount: true } }),
-      this.prisma.merchantSettlement.aggregate({ where: { createdAt: { gte: config.createdAt } }, _sum: { commissionAmount: true } }),
-      this.prisma.agentSettlement.findMany({ where: { createdAt: { gte: config.createdAt } }, select: { zanaEarning: true } }),
+      this.prisma.impactFundEntry.findMany({ select: { sourceType: true, sourceId: true, contributionAmount: true, platformCommission: true, createdAt: true, eventType: true } }),
+      this.prisma.commission.aggregate({ where: { createdAt: { gte: config.createdAt, lt: config.profitBasedFrom } }, _sum: { amount: true } }),
+      this.prisma.merchantSettlement.aggregate({ where: { createdAt: { gte: config.createdAt, lt: config.profitBasedFrom }, status: { not: 'CANCELLED' } }, _sum: { commissionAmount: true } }),
+      this.prisma.agentSettlement.findMany({ where: { createdAt: { gte: config.createdAt, lt: config.profitBasedFrom }, status: { not: 'CANCELLED' } }, select: { zanaEarning: true } }),
     ]);
     const currentBalance = allRows.reduce((sum, row) => sum + row.contributionAmount, 0);
     const allAccruals = allRows.filter(row => row.eventType === 'ACCRUAL');
+    const commissionAccruals = allAccruals.filter(row => row.sourceType !== 'NET_PROFIT' && row.createdAt < config.profitBasedFrom);
     const sourceCommissionTotal = (rideDeliveryCommission._sum.amount ?? 0) + (foodCommission._sum.commissionAmount ?? 0) + shoppingRows.reduce((sum, row) => sum + Math.max(0, row.zanaEarning), 0);
-    const ledgerCommissionTotal = allAccruals.reduce((sum, row) => sum + row.platformCommission, 0);
+    const ledgerCommissionTotal = commissionAccruals.reduce((sum, row) => sum + row.platformCommission, 0);
     const reconciliation = {
       sourceCommissionTotal,
       ledgerCommissionTotal,
       difference: sourceCommissionTotal - ledgerCommissionTotal,
       status: sourceCommissionTotal === ledgerCommissionTotal ? 'RECONCILED' : 'REVIEW_REQUIRED',
       since: config.createdAt,
+      legacyCommissionLedgerThrough: config.profitBasedFrom,
     };
     const lifetimeContributions = allAccruals.reduce((sum, row) => sum + row.contributionAmount, 0);
     const monthKey = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Kigali', year: 'numeric', month: '2-digit' }).format(date);
     const monthMap = new Map<string, { month: string; contributions: number; transactions: number }>();
     for (const row of allRows) {
-      const key = monthKey(row.createdAt);
+      const key = row.sourceType === 'NET_PROFIT' && /^\d{4}-(0[1-9]|1[0-2])$/.test(row.sourceId) ? row.sourceId : monthKey(row.createdAt);
       const item = monthMap.get(key) ?? { month: key, contributions: 0, transactions: 0 };
       item.contributions += row.contributionAmount;
       if (row.eventType === 'ACCRUAL') item.transactions += 1;
@@ -219,11 +242,39 @@ export class AdminController {
     };
   }
 
+  @Roles('ADMIN', 'STAFF')
+  @Get('impact-funds/disbursements')
+  listImpactFundDisbursements() { return this.impactFundDisbursements.list(); }
+
+  @Roles('ADMIN', 'STAFF')
+  @Post('impact-funds/disbursements')
+  requestImpactFundDisbursement(@CurrentUser() user: JwtPayload, @Body() body: { amount: number; recipientName: string; recipientType?: string; purpose: string }) {
+    return this.impactFundDisbursements.request(user.sub, body);
+  }
+
+  @Roles('ADMIN')
+  @Post('impact-funds/disbursements/:id/approve')
+  approveImpactFundDisbursement(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.impactFundDisbursements.approve(user.sub, id);
+  }
+
+  @Roles('ADMIN')
+  @Post('impact-funds/disbursements/:id/reject')
+  rejectImpactFundDisbursement(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() body: { reason: string }) {
+    return this.impactFundDisbursements.reject(user.sub, id, body.reason);
+  }
+
+  @Roles('ADMIN')
+  @Post('impact-funds/disbursements/:id/paid')
+  markImpactFundDisbursementPaid(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() body: { paymentMethod: string; paymentReference: string; evidenceUrl?: string }) {
+    return this.impactFundDisbursements.markPaid(user.sub, id, body);
+  }
+
   @Roles('ADMIN')
   @Patch('impact-funds/rate')
   async updateImpactFundsRate(@CurrentUser() user: JwtPayload, @Body() body: { ratePercent?: number; confirm?: boolean }) {
     if (body.confirm !== true) throw new BadRequestException('Explicit confirmation is required to change the Impact Funds rate.');
-    if (!Number.isFinite(body.ratePercent) || body.ratePercent! < 0 || body.ratePercent! > 100) throw new BadRequestException('Rate must be between 0 and 100.');
+    if (body.ratePercent !== 3) throw new BadRequestException('The monthly ZIF allocation is fixed at 3% of positive net profit.');
     return this.prisma.$transaction(async tx => {
       const before = await tx.impactFundConfig.upsert({ where: { id: 'default' }, create: { id: 'default', ratePercent: 3 }, update: {} });
       const after = await tx.impactFundConfig.update({ where: { id: 'default' }, data: { ratePercent: body.ratePercent! } });
@@ -270,38 +321,46 @@ export class AdminController {
   }
 
   // Commissions
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @Get('commissions')
   commissions() { return this.commissionService.getAll(); }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @Get('commissions/summary')
   commissionSummary() { return this.commissionService.getSummary(); }
 
   // Expenses
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @Get('expenses')
-  getExpenses() { return this.financialService.getExpenses(); }
+  getExpenses(@Query('from') from?: string, @Query('to') to?: string) { return this.financialService.getExpenses(from, to); }
 
   @Roles('ADMIN')
   @Post('expenses')
-  createExpense(@Body() body: { title: string; amount: number; category: string; description?: string }) {
-    return this.financialService.createExpense(body);
+  createExpense(@CurrentUser() admin: JwtPayload, @Body() body: { title: string; amount: number; category: string; description?: string; vendor?: string; invoiceNumber?: string; dueDate?: string; date?: string; paymentReference?: string; amountPaid?: number }) {
+    return this.financialService.createExpense(body, admin.sub);
   }
 
   @Roles('ADMIN')
-  @Delete('expenses/:id')
-  deleteExpense(@Param('id') id: string) { return this.financialService.deleteExpense(id); }
+  @Post('expenses/:id/approve')
+  approveExpense(@CurrentUser() admin: JwtPayload, @Param('id') id: string) { return this.financialService.approveExpense(id, admin.sub); }
+
+  @Roles('ADMIN')
+  @Patch('expenses/:id/payment')
+  updateExpensePayment(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { amountPaid: number; paymentReference?: string }) { return this.financialService.updateExpensePayment(id, Number(body.amountPaid), body.paymentReference, admin.sub); }
+
+  @Roles('ADMIN')
+  @Post('expenses/:id/void')
+  voidExpense(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { reason: string }) { return this.financialService.voidExpense(id, body.reason, admin.sub); }
 
   // Staff
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @Get('staff')
-  getStaff() { return this.financialService.getStaff(); }
+  getStaff(@Query('month') month?: string) { return this.financialService.getStaff(month); }
 
   @Roles('ADMIN')
   @Post('staff')
-  createStaff(@Body() body: { name: string; role: string; accessRole?: string; phone: string; email?: string; password: string; salary: number }) {
-    return this.financialService.createStaff(body);
+  createStaff(@CurrentUser() admin: JwtPayload, @Body() body: { name: string; role: string; accessRole?: string; phone: string; email?: string; password: string; salary: number; department?: string; employmentType?: string }) {
+    return this.financialService.createStaff(body, admin.sub);
   }
 
   @Roles('ADMIN')
@@ -318,18 +377,50 @@ export class AdminController {
   @Get('system-health')
   getSystemHealth() { return this.adminService.getSystemHealth(); }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @Get('financial/reconciliation')
   getFinancialReconciliation() { return this.adminService.getFinancialReconciliation(); }
 
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @Get('audit')
   getAudit(@Query('limit') limit?: string, @Query('action') action?: string, @Query('entityType') entityType?: string) {
     return this.adminService.getAuditLog(Number(limit) || 100, action, entityType);
   }
 
-  // Salary payments
+  @Roles('ADMIN', 'STAFF')
+  @Get('payroll/run')
+  getPayrollRun(@Query('month') month: string) { return this.financialService.getPayrollRun(month); }
+
   @Roles('ADMIN')
+  @Post('payroll/run')
+  createPayrollRun(@CurrentUser() admin: JwtPayload, @Body() body: { month: string; adjustments?: any[] }) {
+    return this.financialService.createPayrollRun(body.month, body.adjustments || [], admin.sub);
+  }
+
+  @Roles('ADMIN')
+  @Post('payroll/run/:id/discard-draft')
+  discardDraftPayrollRun(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { reason: string }) {
+    return this.financialService.discardDraftPayrollRun(id, body.reason, admin.sub);
+  }
+
+  @Roles('ADMIN')
+  @Post('payroll/run/:id/approve')
+  approvePayrollRun(@CurrentUser() admin: JwtPayload, @Param('id') id: string) {
+    return this.financialService.approvePayrollRun(id, admin.sub);
+  }
+
+  @Roles('ADMIN')
+  @Post('payroll/lines/:id/payment')
+  recordPayrollLinePayment(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { amount: number; paymentReference: string; paymentMethod: string }) {
+    return this.financialService.recordPayrollPayment(id, Number(body.amount), body.paymentReference, body.paymentMethod, admin.sub);
+  }
+
+  @Roles('ADMIN', 'STAFF')
+  @Get('payroll/preview')
+  payrollPreview(@Query('month') month: string) { return this.financialService.getPayrollPreview(month); }
+
+  // Salary payments
+  @Roles('ADMIN', 'STAFF')
   @Get('salary-payments')
   getSalaryPayments(@Query('month') month?: string) {
     return this.financialService.getSalaryPayments(month);
@@ -337,9 +428,76 @@ export class AdminController {
 
   @Roles('ADMIN')
   @Post('salary-payments')
-  recordPayment(@Body() body: { staffMemberId: string; month: string; amount?: number; note?: string }) {
-    return this.financialService.recordSalaryPayment(body.staffMemberId, body.month, body.amount, body.note);
+  recordPayment(@CurrentUser() admin: JwtPayload, @Body() body: { staffMemberId: string; month: string; amount?: number; note?: string; paymentReference?: string; paymentMethod?: string }) {
+    return this.financialService.recordSalaryPayment(body.staffMemberId, body.month, body.amount, body.note, body.paymentReference, body.paymentMethod, admin.sub);
   }
+
+  // Salary advances: issue/cancel is administrator-only; payroll recovers approved schedules automatically.
+  @Roles('ADMIN', 'STAFF')
+  @Get('payroll/advances')
+  listSalaryAdvances(@Query('staffMemberId') staffMemberId?: string) { return this.financeExtensions.listAdvances(staffMemberId); }
+
+  @Roles('ADMIN')
+  @Post('payroll/advances')
+  issueSalaryAdvance(@CurrentUser() admin: JwtPayload, @Body() body: any) { return this.financeExtensions.issueAdvance(admin.sub, body); }
+
+  @Roles('ADMIN')
+  @Post('payroll/advances/:id/approve')
+  approveSalaryAdvance(@CurrentUser() admin: JwtPayload, @Param('id') id: string) { return this.financeExtensions.approveAdvance(admin.sub, id); }
+
+  @Roles('ADMIN')
+  @Post('payroll/advances/:id/payment')
+  paySalaryAdvance(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: any) { return this.financeExtensions.payAdvance(admin.sub, id, body); }
+
+  @Roles('ADMIN')
+  @Post('payroll/advances/:id/cancel')
+  cancelSalaryAdvance(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { reason: string }) { return this.financeExtensions.cancelAdvance(admin.sub, id, body.reason); }
+
+  // Contractor invoices: withholding rate is explicitly entered and must be verified by Finance/accountant.
+  @Roles('ADMIN', 'STAFF')
+  @Get('contractor-invoices')
+  listContractorInvoices(@Query('status') status?: string) { return this.financeExtensions.listContractorInvoices(status); }
+
+  @Roles('ADMIN')
+  @Post('contractor-invoices')
+  createContractorInvoice(@CurrentUser() admin: JwtPayload, @Body() body: any) { return this.financeExtensions.createContractorInvoice(admin.sub, body); }
+
+  @Roles('ADMIN')
+  @Post('contractor-invoices/:id/approve')
+  approveContractorInvoice(@CurrentUser() admin: JwtPayload, @Param('id') id: string) { return this.financeExtensions.reviewContractorInvoice(admin.sub, id, true); }
+
+  @Roles('ADMIN')
+  @Post('contractor-invoices/:id/reject')
+  rejectContractorInvoice(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { reason: string }) { return this.financeExtensions.reviewContractorInvoice(admin.sub, id, false, body.reason); }
+
+  @Roles('ADMIN')
+  @Post('contractor-invoices/:id/payment')
+  payContractorInvoice(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: any) { return this.financeExtensions.payContractorInvoice(admin.sub, id, body); }
+
+  // Statutory remittances are calculated from approved payroll snapshots, then approved and marked paid separately.
+  @Roles('ADMIN', 'STAFF')
+  @Get('statutory-remittances')
+  listStatutoryRemittances(@Query('period') period?: string) { return this.financeExtensions.listRemittances(period); }
+
+  @Roles('ADMIN')
+  @Post('statutory-remittances/generate')
+  generateStatutoryRemittances(@CurrentUser() admin: JwtPayload, @Body() body: { period: string }) { return this.financeExtensions.generatePayrollRemittances(admin.sub, body.period); }
+
+  @Roles('ADMIN')
+  @Patch('statutory-remittances/:id')
+  updateStatutoryRemittance(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: any) { return this.financeExtensions.updateRemittanceDraft(admin.sub, id, body); }
+
+  @Roles('ADMIN')
+  @Post('statutory-remittances/:id/verify')
+  verifyStatutoryRemittance(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { verificationNote: string }) { return this.financeExtensions.verifyRemittance(admin.sub, id, body.verificationNote); }
+
+  @Roles('ADMIN')
+  @Post('statutory-remittances/:id/approve')
+  approveStatutoryRemittance(@CurrentUser() admin: JwtPayload, @Param('id') id: string) { return this.financeExtensions.approveRemittance(admin.sub, id); }
+
+  @Roles('ADMIN')
+  @Post('statutory-remittances/:id/payment')
+  payStatutoryRemittance(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: any) { return this.financeExtensions.payRemittance(admin.sub, id, body); }
 
   // Users
   @Get('users')
