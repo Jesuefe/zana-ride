@@ -60,10 +60,12 @@ export class RolesGuard implements CanActivate {
     }
 
     if (accessRole === 'FINANCE') {
-      const financeReads = ['/admin/me', '/admin/financial', '/admin/expenses', '/admin/staff', '/admin/payroll', '/admin/salary-payments', '/admin/impact-funds', '/admin/commissions', '/admin/accounting/ledger', '/admin/settlements', '/admin/audit'];
+      const financeReads = ['/admin/me', '/admin/financial', '/admin/expenses', '/admin/staff', '/admin/payroll', '/admin/salary-payments', '/admin/contractor-invoices', '/admin/statutory-remittances', '/admin/impact-funds', '/admin/commissions', '/admin/accounting/ledger', '/admin/settlements', '/admin/audit'];
       return (readOnly && matches(financeReads)) || (method === 'POST' && path === '/admin/impact-funds/disbursements');
     }
 
     return false;
   }
 }
+
+[executed on device: vmi3250959 (aae32ee4-934a-4390-a92f-29b405a66623)]
