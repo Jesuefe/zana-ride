@@ -2,6 +2,7 @@
 CREATE TABLE "ImpactFundConfig" (
     "id" TEXT NOT NULL DEFAULT 'default',
     "ratePercent" DOUBLE PRECISION NOT NULL DEFAULT 3,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "ImpactFundConfig_pkey" PRIMARY KEY ("id")
 );
