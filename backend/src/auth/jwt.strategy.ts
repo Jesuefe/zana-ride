@@ -4,7 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 
-export type JwtPayload = { sub: string; phone: string; role: string; accessRole?: string };
+export type JwtPayload = { sub: string; phone: string; role: string; accessRole?: string; adminTotpVerifiedAt?: number };
 
 // super() has to be the first statement in a derived constructor, so the
 // same "refuse to start rather than silently sign with a known secret"
@@ -37,10 +37,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // every role at once, rather than patching it endpoint by endpoint.
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { status: true, staffMember: { select: { accessRole: true, active: true } } },
+      select: {
+        status: true,
+        adminTotpEnabled: true,
+        adminTotpEnabledAt: true,
+        staffMember: { select: { accessRole: true, active: true } },
+      },
     });
     if (!user || user.status !== 'ACTIVE') {
       throw new UnauthorizedException('ACCOUNT_NOT_ACTIVE');
+    }
+    if (payload.role === 'ADMIN') {
+      if (
+        !user.adminTotpEnabled ||
+        !user.adminTotpEnabledAt ||
+        typeof payload.adminTotpVerifiedAt !== 'number' ||
+        payload.adminTotpVerifiedAt < user.adminTotpEnabledAt.getTime()
+      ) {
+        throw new UnauthorizedException('ADMIN_TOTP_REQUIRED');
+      }
     }
     if (payload.role === 'STAFF') {
       if (!user.staffMember?.active) {
