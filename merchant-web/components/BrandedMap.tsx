@@ -52,6 +52,7 @@ export default function BrandedMap({
   onRouteDeviation?: (info: { offRoute: boolean; distanceMeters: number } | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const locationSearchRef = useRef<HTMLInputElement>(null);
   const mapRef = useRef<any>(null);
   const rendererRef = useRef<any>(null);
   const driverMarkerRef = useRef<any>(null);
@@ -141,6 +142,28 @@ export default function BrandedMap({
         disableDefaultUI: true,
         gestureHandling: draggablePickup ? 'greedy' : 'none',
       });
+
+      // Merchant registration: searchable Google Places field lets owners find
+      // their shop by name/address, then places the draggable pin at that result.
+      if (draggablePickup && locationSearchRef.current && G.places?.Autocomplete) {
+        const autocomplete = new G.places.Autocomplete(locationSearchRef.current, {
+          fields: ['geometry', 'formatted_address', 'name'],
+          componentRestrictions: { country: 'rw' },
+        });
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          const location = place.geometry?.location;
+          if (!location) return;
+          const selected = { lat: location.lat(), lng: location.lng() };
+          mapRef.current?.panTo(selected);
+          mapRef.current?.setZoom(17);
+          if (originMarkerRef.current) {
+            try { originMarkerRef.current.position = selected; }
+            catch { originMarkerRef.current.setPosition?.(selected); }
+          }
+          onPickupChange?.(selected);
+        });
+      }
 
       // Route renderer
       rendererRef.current = new G.DirectionsRenderer({
@@ -269,6 +292,23 @@ export default function BrandedMap({
   return (
     <div style={{ position: 'relative', width: '100%', height }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      {draggablePickup && (
+        <div style={{ position: 'absolute', zIndex: 5, top: 12, left: 12, right: 12 }}>
+          <input
+            ref={locationSearchRef}
+            type="search"
+            placeholder="Search business name, street or address"
+            aria-label="Search for your business location"
+            autoComplete="off"
+            style={{
+              width: '100%', height: 46, border: '1px solid #dce5df',
+              borderRadius: 12, background: '#fff', color: '#10221d',
+              padding: '0 14px', fontSize: 13, fontWeight: 500,
+              outline: 'none', boxShadow: '0 4px 16px rgba(16,34,29,.12)',
+            }}
+          />
+        </div>
+      )}
       <style>{`@keyframes zpulse{0%,100%{transform:scale(1);opacity:0.3}50%{transform:scale(2.5);opacity:0}}`}</style>
     </div>
   );
