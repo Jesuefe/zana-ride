@@ -306,8 +306,9 @@ model MerchantInvite {
 model CommissionDebt {
   id         String    @id @default(uuid())
   driverId   String
-  amount     Int
-  tripId     String?
+  amount        Int
+  settledAmount Int       @default(0)
+  tripId        String?
   deliveryId String?
   paidAt     DateTime?
   settledVia String?
