@@ -48,5 +48,3 @@ WHERE COALESCE(BTRIM(d."plate"), '') <> '';
 
 UPDATE "DriverDocument"
 SET "reviewStatus" = CASE WHEN "verified" THEN 'VERIFIED' ELSE 'PENDING' END;
-
-[executed on device: DESKTOP-083Q3R6 (1f4280e6-4fa9-403d-9767-1eceadbc3e45)]
