@@ -372,11 +372,18 @@ export class AuthService {
     if (!user || user.role !== 'ADMIN' || user.status !== 'ACTIVE') throw new UnauthorizedException('ADMIN_ACCOUNT_NOT_AVAILABLE');
     if (user.adminTotpEnabled && user.adminTotpSecretEnc) throw new BadRequestException('ADMIN_TOTP_ALREADY_ENABLED');
 
-    const secret = generateAdminTotpSecret();
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { adminTotpPendingSecretEnc: this.encryptAdminTotpSecret(secret) },
-    });
+    // Keep setup retries stable: a refreshed login/setup screen must not
+    // silently replace the secret already added to the administrator's app.
+    // A pending secret is rotated only through an explicit recovery/reset.
+    const secret = user.adminTotpPendingSecretEnc
+      ? this.decryptAdminTotpSecret(user.adminTotpPendingSecretEnc)
+      : generateAdminTotpSecret();
+    if (!user.adminTotpPendingSecretEnc) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { adminTotpPendingSecretEnc: this.encryptAdminTotpSecret(secret) },
+      });
+    }
     const accountLabel = user.email || user.phone;
     const label = encodeURIComponent(`Zana Admin:${accountLabel}`);
     const issuer = encodeURIComponent('Zana Admin');
