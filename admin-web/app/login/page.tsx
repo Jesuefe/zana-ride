@@ -44,9 +44,13 @@ export default function LoginPage() {
     try {
       if (step === 'credentials') {
         const result = await login(identifier.trim(), password);
+        if (result?.user?.role === 'STAFF' && result?.token) {
+          router.push('/dashboard');
+          return;
+        }
         if (result?.user?.role !== 'ADMIN') {
           clearToken();
-          throw new Error('This sign-in is for administrator accounts only.');
+          throw new Error('This portal is for authorized Zana administrators and active staff accounts.');
         }
         if (result.token) {
           finish(result);
@@ -119,20 +123,20 @@ export default function LoginPage() {
             <Shield size={28} className="text-zana-primary" />
           </div>
           <h1 className="text-xl font-bold text-gray-900">Zana Control Center</h1>
-          <p className="text-sm text-gray-500 mt-1">Administrator access protected by two-factor authentication</p>
+          <p className="text-sm text-gray-500 mt-1">Secure access for Zana administrators and staff</p>
         </div>
 
         {step === 'credentials' && (
           <>
             <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 mb-5 flex gap-3">
               <ShieldCheck size={19} className="text-emerald-700 shrink-0 mt-0.5" />
-              <p className="text-xs leading-5 text-emerald-900">Sign in with your administrator password, then confirm using Google Authenticator. First-time administrators will be guided through setup.</p>
+              <p className="text-xs leading-5 text-emerald-900">Sign in with your Zana work account. Administrators verify with Google Authenticator; staff are directed to their assigned workspace permissions.</p>
             </div>
             <div className="space-y-3">
               <input
                 value={identifier}
                 onChange={e => setIdentifier(e.target.value)}
-                placeholder="Admin phone or email"
+                placeholder="Work email or phone"
                 autoComplete="username"
                 autoFocus
                 className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zana-primary/30"
@@ -245,7 +249,6 @@ export default function LoginPage() {
 
         {step === 'credentials' && (
           <>
-            <button onClick={() => router.push('/create-admin')} className="w-full text-sm text-zana-primary font-medium py-2.5 mt-2">Create administrator</button>
             <button onClick={() => router.push('/forgot-password')} className="w-full text-sm text-gray-500 py-2.5">Forgot your password?</button>
             <button onClick={() => router.push('/staff')} className="w-full text-xs text-zana-primary py-2.5">Staff login</button>
           </>
