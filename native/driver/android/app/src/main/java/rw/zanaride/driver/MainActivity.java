@@ -4,12 +4,15 @@ import android.os.Bundle;
 import android.webkit.PermissionRequest;
 
 import com.getcapacitor.BridgeActivity;
+
+import rw.zanaride.driver.DriverBackgroundLocationPlugin;
 import com.getcapacitor.BridgeWebChromeClient;
 
 public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(DriverBackgroundLocationPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Extend Capacitor's own chrome client rather than replacing it.
