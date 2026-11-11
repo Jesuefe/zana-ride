@@ -148,7 +148,7 @@ export class AuthService {
       });
     }
 
-    const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role });
+    const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role, adminTotpVerifiedAt: Date.now() });
     return { token, user };
   }
 
@@ -387,6 +387,12 @@ export class AuthService {
     const tokenKey = this.adminTotpTokenKey('setup', setupToken);
     const userId = await this.redis.get(tokenKey);
     if (!userId) throw new UnauthorizedException('ADMIN_TOTP_SETUP_EXPIRED');
+    const attempts = await this.redis.incr(`${tokenKey}:attempts`, 10 * 60);
+    if (attempts > 5) {
+      await this.redis.del(tokenKey);
+      await this.redis.del(`${tokenKey}:attempts`);
+      throw new UnauthorizedException('TOO_MANY_AUTHENTICATOR_ATTEMPTS');
+    }
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || user.role !== 'ADMIN' || user.status !== 'ACTIVE' || !user.adminTotpPendingSecretEnc) {
       throw new UnauthorizedException('ADMIN_TOTP_SETUP_NOT_AVAILABLE');
@@ -410,7 +416,7 @@ export class AuthService {
     });
     await this.redis.del(tokenKey);
     await this.redis.del(`${tokenKey}:attempts`);
-    const token = this.jwt.sign({ sub: updated.id, phone: updated.phone, role: updated.role });
+    const token = this.jwt.sign({ sub: updated.id, phone: updated.phone, role: updated.role, adminTotpVerifiedAt: Date.now() });
     return { token, user: this.safeAdminUser(updated), recoveryCodes };
   }
 
