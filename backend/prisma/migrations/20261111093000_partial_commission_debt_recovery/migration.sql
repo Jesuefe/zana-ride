@@ -1,0 +1,1 @@
+ALTER TABLE "CommissionDebt" ADD COLUMN "settledAmount" INTEGER NOT NULL DEFAULT 0;
