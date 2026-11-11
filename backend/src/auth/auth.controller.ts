@@ -56,6 +56,23 @@ export class AuthController {
     return this.authService.login(dto.identifier, dto.password);
   }
 
+  // Administrator TOTP setup uses a short-lived, one-time opaque token returned
+  // after the password has been verified. It is not a normal API session token.
+  @Post('admin/2fa/setup')
+  startAdminTotpSetup(@Body() body: { setupToken: string }) {
+    return this.authService.startAdminTotpSetup(body.setupToken);
+  }
+
+  @Post('admin/2fa/enable')
+  enableAdminTotp(@Body() body: { setupToken: string; code: string }) {
+    return this.authService.enableAdminTotp(body.setupToken, body.code);
+  }
+
+  @Post('admin/2fa/verify-login')
+  verifyAdminTotpLogin(@Body() body: { challengeToken: string; code: string }) {
+    return this.authService.verifyAdminTotpLogin(body.challengeToken, body.code);
+  }
+
   @Post('register-merchant')
   registerMerchant(@Body() body: { token: string; email: string; password: string; businessName: string; category: string; phone: string }) {
     return this.authService.registerMerchantViaInvite(body.token, body);

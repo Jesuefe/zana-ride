@@ -9,8 +9,24 @@ export async function createTestAccounts(data: { password: string }) {
 }
 
 export async function login(identifier: string, password: string) {
-  const result = await api.post<{ token: string; user: any }>('/auth/login', { identifier, password });
-  setToken(result.token);
+  const result = await api.post<any>('/auth/login', { identifier, password });
+  if (result?.token) setToken(result.token);
+  return result;
+}
+
+export async function startAdminTotpSetup(setupToken: string) {
+  return api.post<{ secret: string; otpauthUrl: string; accountLabel: string }>('/auth/admin/2fa/setup', { setupToken });
+}
+
+export async function enableAdminTotp(setupToken: string, code: string) {
+  const result = await api.post<any>('/auth/admin/2fa/enable', { setupToken, code });
+  if (result?.token) setToken(result.token);
+  return result;
+}
+
+export async function verifyAdminTotpLogin(challengeToken: string, code: string) {
+  const result = await api.post<any>('/auth/admin/2fa/verify-login', { challengeToken, code });
+  if (result?.token) setToken(result.token);
   return result;
 }
 
@@ -189,15 +205,6 @@ export async function getAuditLog(params?: { limit?: number; action?: string; en
   return api.get<any[]>(`/admin/audit${qs ? `?${qs}` : ''}`);
 }
 
-export async function requestAdminOtp(phone: string) {
-  return api.post<{ sent: boolean }>('/auth/request-otp', { phone });
-}
-
-export async function verifyAdminOtp(phone: string, code: string) {
-  const result = await api.post<{ token: string; user: any }>('/auth/verify-otp', { phone, code });
-  setToken(result.token);
-  return result;
-}
 
 
 export async function getRiderRegistrations(params?: { status?: string; search?: string }) {
