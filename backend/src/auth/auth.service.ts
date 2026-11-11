@@ -148,7 +148,7 @@ export class AuthService {
       });
     }
 
-    const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role, adminTotpVerifiedAt: Date.now() });
+    const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role });
     return { token, user };
   }
 
@@ -465,7 +465,7 @@ export class AuthService {
     if (!verified) throw new UnauthorizedException('INVALID_AUTHENTICATOR_CODE');
     await this.redis.del(tokenKey);
     await this.redis.del(`${tokenKey}:attempts`);
-    const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role });
+    const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role, adminTotpVerifiedAt: Date.now() });
     return { token, user: this.safeAdminUser(user) };
   }
 
