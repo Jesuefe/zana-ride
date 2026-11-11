@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
-import { timingSafeEqual } from 'crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from 'crypto';
+import { generateAdminTotpSecret, verifyAdminTotpCode } from './admin-totp.util';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -128,6 +129,7 @@ export class AuthService {
     await this.clearOtp(phone);
 
     let user = await this.prisma.user.findUnique({ where: { phone } });
+    if (user?.role === 'ADMIN') throw new UnauthorizedException('ADMIN_PASSWORD_AND_AUTHENTICATOR_REQUIRED');
     if (!user) {
       // Captures the email a brand-new signup verified through,
       // rather than losing it — this is exactly the address a
@@ -321,6 +323,146 @@ export class AuthService {
     return { created: true, user };
   }
 
+  private adminTotpEncryptionKey(): Buffer {
+    const configured = this.config.get<string>('SETTINGS_ENCRYPTION_KEY');
+    if (!configured) throw new BadRequestException('ADMIN_TOTP_ENCRYPTION_KEY_NOT_CONFIGURED');
+    return /^[a-f0-9]{64}$/i.test(configured)
+      ? Buffer.from(configured, 'hex')
+      : createHash('sha256').update(configured).digest();
+  }
+
+  private encryptAdminTotpSecret(secret: string): string {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', this.adminTotpEncryptionKey(), iv);
+    const encrypted = Buffer.concat([cipher.update(secret, 'utf8'), cipher.final()]);
+    return ['v1', iv.toString('base64'), cipher.getAuthTag().toString('base64'), encrypted.toString('base64')].join('.');
+  }
+
+  private decryptAdminTotpSecret(value: string): string {
+    const [version, ivText, tagText, dataText] = String(value).split('.');
+    if (version !== 'v1' || !ivText || !tagText || !dataText) throw new BadRequestException('ADMIN_TOTP_SECRET_INVALID');
+    const decipher = createDecipheriv('aes-256-gcm', this.adminTotpEncryptionKey(), Buffer.from(ivText, 'base64'));
+    decipher.setAuthTag(Buffer.from(tagText, 'base64'));
+    return Buffer.concat([decipher.update(Buffer.from(dataText, 'base64')), decipher.final()]).toString('utf8');
+  }
+
+  private adminTotpTokenKey(purpose: 'setup' | 'login', token: string): string {
+    if (!token || typeof token !== 'string' || token.length < 32) throw new UnauthorizedException('ADMIN_TOTP_CHALLENGE_INVALID');
+    const digest = createHash('sha256').update(token).digest('hex');
+    return `admin-totp:${purpose}:${digest}`;
+  }
+
+  private safeAdminUser(user: any) {
+    const {
+      password: _password,
+      adminTotpSecretEnc: _secret,
+      adminTotpPendingSecretEnc: _pending,
+      adminTotpRecoveryCodes: _recovery,
+      ...safeUser
+    } = user;
+    return safeUser;
+  }
+
+  async startAdminTotpSetup(setupToken: string) {
+    const tokenKey = this.adminTotpTokenKey('setup', setupToken);
+    const userId = await this.redis.get(tokenKey);
+    if (!userId) throw new UnauthorizedException('ADMIN_TOTP_SETUP_EXPIRED');
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.role !== 'ADMIN' || user.status !== 'ACTIVE') throw new UnauthorizedException('ADMIN_ACCOUNT_NOT_AVAILABLE');
+    if (user.adminTotpEnabled && user.adminTotpSecretEnc) throw new BadRequestException('ADMIN_TOTP_ALREADY_ENABLED');
+
+    const secret = generateAdminTotpSecret();
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { adminTotpPendingSecretEnc: this.encryptAdminTotpSecret(secret) },
+    });
+    const accountLabel = user.email || user.phone;
+    const label = encodeURIComponent(`Zana Admin:${accountLabel}`);
+    const issuer = encodeURIComponent('Zana Admin');
+    const otpauthUrl = `otpauth://totp/${label}?secret=${secret}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
+    return { secret, otpauthUrl, accountLabel, issuer: 'Zana Admin', digits: 6, periodSeconds: 30 };
+  }
+
+  async enableAdminTotp(setupToken: string, code: string) {
+    const tokenKey = this.adminTotpTokenKey('setup', setupToken);
+    const userId = await this.redis.get(tokenKey);
+    if (!userId) throw new UnauthorizedException('ADMIN_TOTP_SETUP_EXPIRED');
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.role !== 'ADMIN' || user.status !== 'ACTIVE' || !user.adminTotpPendingSecretEnc) {
+      throw new UnauthorizedException('ADMIN_TOTP_SETUP_NOT_AVAILABLE');
+    }
+    const secret = this.decryptAdminTotpSecret(user.adminTotpPendingSecretEnc);
+    if (!verifyAdminTotpCode(secret, String(code ?? '').trim())) {
+      throw new UnauthorizedException('INVALID_AUTHENTICATOR_CODE');
+    }
+
+    const recoveryCodes = Array.from({ length: 10 }, () => randomBytes(6).toString('hex').toUpperCase());
+    const recoveryHashes = recoveryCodes.map(value => createHash('sha256').update(value).digest('hex'));
+    const updated = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        adminTotpSecretEnc: user.adminTotpPendingSecretEnc,
+        adminTotpPendingSecretEnc: null,
+        adminTotpEnabled: true,
+        adminTotpEnabledAt: new Date(),
+        adminTotpRecoveryCodes: JSON.stringify(recoveryHashes),
+      },
+    });
+    await this.redis.del(tokenKey);
+    await this.redis.del(`${tokenKey}:attempts`);
+    const token = this.jwt.sign({ sub: updated.id, phone: updated.phone, role: updated.role });
+    return { token, user: this.safeAdminUser(updated), recoveryCodes };
+  }
+
+  async verifyAdminTotpLogin(challengeToken: string, code: string) {
+    const tokenKey = this.adminTotpTokenKey('login', challengeToken);
+    const userId = await this.redis.get(tokenKey);
+    if (!userId) throw new UnauthorizedException('ADMIN_TOTP_CHALLENGE_EXPIRED');
+    const attempts = await this.redis.incr(`${tokenKey}:attempts`, 5 * 60);
+    if (attempts > 5) {
+      await this.redis.del(tokenKey);
+      await this.redis.del(`${tokenKey}:attempts`);
+      throw new UnauthorizedException('TOO_MANY_AUTHENTICATOR_ATTEMPTS');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.role !== 'ADMIN' || user.status !== 'ACTIVE' || !user.adminTotpEnabled || !user.adminTotpSecretEnc) {
+      throw new UnauthorizedException('ADMIN_ACCOUNT_NOT_AVAILABLE');
+    }
+
+    let verified = false;
+    const supplied = String(code ?? '').trim().toUpperCase();
+    try {
+      verified = verifyAdminTotpCode(this.decryptAdminTotpSecret(user.adminTotpSecretEnc), supplied);
+    } catch {
+      verified = false;
+    }
+
+    if (!verified && user.adminTotpRecoveryCodes) {
+      let stored: string[] = [];
+      try { stored = JSON.parse(user.adminTotpRecoveryCodes); } catch { stored = []; }
+      const digest = createHash('sha256').update(supplied).digest('hex');
+      const index = stored.findIndex(value => {
+        const a = Buffer.from(String(value), 'hex');
+        const b = Buffer.from(digest, 'hex');
+        return a.length === b.length && timingSafeEqual(a, b);
+      });
+      if (index >= 0) {
+        const updated = await this.prisma.user.updateMany({
+          where: { id: user.id, adminTotpRecoveryCodes: user.adminTotpRecoveryCodes },
+          data: { adminTotpRecoveryCodes: JSON.stringify(stored.filter((_, i) => i !== index)) },
+        });
+        verified = updated.count === 1;
+      }
+    }
+
+    if (!verified) throw new UnauthorizedException('INVALID_AUTHENTICATOR_CODE');
+    await this.redis.del(tokenKey);
+    await this.redis.del(`${tokenKey}:attempts`);
+    const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role });
+    return { token, user: this.safeAdminUser(user) };
+  }
+
   async login(identifier: string, password: string) {
     const user = await this.prisma.user.findFirst({
       where: { OR: [{ phone: identifier }, { email: identifier }] },
@@ -334,6 +476,22 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email/phone or password');
     }
 
+    if (user.role === 'ADMIN') {
+      if (user.status !== 'ACTIVE') throw new UnauthorizedException('ACCOUNT_NOT_ACTIVE');
+      const needsSetup = !user.adminTotpEnabled || !user.adminTotpSecretEnc;
+      const challengeToken = randomBytes(32).toString('base64url');
+      const purpose = needsSetup ? 'setup' : 'login';
+      const expiresInSeconds = needsSetup ? 10 * 60 : 5 * 60;
+      await this.redis.set(this.adminTotpTokenKey(purpose, challengeToken), user.id, expiresInSeconds);
+      return {
+        requiresTwoFactorSetup: needsSetup,
+        requiresTwoFactor: !needsSetup,
+        ...(needsSetup ? { setupToken: challengeToken } : { challengeToken }),
+        expiresInSeconds,
+        user: this.safeAdminUser(user),
+      };
+    }
+
     const staffMember = user.role === 'STAFF'
       ? await this.prisma.staffMember.findUnique({ where: { userId: user.id }, select: { accessRole: true, active: true } })
       : null;
@@ -342,7 +500,7 @@ export class AuthService {
     }
     const accessRole = staffMember?.accessRole || undefined;
     const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role, ...(accessRole ? { accessRole } : {}) });
-    return { token, user: { ...user, ...(accessRole ? { accessRole } : {}) } };
+    return { token, user: this.safeAdminUser({ ...user, ...(accessRole ? { accessRole } : {}) }) };
   }
 
   async registerMerchantPublic(data: {
@@ -469,6 +627,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({ where: { phone } });
     if (!user) throw new UnauthorizedException('INVALID_CODE');
+    if (user.role === 'ADMIN') throw new UnauthorizedException('ADMIN_PASSWORD_AND_AUTHENTICATOR_REQUIRED');
 
     if (user.status === 'SUSPENDED' || user.status === 'BANNED') {
       throw new UnauthorizedException('ACCOUNT_SUSPENDED');
