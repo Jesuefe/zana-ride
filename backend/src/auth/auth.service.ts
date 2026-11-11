@@ -324,7 +324,8 @@ export class AuthService {
   }
 
   private adminTotpEncryptionKey(): Buffer {
-    const configured = this.config.get<string>('SETTINGS_ENCRYPTION_KEY');
+    // Match the existing admin-settings and Zana AI encryption-key fallback.
+    const configured = this.config.get<string>('SETTINGS_ENCRYPTION_KEY') || this.config.get<string>('JWT_SECRET');
     if (!configured) throw new BadRequestException('ADMIN_TOTP_ENCRYPTION_KEY_NOT_CONFIGURED');
     return /^[a-f0-9]{64}$/i.test(configured)
       ? Buffer.from(configured, 'hex')
