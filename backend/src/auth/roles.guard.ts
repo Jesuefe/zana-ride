@@ -46,7 +46,13 @@ export class RolesGuard implements CanActivate {
     }
 
     if (accessRole === 'DRIVER_OPERATIONS') {
-      return readOnly && (matches(commonReads) || matches(operationReads) || matches(['/admin/drivers', '/admin/drivers/']));
+      const driverWriteRoutes = [
+        /^\/admin\/drivers\/[^/]+\/(profile|review)$/,
+        /^\/admin\/drivers\/[^/]+\/vehicles\/[^/]+(\/status)?$/,
+        /^\/admin\/drivers\/documents\/[^/]+\/(verify|metadata)$/,
+      ];
+      return (readOnly && (matches(commonReads) || matches(operationReads) || matches(['/admin/drivers', '/admin/drivers/']))) ||
+        (method === 'PATCH' && driverWriteRoutes.some(route => route.test(path)));
     }
 
     if (accessRole === 'MARKET_OPERATIONS') {

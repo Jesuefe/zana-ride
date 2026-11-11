@@ -54,7 +54,7 @@ export default function SignupPage() {
         plate: plate.trim(),
         serviceType,
       });
-      router.push('/');
+      router.push('/documents');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : dt('Could not reach the server.'));
     } finally {

@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, BadRequestException, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth/roles.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -123,9 +123,28 @@ export class DriversController {
   @Post('documents')
   uploadDocument(
     @CurrentUser() user: JwtPayload,
-    @Body() body: { label: string; imageBase64: string },
+    @Body() body: { label: string; imageBase64: string; vehicleId?: string; expiresAt?: string },
   ) {
-    return this.driversService.uploadDocument(user.sub, body.label, body.imageBase64);
+    return this.driversService.uploadDocument(user.sub, body.label, body.imageBase64, body.vehicleId, body.expiresAt);
+  }
+
+  @Get('vehicles')
+  myVehicles(@CurrentUser() user: JwtPayload) {
+    return this.driversService.listVehicles(user.sub);
+  }
+
+  @Post('vehicles')
+  createVehicle(@CurrentUser() user: JwtPayload, @Body() body: any) {
+    return this.driversService.createVehicle(user.sub, body);
+  }
+
+  @Post('vehicles/:vehicleId/documents')
+  uploadVehicleDocument(
+    @CurrentUser() user: JwtPayload,
+    @Param('vehicleId') vehicleId: string,
+    @Body() body: { label: string; imageBase64: string; expiresAt?: string },
+  ) {
+    return this.driversService.uploadDocument(user.sub, body.label, body.imageBase64, vehicleId, body.expiresAt);
   }
 }
 
@@ -135,25 +154,60 @@ export class DriversController {
 export class AdminDriversController {
   constructor(private driversService: DriversService) {}
 
+  @Get('operations/overview')
+  overview() { return this.driversService.getOperationsOverview(); }
+
   @Get()
   findAll(@Query('status') status?: string) { return this.driversService.findAll(status); }
 
   @Get(':id/detail')
   detail(@Param('id') id: string) { return this.driversService.getDetail(id); }
 
+  @Get(':id/audit')
+  audit(@Param('id') id: string) { return this.driversService.getAuditHistory(id); }
+
   @Patch(':id/approve')
-  approve(@Param('id') id: string) {
-    return this.driversService.setApprovalStatus(id, DriverApprovalStatus.APPROVED);
+  approve(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.driversService.setApprovalStatus(id, DriverApprovalStatus.APPROVED, user.sub, body?.reason);
   }
 
   @Patch(':id/reject')
-  reject(@Param('id') id: string, @Body() body: { reason?: string }) {
-    return this.driversService.setApprovalStatus(id, DriverApprovalStatus.REJECTED);
+  reject(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.driversService.setApprovalStatus(id, DriverApprovalStatus.REJECTED, user.sub, body?.reason);
   }
 
   @Patch(':id/suspend')
-  suspend(@Param('id') id: string) {
-    return this.driversService.setApprovalStatus(id, DriverApprovalStatus.SUSPENDED);
+  suspend(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.driversService.setApprovalStatus(id, DriverApprovalStatus.SUSPENDED, user.sub, body?.reason);
+  }
+
+  @Patch(':id/review')
+  review(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() body: { status: string; reason: string }) {
+    if (String(body?.reason ?? '').trim().length < 5) throw new BadRequestException('A decision reason of at least 5 characters is required.');
+    const statuses: Record<string, DriverApprovalStatus> = {
+      PENDING: DriverApprovalStatus.PENDING,
+      APPROVED: DriverApprovalStatus.APPROVED,
+      REJECTED: DriverApprovalStatus.REJECTED,
+      SUSPENDED: DriverApprovalStatus.SUSPENDED,
+    };
+    const status = statuses[String(body?.status ?? '').toUpperCase()];
+    if (!status) throw new ForbiddenException('Invalid driver review status.');
+    return this.driversService.setApprovalStatus(id, status, user.sub, body.reason);
+  }
+
+  @Patch(':id/profile')
+  updateProfile(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() body: any) {
+    return this.driversService.updateDriverProfile(id, body, user.sub);
+  }
+
+  @Patch(':id/vehicles/:vehicleId')
+  updateVehicle(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Param('vehicleId') vehicleId: string, @Body() body: any) {
+    return this.driversService.updateVehicle(id, vehicleId, body, user.sub);
+  }
+
+  @Patch(':id/vehicles/:vehicleId/status')
+  setVehicleStatus(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Param('vehicleId') vehicleId: string, @Body() body: { status: string; reason: string }) {
+    return this.driversService.setVehicleStatus(id, vehicleId, body.status, body.reason, user.sub);
   }
 
   @Get(':id/documents')
@@ -161,12 +215,18 @@ export class AdminDriversController {
     return this.driversService.documentsForDriver(id);
   }
 
+  @Patch('documents/:documentId/metadata')
+  updateDocumentMetadata(@CurrentUser() user: JwtPayload, @Param('documentId') documentId: string, @Body() body: any) {
+    return this.driversService.updateDocumentMetadata(documentId, body, user.sub);
+  }
+
   @Patch('documents/:documentId/verify')
   verifyDocument(
+    @CurrentUser() user: JwtPayload,
     @Param('documentId') documentId: string,
-    @Body() body: { verified: boolean },
+    @Body() body: { verified: boolean; reason: string },
   ) {
-    return this.driversService.verifyDocument(documentId, body.verified);
+    return this.driversService.verifyDocument(documentId, body.verified, user.sub, body.reason);
   }
 }
 

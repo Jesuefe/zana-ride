@@ -44,6 +44,21 @@ describe('RolesGuard staff access matrix', () => {
     expect(canActivate(staff, 'POST', '/api/v1/admin/support/tickets')).toBe(false);
   });
 
+  it('allows driver operations staff only the scoped driver and vehicle review actions', () => {
+    const staff = { role: 'STAFF', accessRole: 'DRIVER_OPERATIONS' };
+    expect(canActivate(staff, 'GET', '/api/v1/admin/drivers')).toBe(true);
+    expect(canActivate(staff, 'GET', '/api/v1/admin/drivers/driver-id/detail')).toBe(true);
+    expect(canActivate(staff, 'GET', '/api/v1/admin/drivers/driver-id/audit')).toBe(true);
+    expect(canActivate(staff, 'PATCH', '/api/v1/admin/drivers/driver-id/profile')).toBe(true);
+    expect(canActivate(staff, 'PATCH', '/api/v1/admin/drivers/driver-id/review')).toBe(true);
+    expect(canActivate(staff, 'PATCH', '/api/v1/admin/drivers/driver-id/vehicles/vehicle-id')).toBe(true);
+    expect(canActivate(staff, 'PATCH', '/api/v1/admin/drivers/driver-id/vehicles/vehicle-id/status')).toBe(true);
+    expect(canActivate(staff, 'PATCH', '/api/v1/admin/drivers/documents/document-id/verify')).toBe(true);
+    expect(canActivate(staff, 'PATCH', '/api/v1/admin/users/user-id/status')).toBe(false);
+    expect(canActivate(staff, 'DELETE', '/api/v1/admin/drivers/driver-id')).toBe(false);
+    expect(canActivate(staff, 'POST', '/api/v1/admin/drivers/driver-id/vehicles')).toBe(false);
+  });
+
   it('keeps the role decorator as the first authorization boundary', () => {
     expect(canActivate({ role: 'CUSTOMER' }, 'GET', '/api/v1/admin/support/tickets')).toBe(false);
     expect(canActivate({ role: 'ADMIN' }, 'GET', '/api/v1/admin/financial/reconciliation')).toBe(true);

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadGatewayException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadGatewayException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../deliveries/storage.service';
@@ -41,7 +41,14 @@ export class DriversService {
   }
 
   async assertCanGoOnline(driverId: string) {
-    const netBalance = await this.getNetBalance(driverId);
+    const [netBalance, vehicleCount, approvedVehicleCount] = await Promise.all([
+      this.getNetBalance(driverId),
+      this.prisma.driverVehicle.count({ where: { driverId } }),
+      this.prisma.driverVehicle.count({ where: { driverId, status: 'APPROVED' } }),
+    ]);
+    if (vehicleCount > 0 && approvedVehicleCount === 0) {
+      throw new ForbiddenException('NO_APPROVED_VEHICLE');
+    }
     if (netBalance < MAX_NEGATIVE_BALANCE) {
       throw new ForbiddenException(
         `Outstanding balance of ${Math.round(-netBalance).toLocaleString()} RWF exceeds the limit — pay down your balance to go back online.`,
@@ -170,7 +177,7 @@ export class DriversService {
   async findAll(approvalStatus?: string) {
     return this.prisma.driver.findMany({
       where: approvalStatus ? { approvalStatus: approvalStatus as any } : {},
-      include: { user: true, documents: true },
+      include: { user: true, documents: { where: { supersededAt: null }, orderBy: { createdAt: 'desc' } }, vehicles: { include: { documents: { where: { supersededAt: null }, orderBy: { createdAt: 'desc' } } } } },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -184,22 +191,41 @@ export class DriversService {
       include: {
         user: true,
         documents: { orderBy: { createdAt: 'desc' } },
+        vehicles: { include: { documents: { orderBy: { createdAt: 'desc' } } }, orderBy: { createdAt: 'desc' } },
         trips: { orderBy: { requestedAt: 'desc' }, take: 20, include: { customer: { select: { firstName: true } } } },
       },
     });
   }
 
-  async setApprovalStatus(driverId: string, status: DriverApprovalStatus) {
-    // Previously only touched approvalStatus — a driver suspended or
-    // rejected while already online stayed online and matchable to new
-    // rides/deliveries until they happened to go offline themselves.
-    // For an admin acting on an active safety concern mid-shift, that
-    // gap defeated the entire point of an immediate suspension.
-    return this.prisma.driver.update({
-      where: { id: driverId },
-      data: status === DriverApprovalStatus.APPROVED
-        ? { approvalStatus: status }
-        : { approvalStatus: status, onlineStatus: DriverOnlineStatus.OFFLINE },
+  async setApprovalStatus(driverId: string, status: DriverApprovalStatus, actorId?: string, reason?: string) {
+    const current = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    if (!current) throw new NotFoundException('Driver not found.');
+    if (status === DriverApprovalStatus.APPROVED) {
+      const [vehicleCount, approvedVehicleCount, driverDocs] = await Promise.all([
+        this.prisma.driverVehicle.count({ where: { driverId } }),
+        this.prisma.driverVehicle.count({ where: { driverId, status: 'APPROVED' } }),
+        this.prisma.driverDocument.findMany({ where: { driverId, vehicleId: null, supersededAt: null } }),
+      ]);
+      if (!vehicleCount || !approvedVehicleCount) throw new BadRequestException('Approve at least one registered vehicle before approving this driver.');
+      const missing = DriversService.REQUIRED_DOCUMENTS.filter(label => !driverDocs.some(doc => doc.label === label && (doc.verified || doc.reviewStatus === 'VERIFIED') && (!doc.expiresAt || doc.expiresAt.getTime() >= Date.now())));
+      if (missing.length) throw new BadRequestException('Driver documents still need verification: ' + missing.join(', '));
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.driver.update({
+        where: { id: driverId },
+        data: status === DriverApprovalStatus.APPROVED
+          ? { approvalStatus: status }
+          : { approvalStatus: status, onlineStatus: DriverOnlineStatus.OFFLINE },
+        include: { user: true },
+      });
+      await tx.auditLog.create({ data: {
+        actorId: actorId ?? null, action: 'DRIVER_APPROVAL_STATUS_CHANGED',
+        entityType: 'Driver', entityId: driverId,
+        beforeJson: JSON.stringify({ approvalStatus: current.approvalStatus, onlineStatus: current.onlineStatus }),
+        afterJson: JSON.stringify({ approvalStatus: updated.approvalStatus, onlineStatus: updated.onlineStatus }),
+        metadataJson: JSON.stringify({ reason: String(reason ?? '').trim() || 'Legacy admin action without a supplied reason' }),
+      } });
+      return updated;
     });
   }
 
@@ -504,6 +530,23 @@ export class DriversService {
   }
 
 
+  private async recheckDriverAfterVehicleChange(tx: any, driverId: string, changedVehicleId: string, previousStatus: string) {
+    if (previousStatus !== 'APPROVED') return;
+    const remainingApproved = await tx.driverVehicle.count({
+      where: { driverId, status: 'APPROVED', id: { not: changedVehicleId } },
+    });
+    if (remainingApproved === 0) {
+      const driver = await tx.driver.findUnique({ where: { id: driverId }, select: { approvalStatus: true } });
+      await tx.driver.update({
+        where: { id: driverId },
+        data: {
+          ...(driver?.approvalStatus === DriverApprovalStatus.APPROVED ? { approvalStatus: DriverApprovalStatus.PENDING } : {}),
+          onlineStatus: DriverOnlineStatus.OFFLINE,
+        },
+      });
+    }
+  }
+
   // ── Documents ─────────────────────────────────────────────────────────────
   // A transport platform that dispatches strangers to carry people and their
   // property needs to have seen a licence. Admin was approving drivers blind.
@@ -511,32 +554,71 @@ export class DriversService {
   static readonly REQUIRED_DOCUMENTS = [
     'Driving licence',
     'National ID',
+  ];
+
+  static readonly REQUIRED_VEHICLE_DOCUMENTS = [
     'Vehicle registration',
     'Insurance certificate',
   ];
 
-  async uploadDocument(userId: string, label: string, imageBase64: string) {
+  async uploadDocument(userId: string, label: string, imageBase64: string, vehicleId?: string, expiresAt?: string) {
     const driver = await this.findByUserId(userId);
     if (!driver) throw new NotFoundException('Driver profile not found');
 
-    const url = await this.storage.uploadImage(imageBase64, 'driver-documents');
-    if (!url) throw new BadGatewayException('DOCUMENT_UPLOAD_FAILED');
-
-    // Re-uploading replaces the old one and resets verification, because a
-    // new document has not been checked yet.
-    const existing = await this.prisma.driverDocument.findFirst({
-      where: { driverId: driver.id, label },
-    });
-
-    if (existing) {
-      return this.prisma.driverDocument.update({
-        where: { id: existing.id },
-        data: { fileUrl: url, verified: false },
-      });
+    // Identity documents belong to the driver; registration, insurance and
+    // vehicle photographs must be attached to one specific vehicle.
+    if (!vehicleId && (DriversService.REQUIRED_VEHICLE_DOCUMENTS.includes(label) || label.startsWith('Vehicle photo - '))) {
+      throw new BadRequestException('Vehicle documents and photographs must be uploaded against a registered vehicle.');
+    }
+    if (vehicleId && DriversService.REQUIRED_DOCUMENTS.includes(label)) {
+      throw new BadRequestException('Personal identity documents must be uploaded to the driver profile.');
+    }
+    if (['Driving licence', 'Insurance certificate'].includes(label) && !expiresAt) {
+      throw new BadRequestException('Enter the document expiry date before uploading.');
+    }
+    if (expiresAt && Number.isNaN(Date.parse(expiresAt))) throw new BadRequestException('Invalid document expiry date.');
+    // Re-uploading creates a new current version and keeps the old version
+    // available for the admin audit trail.
+    if (vehicleId) {
+      const vehicle = await this.prisma.driverVehicle.findFirst({ where: { id: vehicleId, driverId: driver.id } });
+      if (!vehicle) throw new BadRequestException('Vehicle does not belong to this driver.');
     }
 
-    return this.prisma.driverDocument.create({
-      data: { driverId: driver.id, label, fileUrl: url, verified: false },
+    const url = await this.storage.uploadImage(imageBase64, 'driver-documents');
+    if (!url) throw new BadGatewayException('DOCUMENT_UPLOAD_FAILED');
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.driverDocument.findFirst({
+        where: { driverId: driver.id, label, vehicleId: vehicleId ?? null, supersededAt: null },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (existing) {
+        await tx.driverDocument.update({
+          where: { id: existing.id },
+          data: { supersededAt: new Date(), reviewStatus: 'SUPERSEDED' },
+        });
+      }
+      const created = await tx.driverDocument.create({
+        data: {
+          driverId: driver.id, vehicleId: vehicleId ?? null, label, fileUrl: url,
+          verified: false, reviewStatus: 'PENDING',
+          ...(expiresAt ? { expiresAt: new Date(expiresAt) } : {}),
+        },
+      });
+      await tx.auditLog.create({ data: {
+        actorId: userId, action: existing ? 'DRIVER_DOCUMENT_REPLACED' : 'DRIVER_DOCUMENT_UPLOADED',
+        entityType: 'DriverDocument', entityId: created.id,
+        beforeJson: existing ? JSON.stringify({ id: existing.id, label: existing.label, reviewStatus: existing.reviewStatus }) : null,
+        afterJson: JSON.stringify({ id: created.id, label, vehicleId: vehicleId ?? null, reviewStatus: 'PENDING' }),
+        metadataJson: JSON.stringify({ source: 'DRIVER_APP' }),
+      } });
+      if (vehicleId) {
+        const vehicle = await tx.driverVehicle.findUnique({ where: { id: vehicleId } });
+        await tx.driverVehicle.update({ where: { id: vehicleId }, data: { status: 'PENDING' } });
+        if (vehicle) await this.recheckDriverAfterVehicleChange(tx, driver.id, vehicleId, vehicle.status);
+      } else if (DriversService.REQUIRED_DOCUMENTS.includes(label) && driver.approvalStatus === DriverApprovalStatus.APPROVED) {
+        await tx.driver.update({ where: { id: driver.id }, data: { approvalStatus: DriverApprovalStatus.PENDING, onlineStatus: DriverOnlineStatus.OFFLINE } });
+      }
+      return created;
     });
   }
 
@@ -546,11 +628,12 @@ export class DriversService {
     if (!driver) throw new NotFoundException('Driver profile not found');
 
     const docs = await this.prisma.driverDocument.findMany({
-      where: { driverId: driver.id },
+      where: { driverId: driver.id, supersededAt: null },
       orderBy: { createdAt: 'desc' },
     });
 
-    const byLabel = new Map<string, any>(docs.map(d => [d.label as string, d as any]));
+    const byLabel = new Map<string, any>();
+    for (const doc of docs) if (!byLabel.has(doc.label)) byLabel.set(doc.label, doc);
 
     return {
       documents: DriversService.REQUIRED_DOCUMENTS.map(label => {
@@ -560,11 +643,11 @@ export class DriversService {
           fileUrl: d?.fileUrl ?? null,
           verified: d?.verified ?? false,
           uploadedAt: d?.createdAt ?? null,
-          status: !d ? 'MISSING' : d.verified ? 'VERIFIED' : 'PENDING',
+          status: !d ? 'MISSING' : d.expiresAt && new Date(d.expiresAt).getTime() < Date.now() ? 'EXPIRED' : d.reviewStatus === 'REJECTED' ? 'REJECTED' : (d.reviewStatus === 'VERIFIED' || d.verified) ? 'VERIFIED' : 'PENDING',
         };
       }),
       allUploaded: DriversService.REQUIRED_DOCUMENTS.every(l => byLabel.has(l)),
-      allVerified: DriversService.REQUIRED_DOCUMENTS.every(l => byLabel.get(l)?.verified),
+      allVerified: DriversService.REQUIRED_DOCUMENTS.every(l => byLabel.get(l)?.verified && (!byLabel.get(l)?.expiresAt || new Date(byLabel.get(l).expiresAt).getTime() >= Date.now())),
     };
   }
 
@@ -575,12 +658,245 @@ export class DriversService {
     });
   }
 
-  async verifyDocument(documentId: string, verified: boolean) {
-    return this.prisma.driverDocument.update({
-      where: { id: documentId },
-      data: { verified },
+
+  async updateDocumentMetadata(documentId: string, body: any, actorId: string) {
+    const reason = String(body.reason ?? '').trim();
+    if (reason.length < 5) throw new BadRequestException('A correction reason of at least 5 characters is required.');
+    const current = await this.prisma.driverDocument.findUnique({ where: { id: documentId } });
+    if (!current) throw new NotFoundException('Document not found.');
+    if (current.supersededAt) throw new BadRequestException('A superseded document version cannot be edited.');
+    const data: any = {};
+    if (body.label !== undefined) {
+      const label = String(body.label).trim().slice(0, 120);
+      if (!label) throw new BadRequestException('Document label cannot be empty.');
+      data.label = label;
+    }
+    if (body.expiresAt !== undefined) {
+      if (body.expiresAt === null || body.expiresAt === '') data.expiresAt = null;
+      else {
+        const parsed = new Date(body.expiresAt);
+        if (Number.isNaN(parsed.getTime())) throw new BadRequestException('Enter a valid expiry date.');
+        data.expiresAt = parsed;
+      }
+    }
+    if (!Object.keys(data).length) throw new BadRequestException('No document fields supplied for correction.');
+    data.verified = false;
+    data.reviewStatus = 'PENDING';
+    data.rejectionReason = null;
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.driverDocument.update({ where: { id: documentId }, data });
+      if (current.vehicleId) {
+        const vehicle = await tx.driverVehicle.findUnique({ where: { id: current.vehicleId } });
+        await tx.driverVehicle.update({ where: { id: current.vehicleId }, data: { status: 'PENDING' } });
+        if (vehicle) await this.recheckDriverAfterVehicleChange(tx, current.driverId, current.vehicleId, vehicle.status);
+      } else if (DriversService.REQUIRED_DOCUMENTS.includes(current.label) || DriversService.REQUIRED_DOCUMENTS.includes(updated.label)) {
+        await tx.driver.update({ where: { id: current.driverId }, data: { approvalStatus: DriverApprovalStatus.PENDING, onlineStatus: DriverOnlineStatus.OFFLINE } });
+      }
+      await tx.auditLog.create({ data: {
+        actorId, action: 'DRIVER_DOCUMENT_METADATA_CORRECTED', entityType: 'DriverDocument', entityId: documentId,
+        beforeJson: JSON.stringify({ label: current.label, expiresAt: current.expiresAt, verified: current.verified, reviewStatus: current.reviewStatus }),
+        afterJson: JSON.stringify({ label: updated.label, expiresAt: updated.expiresAt, verified: updated.verified, reviewStatus: updated.reviewStatus }),
+        metadataJson: JSON.stringify({ reason }),
+      } });
+      return updated;
     });
   }
+
+  async verifyDocument(documentId: string, verified: boolean, actorId?: string, reason?: string) {
+    const current = await this.prisma.driverDocument.findUnique({ where: { id: documentId } });
+    if (!current) throw new NotFoundException('Document not found.');
+    if (current.supersededAt) throw new BadRequestException('This document version has been superseded and cannot be reviewed.');
+    if (String(reason ?? '').trim().length < 5) throw new BadRequestException('A review reason of at least 5 characters is required.');
+    if (verified && current.expiresAt && current.expiresAt.getTime() < Date.now()) throw new BadRequestException('This document is expired and cannot be verified.');
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.driverDocument.update({
+        where: { id: documentId },
+        data: { verified, reviewStatus: verified ? 'VERIFIED' : 'REJECTED', rejectionReason: verified ? null : String(reason).trim() },
+      });
+      if (!verified && current.vehicleId) {
+        const vehicle = await tx.driverVehicle.findUnique({ where: { id: current.vehicleId } });
+        await tx.driverVehicle.update({ where: { id: current.vehicleId }, data: { status: 'PENDING' } });
+        if (vehicle) await this.recheckDriverAfterVehicleChange(tx, current.driverId, current.vehicleId, vehicle.status);
+      } else if (!verified && DriversService.REQUIRED_DOCUMENTS.includes(current.label)) {
+        await tx.driver.update({ where: { id: current.driverId }, data: { approvalStatus: DriverApprovalStatus.PENDING, onlineStatus: DriverOnlineStatus.OFFLINE } });
+      }
+      await tx.auditLog.create({ data: {
+        actorId: actorId ?? null, action: verified ? 'DRIVER_DOCUMENT_VERIFIED' : 'DRIVER_DOCUMENT_REJECTED',
+        entityType: 'DriverDocument', entityId: documentId,
+        beforeJson: JSON.stringify({ verified: current.verified, reviewStatus: current.reviewStatus }),
+        afterJson: JSON.stringify({ verified: updated.verified, reviewStatus: updated.reviewStatus }),
+        metadataJson: JSON.stringify({ reason: String(reason).trim() }),
+      } });
+      return updated;
+    });
+  }
+
+  async getOperationsOverview() {
+    const [total, pending, approved, rejected, suspended, online, pendingDocuments, expiredDocuments, totalVehicles, pendingVehicles] = await Promise.all([
+      this.prisma.driver.count(),
+      this.prisma.driver.count({ where: { approvalStatus: 'PENDING' } }),
+      this.prisma.driver.count({ where: { approvalStatus: 'APPROVED' } }),
+      this.prisma.driver.count({ where: { approvalStatus: 'REJECTED' } }),
+      this.prisma.driver.count({ where: { approvalStatus: 'SUSPENDED' } }),
+      this.prisma.driver.count({ where: { onlineStatus: 'ONLINE' } }),
+      this.prisma.driverDocument.count({ where: { supersededAt: null, reviewStatus: 'PENDING' } }),
+      this.prisma.driverDocument.count({ where: { supersededAt: null, expiresAt: { lt: new Date() } } }),
+      this.prisma.driverVehicle.count(),
+      this.prisma.driverVehicle.count({ where: { status: 'PENDING' } }),
+    ]);
+    return { total, pending, approved, rejected, suspended, online, pendingDocuments, expiredDocuments, totalVehicles, pendingVehicles };
+  }
+
+
+  async getAuditHistory(driverId: string) {
+    const [vehicles, documents] = await Promise.all([
+      this.prisma.driverVehicle.findMany({ where: { driverId }, select: { id: true } }),
+      this.prisma.driverDocument.findMany({ where: { driverId }, select: { id: true } }),
+    ]);
+    const clauses: any[] = [{ entityType: 'Driver', entityId: driverId }];
+    if (vehicles.length) clauses.push({ entityType: 'DriverVehicle', entityId: { in: vehicles.map(v => v.id) } });
+    if (documents.length) clauses.push({ entityType: 'DriverDocument', entityId: { in: documents.map(d => d.id) } });
+    const logs = await this.prisma.auditLog.findMany({ where: { OR: clauses }, orderBy: { createdAt: 'desc' }, take: 100 });
+    const actorIds = [...new Set(logs.map(log => log.actorId).filter(Boolean))] as string[];
+    const actors = actorIds.length ? await this.prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, firstName: true, lastName: true, email: true, phone: true } }) : [];
+    const actorMap = new Map(actors.map(actor => [actor.id, actor]));
+    return logs.map(log => ({ ...log, actor: log.actorId ? actorMap.get(log.actorId) ?? null : null }));
+  }
+
+  async updateDriverProfile(driverId: string, body: any, actorId: string) {
+    const reason = String(body.reason ?? '').trim();
+    if (reason.length < 5) throw new BadRequestException('A correction reason of at least 5 characters is required.');
+    const current = await this.prisma.driver.findUnique({ where: { id: driverId }, include: { user: true } });
+    if (!current) throw new NotFoundException('Driver not found.');
+    const driverData: any = {};
+    const userData: any = {};
+    for (const key of ['vehicle', 'plate']) if (body[key] !== undefined) driverData[key] = key === 'plate' ? String(body[key]).trim().toUpperCase().slice(0, 40) : String(body[key]).trim().slice(0, 120);
+    if (body.serviceType !== undefined) {
+      if (!['BIKE', 'ECONOMY', 'COMFORT'].includes(body.serviceType)) throw new BadRequestException('Invalid service type.');
+      driverData.serviceType = body.serviceType;
+    }
+    if (body.driverMode !== undefined) {
+      if (!['RIDES', 'DELIVERIES', 'BOTH'].includes(body.driverMode)) throw new BadRequestException('Invalid driver mode.');
+      driverData.driverMode = body.driverMode;
+    }
+    for (const key of ['firstName', 'lastName', 'phone', 'email']) {
+      if (body[key] !== undefined) userData[key] = key === 'email' && !String(body[key] ?? '').trim() ? null : body[key] === null ? null : String(body[key]).trim().slice(0, 150);
+    }
+    if (!Object.keys(driverData).length && !Object.keys(userData).length) throw new BadRequestException('No editable fields supplied.');
+    const before = { driver: { vehicle: current.vehicle, plate: current.plate, serviceType: current.serviceType, driverMode: current.driverMode }, user: { firstName: current.user.firstName, lastName: current.user.lastName, phone: current.user.phone, email: current.user.email } };
+    return this.prisma.$transaction(async (tx) => {
+      if (Object.keys(userData).length) await tx.user.update({ where: { id: current.userId }, data: userData });
+      const vehicleIdentityChanged = ['vehicle', 'plate', 'serviceType'].some(key => body[key] !== undefined);
+      if (vehicleIdentityChanged) {
+        const primaryVehicle = await tx.driverVehicle.findFirst({ where: { driverId }, orderBy: { createdAt: 'asc' } });
+        if (primaryVehicle) {
+          const vehicleUpdate: any = { status: 'PENDING' };
+          if (body.vehicle !== undefined) vehicleUpdate.make = String(body.vehicle).trim();
+          if (body.plate !== undefined) vehicleUpdate.plate = String(body.plate).trim().toUpperCase();
+          if (body.serviceType !== undefined) vehicleUpdate.vehicleType = body.serviceType === 'BIKE' ? 'MOTORCYCLE' : 'CAR';
+          await tx.driverVehicle.update({ where: { id: primaryVehicle.id }, data: vehicleUpdate });
+          await this.recheckDriverAfterVehicleChange(tx, driverId, primaryVehicle.id, primaryVehicle.status);
+        } else {
+          driverData.approvalStatus = DriverApprovalStatus.PENDING;
+          driverData.onlineStatus = DriverOnlineStatus.OFFLINE;
+        }
+      }
+      const updated = await tx.driver.update({ where: { id: driverId }, data: driverData, include: { user: true, documents: true, vehicles: { include: { documents: true } } } });
+      const after = { driver: { vehicle: updated.vehicle, plate: updated.plate, serviceType: updated.serviceType, driverMode: updated.driverMode }, user: { firstName: updated.user.firstName, lastName: updated.user.lastName, phone: updated.user.phone, email: updated.user.email } };
+      await tx.auditLog.create({ data: { actorId, action: 'DRIVER_PROFILE_CORRECTED', entityType: 'Driver', entityId: driverId, beforeJson: JSON.stringify(before), afterJson: JSON.stringify(after), metadataJson: JSON.stringify({ reason }) } });
+      return updated;
+    });
+  }
+
+  async updateVehicle(driverId: string, vehicleId: string, body: any, actorId: string) {
+    const reason = String(body.reason ?? '').trim();
+    if (reason.length < 5) throw new BadRequestException('A correction reason of at least 5 characters is required.');
+    const current = await this.prisma.driverVehicle.findFirst({ where: { id: vehicleId, driverId } });
+    if (!current) throw new NotFoundException('Vehicle not found.');
+    const allowed = ['vehicleType', 'make', 'model', 'year', 'color', 'plate', 'registrationNumber', 'chassisNumber', 'ownershipType', 'notes'];
+    const data: any = {};
+    for (const key of allowed) if (body[key] !== undefined) data[key] = key === 'year' ? (body[key] === null || body[key] === '' ? null : Number(body[key])) : (body[key] === null ? null : String(body[key]).trim());
+    if (data.vehicleType !== undefined && !['MOTORCYCLE', 'CAR'].includes(data.vehicleType)) throw new BadRequestException('Vehicle type must be MOTORCYCLE or CAR.');
+    if (data.plate !== undefined) {
+      data.plate = String(data.plate).toUpperCase();
+      if (!data.plate) throw new BadRequestException('Vehicle registration plate cannot be empty.');
+    }
+    if (data.year !== undefined && data.year !== null && (!Number.isInteger(data.year) || data.year < 1950 || data.year > new Date().getFullYear() + 1)) throw new BadRequestException('Enter a valid vehicle year.');
+    if (!Object.keys(data).length) throw new BadRequestException('No editable vehicle fields supplied.');
+    return this.prisma.$transaction(async (tx) => {
+      const identityFields = ['vehicleType', 'make', 'model', 'year', 'color', 'plate', 'registrationNumber', 'chassisNumber', 'ownershipType'];
+      const requiresReinspection = identityFields.some(key => data[key] !== undefined);
+      if (requiresReinspection) data.status = 'PENDING';
+      const next = await tx.driverVehicle.update({ where: { id: vehicleId }, data, include: { documents: true } });
+      if (requiresReinspection) {
+        await this.recheckDriverAfterVehicleChange(tx, driverId, vehicleId, current.status);
+      }
+      await tx.auditLog.create({ data: { actorId, action: 'DRIVER_VEHICLE_CORRECTED', entityType: 'DriverVehicle', entityId: vehicleId, beforeJson: JSON.stringify(current), afterJson: JSON.stringify(next), metadataJson: JSON.stringify({ reason, requiresReinspection }) } });
+      return next;
+    });
+  }
+
+  async setVehicleStatus(driverId: string, vehicleId: string, status: string, reason: string, actorId: string) {
+    if (!['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'].includes(status)) throw new BadRequestException('Invalid vehicle status.');
+    if (String(reason ?? '').trim().length < 5) throw new BadRequestException('A decision reason of at least 5 characters is required.');
+    const current = await this.prisma.driverVehicle.findFirst({ where: { id: vehicleId, driverId } });
+    if (!current) throw new NotFoundException('Vehicle not found.');
+    if (status === 'APPROVED') {
+      const [driverDocs, vehicleDocs] = await Promise.all([
+        this.prisma.driverDocument.findMany({ where: { driverId, vehicleId: null, supersededAt: null } }),
+        this.prisma.driverDocument.findMany({ where: { driverId, vehicleId, supersededAt: null } }),
+      ]);
+      const missingDriverDocs = DriversService.REQUIRED_DOCUMENTS.filter(label => !driverDocs.some(doc => doc.label === label && (doc.verified || doc.reviewStatus === 'VERIFIED') && (!doc.expiresAt || doc.expiresAt.getTime() >= Date.now())));
+      const photoLabels = current.vehicleType === 'MOTORCYCLE'
+        ? ['Vehicle photo - front', 'Vehicle photo - rear / plate', 'Vehicle photo - left side', 'Vehicle photo - right side']
+        : ['Vehicle photo - front', 'Vehicle photo - rear / plate', 'Vehicle photo - left side', 'Vehicle photo - right side', 'Vehicle photo - interior', 'Vehicle photo - dashboard'];
+      const requiredVehicleLabels = [...DriversService.REQUIRED_VEHICLE_DOCUMENTS, ...photoLabels];
+      const missingVehicleDocs = requiredVehicleLabels.filter(label => !vehicleDocs.some(doc => doc.label === label && (doc.verified || doc.reviewStatus === 'VERIFIED') && (!doc.expiresAt || doc.expiresAt.getTime() >= Date.now())));
+      if (missingDriverDocs.length || missingVehicleDocs.length) {
+        const missing = [...missingDriverDocs, ...missingVehicleDocs];
+        throw new BadRequestException('Vehicle cannot be approved until all required documents and photographs are verified: ' + missing.join(', '));
+      }
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const next = await tx.driverVehicle.update({ where: { id: vehicleId }, data: { status }, include: { documents: true } });
+      if (current.status === 'APPROVED' && status !== 'APPROVED') {
+        await this.recheckDriverAfterVehicleChange(tx, driverId, vehicleId, current.status);
+      }
+      await tx.auditLog.create({ data: { actorId, action: 'DRIVER_VEHICLE_STATUS_CHANGED', entityType: 'DriverVehicle', entityId: vehicleId, beforeJson: JSON.stringify({ status: current.status }), afterJson: JSON.stringify({ status }), metadataJson: JSON.stringify({ reason }) } });
+      return next;
+    });
+  }
+
+  async createVehicle(userId: string, body: any) {
+    const driver = await this.findByUserId(userId);
+    const vehicleType = String(body.vehicleType ?? '').trim().toUpperCase();
+    const plate = String(body.plate ?? '').trim().toUpperCase();
+    if (!['MOTORCYCLE', 'CAR'].includes(vehicleType)) throw new BadRequestException('Vehicle type must be MOTORCYCLE or CAR.');
+    if (!plate) throw new BadRequestException('Vehicle registration plate is required.');
+    const vehicle = await this.prisma.driverVehicle.create({
+      data: {
+        driverId: driver.id, vehicleType, plate,
+        make: body.make ? String(body.make).trim() : null,
+        model: body.model ? String(body.model).trim() : null,
+        year: body.year ? Number(body.year) : null,
+        color: body.color ? String(body.color).trim() : null,
+        registrationNumber: body.registrationNumber ? String(body.registrationNumber).trim() : null,
+        chassisNumber: body.chassisNumber ? String(body.chassisNumber).trim() : null,
+        ownershipType: body.ownershipType ? String(body.ownershipType).trim() : 'SELF',
+      },
+    });
+    await this.prisma.auditLog.create({ data: {
+      actorId: userId, action: 'DRIVER_VEHICLE_SUBMITTED', entityType: 'DriverVehicle', entityId: vehicle.id,
+      afterJson: JSON.stringify(vehicle), metadataJson: JSON.stringify({ source: 'DRIVER_APP' }),
+    } });
+    return vehicle;
+  }
+
+  async listVehicles(userId: string) {
+    const driver = await this.findByUserId(userId);
+    return this.prisma.driverVehicle.findMany({ where: { driverId: driver.id }, include: { documents: { where: { supersededAt: null }, orderBy: { createdAt: 'desc' } } }, orderBy: { createdAt: 'desc' } });
+  }
+
 }
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {

@@ -51,6 +51,15 @@ export async function getDrivers(status?: string) {
   return api.get<any[]>(`/admin/drivers${status ? `?status=${status}` : ''}`);
 }
 
+export async function getDriverOperationsOverview() { return api.get<any>('/admin/drivers/operations/overview'); }
+export async function getDriverDetail(id: string) { return api.get<any>('/admin/drivers/' + id + '/detail'); }
+export async function getDriverAuditHistory(id: string) { return api.get<any[]>('/admin/drivers/' + id + '/audit'); }
+export async function updateDriverProfile(id: string, data: any) { return api.patch<any>('/admin/drivers/' + id + '/profile', data); }
+export async function reviewDriver(id: string, status: string, reason: string) { return api.patch<any>('/admin/drivers/' + id + '/review', { status, reason }); }
+export async function updateDriverVehicle(driverId: string, vehicleId: string, data: any) { return api.patch<any>('/admin/drivers/' + driverId + '/vehicles/' + vehicleId, data); }
+export async function setDriverVehicleStatus(driverId: string, vehicleId: string, status: string, reason: string) { return api.patch<any>('/admin/drivers/' + driverId + '/vehicles/' + vehicleId + '/status', { status, reason }); }
+export async function verifyDriverDocument(documentId: string, verified: boolean, reason: string) { return api.patch<any>('/admin/drivers/documents/' + documentId + '/verify', { verified, reason }); }
+export async function updateDriverDocument(documentId: string, data: any) { return api.patch<any>('/admin/drivers/documents/' + documentId + '/metadata', data); }
 export async function approveDriver(id: string) { return api.patch(`/admin/drivers/${id}/approve`); }
 export async function rejectDriver(id: string) { return api.patch(`/admin/drivers/${id}/reject`); }
 export async function suspendDriver(id: string) { return api.patch(`/admin/drivers/${id}/suspend`); }

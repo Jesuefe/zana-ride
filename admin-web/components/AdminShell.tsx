@@ -18,6 +18,7 @@ const SENIOR_NAV = [
   { label: 'Safety', href: '/safety', icon: ShieldCheck, group: 'Workspace' },
   { label: 'Users', href: '/dashboard/users', icon: Users, group: 'People & partners' },
   { label: 'Drivers', href: '/dashboard/drivers', icon: Car, group: 'People & partners' },
+  { label: 'Driver Operations', href: '/dashboard/driver-operations', icon: ClipboardList, group: 'People & partners' },
   { label: 'Rider Applications', href: '/dashboard/rider-registrations', icon: ClipboardList, group: 'People & partners' },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store, group: 'People & partners' },
   { label: 'Merchant Registrations', href: '/dashboard/merchant-registrations', icon: ClipboardList, group: 'People & partners' },
@@ -51,6 +52,7 @@ const FINANCE_NAV = SENIOR_NAV.filter(item => ['Financial', 'Zana Impact Funds',
 
 const WORKER_NAV = [
   { label: 'Pending Drivers', href: '/dashboard/drivers', icon: Car, group: 'Work queue' },
+  { label: 'Driver Operations', href: '/dashboard/driver-operations', icon: ClipboardList, group: 'Work queue' },
   { label: 'Pending Products', href: '/dashboard/products', icon: Package, group: 'Work queue' },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag, group: 'Operations' },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store, group: 'Operations' },
