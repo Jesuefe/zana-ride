@@ -5,7 +5,7 @@ import { ZanaMark, ZanaWordmark } from './ZanaLogo';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  LayoutDashboard, Users, Car, Store, Package, MapPin, UserCheck, TrendingUp,
+  LayoutDashboard, Users, Car, Store, Package, MapPin, UserCheck, TrendingUp, UserPlus, Tag,
   LogOut, Truck, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
   Sun, Moon, Smartphone, Settings, Image as ImageIcon, ClipboardList, MessageCircle,
   ChevronRight, Bell, Command, Activity, HeartHandshake
@@ -22,6 +22,7 @@ const SENIOR_NAV = [
   { label: 'Rider Applications', href: '/dashboard/rider-registrations', icon: ClipboardList, group: 'People & partners' },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store, group: 'People & partners' },
   { label: 'Merchant Registrations', href: '/dashboard/merchant-registrations', icon: ClipboardList, group: 'People & partners' },
+  { label: 'Assisted Onboarding', href: '/dashboard/onboarding', icon: UserPlus, group: 'People & partners' },
   { label: 'Agents', href: '/dashboard/agents', icon: UserCheck, group: 'People & partners' },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag, group: 'Operations' },
   { label: 'Deliveries', href: '/dashboard/deliveries', icon: Truck, group: 'Operations' },
@@ -32,6 +33,7 @@ const SENIOR_NAV = [
   { label: 'Service Zones', href: '/dashboard/service-zones', icon: MapPin, group: 'Operations' },
   { label: 'Support', href: '/dashboard/support', icon: MessageCircle, group: 'Operations' },
   { label: 'Products', href: '/dashboard/products', icon: Package, group: 'Commerce' },
+  { label: 'Combo Promotions', href: '/dashboard/promotions', icon: Tag, group: 'Commerce' },
   { label: 'Markets', href: '/dashboard/markets', icon: MapPin, group: 'Commerce' },
   { label: 'Media Library', href: '/dashboard/media', icon: ImageIcon, group: 'Commerce' },
   { label: 'Financial', href: '/dashboard/financial', icon: DollarSign, group: 'Finance & system' },
@@ -51,6 +53,7 @@ const SENIOR_NAV = [
 const FINANCE_NAV = SENIOR_NAV.filter(item => ['Financial', 'Zana Impact Funds', 'Reconciliation', 'Expenses', 'Finance Controls'].includes(item.label));
 
 const WORKER_NAV = [
+  { label: 'Assisted Onboarding', href: '/dashboard/onboarding', icon: UserPlus, group: 'Work queue' },
   { label: 'Pending Drivers', href: '/dashboard/drivers', icon: Car, group: 'Work queue' },
   { label: 'Driver Operations', href: '/dashboard/driver-operations', icon: ClipboardList, group: 'Work queue' },
   { label: 'Pending Products', href: '/dashboard/products', icon: Package, group: 'Work queue' },
