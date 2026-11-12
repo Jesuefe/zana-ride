@@ -137,10 +137,12 @@ export default function DeliverPage() {
 
   useEffect(() => {
     if (!dropoff) {
+      setPromoPreview(null);
       setQuote(null);
       setQuoteLoading(false);
       return;
     }
+    setPromoPreview(null);
     setQuoteLoading(true);
     quoteDelivery({
       pickupLat: pickup.lat,
@@ -563,9 +565,9 @@ export default function DeliverPage() {
                 })}
               </div>
               {paymentMethod === 'WALLET' && walletBalance !== null && quote && (
-                <p className={"mt-3 text-xs font-semibold " + (walletBalance < quote.fee ? "text-red-500" : "text-gray-500")}>
+                <p className={"mt-3 text-xs font-semibold " + (walletBalance < (promoPreview?.payableAmount ?? quote.fee) ? "text-red-500" : "text-gray-500")}>
                   {t('Wallet balance')}: {walletBalance.toLocaleString()} RWF
-                  {walletBalance < quote.fee ? ' · ' + ((promoPreview?.payableAmount ?? quote.fee) - walletBalance).toLocaleString() + ' RWF ' + t('short') : ''}
+                  {walletBalance < (promoPreview?.payableAmount ?? quote.fee) ? ' · ' + ((promoPreview?.payableAmount ?? quote.fee) - walletBalance).toLocaleString() + ' RWF ' + t('short') : ''}
                 </p>
               )}
               {paymentMethod === 'CASH' && <p className="mt-3 text-xs leading-5 text-gray-500">{t('Pay the courier when they collect the package.')}</p>}
