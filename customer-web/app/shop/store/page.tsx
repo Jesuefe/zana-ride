@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ShoppingCart, Plus, Minus, MapPin, Loader2, Store, Package, Search, Star, Clock3, Tag } from 'lucide-react';
-import { fetchMarketplaceWithLocation, placeOrder, MarketplaceMerchant, MarketplaceProduct, CartItem } from '../../../lib/api/marketplace';
+import { fetchMarketplaceWithLocation, placeOrder, validateOrderPromo, MarketplaceMerchant, MarketplaceProduct, CartItem } from '../../../lib/api/marketplace';
 import { getStoredPickup } from '../../../lib/location';
 import OrderRecipient, { OrderRecipient as OrderRecipientValue } from '../../../components/OrderRecipient';
 import { useLang } from '../../../lib/LangContext';
@@ -27,6 +27,9 @@ function StoreContent() {
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [promoCode, setPromoCode] = useState('');
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoMessage, setPromoMessage] = useState('');
+  const [validatingPromo, setValidatingPromo] = useState(false);
   const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [recipient, setRecipient] = useState<OrderRecipientValue>({ forSomeoneElse: false, name: '', phone: '', address: pickup.address ?? 'Current location', lat: pickup.lat, lng: pickup.lng, note: '' });
@@ -59,12 +62,22 @@ function StoreContent() {
   const promoSavings = promotionValid && selectedPromotion ? Math.max(0, selectedPromotion.items.reduce((sum, item) => sum + item.product.price, 0) - selectedPromotion.comboPrice) : 0;
   const cartTotal = rawCartTotal - promoSavings;
   const deliveryFee = merchant?.deliveryFee ?? 0;
-  const walletShort =
-    paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < (cartTotal + deliveryFee);
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
-  const grandTotal = cartTotal + deliveryFee;
+  const grandTotal = Math.max(0, cartTotal + deliveryFee - promoDiscount);
+  const walletShort = paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < grandTotal;
+  const applyOrderPromo = async () => {
+    if (!merchant || !promoCode.trim()) { setPromoMessage(t('Enter a promo code first.')); return; }
+    setValidatingPromo(true); setPromoMessage(''); setPromoDiscount(0);
+    try {
+      const result = await validateOrderPromo(promoCode.trim(), merchant.id, cartTotal);
+      setPromoDiscount(result.discountAmount);
+      setPromoMessage(t('Promo applied. You save {{amount}} RWF.').replace('{{amount}}', result.discountAmount.toLocaleString()));
+    } catch (e: any) { setPromoMessage(e?.message || t('This promo code is not valid for this order.')); }
+    finally { setValidatingPromo(false); }
+  };
 
   const addToCart = (product: MarketplaceProduct) => {
+    setPromoDiscount(0); setPromoMessage('');
     setCart(prev => {
       const idx = prev.findIndex(i => i.product.id === product.id);
       if (idx >= 0) return prev.map((i, n) => n === idx ? { ...i, quantity: i.quantity + 1 } : i);
@@ -86,8 +99,10 @@ function StoreContent() {
     setShowCart(true);
   };
 
-  const removeFromCart = (productId: string) =>
+  const removeFromCart = (productId: string) => {
+    setPromoDiscount(0); setPromoMessage('');
     setCart(prev => prev.map(i => i.product.id === productId ? { ...i, quantity: i.quantity - 1 } : i).filter(i => i.quantity > 0));
+  };
 
   // Grouped by each product's own category field — the data already
   // supported this, it just was never actually rendered this way before.
@@ -123,7 +138,7 @@ function StoreContent() {
         dropoffLng: recipient.lng,
         dropoffAddress: recipient.address || 'Current location',
         paymentMethod,
-        promoCode: promoCode.trim() || undefined,
+        promoCode: promoDiscount > 0 ? promoCode.trim() : undefined,
         deliveryFee,
         receiverName: recipient.forSomeoneElse ? recipient.name.trim() : undefined,
         receiverPhone: recipient.forSomeoneElse ? recipient.phone.trim() : undefined,
@@ -371,7 +386,9 @@ function StoreContent() {
 
             <div className="mb-4 rounded-xl border border-gray-200 px-3 py-3">
               <label htmlFor="store-promo-code" className="mb-1.5 block text-xs font-bold text-gray-600">{t('Promo code')}</label>
-              <input id="store-promo-code" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 32))} placeholder={t('Enter promo code (optional)')} autoCapitalize="characters" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-gray-900 outline-none focus:border-zana-primary" />
+              <div className="flex gap-2"><input id="store-promo-code" value={promoCode} onChange={e => { setPromoCode(e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 32)); setPromoDiscount(0); setPromoMessage(''); }} placeholder={t('Enter promo code (optional)')} autoCapitalize="characters" className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-gray-900 outline-none focus:border-zana-primary" /><button type="button" onClick={applyOrderPromo} disabled={validatingPromo || !cart.length || !promoCode.trim()} className="rounded-lg bg-zana-primary px-4 py-2 text-xs font-black text-white disabled:opacity-50">{validatingPromo ? '...' : t('Apply')}</button></div>
+              {promoMessage && <p className={`mt-2 text-xs font-semibold ${promoDiscount > 0 ? 'text-emerald-700' : 'text-red-600'}`}>{promoMessage}</p>}
+              {promoDiscount > 0 && <p className="mt-2 flex justify-between text-xs"><span className="text-gray-500">{t('Promo discount')}</span><strong className="text-emerald-700">−{promoDiscount.toLocaleString()} RWF</strong></p>}
             </div>
 
             <p className="text-xs font-bold text-gray-500 uppercase mb-2">{t("Payment")}</p>
