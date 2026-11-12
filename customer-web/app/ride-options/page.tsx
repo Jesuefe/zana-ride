@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useLang } from '../../lib/LangContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronRight, Clock, MapPin, Check, Bike, CarFront } from 'lucide-react';
-import { estimateRide, createRide, ServiceType, fetchWallet } from '../../lib/api/trips';
+import { estimateRide, createRide, ServiceType, fetchWallet, validateRidePromo } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 import { getStoredPickup } from '../../lib/location';
