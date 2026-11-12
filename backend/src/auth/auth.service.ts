@@ -651,7 +651,8 @@ export class AuthService {
     await this.clearOtp(phone);
 
     const token = this.jwt.sign({ sub: user.id, phone: user.phone, role: user.role });
-    return { token, user };
+    const { password: _password, adminTotpSecretEnc: _secret, adminTotpPendingSecretEnc: _pending, adminTotpRecoveryCodes: _recovery, ...safeUser } = user;
+    return { token, user: safeUser };
   }
 
   // ── Forgotten password ────────────────────────────────────────────────────
