@@ -176,7 +176,9 @@ export class DeliveriesService {
 
     // ── Settle the fee ────────────────────────────────────────────────────
     if (chargeUserId && fee > 0) {
-      if (paymentMethod === 'WALLET') {
+      if (payableFee === 0) {
+        await this.prisma.delivery.update({ where: { id: delivery.id }, data: { paid: true } as any });
+      } else if (paymentMethod === 'WALLET') {
         try {
           await this.debitWallet(chargeUserId, payableFee, delivery.id);
         } catch (e) {
