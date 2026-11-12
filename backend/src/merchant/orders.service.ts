@@ -444,8 +444,18 @@ export class OrdersService {
       },
     });
 
-    // Financial settlement is idempotent and owns the merchant/agent ledger + wallet credit.\n    if (status === OrderStatus.DELIVERED) {
-      await this.promoCodes.completeReservation(undefined, id).catch(() => {});\n      try {\n        await this.finance.settleOrder(id);\n      } catch (e: any) {\n        console.error(`[ORDER] Settlement failed for ${id}:`, e?.message);\n        throw e;\n      }\n    }\n\n    // Admin's order screen previously had no live path at all for this —
+    // Financial settlement is idempotent and owns the merchant/agent ledger + wallet credit.
+    if (status === OrderStatus.DELIVERED) {
+      await this.promoCodes.completeReservation(undefined, id).catch(() => {});
+      try {
+        await this.finance.settleOrder(id);
+      } catch (e: any) {
+        console.error(`[ORDER] Settlement failed for ${id}:`, e?.message);
+        throw e;
+      }
+    }
+
+    // Admin's order screen previously had no live path at all for this —
     // manual refresh only, regardless of what changed.
     await this.notifyAdmins('order:status', { orderId: id, status });
 
