@@ -63,7 +63,8 @@ export class MerchantService {
     if (!Number.isInteger(data.comboPrice) || data.comboPrice <= 0) throw new BadRequestException('Enter a valid combo price.');
     if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) throw new BadRequestException('Choose valid promotion dates.');
     const durationDays = Math.ceil((endsAt.getTime() - startsAt.getTime()) / 86400000);
-    if (startsAt.getUTCFullYear() !== endsAt.getUTCFullYear() || startsAt.getUTCMonth() !== endsAt.getUTCMonth()) throw new BadRequestException('A promotion must start and finish within the same calendar month.');
+    const lastIncludedDay = new Date(endsAt.getTime() - 1);
+    if (startsAt.getUTCFullYear() !== lastIncludedDay.getUTCFullYear() || startsAt.getUTCMonth() !== lastIncludedDay.getUTCMonth()) throw new BadRequestException('A promotion must start and finish within the same calendar month.');
     const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId }, select: { promoExempt: true } });
     if (!merchant) throw new NotFoundException('Merchant not found.');
     if (!merchant.promoExempt && durationDays > 7) throw new BadRequestException('Promotions may run for a maximum of 7 consecutive days per calendar month unless Zana grants your store an exemption.');
