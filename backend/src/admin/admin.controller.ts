@@ -403,7 +403,7 @@ export class AdminController {
     const serviceTypes = this.validateServiceZoneTypes(body.serviceTypes);
     const zoneLevel = body.zoneLevel === 'MAIN' ? 'MAIN' : 'MINI';
     const parentZoneId = zoneLevel === 'MAIN' ? null : (body.parentZoneId || null);
-    const nearbyZoneIds = Array.isArray(body.nearbyZoneIds) ? [...new Set(body.nearbyZoneIds.map(String))] : [];
+    const nearbyZoneIds: string[] = Array.isArray(body.nearbyZoneIds) ? Array.from(new Set<string>(body.nearbyZoneIds.map((value: any) => String(value)))) : [];
     if (nearbyZoneIds.some((id: string) => !id.trim())) throw new BadRequestException('SERVICE_ZONE_NEIGHBOUR_IDS_INVALID');
     if (parentZoneId) {
       const parent = await this.prisma.serviceZone.findUnique({ where: { id: parentZoneId } });
@@ -445,7 +445,7 @@ export class AdminController {
         throw new BadRequestException('SERVICE_ZONE_PARENT_MUST_BE_A_MAIN_ZONE_IN_THE_SAME_CITY');
       }
     }
-    const nearbyZoneIds = body.nearbyZoneIds === undefined ? before.nearbyZoneIds : [...new Set((Array.isArray(body.nearbyZoneIds) ? body.nearbyZoneIds : []).map(String))];
+    const nearbyZoneIds: string[] = body.nearbyZoneIds === undefined ? before.nearbyZoneIds : Array.from(new Set<string>((Array.isArray(body.nearbyZoneIds) ? body.nearbyZoneIds : []).map((value: any) => String(value))));
     if (nearbyZoneIds.includes(id)) throw new BadRequestException('SERVICE_ZONE_CANNOT_NEIGHBOUR_ITSELF');
     const linked = nearbyZoneIds.length ? await this.prisma.serviceZone.findMany({ where: { id: { in: nearbyZoneIds }, city: { equals: city, mode: 'insensitive' } }, select: { id: true } }) : [];
     if (linked.length !== nearbyZoneIds.length) throw new BadRequestException('SERVICE_ZONE_NEIGHBOURS_MUST_EXIST_IN_THE_SAME_CITY');
@@ -458,7 +458,7 @@ export class AdminController {
     }
     return this.prisma.$transaction(async tx => {
       const zone = await tx.serviceZone.update({ where: { id }, data });
-      const changed = new Set([...before.nearbyZoneIds, ...nearbyZoneIds]);
+      const changed = new Set<string>([...before.nearbyZoneIds, ...nearbyZoneIds]);
       for (const neighbourId of changed) {
         const neighbour = await tx.serviceZone.findUnique({ where: { id: neighbourId } });
         if (!neighbour) continue;
