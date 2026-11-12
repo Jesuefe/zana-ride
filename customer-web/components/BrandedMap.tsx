@@ -55,7 +55,6 @@ export default function BrandedMap({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
-  const rendererRef = useRef<any>(null);
   const driverMarkerRef = useRef<any>(null);
   const originMarkerRef = useRef<any>(null);
   const destMarkerRef = useRef<any>(null);
@@ -63,6 +62,7 @@ export default function BrandedMap({
   const initDone = useRef(false);
   const routeTimerRef = useRef<any>(null);
   const routePathRef = useRef<any[]>([]);
+  const routePolylinesRef = useRef<any[]>([]);
   const offRouteCountRef = useRef(0);
   const mapClickRef = useRef(onMapClick);
   mapClickRef.current = onMapClick;
@@ -86,7 +86,7 @@ export default function BrandedMap({
     catch { return new G.Marker({ position: pos, map }); }
   };
 
-  const fetchRoute = useCallback(() => {
+  const fetchRoute = useCallback(async () => {
     const G = (window as any).google?.maps;
     const map = mapRef.current;
     const org = originRef.current;
@@ -97,39 +97,59 @@ export default function BrandedMap({
     const routeDestination = navDst ?? dst;
     if (!G || !map || !routeOrigin || !routeDestination) return;
 
-    const svc = new G.DirectionsService();
-    svc.route({
-      origin: new G.LatLng(routeOrigin.lat, routeOrigin.lng),
-      destination: new G.LatLng(routeDestination.lat, routeDestination.lng),
-      travelMode: G.TravelMode.DRIVING,
-    }, (result: any, status: any) => {
-      if (status === 'OK') {
-        rendererRef.current?.setDirections(result);
-        routePathRef.current = result.routes[0]?.overview_path ?? [];
-        const leg = result.routes[0]?.legs[0];
-        if (leg && onRouteInfo) {
-          onRouteInfo({ distanceText: leg.distance.text, durationText: leg.duration.text });
-        }
-        // Fit all points in view
-        const drv = driverRef.current;
-        const bounds = new G.LatLngBounds();
-        bounds.extend(new G.LatLng(routeOrigin.lat, routeOrigin.lng));
-        bounds.extend(new G.LatLng(routeDestination.lat, routeDestination.lng));
-        if (drv) bounds.extend(new G.LatLng(drv.lat, drv.lng));
-        map.fitBounds(bounds, { top: 60, bottom: 60, left: 30, right: 30 });
-      } else {
-        routePathRef.current = [];
-        offRouteCountRef.current = 0;
-        onRouteDeviation?.(null);
-        // Fallback straight line
-        new G.Polyline({
-          path: [routeOrigin, routeDestination],
-          strokeColor: '#00A082', strokeOpacity: 0.5, strokeWeight: 3, map,
+    try {
+      // Use the modern Routes library so motorcycle trips use Google's
+      // motorized TWO_WHEELER routing rather than ordinary car directions.
+      const { Route } = await G.importLibrary('routes');
+      const travelMode = vehicleType?.toUpperCase() === 'BIKE' ? 'TWO_WHEELER' : 'DRIVE';
+      const result = await Route.computeRoutes({
+        origin: { lat: routeOrigin.lat, lng: routeOrigin.lng },
+        destination: { lat: routeDestination.lat, lng: routeDestination.lng },
+        travelMode,
+        routingPreference: 'TRAFFIC_AWARE',
+        fields: ['path', 'distanceMeters', 'durationMillis', 'staticDurationMillis', 'viewport', 'warnings'],
+      });
+      const route = result?.routes?.[0];
+      if (!route?.path?.length) throw new Error('Google returned no road route');
+
+      routePolylinesRef.current.forEach(line => line.setMap(null));
+      routePolylinesRef.current = route.createPolylines({
+        polylineOptions: { strokeColor: '#00A082', strokeWeight: 5, strokeOpacity: 0.92 },
+      });
+      routePolylinesRef.current.forEach(line => line.setMap(map));
+
+      // Store Google Maps LatLng objects because route-deviation checks use
+      // lat()/lng() accessors.
+      routePathRef.current = route.path.map((point: any) =>
+        new G.LatLng(Number(point.lat), Number(point.lng)),
+      );
+      offRouteCountRef.current = 0;
+
+      const distanceMeters = Number(route.distanceMeters ?? 0);
+      const durationMillis = Number(route.durationMillis ?? 0);
+      if (onRouteInfo && distanceMeters > 0 && durationMillis > 0) {
+        onRouteInfo({
+          distanceText: `${(distanceMeters / 1000).toFixed(1)} km`,
+          durationText: `~${Math.max(1, Math.ceil(durationMillis / 60000))} min`,
         });
-        if (onRouteInfo) onRouteInfo(null);
       }
-    });
-  }, [onRouteInfo]);
+
+      const bounds = new G.LatLngBounds();
+      routePathRef.current.forEach((point: any) => bounds.extend(point));
+      const drv = driverRef.current;
+      if (drv) bounds.extend(new G.LatLng(drv.lat, drv.lng));
+      map.fitBounds(bounds, { top: 60, bottom: 60, left: 30, right: 30 });
+    } catch (error) {
+      routePolylinesRef.current.forEach(line => line.setMap(null));
+      routePolylinesRef.current = [];
+      routePathRef.current = [];
+      offRouteCountRef.current = 0;
+      onRouteDeviation?.(null);
+      onRouteInfo?.(null);
+      // Do not draw a straight line and present it as a road route.
+      console.warn('[Zana map] Road route unavailable:', error instanceof Error ? error.message : 'Unknown routing error');
+    }
+  }, [onRouteInfo, onRouteDeviation, vehicleType]);
 
   // Init map once
   useEffect(() => {
@@ -145,13 +165,6 @@ export default function BrandedMap({
         disableDefaultUI: true,
         gestureHandling: draggablePickup || onMapClick ? 'greedy' : 'none',
       });
-
-      // Route renderer
-      rendererRef.current = new G.DirectionsRenderer({
-        suppressMarkers: true,
-        polylineOptions: { strokeColor: '#00A082', strokeWeight: 5, strokeOpacity: 0.9 },
-      });
-      rendererRef.current.setMap(mapRef.current);
 
       // Markers
       if (origin) originMarkerRef.current = makeMarker(G, mapRef.current, origin, '#00A082', 16);
@@ -272,6 +285,20 @@ export default function BrandedMap({
   return (
     <div style={{ position: 'relative', width: '100%', height }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      {vehicleType?.toUpperCase() === 'BIKE' && destination && (
+        <div
+          role="note"
+          style={{
+            position: 'absolute', left: 10, bottom: 10, zIndex: 2,
+            maxWidth: 'calc(100% - 20px)', padding: '6px 9px',
+            borderRadius: 9, background: 'rgba(255,255,255,.94)',
+            color: '#52615a', fontSize: 10, lineHeight: 1.35,
+            boxShadow: '0 1px 5px rgba(0,0,0,.14)',
+          }}
+        >
+          Motorcycle routes are in beta. Follow local road signs and restrictions.
+        </div>
+      )}
       <style>{`@keyframes zpulse{0%,100%{transform:scale(1);opacity:0.3}50%{transform:scale(2.5);opacity:0}}`}</style>
     </div>
   );
