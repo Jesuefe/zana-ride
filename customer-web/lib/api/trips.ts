@@ -12,6 +12,13 @@ export async function estimateRide(
   return api.post<RideEstimateResponse>('/rides/estimate', { serviceType, pickup, destination });
 }
 
+
+export async function validateRidePromo(code: string, serviceType: ServiceType, amount: number) {
+  return api.post<{ code: string; discountAmount: number; originalAmount: number; payableAmount: number }>('/rides/promo/validate', {
+    code, serviceType, amount,
+  });
+}
+
 export type ApiTrip = {
   id: string;
   status: string;
