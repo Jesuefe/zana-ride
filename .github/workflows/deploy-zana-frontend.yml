@@ -49,7 +49,10 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           if [ "$TARGET" = "customer" ]; then
-            test -n "$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+            if [[ ! "$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY" =~ ^AIza[0-9A-Za-z_-]{30,}$ ]]; then
+              echo "::error::NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is missing or malformed. Set the full browser API key in GitHub Actions secrets."
+              exit 1
+            fi
           fi
       - name: Install dependencies
         working-directory: ${{ steps.target.outputs.directory }}
