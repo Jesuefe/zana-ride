@@ -69,7 +69,7 @@ function StoreContent() {
     if (!merchant || !promoCode.trim()) { setPromoMessage(t('Enter a promo code first.')); return; }
     setValidatingPromo(true); setPromoMessage(''); setPromoDiscount(0);
     try {
-      const result = await validateOrderPromo(promoCode.trim(), merchant.id, cartTotal);
+      const result = await validateOrderPromo(promoCode.trim(), merchant.id, cartTotal, deliveryFee);
       setPromoDiscount(result.discountAmount);
       setPromoMessage(t('Promo applied. You save {{amount}} RWF.').replace('{{amount}}', result.discountAmount.toLocaleString()));
     } catch (e: any) { setPromoMessage(e?.message || t('This promo code is not valid for this order.')); }
