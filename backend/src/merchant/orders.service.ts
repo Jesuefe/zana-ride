@@ -51,6 +51,16 @@ export class OrdersService {
     }
   }
 
+  async validatePromoCode(customerId: string, code: string, merchantId: string, amount: number) {
+    const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId }, select: { category: true, status: true } });
+    if (!merchant || merchant.status !== 'APPROVED') throw new BadRequestException('MERCHANT_NOT_AVAILABLE');
+    const scope = String(merchant.category).toUpperCase() === 'FOOD' ? 'FOOD' : 'SHOPPING';
+    const campaign = await this.prisma.promoCode.findUnique({ where: { code: String(code).trim().toUpperCase() }, select: { serviceScope: true } });
+    const validationScope = campaign?.serviceScope === 'DELIVERIES' ? 'DELIVERIES' : scope;
+    const result = await this.promoCodes.validate(customerId, code, validationScope, amount);
+    return { code: result.promo.code, discountAmount: result.discountAmount, originalAmount: result.originalAmount, payableAmount: result.payableAmount };
+  }
+
   async create(customerId: string, data: {
     merchantId?: string;
     marketId?: string;
