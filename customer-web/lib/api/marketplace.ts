@@ -28,6 +28,13 @@ export async function fetchMarketplaceWithLocation(
   );
 }
 
+
+export async function validateOrderPromo(code: string, merchantId: string, amount: number) {
+  return api.post<{ code: string; discountAmount: number; originalAmount: number; payableAmount: number }>('/orders/promo/validate', {
+    code, merchantId, amount,
+  });
+}
+
 export async function placeOrder(data: {
   merchantId?: string;
   marketId?: string;
