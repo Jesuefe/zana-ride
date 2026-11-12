@@ -181,7 +181,7 @@ export class AdminController {
   @Roles('ADMIN')
   @Get('promo-codes')
   async listPromoCodes() {
-    return this.prisma.promoCode.findMany({ orderBy: { createdAt: 'desc' }, take: 500 });
+    return this.prisma.promoCode.findMany({ include: { redemptions: { select: { discountAmount: true, status: true } } }, orderBy: { createdAt: 'desc' }, take: 500 });
   }
 
   @Roles('ADMIN')
