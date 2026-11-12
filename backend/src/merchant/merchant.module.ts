@@ -12,6 +12,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { DeliveriesModule } from '../deliveries/deliveries.module';
 import { FinanceModule } from '../finance/finance.module';
 import { MarketsModule } from '../markets/markets.module';
+import { PromoCodesService } from '../promotions/promo-codes.service';
 
 @Module({
   imports: [PrismaModule, DeliveriesModule, GatewayModule, WalletModule, FinanceModule, MarketsModule],
@@ -22,7 +23,7 @@ import { MarketsModule } from '../markets/markets.module';
     CustomerOrdersController,
     MerchantOrdersController,
   ],
-  providers: [MerchantService, StorageService, OrdersService, PaypackPaymentAdapter, PaypackService],
+  providers: [PromoCodesService, MerchantService, StorageService, OrdersService, PaypackPaymentAdapter, PaypackService],
   exports: [MerchantService, OrdersService],
 })
 export class MerchantModule {}

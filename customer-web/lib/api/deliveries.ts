@@ -52,6 +52,10 @@ export type Delivery = {
   createdAt: string;
 };
 
+export async function validateDeliveryPromo(data: { pickupLat: number; pickupLng: number; dropoffLat: number; dropoffLng: number; weight: PackageWeight; code: string }) {
+  return api.post<{ code: string; discountAmount: number; originalAmount: number; payableAmount: number }>('/deliveries/promo/validate', data);
+}
+
 export async function createDelivery(data: {
   itemDescription: string;
   weight: PackageWeight;
@@ -67,6 +71,7 @@ export async function createDelivery(data: {
   receiverPhone: string;
   paymentMethod?: 'WALLET' | 'MOBILE_MONEY' | 'CASH';
   momoPhone?: string;
+  promoCode?: string;
 }) {
   return api.post<Delivery>('/deliveries', data);
 }

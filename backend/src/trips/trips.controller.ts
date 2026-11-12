@@ -8,6 +8,7 @@ import { ScheduledRideService } from './scheduled.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RatingsService } from './ratings.service';
 import { FareService } from './fare.service';
+import { PromoCodesService } from '../promotions/promo-codes.service';
 import { DriversService } from '../drivers/drivers.service';
 import { ServiceType, TripStatus } from '@prisma/client';
 
@@ -17,6 +18,7 @@ export class TripsController {
   constructor(
     private tripsService: TripsService,
     private driversService: DriversService,
+    private promoCodes: PromoCodesService,
   ) {}
 
   @Get('history')
@@ -36,6 +38,12 @@ export class TripsController {
     return this.tripsService.estimate(body.pickup, body.destination, body.serviceType);
   }
 
+  @Post('promo/validate')
+  async validatePromo(@CurrentUser() user: JwtPayload, @Body() body: { code: string; serviceType: ServiceType; amount: number }) {
+    const result = await this.promoCodes.validate(user.sub, body.code, 'RIDES', Number(body.amount));
+    return { code: result.promo.code, discountAmount: result.discountAmount, originalAmount: result.originalAmount, payableAmount: result.payableAmount };
+  }
+
   @Post()
   create(
     @CurrentUser() user: JwtPayload,
@@ -51,6 +59,7 @@ export class TripsController {
       count?: number;
       paymentMethod?: string;
       expectedFare?: number;
+      promoCode?: string;
     },
   ) {
     const { count, ...tripData } = body;

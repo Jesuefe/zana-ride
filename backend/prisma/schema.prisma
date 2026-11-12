@@ -265,6 +265,9 @@ model Trip {
   destinationLng     Float
   distanceKm         Float?
   estimatedFare      Int
+  promoCode          String?
+  promoDiscount      Int           @default(0)
+  customerPayableFare Int?
   finalFare          Int?
   status             TripStatus    @default(REQUESTED)
   paymentMethod      String        @default("CASH")
@@ -441,6 +444,7 @@ model Delivery {
   receiverPhone    String
   distanceKm       Float
   fee              Int
+  promoDiscount    Int            @default(0)
   status           DeliveryStatus @default(REQUESTED)
   createdAt        DateTime       @default(now())
   assignedAt       DateTime?
@@ -454,6 +458,7 @@ model Delivery {
   merchant         Merchant?      @relation(fields: [merchantId], references: [id])
   order            Order?         @relation(fields: [orderId], references: [id])
   reviews          Review[]
+  promoRedemption  PromoCodeRedemption?
 }
 
 model LocationCode {
@@ -625,6 +630,8 @@ model Order {
   promotionId              String?
   agentId                  String?
   total                    Int
+  promoCode                String?
+  promoDiscount            Int                 @default(0)
   deliveryFee              Int                 @default(0)
   status                   OrderStatus         @default(PENDING)
   deliveryId               String?
@@ -1342,4 +1349,54 @@ model StatutoryRemittance {
 
   @@unique([period, obligationType])
   @@index([status, dueDate])
+}
+
+model PromoCode {
+  id               String   @id @default(uuid())
+  code             String   @unique
+  name             String
+  description      String?
+  serviceScope     String   @default("ALL")
+  discountType     String   @default("PERCENT")
+  discountValue    Int
+  maxDiscount      Int?
+  minSpend         Int      @default(0)
+  maxUses          Int?
+  perUserLimit     Int      @default(1)
+  usageCount       Int      @default(0)
+  fundingSource    String   @default("ZANA")
+  creatorName      String?
+  creatorHandle    String?
+  startsAt         DateTime
+  endsAt           DateTime
+  status           String   @default("ACTIVE")
+  createdBy        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  redemptions      PromoCodeRedemption[]
+
+  @@index([status, startsAt, endsAt])
+  @@index([serviceScope])
+}
+
+
+model PromoCodeRedemption {
+  id              String   @id @default(uuid())
+  promoCodeId     String
+  userId          String
+  serviceScope    String
+  originalAmount  Int
+  discountAmount  Int
+  payableAmount   Int
+  tripId          String?  @unique
+  orderId         String?  @unique
+  deliveryId      String?  @unique
+  status          String   @default("RESERVED")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  promoCode       PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Restrict)
+  delivery        Delivery? @relation(fields: [deliveryId], references: [id], onDelete: Restrict)
+
+  @@index([promoCodeId, userId, status])
+  @@index([userId, createdAt])
 }

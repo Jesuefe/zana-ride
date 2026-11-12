@@ -176,6 +176,66 @@ export class AdminController {
     return updated;
   }
 
+  // Unified customer promo-code campaigns. These records configure campaigns;
+  // checkout redemption is deliberately handled by the service-specific payment flows.
+  @Roles('ADMIN')
+  @Get('promo-codes')
+  async listPromoCodes() {
+    return this.prisma.promoCode.findMany({ include: { redemptions: { select: { discountAmount: true, status: true } } }, orderBy: { createdAt: 'desc' }, take: 500 });
+  }
+
+  @Roles('ADMIN')
+  @Post('promo-codes')
+  async createPromoCode(@CurrentUser() actor: JwtPayload, @Body() body: any) {
+    const code = String(body.code ?? '').trim().toUpperCase().replace(/\\s+/g, '');
+    const name = String(body.name ?? '').trim();
+    const serviceScope = String(body.serviceScope ?? 'ALL').toUpperCase();
+    const discountType = String(body.discountType ?? 'PERCENT').toUpperCase();
+    const fundingSource = String(body.fundingSource ?? 'ZANA').toUpperCase();
+    const discountValue = Number(body.discountValue);
+    const startsAt = new Date(body.startsAt);
+    const endsAt = new Date(body.endsAt);
+    if (!/^[A-Z0-9_-]{3,32}$/.test(code)) throw new BadRequestException('Code must be 3–32 letters, numbers, hyphens or underscores.');
+    if (!name) throw new BadRequestException('Campaign name is required.');
+    if (!['ALL','RIDES','FOOD','DELIVERIES','SHOPPING'].includes(serviceScope)) throw new BadRequestException('Invalid service scope.');
+    if (!['PERCENT','FIXED'].includes(discountType)) throw new BadRequestException('Invalid discount type.');
+    if (!Number.isInteger(discountValue) || discountValue < 1 || (discountType === 'PERCENT' && discountValue > 100)) throw new BadRequestException('Enter a valid discount value.');
+    if (fundingSource !== 'ZANA') throw new BadRequestException('Only Zana-funded promotions are enabled until merchant and partner settlement integrations are ready.');
+    if (!Number.isFinite(startsAt.getTime()) || !Number.isFinite(endsAt.getTime()) || endsAt <= startsAt) throw new BadRequestException('Enter a valid campaign date range.');
+    const maxDiscount = body.maxDiscount === '' || body.maxDiscount == null ? null : Number(body.maxDiscount);
+    const maxUses = body.maxUses === '' || body.maxUses == null ? null : Number(body.maxUses);
+    const minSpend = Number(body.minSpend ?? 0);
+    const perUserLimit = Number(body.perUserLimit ?? 1);
+    if (maxDiscount !== null && (!Number.isInteger(maxDiscount) || maxDiscount < 1)) throw new BadRequestException('Maximum discount must be a positive amount.');
+    if (maxUses !== null && (!Number.isInteger(maxUses) || maxUses < 1)) throw new BadRequestException('Usage limit must be a positive whole number.');
+    if (!Number.isInteger(minSpend) || minSpend < 0 || !Number.isInteger(perUserLimit) || perUserLimit < 1) throw new BadRequestException('Minimum spend and per-customer limit are invalid.');
+    try {
+      const created = await this.prisma.promoCode.create({ data: {
+        code, name, description: String(body.description ?? '').trim() || null, serviceScope, discountType, discountValue,
+        maxDiscount, minSpend, maxUses, perUserLimit, fundingSource,
+        creatorName: String(body.creatorName ?? '').trim() || null,
+        creatorHandle: String(body.creatorHandle ?? '').trim() || null,
+        startsAt, endsAt, status: body.status === 'PAUSED' ? 'PAUSED' : 'ACTIVE', createdBy: actor.sub,
+      }});
+      await this.prisma.auditLog.create({ data: { actorId: actor.sub, action: 'PROMO_CODE_CREATED', entityType: 'PromoCode', entityId: created.id, afterJson: JSON.stringify(created) } });
+      return created;
+    } catch (error: any) {
+      if (error?.code === 'P2002') throw new BadRequestException('That promo code already exists.');
+      throw error;
+    }
+  }
+
+  @Roles('ADMIN')
+  @Patch('promo-codes/:id/status')
+  async updatePromoCodeStatus(@CurrentUser() actor: JwtPayload, @Param('id') id: string, @Body() body: { status: string }) {
+    if (!['ACTIVE','PAUSED','EXPIRED'].includes(body.status)) throw new BadRequestException('Status must be ACTIVE, PAUSED or EXPIRED.');
+    const current = await this.prisma.promoCode.findUnique({ where: { id } });
+    if (!current) throw new BadRequestException('Promo code not found.');
+    const updated = await this.prisma.promoCode.update({ where: { id }, data: { status: body.status } });
+    await this.prisma.auditLog.create({ data: { actorId: actor.sub, action: 'PROMO_CODE_STATUS_UPDATED', entityType: 'PromoCode', entityId: id, beforeJson: JSON.stringify({ status: current.status }), afterJson: JSON.stringify({ status: updated.status }) } });
+    return updated;
+  }
+
   @Roles('ADMIN')
   @Get('rider-registrations')
   async getRiderRegistrations(@Query('status') status?: string, @Query('search') search?: string) {

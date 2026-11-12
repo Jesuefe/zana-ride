@@ -37,6 +37,11 @@ export class DeliveriesController {
     return this.deliveriesService.quote(body.pickupLat, body.pickupLng, body.dropoffLat, body.dropoffLng, body.weight);
   }
 
+  @Post('promo/validate')
+  validatePromo(@CurrentUser() user: JwtPayload, @Body() body: { pickupLat: number; pickupLng: number; dropoffLat: number; dropoffLng: number; weight: PackageWeight; code: string }) {
+    return this.deliveriesService.validatePromo(user.sub, body);
+  }
+
   @Post()
   create(@CurrentUser() user: JwtPayload, @Body() body: CreateDeliveryInput) {
     return this.deliveriesService.create(body, { customerId: user.sub });

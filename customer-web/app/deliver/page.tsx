@@ -45,6 +45,7 @@ import {
   quoteDelivery,
   createDelivery,
   checkDeliveryPaymentStatus,
+  validateDeliveryPromo,
 } from '../../lib/api/deliveries';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
@@ -99,6 +100,10 @@ export default function DeliverPage() {
   const [awaitingMomo, setAwaitingMomo] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY' | 'CASH'>('WALLET');
   const [momoPhone, setMomoPhone] = useState('');
+  const [promoCode, setPromoCode] = useState('');
+  const [promoPreview, setPromoPreview] = useState<{ code: string; discountAmount: number; payableAmount: number } | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
   useEffect(() => {
     fetchMe().then((me) => { if (me?.phone) setMomoPhone(me.phone.replace(/^\+250/, '')); }).catch(() => {});
   }, []);
@@ -132,10 +137,12 @@ export default function DeliverPage() {
 
   useEffect(() => {
     if (!dropoff) {
+      setPromoPreview(null);
       setQuote(null);
       setQuoteLoading(false);
       return;
     }
+    setPromoPreview(null);
     setQuoteLoading(true);
     quoteDelivery({
       pickupLat: pickup.lat,
@@ -206,6 +213,17 @@ export default function DeliverPage() {
     setCodeInput('');
   };
 
+  const handleApplyPromo = async () => {
+    if (!quote || !dropoff || !promoCode.trim()) return;
+    setPromoLoading(true); setPromoError(null); setPromoPreview(null);
+    try {
+      const result = await validateDeliveryPromo({ pickupLat: pickup.lat, pickupLng: pickup.lng, dropoffLat: dropoff.lat, dropoffLng: dropoff.lng, weight, code: promoCode.trim() });
+      setPromoPreview({ code: result.code, discountAmount: result.discountAmount, payableAmount: result.payableAmount });
+    } catch (e) {
+      setPromoError(e instanceof ApiError ? e.message : t('This promo code could not be applied.'));
+    } finally { setPromoLoading(false); }
+  };
+
   const canSubmit =
     selectedPackageType.trim().length > 1 && dropoff !== null && receiverPhone.replace(/\D/g, '').length >= 9 &&
     (paymentMethod !== 'MOBILE_MONEY' || momoPhone.replace(/\D/g, '').length >= 9);
@@ -232,6 +250,7 @@ export default function DeliverPage() {
         receiverPhone: `+250${receiverPhone.replace(/\D/g, '')}`,
         paymentMethod,
         momoPhone: paymentMethod === 'MOBILE_MONEY' ? `+250${momoPhone.replace(/\D/g, '')}` : undefined,
+        promoCode: promoPreview?.code,
       });
 
       if (paymentMethod === 'MOBILE_MONEY') {
@@ -500,7 +519,7 @@ export default function DeliverPage() {
             <div className="overflow-hidden rounded-2xl border border-zana-border bg-[var(--zana-surface)]">
               <div className="bg-zana-primary-dark p-4 text-white">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">{t('Delivery estimate')}</p>
-                {quote ? <p className="mt-1 text-3xl font-black">{quote.fee.toLocaleString()} <span className="text-sm font-bold">RWF</span></p> : <p className="mt-1 text-sm font-semibold">{quoteLoading ? t('Calculating delivery price…') : t('Price unavailable. Go back and try again.')}</p>}
+                {quote ? <p className="mt-1 text-3xl font-black">{(promoPreview?.payableAmount ?? quote.fee).toLocaleString()} <span className="text-sm font-bold">RWF</span></p> : <p className="mt-1 text-sm font-semibold">{quoteLoading ? t('Calculating delivery price…') : t('Price unavailable. Go back and try again.')}</p>}
                 {quote && <p className="mt-1 text-xs text-white/70">{quote.distanceKm} km · ~{Math.max(1, Math.round(quote.durationMinutes))} min · {t('Estimated distance')}</p>}
               </div>
               <div className="space-y-3 p-4">
@@ -519,6 +538,13 @@ export default function DeliverPage() {
             </div>
 
             <div className="rounded-2xl border border-zana-border bg-[var(--zana-surface)] p-4">
+              <h3 className="mb-3 text-sm font-extrabold text-gray-900">{t('Promo code')}</h3>
+              <div className="flex gap-2"><input value={promoCode} onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoPreview(null); setPromoError(null); }} placeholder={t('Enter promo code')} className="min-w-0 flex-1 rounded-xl border border-zana-border bg-[var(--zana-surface)] px-3 py-3 text-sm text-gray-900 outline-none focus:border-zana-primary" /><button type="button" onClick={handleApplyPromo} disabled={!promoCode.trim() || !quote || promoLoading} className="rounded-xl bg-zana-primary px-4 text-xs font-bold text-white disabled:opacity-40">{promoLoading ? t('Checking…') : t('Apply')}</button></div>
+              {promoPreview && <p className="mt-2 text-xs font-semibold text-zana-primary">{t('Promo applied')}: −{promoPreview.discountAmount.toLocaleString()} RWF</p>}
+              {promoError && <p role="alert" className="mt-2 text-xs text-red-600">{promoError}</p>}
+            </div>
+
+            <div className="rounded-2xl border border-zana-border bg-[var(--zana-surface)] p-4">
               <h3 className="mb-3 text-sm font-extrabold text-gray-900">{t('Choose payment method')}</h3>
               <div className="grid grid-cols-3 gap-2">
                 {([
@@ -526,7 +552,7 @@ export default function DeliverPage() {
                   ['MOBILE_MONEY', 'MoMo', Smartphone],
                   ['CASH', 'Cash', Banknote],
                 ] as const).map(([id, label, Icon]) => {
-                  const short = id === 'WALLET' && walletBalance !== null && quote !== null && walletBalance < quote.fee;
+                  const short = id === 'WALLET' && walletBalance !== null && quote !== null && walletBalance < (promoPreview?.payableAmount ?? quote.fee);
                   return (
                     <button key={id} type="button" onClick={() => setPaymentMethod(id)} aria-pressed={paymentMethod === id}
                       className={"flex min-h-[86px] flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all " + (paymentMethod === id
@@ -539,9 +565,9 @@ export default function DeliverPage() {
                 })}
               </div>
               {paymentMethod === 'WALLET' && walletBalance !== null && quote && (
-                <p className={"mt-3 text-xs font-semibold " + (walletBalance < quote.fee ? "text-red-500" : "text-gray-500")}>
+                <p className={"mt-3 text-xs font-semibold " + (walletBalance < (promoPreview?.payableAmount ?? quote.fee) ? "text-red-500" : "text-gray-500")}>
                   {t('Wallet balance')}: {walletBalance.toLocaleString()} RWF
-                  {walletBalance < quote.fee ? ' · ' + (quote.fee - walletBalance).toLocaleString() + ' RWF ' + t('short') : ''}
+                  {walletBalance < (promoPreview?.payableAmount ?? quote.fee) ? ' · ' + ((promoPreview?.payableAmount ?? quote.fee) - walletBalance).toLocaleString() + ' RWF ' + t('short') : ''}
                 </p>
               )}
               {paymentMethod === 'CASH' && <p className="mt-3 text-xs leading-5 text-gray-500">{t('Pay the courier when they collect the package.')}</p>}

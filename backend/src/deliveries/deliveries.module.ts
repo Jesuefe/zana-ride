@@ -14,6 +14,7 @@ import { DeliveriesService } from './deliveries.service';
 import { LocationCodeService } from './location-code.service';
 import { StorageService } from './storage.service';
 import { FinanceModule } from '../finance/finance.module';
+import { PromoCodesService } from '../promotions/promo-codes.service';
 
 @Module({
   imports: [GatewayModule, TripsModule, FinanceModule],
@@ -24,7 +25,7 @@ import { FinanceModule } from '../finance/finance.module';
     LocationCodesController,
     DriverDeliveriesController,
   ],
-  providers: [PaypackPaymentAdapter, PaypackService, DeliveriesService, LocationCodeService, StorageService],
+  providers: [PaypackPaymentAdapter, PaypackService, DeliveriesService, LocationCodeService, StorageService, PromoCodesService],
   exports: [DeliveriesService, LocationCodeService],
 })
 export class DeliveriesModule {}

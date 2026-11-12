@@ -10,6 +10,7 @@ import { haversineKm, estimateDurationMinutes } from '../trips/fare.util';
 import { CommissionDebtService } from '../trips/commission-debt.service';
 import { assertValidDeliveryTransition } from './delivery-state-machine';
 import { FinanceService } from '../finance/finance.service';
+import { PromoCodesService } from '../promotions/promo-codes.service';
 
 // Deliveries are priced on distance like rides, with a multiplier for heavier
 // packages — a 20kg load is a different job from an envelope even over the
@@ -47,6 +48,7 @@ export type CreateDeliveryInput = {
   // charged. Matches how a driver can already correct the phone before
   // charging a ride via momo-charge; a customer deserves the same.
   momoPhone?: string;
+  promoCode?: string;
 };
 
 @Injectable()
@@ -61,6 +63,7 @@ export class DeliveriesService {
     private locationCodes: LocationCodeService,
     private commissionDebt: CommissionDebtService,
     private finance: FinanceService,
+    private promos: PromoCodesService,
   ) {}
 
   quote(pickupLat: number, pickupLng: number, dropoffLat: number, dropoffLng: number, weight: PackageWeight) {
@@ -73,6 +76,12 @@ export class DeliveriesService {
       durationMinutes: durationMin,
       fee: Math.max(DELIVERY_MINIMUM, Math.round(raw)),
     };
+  }
+
+  async validatePromo(userId: string, input: { pickupLat: number; pickupLng: number; dropoffLat: number; dropoffLng: number; weight: PackageWeight; code: string }) {
+    const { fee } = this.quote(input.pickupLat, input.pickupLng, input.dropoffLat, input.dropoffLng, input.weight);
+    const result = await this.promos.validate(userId, input.code, 'DELIVERIES', fee);
+    return { code: result.promo.code, discountAmount: result.discountAmount, originalAmount: fee, payableAmount: result.payableAmount };
   }
 
   async create(input: CreateDeliveryInput, owner: { customerId?: string; merchantId?: string }) {
@@ -114,12 +123,17 @@ export class DeliveriesService {
     const payerId = owner.customerId;
     const merchantPayerId = owner.merchantId ? (await this.prisma.merchant.findUnique({ where: { id: owner.merchantId }, select: { userId: true } }))?.userId : undefined;
     const chargeUserId = payerId ?? merchantPayerId;
+    const promo = input.promoCode && payerId
+      ? await this.promos.validate(payerId, input.promoCode, 'DELIVERIES', fee)
+      : null;
+    const promoDiscount = promo?.discountAmount ?? 0;
+    const payableFee = fee - promoDiscount;
 
     if (paymentMethod === 'WALLET' && chargeUserId) {
       const wallet = await this.prisma.wallet.findUnique({ where: { userId: chargeUserId } });
       const balance = wallet?.balance ?? 0;
-      if (!wallet || balance < fee) {
-        throw new BadRequestException(`INSUFFICIENT_WALLET_BALANCE:${balance}:${fee}`);
+      if (!wallet || balance < payableFee) {
+        throw new BadRequestException(`INSUFFICIENT_WALLET_BALANCE:${balance}:${payableFee}`);
       }
     }
 
@@ -140,17 +154,33 @@ export class DeliveriesService {
         receiverPhone: input.receiverPhone,
         distanceKm,
         fee,
+        promoDiscount,
         status: DeliveryStatus.REQUESTED,
         trackingCode: 'ZD' + Math.random().toString(36).slice(2, 8).toUpperCase(),
         paymentMethod,
       } as any,
     });
 
+    if (promo && payerId) {
+      try {
+        await this.prisma.$transaction(tx => this.promos.reserve(tx, {
+          promo: promo.promo, userId: payerId, serviceScope: 'DELIVERIES',
+          originalAmount: fee, discountAmount: promoDiscount, payableAmount: payableFee,
+          deliveryId: delivery.id,
+        }));
+      } catch (e) {
+        await this.prisma.delivery.update({ where: { id: delivery.id }, data: { status: DeliveryStatus.CANCELLED } }).catch(() => {});
+        throw e;
+      }
+    }
+
     // ── Settle the fee ────────────────────────────────────────────────────
     if (chargeUserId && fee > 0) {
-      if (paymentMethod === 'WALLET') {
+      if (payableFee === 0) {
+        await this.prisma.delivery.update({ where: { id: delivery.id }, data: { paid: true } as any });
+      } else if (paymentMethod === 'WALLET') {
         try {
-          await this.debitWallet(chargeUserId, fee, delivery.id);
+          await this.debitWallet(chargeUserId, payableFee, delivery.id);
         } catch (e) {
           // Never leave a merchant delivery sitting in REQUESTED after a
           // failed wallet debit. It must not look dispatchable or remain as
@@ -158,12 +188,13 @@ export class DeliveriesService {
           await this.prisma.delivery.update({
             where: { id: delivery.id }, data: { status: DeliveryStatus.CANCELLED } as any,
           }).catch(() => {});
+          await this.promos.cancelReservation(undefined, undefined, delivery.id).catch(() => {});
           throw e;
         }
         await this.prisma.delivery.update({
           where: { id: delivery.id }, data: { paid: true } as any,
         });
-        this.logger.log(`[DELIVERY] ${(delivery as any).trackingCode} paid from wallet | ${fee} RWF`);
+        this.logger.log(`[DELIVERY] ${(delivery as any).trackingCode} paid from wallet | ${payableFee} RWF`);
       } else if (paymentMethod === 'MOBILE_MONEY') {
         const customer = await this.prisma.user.findUnique({
           where: { id: payerId }, select: { phone: true },
@@ -177,16 +208,20 @@ export class DeliveriesService {
           // no error thrown, but the delivery still got created and
           // would then sit permanently stuck (never payable, so never
           // dispatchable) with no explanation to the customer at all.
+          await this.prisma.delivery.update({ where: { id: delivery.id }, data: { status: DeliveryStatus.CANCELLED } }).catch(() => {});
+          await this.promos.cancelReservation(undefined, undefined, delivery.id).catch(() => {});
           throw new BadRequestException('NO_PHONE_NUMBER');
         }
         try {
-            const res = await this.paypackPayments.collectMobileMoney(chargePhone, fee, `ZANA-DELIVERY-${delivery.id}`);
+            const res = await this.paypackPayments.collectMobileMoney(chargePhone, payableFee, `ZANA-DELIVERY-${delivery.id}`);
             await this.prisma.delivery.update({
               where: { id: delivery.id }, data: { momoRef: res.ref } as any,
             });
-            this.logger.log(`[DELIVERY] MoMo prompt sent to ${chargePhone} | ${fee} RWF`);
+            this.logger.log(`[DELIVERY] MoMo prompt sent to ${chargePhone} | ${payableFee} RWF`);
           } catch (e: any) {
             this.logger.error(`[DELIVERY] MoMo charge failed: ${e?.message}`);
+            await this.prisma.delivery.update({ where: { id: delivery.id }, data: { status: DeliveryStatus.CANCELLED } as any }).catch(() => {});
+            await this.promos.cancelReservation(undefined, undefined, delivery.id).catch(() => {});
             throw new BadRequestException('MOMO_CHARGE_FAILED');
           }
       }
@@ -248,6 +283,7 @@ export class DeliveriesService {
         where: { id: deliveryId },
         data: { status: 'CANCELLED' as any },
       }).catch(() => {});
+      await this.promos.cancelReservation(undefined, undefined, deliveryId).catch(() => {});
       return { status: 'failed' };
     }
 
@@ -313,6 +349,9 @@ export class DeliveriesService {
       where: { id },
       include: { order: { include: { merchant: true } }, merchant: { select: { userId: true } } },
     });
+    if (status === DeliveryStatus.CANCELLED) await this.promos.cancelReservation(undefined, undefined, id).catch(() => {});
+    if (status === DeliveryStatus.DELIVERED) await this.promos.completeReservation(undefined, undefined, id).catch(() => {});
+
     // Genuinely shouldn't happen — this row was just the target of the
     // atomic update above — but TypeScript is right that findUnique's
     // return type allows it, and a silent null here would be worse than
@@ -391,6 +430,13 @@ export class DeliveriesService {
     const updated = await this.updateStatus(deliveryId, DeliveryStatus.DELIVERED);
 
     if (delivery.driverId) {
+      // For cash promotions the customer hands the courier the discounted cash.
+      // Credit the Zana-funded discount first so the courier's gross fare and
+      // commission calculation remain based on the original delivery fee.
+      if (delivery.paymentMethod === 'CASH' && Number((delivery as any).promoDiscount ?? 0) > 0) {
+        const driver = await this.prisma.driver.findUnique({ where: { id: delivery.driverId }, include: { user: { include: { wallet: true } } } });
+        if (driver?.user?.wallet) await this.prisma.wallet.update({ where: { id: driver.user.wallet.id }, data: { balance: { increment: Number((delivery as any).promoDiscount) } } });
+      }
       await this.commissionDebt
         .handleDeliveryCompletion(deliveryId, delivery.fee, delivery.driverId, delivery.paymentMethod)
         .catch((e) => console.error('[DELIVERY] Commission settlement failed:', e?.message));

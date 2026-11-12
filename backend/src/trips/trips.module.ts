@@ -10,6 +10,7 @@ import { PointsService } from './points.service';
 import { ScheduledRideService } from './scheduled.service';
 import { CancellationService } from './cancellation.service';
 import { FareService } from './fare.service';
+import { PromoCodesService } from '../promotions/promo-codes.service';
 import { DriversModule } from '../drivers/drivers.module';
 import { PrismaModule } from '../prisma/prisma.module';
 
@@ -25,7 +26,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     ScheduledRidesController,
     CustomerReportsController,
   ],
-  providers: [TripsService, RatingsService, CommissionDebtService, PaypackPaymentAdapter, PaypackService, PointsService, ScheduledRideService, CancellationService, FareService],
+  providers: [PromoCodesService, TripsService, RatingsService, CommissionDebtService, PaypackPaymentAdapter, PaypackService, PointsService, ScheduledRideService, CancellationService, FareService],
   exports: [TripsService, FareService, CommissionDebtService],
 })
 export class TripsModule {}
