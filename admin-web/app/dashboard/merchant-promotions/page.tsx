@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import AdminShell from '../../../../components/AdminShell';
-import { getMerchantPromotions, getMerchants, reviewMerchantPromotion, setMerchantPromotionExemption } from '../../../../lib/api/admin';
-import { getToken } from '../../../../lib/api/client';
+import AdminShell from '../../../components/AdminShell';
+import { getMerchantPromotions, getMerchants, reviewMerchantPromotion, setMerchantPromotionExemption } from '../../../lib/api/admin';
+import { getToken } from '../../../lib/api/client';
 
 export default function MerchantPromotionsAdminPage() {
   const [promotions,setPromotions]=useState<any[]>([]);
