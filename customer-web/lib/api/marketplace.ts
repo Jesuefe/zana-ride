@@ -29,9 +29,9 @@ export async function fetchMarketplaceWithLocation(
 }
 
 
-export async function validateOrderPromo(code: string, merchantId: string, amount: number, deliveryFee: number) {
+export async function validateOrderPromo(code: string, merchantId: string | undefined, amount: number, deliveryFee: number, marketId?: string) {
   return api.post<{ code: string; discountAmount: number; originalAmount: number; payableAmount: number }>('/orders/promo/validate', {
-    code, merchantId, amount, deliveryFee,
+    code, merchantId, marketId, amount, deliveryFee,
   });
 }
 
