@@ -12,6 +12,12 @@ async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(options.headers as any) };
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API}${path}`, { ...options, headers });
+  const raw = res.status === 204 ? '' : await res.text();
+  let payload: any = null;
+  if (raw.trim()) {
+    try { payload = JSON.parse(raw); }
+    catch { throw new ApiError(`Invalid JSON response from ${path} (HTTP ${res.status})`, res.status); }
+  }
   if (!res.ok) {
     // A database reset or revoked session makes the cached admin JWT invalid.
     // Do not leave the dashboard rendering with endless 401 placeholders.
@@ -19,12 +25,11 @@ async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
       clearToken();
       if (window.location.pathname !== '/login') window.location.replace('/login');
     }
-    let msg = res.statusText;
-    try { msg = (await res.json()).message ?? msg; } catch {}
-    throw new ApiError(Array.isArray(msg) ? msg.join(', ') : msg, res.status);
+    const msg = payload?.message ?? res.statusText ?? 'Request failed';
+    throw new ApiError(Array.isArray(msg) ? msg.join(', ') : String(msg), res.status);
   }
-  if (res.status === 204) return undefined as T;
-  return res.json();
+  if (!raw.trim() || res.status === 204) return null as T;
+  return payload as T;
 }
 
 export const api = {
