@@ -134,6 +134,16 @@ export class MerchantController {
 export class PublicProductsController {
   constructor(private prisma: PrismaService) {}
 
+  @Get('promotions')
+  async findPromotions() {
+    const now = new Date();
+    return this.prisma.merchantPromotion.findMany({
+      where: { status: 'APPROVED', startsAt: { lte: now }, endsAt: { gt: now }, merchant: { status: 'APPROVED' } },
+      include: { merchant: { select: { id: true, businessName: true, branch: true, logoUrl: true } }, items: { include: { product: true } } },
+      orderBy: { startsAt: 'asc' }, take: 100,
+    });
+  }
+
   @Get()
   async findAll(@Query('category') category?: MerchantCategory) {
     return this.prisma.product.findMany({
