@@ -73,6 +73,7 @@ export class TripsService {
       destinationLng: number;
       paymentMethod?: string;
       expectedFare?: number;
+      promoCode?: string;
     },
   ) {
     const trips = await this.createGroup(customerId, data, 1);
@@ -1003,6 +1004,7 @@ export class TripsService {
     });
 
     if (trip.driverId) {
+      if ((trip as any).promoDiscount > 0) await this.creditPromoCashSubsidy(trip.driverId, tripId, (trip as any).promoDiscount);
       await this.commissionDebtService.handleTripCompletion(
         tripId, trip.finalFare ?? trip.estimatedFare, trip.driverId, 'CASH',
       );
