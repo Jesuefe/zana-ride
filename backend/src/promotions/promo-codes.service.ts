@@ -24,7 +24,7 @@ export class PromoCodesService {
     return { promo, discountAmount, originalAmount: amount, payableAmount: amount - discountAmount };
   }
 
-  async reserve(tx: any, input: { promo: any; userId: string; serviceScope: string; originalAmount: number; discountAmount: number; payableAmount: number; tripId?: string; orderId?: string }) {
+  async reserve(tx: any, input: { promo: any; userId: string; serviceScope: string; originalAmount: number; discountAmount: number; payableAmount: number; tripId?: string; orderId?: string; deliveryId?: string }) {
     const { promo } = input;
     const changed = await tx.promoCode.updateMany({
       where: { id: promo.id, status: 'ACTIVE', startsAt: { lte: new Date() }, endsAt: { gt: new Date() }, ...(promo.maxUses == null ? {} : { usageCount: { lt: promo.maxUses } }) },
@@ -36,12 +36,12 @@ export class PromoCodesService {
     return tx.promoCodeRedemption.create({ data: {
       promoCodeId: promo.id, userId: input.userId, serviceScope: input.serviceScope,
       originalAmount: input.originalAmount, discountAmount: input.discountAmount, payableAmount: input.payableAmount,
-      tripId: input.tripId, orderId: input.orderId, status: 'RESERVED',
+      tripId: input.tripId, orderId: input.orderId, deliveryId: input.deliveryId, status: 'RESERVED',
     }});
   }
 
-  async cancelReservation(tripId?: string, orderId?: string) {
-    const where = tripId ? { tripId } : { orderId };
+  async cancelReservation(tripId?: string, orderId?: string, deliveryId?: string) {
+    const where = tripId ? { tripId } : orderId ? { orderId } : { deliveryId };
     await this.prisma.$transaction(async tx => {
       const redemption = await tx.promoCodeRedemption.findFirst({ where: { ...where, status: 'RESERVED' } });
       if (!redemption) return;
@@ -50,8 +50,8 @@ export class PromoCodesService {
     });
   }
 
-  async completeReservation(tripId?: string, orderId?: string) {
-    const where = tripId ? { tripId } : { orderId };
+  async completeReservation(tripId?: string, orderId?: string, deliveryId?: string) {
+    const where = tripId ? { tripId } : orderId ? { orderId } : { deliveryId };
     await this.prisma.promoCodeRedemption.updateMany({ where: { ...where, status: 'RESERVED' }, data: { status: 'REDEEMED' } });
   }
 }
