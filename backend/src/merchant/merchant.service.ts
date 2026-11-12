@@ -52,6 +52,57 @@ export class MerchantService {
     });
   }
 
+
+  async createPromotion(merchantId: string, data: { title: string; description?: string; productIds: string[]; comboPrice: number; startsAt: string; endsAt: string }) {
+    const title = String(data.title ?? '').trim();
+    const productIds = [...new Set((data.productIds ?? []).map(id => String(id)))];
+    const startsAt = new Date(data.startsAt);
+    const endsAt = new Date(data.endsAt);
+    if (!title || title.length > 100) throw new BadRequestException('Promotion title is required (maximum 100 characters).');
+    if (productIds.length < 2) throw new BadRequestException('A combo promotion must contain at least two different products.');
+    if (!Number.isInteger(data.comboPrice) || data.comboPrice <= 0) throw new BadRequestException('Enter a valid combo price.');
+    if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) throw new BadRequestException('Choose valid promotion dates.');
+    const durationDays = Math.ceil((endsAt.getTime() - startsAt.getTime()) / 86400000);
+    if (durationDays > 7) throw new BadRequestException('Promotions may run for a maximum of 7 consecutive days per calendar month.');
+    if (startsAt.getUTCFullYear() !== endsAt.getUTCFullYear() || startsAt.getUTCMonth() !== endsAt.getUTCMonth()) throw new BadRequestException('A promotion must start and finish within the same calendar month.');
+    const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId }, select: { promoExempt: true } });
+    if (!merchant) throw new NotFoundException('Merchant not found.');
+    const products = await this.prisma.product.findMany({ where: { id: { in: productIds }, merchantId, status: ProductStatus.APPROVED, available: true } });
+    if (products.length !== productIds.length) throw new BadRequestException('Every combo item must be an approved, available product belonging to your store.');
+    const regularTotal = products.reduce((sum, p) => sum + p.price, 0);
+    if (data.comboPrice >= regularTotal) throw new BadRequestException('Combo price must be lower than the combined regular product price.');
+    if (!merchant.promoExempt) {
+      const monthStart = new Date(Date.UTC(startsAt.getUTCFullYear(), startsAt.getUTCMonth(), 1));
+      const monthEnd = new Date(Date.UTC(startsAt.getUTCFullYear(), startsAt.getUTCMonth() + 1, 1));
+      const existing = await this.prisma.merchantPromotion.findMany({
+        where: { merchantId, status: { in: ['PENDING', 'APPROVED', 'ACTIVE'] }, startsAt: { lt: monthEnd }, endsAt: { gt: monthStart } },
+        select: { startsAt: true, endsAt: true },
+      });
+      const used = new Set<number>();
+      for (const promo of existing) {
+        for (let day = Date.UTC(promo.startsAt.getUTCFullYear(), promo.startsAt.getUTCMonth(), promo.startsAt.getUTCDate()); day < promo.endsAt.getTime(); day += 86400000) {
+          if (day >= monthStart.getTime() && day < monthEnd.getTime()) used.add(day);
+        }
+      }
+      for (let day = Date.UTC(startsAt.getUTCFullYear(), startsAt.getUTCMonth(), startsAt.getUTCDate()); day < endsAt.getTime(); day += 86400000) {
+        if (day >= monthStart.getTime() && day < monthEnd.getTime()) used.add(day);
+      }
+      if (used.size > 7) throw new BadRequestException('Your store has a maximum of 7 promotion days per calendar month. Contact Zana to request an exemption.');
+    }
+    return this.prisma.merchantPromotion.create({
+      data: { merchantId, title, description: data.description?.trim() || null, comboPrice: data.comboPrice, startsAt, endsAt,
+        items: { create: productIds.map(productId => ({ productId })) } },
+      include: { items: { include: { product: true } } },
+    });
+  }
+
+  async getMyPromotions(merchantId: string) {
+    return this.prisma.merchantPromotion.findMany({
+      where: { merchantId }, include: { items: { include: { product: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async updateProductImage(merchantId: string, productId: string, imageBase64: string) {
     const product = await this.prisma.product.findFirst({
       where: { id: productId, merchantId },
