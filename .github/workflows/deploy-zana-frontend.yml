@@ -38,19 +38,26 @@ jobs:
           esac
           echo "project=$PROJECT" >> "$GITHUB_OUTPUT"
           echo "directory=$DIRECTORY" >> "$GITHUB_OUTPUT"
-      - name: Check Cloudflare credentials
+      - name: Check deployment credentials
         env:
+          TARGET: ${{ inputs.target }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
         run: |
           set -eu
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
+          if [ "$TARGET" = "customer" ]; then
+            test -n "$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+          fi
       - name: Install dependencies
         working-directory: ${{ steps.target.outputs.directory }}
         run: npm ci
       - name: Build static frontend
         working-directory: ${{ steps.target.outputs.directory }}
+        env:
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
         run: npm run build
       - name: Deploy to Cloudflare Pages
         working-directory: ${{ steps.target.outputs.directory }}
