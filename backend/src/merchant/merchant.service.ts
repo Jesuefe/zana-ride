@@ -63,10 +63,10 @@ export class MerchantService {
     if (!Number.isInteger(data.comboPrice) || data.comboPrice <= 0) throw new BadRequestException('Enter a valid combo price.');
     if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) throw new BadRequestException('Choose valid promotion dates.');
     const durationDays = Math.ceil((endsAt.getTime() - startsAt.getTime()) / 86400000);
-    if (durationDays > 7) throw new BadRequestException('Promotions may run for a maximum of 7 consecutive days per calendar month.');
     if (startsAt.getUTCFullYear() !== endsAt.getUTCFullYear() || startsAt.getUTCMonth() !== endsAt.getUTCMonth()) throw new BadRequestException('A promotion must start and finish within the same calendar month.');
     const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId }, select: { promoExempt: true } });
     if (!merchant) throw new NotFoundException('Merchant not found.');
+    if (!merchant.promoExempt && durationDays > 7) throw new BadRequestException('Promotions may run for a maximum of 7 consecutive days per calendar month unless Zana grants your store an exemption.');
     const products = await this.prisma.product.findMany({ where: { id: { in: productIds }, merchantId, status: ProductStatus.APPROVED, available: true } });
     if (products.length !== productIds.length) throw new BadRequestException('Every combo item must be an approved, available product belonging to your store.');
     const regularTotal = products.reduce((sum, p) => sum + p.price, 0);
