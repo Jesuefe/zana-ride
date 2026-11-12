@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, Package, Plus, Tag } from 'lucide-react';
 import Topbar from '../../components/Topbar';
 import { ApiError } from '../../lib/api/client';
-import { createMerchantPromotion, fetchMerchantPromotions, fetchMyProducts, type MerchantPromotion, type Product } from '../../lib/api/merchant';
+import { createMerchantPromotion, fetchMerchantPromotions, fetchMyProducts, fetchMyMerchant, type MerchantPromotion, type Product } from '../../lib/api/merchant';
 
 export default function PromotionsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [promoExempt, setPromoExempt] = useState(false);
   const [promotions, setPromotions] = useState<MerchantPromotion[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [title, setTitle] = useState('');
@@ -27,9 +28,10 @@ export default function PromotionsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [p, promos] = await Promise.all([fetchMyProducts(), fetchMerchantPromotions()]);
+      const [p, promos, merchant] = await Promise.all([fetchMyProducts(), fetchMerchantPromotions(), fetchMyMerchant()]);
       setProducts(p);
       setPromotions(promos);
+      setPromoExempt(!!merchant.promoExempt);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not load promotions.');
     } finally { setLoading(false); }
@@ -41,7 +43,7 @@ export default function PromotionsPage() {
   const submit = async () => {
     setError(''); setSuccess('');
     if (selected.length < 2) { setError('Choose at least two products to create a combo.'); return; }
-    if (!startsAt || !endsAt || durationDays < 1 || durationDays > 7) { setError('Choose a continuous date range of 1–7 days.'); return; }
+    if (!startsAt || !endsAt || durationDays < 1 || (!promoExempt && durationDays > 7)) { setError(promoExempt ? 'Choose a valid date range within one calendar month.' : 'Choose a continuous date range of 1–7 days.'); return; }
     if (Number(comboPrice) <= 0 || Number(comboPrice) >= regularTotal) { setError('Combo price must be lower than the combined normal prices.'); return; }
     setSaving(true);
     try {
@@ -58,7 +60,7 @@ export default function PromotionsPage() {
     <Topbar title="Combo promotions" subtitle="Create a discounted bundle from your approved products" />
     <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
       <div className="flex items-center gap-2 text-sm font-bold text-amber-900"><CalendarDays size={17}/> Monthly promotion rule</div>
-      <p className="mt-1 text-sm leading-6 text-amber-800">Each store may run promotions for up to 7 consecutive days per calendar month. Promotions must contain at least two approved products and are reviewed by Zana before going live. Exempt stores are managed by Zana administrators.</p>
+      <p className="mt-1 text-sm leading-6 text-amber-800">{promoExempt ? 'Your store has a Zana-approved promotion exemption. You may schedule promotions beyond the standard seven-day allowance, but each promotion must remain within one calendar month. Promotions must contain at least two approved products and are reviewed by Zana before going live.' : 'Each store may run promotions for up to 7 consecutive days per calendar month. Promotions must contain at least two approved products and are reviewed by Zana before going live. Ask Zana administration if your store needs an exemption.'}</p>
     </div>
 
     <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -81,7 +83,7 @@ export default function PromotionsPage() {
         <label className="text-xs font-semibold text-gray-600">Starts<input type="date" value={startsAt} onChange={e=>setStartsAt(e.target.value)} className="mt-1 block w-full rounded-xl border border-gray-200 px-3 py-3 text-sm font-normal"/></label>
         <label className="text-xs font-semibold text-gray-600">Ends<input type="date" value={endsAt} onChange={e=>setEndsAt(e.target.value)} className="mt-1 block w-full rounded-xl border border-gray-200 px-3 py-3 text-sm font-normal"/></label>
       </div>
-      {durationDays>0 && <p className="mt-2 text-xs text-gray-500">Selected duration: {durationDays} day(s). Maximum: 7 consecutive days.</p>}
+      {durationDays>0 && <p className="mt-2 text-xs text-gray-500">Selected duration: {durationDays} day(s). {promoExempt ? 'Zana exemption active' : 'Maximum: 7 consecutive days.'}</p>}
       {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {success && <p role="status" className="mt-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{success}</p>}
       <button onClick={submit} disabled={saving || !title || selected.length<2} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-zana-primary px-5 py-3 text-sm font-bold text-white disabled:opacity-50"><Plus size={16}/>{saving?'Submitting…':'Submit combo for review'}</button>
