@@ -11,7 +11,7 @@ export type MerchantProfile = {
   deliveryMinutes?: number | null;
 };
 
-export type ApiUser = { id: string; phone: string; firstName: string | null; lastName: string | null; role: string };
+export type ApiUser = { id: string; phone: string; firstName: string | null; lastName: string | null; role: string; mustChangePassword?: boolean };
 
 export async function login(identifier: string, password: string) {
   const result = await api.post<{ token: string; user: ApiUser }>('/auth/login', { identifier, password });
