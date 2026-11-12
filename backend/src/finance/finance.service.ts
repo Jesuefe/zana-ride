@@ -42,8 +42,9 @@ export class FinanceService {
           .reduce((sum, item) => sum + item.price * item.quantity, 0);
         const rate = 15;
         const commission = Math.round(commissionableGross * rate / 100);
+        const effectiveRate = gross > 0 ? (commission / gross) * 100 : 0;
         const net = gross - commission;
-        const settlement = await tx.merchantSettlement.create({ data: { orderId, merchantId: order.merchantId, grossAmount: gross, commissionRate: rate, commissionAmount: commission, merchantNet: net }});
+        const settlement = await tx.merchantSettlement.create({ data: { orderId, merchantId: order.merchantId, grossAmount: gross, commissionRate: effectiveRate, commissionAmount: commission, merchantNet: net }});
         if (order.merchant?.userId && net > 0) {
           const wallet = await tx.wallet.upsert({ where: { userId: order.merchant.userId }, create: { userId: order.merchant.userId }, update: {} });
           const updated = await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: net } }});
