@@ -36,8 +36,8 @@ export class CustomerOrdersController {
   ) {}
 
   @Post('promo/validate')
-  validatePromo(@CurrentUser() user: JwtPayload, @Body() body: { code: string; merchantId: string; amount: number }) {
-    return this.ordersService.validatePromoCode(user.sub, body.code, body.merchantId, Number(body.amount));
+  validatePromo(@CurrentUser() user: JwtPayload, @Body() body: { code: string; merchantId: string; amount: number; deliveryFee: number }) {
+    return this.ordersService.validatePromoCode(user.sub, body.code, body.merchantId, Number(body.amount), Number(body.deliveryFee));
   }
 
   @Post()
