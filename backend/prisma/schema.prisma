@@ -265,6 +265,9 @@ model Trip {
   destinationLng     Float
   distanceKm         Float?
   estimatedFare      Int
+  promoCode          String?
+  promoDiscount      Int           @default(0)
+  customerPayableFare Int?
   finalFare          Int?
   status             TripStatus    @default(REQUESTED)
   paymentMethod      String        @default("CASH")
@@ -625,6 +628,8 @@ model Order {
   promotionId              String?
   agentId                  String?
   total                    Int
+  promoCode                String?
+  promoDiscount            Int                 @default(0)
   deliveryFee              Int                 @default(0)
   status                   OrderStatus         @default(PENDING)
   deliveryId               String?
@@ -1369,4 +1374,24 @@ model PromoCode {
 
   @@index([status, startsAt, endsAt])
   @@index([serviceScope])
+}
+
+
+model PromoCodeRedemption {
+  id              String   @id @default(uuid())
+  promoCodeId     String
+  userId          String
+  serviceScope    String
+  originalAmount  Int
+  discountAmount  Int
+  payableAmount   Int
+  tripId          String?  @unique
+  orderId         String?  @unique
+  status          String   @default("RESERVED")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  promoCode       PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Restrict)
+
+  @@index([promoCodeId, userId, status])
+  @@index([userId, createdAt])
 }
