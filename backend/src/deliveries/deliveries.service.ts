@@ -10,6 +10,7 @@ import { haversineKm, estimateDurationMinutes } from '../trips/fare.util';
 import { CommissionDebtService } from '../trips/commission-debt.service';
 import { assertValidDeliveryTransition } from './delivery-state-machine';
 import { FinanceService } from '../finance/finance.service';
+import { PromoCodesService } from '../promotions/promo-codes.service';
 
 // Deliveries are priced on distance like rides, with a multiplier for heavier
 // packages — a 20kg load is a different job from an envelope even over the
@@ -47,6 +48,7 @@ export type CreateDeliveryInput = {
   // charged. Matches how a driver can already correct the phone before
   // charging a ride via momo-charge; a customer deserves the same.
   momoPhone?: string;
+  promoCode?: string;
 };
 
 @Injectable()
@@ -61,6 +63,7 @@ export class DeliveriesService {
     private locationCodes: LocationCodeService,
     private commissionDebt: CommissionDebtService,
     private finance: FinanceService,
+    private promos: PromoCodesService,
   ) {}
 
   quote(pickupLat: number, pickupLng: number, dropoffLat: number, dropoffLng: number, weight: PackageWeight) {
@@ -73,6 +76,12 @@ export class DeliveriesService {
       durationMinutes: durationMin,
       fee: Math.max(DELIVERY_MINIMUM, Math.round(raw)),
     };
+  }
+
+  async validatePromo(userId: string, input: { pickupLat: number; pickupLng: number; dropoffLat: number; dropoffLng: number; weight: PackageWeight; code: string }) {
+    const { fee } = this.quote(input.pickupLat, input.pickupLng, input.dropoffLat, input.dropoffLng, input.weight);
+    const result = await this.promos.validate(userId, input.code, 'DELIVERIES', fee);
+    return { code: result.promo.code, discountAmount: result.discountAmount, originalAmount: fee, payableAmount: result.payableAmount };
   }
 
   async create(input: CreateDeliveryInput, owner: { customerId?: string; merchantId?: string }) {
@@ -108,6 +117,12 @@ export class DeliveriesService {
       imageUrl = await this.storage.uploadPackageImage(input.imageBase64);
     }
 
+    const promo = input.promoCode && payerId
+      ? await this.promos.validate(payerId, input.promoCode, 'DELIVERIES', fee)
+      : null;
+    const promoDiscount = promo?.discountAmount ?? 0;
+    const payableFee = fee - promoDiscount;
+
     // ── Take payment before the delivery exists ───────────────────────────
     // A courier should never be dispatched for an unpaid job.
     const paymentMethod = owner.merchantId ? 'WALLET' : ((input as any).paymentMethod ?? 'WALLET');
@@ -118,8 +133,8 @@ export class DeliveriesService {
     if (paymentMethod === 'WALLET' && chargeUserId) {
       const wallet = await this.prisma.wallet.findUnique({ where: { userId: chargeUserId } });
       const balance = wallet?.balance ?? 0;
-      if (!wallet || balance < fee) {
-        throw new BadRequestException(`INSUFFICIENT_WALLET_BALANCE:${balance}:${fee}`);
+      if (!wallet || balance < payableFee) {
+        throw new BadRequestException(`INSUFFICIENT_WALLET_BALANCE:${balance}:${payableFee}`);
       }
     }
 
@@ -140,17 +155,31 @@ export class DeliveriesService {
         receiverPhone: input.receiverPhone,
         distanceKm,
         fee,
+        promoDiscount,
         status: DeliveryStatus.REQUESTED,
         trackingCode: 'ZD' + Math.random().toString(36).slice(2, 8).toUpperCase(),
         paymentMethod,
       } as any,
     });
 
+    if (promo && payerId) {
+      try {
+        await this.prisma.$transaction(tx => this.promos.reserve(tx, {
+          promo: promo.promo, userId: payerId, serviceScope: 'DELIVERIES',
+          originalAmount: fee, discountAmount: promoDiscount, payableAmount: payableFee,
+          deliveryId: delivery.id,
+        }));
+      } catch (e) {
+        await this.prisma.delivery.update({ where: { id: delivery.id }, data: { status: DeliveryStatus.CANCELLED } }).catch(() => {});
+        throw e;
+      }
+    }
+
     // ── Settle the fee ────────────────────────────────────────────────────
     if (chargeUserId && fee > 0) {
       if (paymentMethod === 'WALLET') {
         try {
-          await this.debitWallet(chargeUserId, fee, delivery.id);
+          await this.debitWallet(chargeUserId, payableFee, delivery.id);
         } catch (e) {
           // Never leave a merchant delivery sitting in REQUESTED after a
           // failed wallet debit. It must not look dispatchable or remain as
@@ -158,6 +187,7 @@ export class DeliveriesService {
           await this.prisma.delivery.update({
             where: { id: delivery.id }, data: { status: DeliveryStatus.CANCELLED } as any,
           }).catch(() => {});
+          await this.promos.cancelReservation(undefined, undefined, delivery.id).catch(() => {});
           throw e;
         }
         await this.prisma.delivery.update({
@@ -180,13 +210,14 @@ export class DeliveriesService {
           throw new BadRequestException('NO_PHONE_NUMBER');
         }
         try {
-            const res = await this.paypackPayments.collectMobileMoney(chargePhone, fee, `ZANA-DELIVERY-${delivery.id}`);
+            const res = await this.paypackPayments.collectMobileMoney(chargePhone, payableFee, `ZANA-DELIVERY-${delivery.id}`);
             await this.prisma.delivery.update({
               where: { id: delivery.id }, data: { momoRef: res.ref } as any,
             });
             this.logger.log(`[DELIVERY] MoMo prompt sent to ${chargePhone} | ${fee} RWF`);
           } catch (e: any) {
             this.logger.error(`[DELIVERY] MoMo charge failed: ${e?.message}`);
+            await this.promos.cancelReservation(undefined, undefined, delivery.id).catch(() => {});
             throw new BadRequestException('MOMO_CHARGE_FAILED');
           }
       }
@@ -248,6 +279,7 @@ export class DeliveriesService {
         where: { id: deliveryId },
         data: { status: 'CANCELLED' as any },
       }).catch(() => {});
+      await this.promos.cancelReservation(undefined, undefined, deliveryId).catch(() => {});
       return { status: 'failed' };
     }
 
@@ -291,7 +323,11 @@ export class DeliveriesService {
 
     const data: any = { status };
     if (status === DeliveryStatus.PICKED_UP) data.pickedUpAt = new Date();
+    if (status === DeliveryStatus.CANCELLED) {
+      await this.promos.cancelReservation(undefined, undefined, id).catch(() => {});
+    }
     if (status === DeliveryStatus.DELIVERED) {
+      await this.promos.completeReservation(undefined, undefined, id).catch(() => {});
       data.deliveredAt = new Date();
       // Schedule the package photo for removal a week after confirmation.
       data.imageDeleteAfter = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -391,6 +427,13 @@ export class DeliveriesService {
     const updated = await this.updateStatus(deliveryId, DeliveryStatus.DELIVERED);
 
     if (delivery.driverId) {
+      // For cash promotions the customer hands the courier the discounted cash.
+      // Credit the Zana-funded discount first so the courier's gross fare and
+      // commission calculation remain based on the original delivery fee.
+      if (delivery.paymentMethod === 'CASH' && Number((delivery as any).promoDiscount ?? 0) > 0) {
+        const driver = await this.prisma.driver.findUnique({ where: { id: delivery.driverId }, include: { user: { include: { wallet: true } } } });
+        if (driver?.user?.wallet) await this.prisma.wallet.update({ where: { id: driver.user.wallet.id }, data: { balance: { increment: Number((delivery as any).promoDiscount) } } });
+      }
       await this.commissionDebt
         .handleDeliveryCompletion(deliveryId, delivery.fee, delivery.driverId, delivery.paymentMethod)
         .catch((e) => console.error('[DELIVERY] Commission settlement failed:', e?.message));
