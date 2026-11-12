@@ -584,7 +584,7 @@ export class TripsService {
         // confirmed — or via the explicit cash-fallback endpoint if the
         // driver switches.
         if (paymentMethod === 'CASH') {
-          if ((trip as any).promoDiscount > 0) this.creditPromoCashSubsidy(trip.driverId, tripId, (trip as any).promoDiscount).catch(() => {});
+          if ((trip as any).promoDiscount > 0) await this.creditPromoCashSubsidy(trip.driverId, tripId, (trip as any).promoDiscount).catch(() => {});
           this.commissionDebtService.handleTripCompletion(tripId, fare, trip.driverId, paymentMethod).catch(() => {});
         }
         this.pointsService.earnForRide(trip.customerId, fare, tripId).catch(() => {});
