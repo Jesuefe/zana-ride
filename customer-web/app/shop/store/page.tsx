@@ -86,6 +86,7 @@ function StoreContent() {
   };
 
   const addComboToCart = (promotion: NonNullable<MarketplaceMerchant['promotions']>[number]) => {
+    setPromoDiscount(0); setPromoMessage('');
     setCart(current => {
       const next = [...current];
       for (const item of promotion.items) {
