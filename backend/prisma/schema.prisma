@@ -444,6 +444,7 @@ model Delivery {
   receiverPhone    String
   distanceKm       Float
   fee              Int
+  promoDiscount    Int            @default(0)
   status           DeliveryStatus @default(REQUESTED)
   createdAt        DateTime       @default(now())
   assignedAt       DateTime?
@@ -457,6 +458,7 @@ model Delivery {
   merchant         Merchant?      @relation(fields: [merchantId], references: [id])
   order            Order?         @relation(fields: [orderId], references: [id])
   reviews          Review[]
+  promoRedemption  PromoCodeRedemption?
 }
 
 model LocationCode {
@@ -1388,10 +1390,12 @@ model PromoCodeRedemption {
   payableAmount   Int
   tripId          String?  @unique
   orderId         String?  @unique
+  deliveryId      String?  @unique
   status          String   @default("RESERVED")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   promoCode       PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Restrict)
+  delivery        Delivery? @relation(fields: [deliveryId], references: [id], onDelete: Restrict)
 
   @@index([promoCodeId, userId, status])
   @@index([userId, createdAt])
