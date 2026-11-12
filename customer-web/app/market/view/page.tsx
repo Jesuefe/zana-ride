@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Store, Plus, Minus, ShoppingBag } from 'lucide-react';
-import { fetchMarket, placeOrder, quoteMarketOrder } from '../../../lib/api/marketplace';
+import { fetchMarket, placeOrder, quoteMarketOrder, validateOrderPromo } from '../../../lib/api/marketplace';
 import { fetchWallet } from '../../../lib/api/trips';
 import { useLang } from '../../../lib/LangContext';
 
@@ -23,6 +23,9 @@ function MarketContent() {
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [promoCode, setPromoCode] = useState('');
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoMessage, setPromoMessage] = useState('');
+  const [validatingPromo, setValidatingPromo] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
   const [quote, setQuote] = useState<{ items: { productId: string; name: string; quantity: number; unitPrice: number; lineTotal: number }[]; itemsSubtotal: number; deliveryFee: number; total: number; distanceKm: number } | null>(null);
@@ -41,24 +44,40 @@ function MarketContent() {
 
   const qty = (id: string) => cart.find(c => c.product.id === id)?.quantity ?? 0;
 
-  const add = (product: any) =>
+  const add = (product: any) => {
+    setPromoDiscount(0); setPromoMessage('');
     setCart(prev => {
       const found = prev.find(c => c.product.id === product.id);
       if (found) return prev.map(c => c.product.id === product.id ? { ...c, quantity: c.quantity + 1 } : c);
       return [...prev, { product, quantity: 1 }];
     });
+  };
 
-  const remove = (id: string) =>
+  const remove = (id: string) => {
+    setPromoDiscount(0); setPromoMessage('');
     setCart(prev =>
       prev.map(c => c.product.id === id ? { ...c, quantity: c.quantity - 1 } : c)
           .filter(c => c.quantity > 0),
     );
+  };
 
   const subtotal = cart.reduce((s, c) => s + c.product.price * c.quantity, 0);
   const displayedSubtotal = quote?.itemsSubtotal ?? subtotal;
   const deliveryFee = quote?.deliveryFee ?? 0;
-  const grandTotal = quote?.total ?? displayedSubtotal + deliveryFee;
+  const originalGrandTotal = quote?.total ?? displayedSubtotal + deliveryFee;
+  const grandTotal = Math.max(0, originalGrandTotal - promoDiscount);
   const walletShort = paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < grandTotal;
+
+  const applyMarketPromo = async () => {
+    if (!marketId || !promoCode.trim() || !quote) { setPromoMessage(t('Enter a promo code first.')); return; }
+    setValidatingPromo(true); setPromoMessage(''); setPromoDiscount(0);
+    try {
+      const result = await validateOrderPromo(promoCode.trim(), undefined, displayedSubtotal, deliveryFee, marketId);
+      setPromoDiscount(result.discountAmount);
+      setPromoMessage(t('Promo applied. You save {{amount}} RWF.').replace('{{amount}}', result.discountAmount.toLocaleString()));
+    } catch (e: any) { setPromoMessage(e?.message || t('This promo code is not valid for this order.')); }
+    finally { setValidatingPromo(false); }
+  };
 
   const refreshQuote = async () => {
     if (!cart.length) return null;
@@ -104,7 +123,7 @@ function MarketContent() {
         dropoffLng: pos.lng,
         dropoffAddress: 'Current location',
         paymentMethod,
-        promoCode: promoCode.trim() || undefined,
+        promoCode: promoDiscount > 0 ? promoCode.trim() : undefined,
       } as any);
       router.push(`/orders?highlight=${order.id}`);
     } catch (e: any) {
@@ -229,6 +248,7 @@ function MarketContent() {
                 <span className="text-gray-600">{t('Delivery')}</span>
                 <span className="font-semibold">{quoting ? '…' : `${deliveryFee.toLocaleString()} RWF`}</span>
               </div>
+              {promoDiscount > 0 && <div className="flex justify-between text-xs"><span className="text-gray-500">{t('Promo discount')}</span><strong className="text-emerald-700">−{promoDiscount.toLocaleString()} RWF</strong></div>}
               <div className="flex justify-between pt-2 border-t border-gray-100">
                 <span className="font-black text-gray-900">{t('Total')}</span>
                 <span className="font-black text-zana-primary text-lg">{grandTotal.toLocaleString()} RWF</span>
@@ -240,7 +260,9 @@ function MarketContent() {
 
             <div className="mb-4 rounded-xl border border-gray-200 px-3 py-3">
               <label htmlFor="market-promo-code" className="mb-1.5 block text-xs font-bold text-gray-600">{t('Promo code')}</label>
-              <input id="market-promo-code" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 32))} placeholder={t('Enter promo code (optional)')} autoCapitalize="characters" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-gray-900 outline-none focus:border-zana-primary" />
+              <div className="flex gap-2"><input id="market-promo-code" value={promoCode} onChange={e => { setPromoCode(e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 32)); setPromoDiscount(0); setPromoMessage(''); }} placeholder={t('Enter promo code (optional)')} autoCapitalize="characters" className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-gray-900 outline-none focus:border-zana-primary" /><button type="button" onClick={applyMarketPromo} disabled={validatingPromo || !quote || !promoCode.trim()} className="rounded-lg bg-zana-primary px-4 py-2 text-xs font-black text-white disabled:opacity-50">{validatingPromo ? '...' : t('Apply')}</button></div>
+              {promoMessage && <p className={`mt-2 text-xs font-semibold ${promoDiscount > 0 ? 'text-emerald-700' : 'text-red-600'}`}>{promoMessage}</p>}
+              {promoDiscount > 0 && <p className="mt-2 flex justify-between text-xs"><span className="text-gray-500">{t('Promo discount')}</span><strong className="text-emerald-700">−{promoDiscount.toLocaleString()} RWF</strong></p>}
             </div>
 
             <p className="text-xs font-bold text-gray-500 uppercase mb-2">{t("Payment")}</p>
