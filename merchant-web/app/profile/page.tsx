@@ -85,6 +85,7 @@ export default function ProfilePage() {
             </section>
           )}
 
+          <section className="mt-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"><h2 className="text-sm font-bold text-gray-900">Security</h2><p className="mt-1 text-xs text-gray-500">Keep your account protected with a private password.</p><button onClick={() => router.push('/change-password')} className="mt-3 rounded-xl bg-zana-primary px-4 py-2.5 text-sm font-bold text-white">Change password</button></section>
           <section className="mt-4 rounded-2xl border border-red-100 bg-white p-4 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600"><LogOut size={18} /></div>
