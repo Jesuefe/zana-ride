@@ -36,6 +36,7 @@ export default function ServiceZonesPage() {
   const pointsRef=useRef<Point[]>([]), drawingRef=useRef(false);
   const [zones,setZones]=useState<Zone[]>([]), [city,setCity]=useState('Kigali'), [name,setName]=useState('');
   const [services,setServices]=useState<string[]>(['ALL']), [nearby,setNearby]=useState<string[]>([]), [active,setActive]=useState(false);
+  const [zoneLevel,setZoneLevel]=useState<'MAIN'|'MINI'>('MAIN'), [parentZoneId,setParentZoneId]=useState('');
   const [selected,setSelected]=useState<string|null>(null), [points,setPoints]=useState<Point[]>([]), [drawing,setDrawing]=useState(false);
   const [ready,setReady]=useState(false), [loading,setLoading]=useState(true), [saving,setSaving]=useState(false);
   const [error,setError]=useState(''), [message,setMessage]=useState('');
@@ -81,6 +82,7 @@ export default function ServiceZonesPage() {
   const selectZone=(zone:Zone)=>{
     clearDraft(); setSelected(zone.id); setName(zone.name); setCity(zone.city);
     setServices(zone.serviceTypes?.length?zone.serviceTypes:['ALL']); setNearby(zone.nearbyZoneIds||[]);
+    setZoneLevel(zone.zoneLevel||'MINI'); setParentZoneId(zone.parentZoneId||'');
     setActive(zone.active); setMessage(''); setError('');
   };
 
@@ -101,7 +103,7 @@ export default function ServiceZonesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[zones,selected,ready]);
 
-  const newZone=()=>{clearDraft();setSelected(null);setName('');setServices(['ALL']);setNearby([]);setActive(false);setMessage('Draw a boundary on the map, then save your zone.');setError('');};
+  const newZone=()=>{clearDraft();setSelected(null);setName('');setServices(['ALL']);setNearby([]);setZoneLevel('MAIN');setParentZoneId('');setActive(false);setMessage('Draw a boundary on the map, then save your zone.');setError('');};
   const beginDraw=()=>{clearDraft();drawingRef.current=true;setDrawing(true);setMessage('Tap the map to add boundary points. Add at least 3 points, then finish.');};
   const finish=()=>{if(pointsRef.current.length<3){setError('Add at least 3 boundary points.');return;}drawingRef.current=false;setDrawing(false);setMessage('Boundary ready. Save your zone when the outline looks right.');};
   const undo=()=>{const next=pointsRef.current.slice(0,-1);pointsRef.current=next;setPoints(next);paintDraft(next);};
@@ -118,7 +120,7 @@ export default function ServiceZonesPage() {
     if(drawing) finish();
     const ring=pointsRef.current.map(p=>[p[1],p[0]]);
     if(ring.length) ring.push(ring[0].slice());
-    const payload:any={name:name.trim(),city:city.trim(),serviceTypes:services,nearbyZoneIds:nearby,active:active};
+    const payload:any={name:name.trim(),city:city.trim(),serviceTypes:services,nearbyZoneIds:nearby,active:active,zoneLevel,parentZoneId:zoneLevel==='MINI'?(parentZoneId||null):null};
     if(ring.length>=4) payload.boundary={type:'Polygon',coordinates:[ring]};
     setSaving(true);setError('');setMessage('');
     try{
@@ -163,7 +165,9 @@ export default function ServiceZonesPage() {
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="mb-4 flex items-center justify-between"><div><p className="text-sm font-semibold text-gray-900">{current?'Edit service zone':'Create service zone'}</p><p className="text-xs text-gray-500">Coverage, services and neighbouring areas</p></div>{current&&<span className="rounded-full bg-gray-100 px-2 py-1 text-[10px] font-bold">EDITING</span>}</div>
           <label className="mb-1 block text-xs font-semibold text-gray-600">Zone name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Remera" className="mb-3 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-zana-primary"/>
-          <label className="mb-1 block text-xs font-semibold text-gray-600">City</label><input value={city} onChange={e=>setCity(e.target.value)} placeholder="Kigali" className="mb-4 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-zana-primary"/>
+          <label className="mb-1 block text-xs font-semibold text-gray-600">City</label><input value={city} onChange={e=>setCity(e.target.value)} placeholder="Kigali" className="mb-3 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-zana-primary"/>
+          <label className="mb-1 block text-xs font-semibold text-gray-600">Zone level</label><select value={zoneLevel} onChange={e=>{setZoneLevel(e.target.value as 'MAIN'|'MINI');if(e.target.value==='MAIN')setParentZoneId('');}} className="mb-3 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm"><option value="MAIN">Main zone</option><option value="MINI">Mini zone</option></select>
+          {zoneLevel==='MINI'&&<><label className="mb-1 block text-xs font-semibold text-gray-600">Parent main zone (optional)</label><select value={parentZoneId} onChange={e=>setParentZoneId(e.target.value)} className="mb-4 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm"><option value="">No parent selected</option>{zones.filter(z=>z.zoneLevel==='MAIN'&&z.city.toLowerCase()===city.trim().toLowerCase()&&z.id!==selected).map(z=><option key={z.id} value={z.id}>{z.name}</option>)}</select></>}
           <p className="mb-2 text-xs font-semibold text-gray-600">Available services</p>
           <div className="mb-4 grid grid-cols-2 gap-2">{serviceOptions.map(o=><label key={o.value} className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-100 px-2 py-2 text-xs text-gray-700"><input type="checkbox" checked={services.includes(o.value)} onChange={()=>toggleService(o.value)} className="accent-[#00a082]"/>{o.label}</label>)}</div>
           <p className="mb-1 text-xs font-semibold text-gray-600">Connected neighbouring zones</p><p className="mb-2 text-[10px] text-gray-400">Requests may be matched across linked areas.</p>
@@ -176,7 +180,7 @@ export default function ServiceZonesPage() {
           {current&&<button onClick={newZone} className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600">Cancel editing</button>}
         </section>
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold text-gray-900">Operating zones</p><p className="text-xs text-gray-500">6 main zones · 35 mini-zones. Choose one to edit it.</p></div><button onClick={refresh} className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600">Refresh</button></div>
+          <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-semibold text-gray-900">Operating zones</p><p className="text-xs text-gray-500">{zones.filter(z=>z.zoneLevel==='MAIN').length} main zones · {zones.filter(z=>z.zoneLevel==='MINI').length} mini-zones. Choose one to edit it.</p></div><button onClick={refresh} className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600">Refresh</button></div>
           {loading?<div className="flex items-center gap-2 py-5 text-xs text-gray-400"><LoaderCircle size={15} className="animate-spin"/>Loading zones…</div>:zones.length===0?<div className="rounded-xl bg-gray-50 p-4 text-center"><MapPin size={22} className="mx-auto mb-2 text-gray-300"/><p className="text-sm font-semibold text-gray-700">No zones created yet</p><p className="mt-1 text-xs text-gray-400">Draw your first service area.</p></div>:<div className="space-y-2">{zones.map(z=><div key={z.id} className={'flex items-center gap-2 rounded-xl border p-3 '+(selected===z.id?'border-zana-primary bg-emerald-50/50':'border-gray-100')}>
             <button onClick={()=>selectZone(z)} className="min-w-0 flex-1 text-left"><b className="block truncate text-sm text-gray-800">{z.name}</b><span className="mt-0.5 block text-[10px] text-gray-500">{z.zoneLevel==='MAIN'?'MAIN ZONE':('MINI ZONE · '+(zones.find(p=>p.id===z.parentZoneId)?.name||'Unassigned'))} · {z.city}</span></button>
             <span className={'rounded-full px-2 py-1 text-[9px] font-bold '+(z.active?'bg-emerald-100 text-emerald-700':'bg-gray-100 text-gray-500')}>{z.active?'ACTIVE':'OFF'}</span>

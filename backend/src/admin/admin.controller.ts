@@ -352,6 +352,128 @@ export class AdminController {
   @Post('expenses/:id/void')
   voidExpense(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: { reason: string }) { return this.financialService.voidExpense(id, body.reason, admin.sub); }
 
+  // Service-zone management. Boundaries are stored as validated GeoJSON.
+  private validateServiceZoneBoundary(boundary: any) {
+    if (!boundary || !['Polygon', 'MultiPolygon'].includes(boundary.type) || !Array.isArray(boundary.coordinates)) {
+      throw new BadRequestException('SERVICE_ZONE_BOUNDARY_MUST_BE_GEOJSON_POLYGON_OR_MULTIPOLYGON');
+    }
+    const rings = boundary.type === 'Polygon' ? boundary.coordinates : boundary.coordinates.flat(1);
+    if (!rings.length || rings.some((ring: any) => !Array.isArray(ring) || ring.length < 4)) {
+      throw new BadRequestException('SERVICE_ZONE_BOUNDARY_REQUIRES_CLOSED_RINGS_WITH_AT_LEAST_3_POINTS');
+    }
+    for (const ring of rings) {
+      const valid = ring.every((point: any) => Array.isArray(point) && point.length >= 2 &&
+        Number.isFinite(Number(point[0])) && Number.isFinite(Number(point[1])) &&
+        Number(point[0]) >= -180 && Number(point[0]) <= 180 &&
+        Number(point[1]) >= -90 && Number(point[1]) <= 90);
+      if (!valid) throw new BadRequestException('SERVICE_ZONE_BOUNDARY_CONTAINS_INVALID_LONGITUDE_OR_LATITUDE');
+      const first = ring[0], last = ring[ring.length - 1];
+      if (Number(first[0]) !== Number(last[0]) || Number(first[1]) !== Number(last[1])) {
+        throw new BadRequestException('SERVICE_ZONE_POLYGON_RING_MUST_BE_CLOSED');
+      }
+    }
+    return boundary;
+  }
+
+  private validateServiceZoneTypes(values: any) {
+    const allowed = ['ALL', 'BIKE', 'ECONOMY', 'COMFORT', 'DELIVERIES'];
+    if (values === undefined) return ['ALL'];
+    if (!Array.isArray(values) || values.length === 0 || values.some((v: any) => !allowed.includes(v))) {
+      throw new BadRequestException('SERVICE_ZONE_TYPES_INVALID');
+    }
+    return values.includes('ALL') ? ['ALL'] : [...new Set(values)];
+  }
+
+  @Roles('ADMIN', 'STAFF')
+  @Get('service-zones')
+  async getServiceZones(@Query('city') city?: string) {
+    return this.prisma.serviceZone.findMany({
+      where: city?.trim() ? { city: { equals: city.trim(), mode: 'insensitive' } } : {},
+      orderBy: [{ zoneLevel: 'asc' }, { name: 'asc' }],
+    });
+  }
+
+  @Roles('ADMIN')
+  @Post('service-zones')
+  async createServiceZone(@CurrentUser() admin: JwtPayload, @Body() body: any) {
+    const name = String(body?.name ?? '').trim();
+    const city = String(body?.city ?? '').trim();
+    if (!name || !city) throw new BadRequestException('SERVICE_ZONE_NAME_AND_CITY_REQUIRED');
+    const boundary = this.validateServiceZoneBoundary(body.boundary);
+    const serviceTypes = this.validateServiceZoneTypes(body.serviceTypes);
+    const zoneLevel = body.zoneLevel === 'MAIN' ? 'MAIN' : 'MINI';
+    const parentZoneId = zoneLevel === 'MAIN' ? null : (body.parentZoneId || null);
+    const nearbyZoneIds: string[] = Array.isArray(body.nearbyZoneIds) ? Array.from(new Set<string>(body.nearbyZoneIds.map((value: any) => String(value)))) : [];
+    if (nearbyZoneIds.some((id: string) => !id.trim())) throw new BadRequestException('SERVICE_ZONE_NEIGHBOUR_IDS_INVALID');
+    if (parentZoneId) {
+      const parent = await this.prisma.serviceZone.findUnique({ where: { id: parentZoneId } });
+      if (!parent || parent.zoneLevel !== 'MAIN' || parent.city.toLowerCase() !== city.toLowerCase()) {
+        throw new BadRequestException('SERVICE_ZONE_PARENT_MUST_BE_A_MAIN_ZONE_IN_THE_SAME_CITY');
+      }
+    }
+    const linked = nearbyZoneIds.length ? await this.prisma.serviceZone.findMany({ where: { id: { in: nearbyZoneIds }, city: { equals: city, mode: 'insensitive' } }, select: { id: true } }) : [];
+    if (linked.length !== nearbyZoneIds.length) throw new BadRequestException('SERVICE_ZONE_NEIGHBOURS_MUST_EXIST_IN_THE_SAME_CITY');
+    const id = randomBytes(12).toString('hex');
+    return this.prisma.$transaction(async tx => {
+      const zone = await tx.serviceZone.create({ data: { id, name, city, boundary, serviceTypes, nearbyZoneIds, active: body.active === true, zoneLevel, parentZoneId } as any });
+      for (const neighbourId of nearbyZoneIds) {
+        const neighbour = await tx.serviceZone.findUnique({ where: { id: neighbourId } });
+        if (neighbour && !neighbour.nearbyZoneIds.includes(id)) {
+          await tx.serviceZone.update({ where: { id: neighbourId }, data: { nearbyZoneIds: [...neighbour.nearbyZoneIds, id] } });
+        }
+      }
+      await tx.auditLog.create({ data: { actorId: admin.sub, action: 'SERVICE_ZONE_CREATED', entityType: 'ServiceZone', entityId: id, afterJson: JSON.stringify(zone) } });
+      return zone;
+    });
+  }
+
+  @Roles('ADMIN')
+  @Patch('service-zones/:id')
+  async updateServiceZone(@CurrentUser() admin: JwtPayload, @Param('id') id: string, @Body() body: any) {
+    const before = await this.prisma.serviceZone.findUnique({ where: { id } });
+    if (!before) throw new BadRequestException('SERVICE_ZONE_NOT_FOUND');
+    const name = body.name === undefined ? before.name : String(body.name).trim();
+    const city = body.city === undefined ? before.city : String(body.city).trim();
+    if (!name || !city) throw new BadRequestException('SERVICE_ZONE_NAME_AND_CITY_REQUIRED');
+    const zoneLevel = body.zoneLevel === undefined ? before.zoneLevel : (body.zoneLevel === 'MAIN' ? 'MAIN' : body.zoneLevel === 'MINI' ? 'MINI' : null);
+    if (!zoneLevel) throw new BadRequestException('SERVICE_ZONE_LEVEL_INVALID');
+    const parentZoneId = zoneLevel === 'MAIN' ? null : (body.parentZoneId === undefined ? before.parentZoneId : body.parentZoneId || null);
+    if (parentZoneId === id) throw new BadRequestException('SERVICE_ZONE_CANNOT_BE_ITS_OWN_PARENT');
+    if (parentZoneId) {
+      const parent = await this.prisma.serviceZone.findUnique({ where: { id: parentZoneId } });
+      if (!parent || parent.zoneLevel !== 'MAIN' || parent.city.toLowerCase() !== city.toLowerCase()) {
+        throw new BadRequestException('SERVICE_ZONE_PARENT_MUST_BE_A_MAIN_ZONE_IN_THE_SAME_CITY');
+      }
+    }
+    const nearbyZoneIds: string[] = body.nearbyZoneIds === undefined ? before.nearbyZoneIds : Array.from(new Set<string>((Array.isArray(body.nearbyZoneIds) ? body.nearbyZoneIds : []).map((value: any) => String(value))));
+    if (nearbyZoneIds.includes(id)) throw new BadRequestException('SERVICE_ZONE_CANNOT_NEIGHBOUR_ITSELF');
+    const linked = nearbyZoneIds.length ? await this.prisma.serviceZone.findMany({ where: { id: { in: nearbyZoneIds }, city: { equals: city, mode: 'insensitive' } }, select: { id: true } }) : [];
+    if (linked.length !== nearbyZoneIds.length) throw new BadRequestException('SERVICE_ZONE_NEIGHBOURS_MUST_EXIST_IN_THE_SAME_CITY');
+    const data: any = { name, city, zoneLevel, parentZoneId, nearbyZoneIds };
+    if (body.boundary !== undefined) data.boundary = this.validateServiceZoneBoundary(body.boundary);
+    if (body.serviceTypes !== undefined) data.serviceTypes = this.validateServiceZoneTypes(body.serviceTypes);
+    if (body.active !== undefined) {
+      if (typeof body.active !== 'boolean') throw new BadRequestException('SERVICE_ZONE_ACTIVE_MUST_BE_BOOLEAN');
+      data.active = body.active;
+    }
+    return this.prisma.$transaction(async tx => {
+      const zone = await tx.serviceZone.update({ where: { id }, data });
+      const changed = new Set<string>([...before.nearbyZoneIds, ...nearbyZoneIds]);
+      for (const neighbourId of changed) {
+        const neighbour = await tx.serviceZone.findUnique({ where: { id: neighbourId } });
+        if (!neighbour) continue;
+        const next = nearbyZoneIds.includes(neighbourId)
+          ? [...new Set([...neighbour.nearbyZoneIds, id])]
+          : neighbour.nearbyZoneIds.filter((value: string) => value !== id);
+        if (JSON.stringify(next) !== JSON.stringify(neighbour.nearbyZoneIds)) {
+          await tx.serviceZone.update({ where: { id: neighbourId }, data: { nearbyZoneIds: next } });
+        }
+      }
+      await tx.auditLog.create({ data: { actorId: admin.sub, action: 'SERVICE_ZONE_UPDATED', entityType: 'ServiceZone', entityId: id, beforeJson: JSON.stringify(before), afterJson: JSON.stringify(zone) } });
+      return zone;
+    });
+  }
+
   // Staff
   @Roles('ADMIN', 'STAFF')
   @Get('staff')
