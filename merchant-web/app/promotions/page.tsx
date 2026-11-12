@@ -22,7 +22,7 @@ export default function PromotionsPage() {
 
   const selectedProducts = useMemo(() => products.filter(p => selected.includes(p.id)), [products, selected]);
   const regularTotal = selectedProducts.reduce((sum, p) => sum + p.price, 0);
-  const durationDays = startsAt && endsAt ? Math.ceil((new Date(endsAt).getTime() - new Date(startsAt).getTime()) / 86400000) : 0;
+  const durationDays = startsAt && endsAt ? Math.floor((Date.parse(endsAt + 'T00:00:00Z') - Date.parse(startsAt + 'T00:00:00Z')) / 86400000) + 1 : 0;
 
   const load = async () => {
     setLoading(true);
@@ -45,7 +45,7 @@ export default function PromotionsPage() {
     if (Number(comboPrice) <= 0 || Number(comboPrice) >= regularTotal) { setError('Combo price must be lower than the combined normal prices.'); return; }
     setSaving(true);
     try {
-      await createMerchantPromotion({ title, description: description || undefined, productIds: selected, comboPrice: Number(comboPrice), startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString() });
+      await createMerchantPromotion({ title, description: description || undefined, productIds: selected, comboPrice: Number(comboPrice), startsAt: new Date(startsAt + 'T00:00:00.000Z').toISOString(), endsAt: new Date(Date.parse(endsAt + 'T00:00:00.000Z') + 86400000).toISOString() });
       setSuccess('Your combo promotion has been submitted for Zana review.');
       setTitle(''); setDescription(''); setComboPrice(''); setStartsAt(''); setEndsAt(''); setSelected([]);
       await load();
@@ -78,8 +78,8 @@ export default function PromotionsPage() {
           </label>)}</div>}
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="text-xs font-semibold text-gray-600">Starts<input type="datetime-local" value={startsAt} onChange={e=>setStartsAt(e.target.value)} className="mt-1 block w-full rounded-xl border border-gray-200 px-3 py-3 text-sm font-normal"/></label>
-        <label className="text-xs font-semibold text-gray-600">Ends<input type="datetime-local" value={endsAt} onChange={e=>setEndsAt(e.target.value)} className="mt-1 block w-full rounded-xl border border-gray-200 px-3 py-3 text-sm font-normal"/></label>
+        <label className="text-xs font-semibold text-gray-600">Starts<input type="date" value={startsAt} onChange={e=>setStartsAt(e.target.value)} className="mt-1 block w-full rounded-xl border border-gray-200 px-3 py-3 text-sm font-normal"/></label>
+        <label className="text-xs font-semibold text-gray-600">Ends<input type="date" value={endsAt} onChange={e=>setEndsAt(e.target.value)} className="mt-1 block w-full rounded-xl border border-gray-200 px-3 py-3 text-sm font-normal"/></label>
       </div>
       {durationDays>0 && <p className="mt-2 text-xs text-gray-500">Selected duration: {durationDays} day(s). Maximum: 7 consecutive days.</p>}
       {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -91,7 +91,7 @@ export default function PromotionsPage() {
       <h2 className="mb-3 font-bold text-gray-900">Your promotions</h2>
       {loading ? <p className="py-6 text-sm text-gray-500">Loading…</p> : promotions.length===0 ? <p className="py-6 text-sm text-gray-500">No promotions submitted yet.</p> : <div className="space-y-3">{promotions.map(p=><div key={p.id} className="rounded-xl border border-gray-100 p-4">
         <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-bold text-gray-900">{p.title}</p><p className="mt-1 text-xs text-gray-500">{p.items.map(i=>i.product.name).join(' + ')}</p></div><span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">{p.status}</span></div>
-        <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-600"><span className="font-bold">{p.comboPrice.toLocaleString()} RWF combo</span><span>{new Date(p.startsAt).toLocaleDateString()} – {new Date(p.endsAt).toLocaleDateString()}</span></div>
+        <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-600"><span className="font-bold">{p.comboPrice.toLocaleString()} RWF combo</span><span>{new Date(p.startsAt).toLocaleDateString()} – {new Date(new Date(p.endsAt).getTime()-86400000).toLocaleDateString()}</span></div>
       </div>)}</div>}
     </section>
   </div>;
