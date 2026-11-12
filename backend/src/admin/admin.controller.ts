@@ -38,6 +38,22 @@ export class AdminController {
   getAdminSession(@CurrentUser() user: JwtPayload) { return { role: user.role, accessRole: user.accessRole || (user.role === 'ADMIN' ? 'ADMIN' : 'OPERATIONS') }; }
 
 
+
+  @Post('onboarding/:userId/resend-credentials')
+  async resendAssistedOnboardingCredentials(@CurrentUser() actor: JwtPayload, @Param('userId') userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { driver: true, merchant: true } });
+    if (!user || !['DRIVER', 'MERCHANT'].includes(user.role) || !user.email) throw new BadRequestException('Assisted driver or merchant account with an email address not found.');
+    const temporaryPassword = randomBytes(18).toString('base64url');
+    const password = await bcrypt.hash(temporaryPassword, 12);
+    await this.prisma.user.update({ where: { id: user.id }, data: { password, mustChangePassword: true } });
+    const emailSent = await this.emailService.sendAssistedOnboardingCredentials(user.email, user.firstName || 'there', user.role as 'DRIVER' | 'MERCHANT', user.email, temporaryPassword);
+    await this.prisma.auditLog.create({ data: {
+      actorId: actor.sub, action: 'ASSISTED_ONBOARDING_CREDENTIALS_RESENT', entityType: 'User', entityId: user.id,
+      metadataJson: JSON.stringify({ emailSent, role: user.role }),
+    } });
+    return { emailSent, message: emailSent ? 'A new temporary password has been emailed. The previous password no longer works.' : 'Email delivery failed again. Check the transactional email configuration.' };
+  }
+
   @Post('onboarding/driver')
   async assistedDriverOnboarding(@CurrentUser() actor: JwtPayload, @Body() body: any) {
     const email = String(body.email ?? '').trim().toLowerCase();
