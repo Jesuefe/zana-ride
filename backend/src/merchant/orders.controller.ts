@@ -35,6 +35,11 @@ export class CustomerOrdersController {
     private marketsService: MarketsService,
   ) {}
 
+  @Post('promo/validate')
+  validatePromo(@CurrentUser() user: JwtPayload, @Body() body: { code: string; merchantId: string; amount: number }) {
+    return this.ordersService.validatePromoCode(user.sub, body.code, body.merchantId, Number(body.amount));
+  }
+
   @Post()
   create(@CurrentUser() user: JwtPayload, @Body() body: any) {
     return this.ordersService.create(user.sub, body);
