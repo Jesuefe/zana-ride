@@ -118,6 +118,48 @@ export class AdminController {
     return { created: true, accountId: user.id, role: user.role, emailSent, message: emailSent ? 'Merchant account created and login details emailed.' : 'Account created, but email delivery failed. Retry credential delivery before handing over access.' };
   }
 
+
+  @Get('promotions')
+  async listMerchantPromotions(@Query('status') status?: string) {
+    return this.prisma.merchantPromotion.findMany({
+      where: status && ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED', 'ACTIVE'].includes(status) ? { status } : {},
+      include: { merchant: { select: { id: true, businessName: true, promoExempt: true, user: { select: { email: true, phone: true } } } }, items: { include: { product: true } } },
+      orderBy: { createdAt: 'desc' }, take: 500,
+    });
+  }
+
+  @Roles('ADMIN')
+  @Patch('merchants/:id/promotion-exemption')
+  async setMerchantPromotionExemption(@CurrentUser() actor: JwtPayload, @Param('id') id: string, @Body() body: { exempt: boolean; reason?: string }) {
+    if (typeof body.exempt !== 'boolean') throw new BadRequestException('Exemption must be true or false.');
+    const reason = String(body.reason ?? '').trim();
+    if (body.exempt && reason.length < 5) throw new BadRequestException('A reason of at least 5 characters is required to grant an exemption.');
+    const current = await this.prisma.merchant.findUnique({ where: { id }, select: { id: true, promoExempt: true, promoExemptionReason: true } });
+    if (!current) throw new BadRequestException('Merchant not found.');
+    const updated = await this.prisma.merchant.update({ where: { id }, data: { promoExempt: body.exempt, promoExemptionReason: body.exempt ? reason : null } });
+    await this.prisma.auditLog.create({ data: {
+      actorId: actor.sub, action: body.exempt ? 'MERCHANT_PROMOTION_EXEMPTION_GRANTED' : 'MERCHANT_PROMOTION_EXEMPTION_REVOKED',
+      entityType: 'Merchant', entityId: id, beforeJson: JSON.stringify(current),
+      afterJson: JSON.stringify({ promoExempt: updated.promoExempt, promoExemptionReason: updated.promoExemptionReason }),
+    } });
+    return { id: updated.id, promoExempt: updated.promoExempt, promoExemptionReason: updated.promoExemptionReason };
+  }
+
+  @Roles('ADMIN', 'STAFF')
+  @Patch('promotions/:id/status')
+  async reviewMerchantPromotion(@CurrentUser() actor: JwtPayload, @Param('id') id: string, @Body() body: { status: string; reason?: string }) {
+    if (!['APPROVED', 'REJECTED', 'SUSPENDED'].includes(body.status)) throw new BadRequestException('Promotion status must be APPROVED, REJECTED or SUSPENDED.');
+    const current = await this.prisma.merchantPromotion.findUnique({ where: { id }, select: { id: true, status: true } });
+    if (!current) throw new BadRequestException('Promotion not found.');
+    const updated = await this.prisma.merchantPromotion.update({ where: { id }, data: { status: body.status } });
+    await this.prisma.auditLog.create({ data: {
+      actorId: actor.sub, action: 'MERCHANT_PROMOTION_REVIEWED', entityType: 'MerchantPromotion', entityId: id,
+      beforeJson: JSON.stringify(current), afterJson: JSON.stringify({ status: updated.status }),
+      metadataJson: JSON.stringify({ reason: String(body.reason ?? '').trim() }),
+    } });
+    return updated;
+  }
+
   @Roles('ADMIN')
   @Get('rider-registrations')
   async getRiderRegistrations(@Query('status') status?: string, @Query('search') search?: string) {
