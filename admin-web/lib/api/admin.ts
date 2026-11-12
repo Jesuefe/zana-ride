@@ -301,3 +301,8 @@ export async function setMerchantPromotionExemption(id: string, exempt: boolean,
 }
 
 export async function resendAssistedCredentials(userId: string) { return api.post<any>(`/admin/onboarding/${encodeURIComponent(userId)}/resend-credentials`, {}); }
+
+ 
+export async function getPromoCodes() { return api.get<any[]>('/admin/promo-codes'); }
+export async function createPromoCode(data: any) { return api.post<any>('/admin/promo-codes', data); }
+export async function updatePromoCodeStatus(id: string, status: string) { return api.patch<any>(`/admin/promo-codes/${encodeURIComponent(id)}/status`, { status }); }
