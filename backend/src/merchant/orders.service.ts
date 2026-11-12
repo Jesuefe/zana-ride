@@ -23,6 +23,7 @@ import { ZanaGateway } from '../gateway/zana.gateway';
 import { OrderStatus } from '@prisma/client';
 import { DeliveriesService } from '../deliveries/deliveries.service';
 import { FinanceService } from '../finance/finance.service';
+import { PromoCodesService } from '../promotions/promo-codes.service';
 
 @Injectable()
 export class OrdersService {
@@ -32,6 +33,7 @@ export class OrdersService {
     private paypackPayments: PaypackPaymentAdapter,
     private gateway: ZanaGateway,
     private finance: FinanceService,
+    private promoCodes: PromoCodesService,
   ) {}
 
   // Shared by both order creation and status updates — a small, direct
@@ -62,6 +64,7 @@ export class OrdersService {
     note?: string;
     paymentMethod?: 'WALLET' | 'MOBILE_MONEY' | 'CASH';
     deliveryFee?: number;
+    promoCode?: string;
   }) {
     // Validate all products exist, are approved, and belong to the merchant.
     if (!data.merchantId && !data.marketId) {
@@ -73,13 +76,15 @@ export class OrdersService {
     // already approved could still receive new orders indefinitely,
     // since nothing here ever looked at the merchant's own status at
     // all, only the individual product's.
+    let merchantCategory = 'GOODS';
     if (data.merchantId) {
       const merchant = await this.prisma.merchant.findUnique({
-        where: { id: data.merchantId }, select: { status: true },
+        where: { id: data.merchantId }, select: { status: true, category: true },
       });
       if (!merchant || merchant.status !== 'APPROVED') {
         throw new BadRequestException('MERCHANT_NOT_AVAILABLE');
       }
+      merchantCategory = String(merchant.category ?? 'GOODS');
     }
 
     const products = await this.prisma.product.findMany({
@@ -157,7 +162,18 @@ export class OrdersService {
     }
 
     const deliveryFee = data.marketId ? calcMarketDeliveryFee(distKm) : calcDeliveryFee(distKm);
-    const grandTotal = total + deliveryFee;
+    const originalGrandTotal = total + deliveryFee;
+    const serviceScope = merchantCategory.toUpperCase() === 'FOOD' ? 'FOOD' : 'SHOPPING';
+    const promoBase = data.promoCode
+      ? (await this.prisma.promoCode.findUnique({ where: { code: String(data.promoCode).trim().toUpperCase() }, select: { serviceScope: true } }))?.serviceScope === 'DELIVERIES'
+        ? deliveryFee
+        : serviceScope === 'FOOD' || serviceScope === 'SHOPPING' ? total : originalGrandTotal
+      : originalGrandTotal;
+    const promo = data.promoCode
+      ? await this.promoCodes.validate(customerId, data.promoCode, serviceScope, promoBase)
+      : null;
+    const promoDiscount = promo?.discountAmount ?? 0;
+    const grandTotal = Math.max(0, originalGrandTotal - promoDiscount);
     const paymentMethod = data.paymentMethod ?? 'WALLET';
 
     // Food, shop and gift orders are online-payment only.
@@ -185,6 +201,8 @@ export class OrdersService {
         marketId: data.marketId ?? null,
         promotionId: data.promotionId ?? null,
         total: grandTotal,
+        promoCode: promo?.promo.code ?? null,
+        promoDiscount,
         deliveryFee,
         status: OrderStatus.PENDING,
         prepMinutes,
@@ -206,6 +224,16 @@ export class OrdersService {
       } as any,
       include: { items: { include: { product: true } }, merchant: true },
     });
+
+    if (promo) {
+      await this.prisma.$transaction(async tx => {
+        await this.promoCodes.reserve(tx, {
+          promo: promo.promo, userId: customerId, serviceScope: promo.promo.serviceScope,
+          originalAmount: promo.originalAmount, discountAmount: promo.discountAmount,
+          payableAmount: promo.payableAmount, orderId: order.id,
+        });
+      }, { isolationLevel: 'Serializable' });
+    }
 
     // ── Take the money ─────────────────────────────────────────────────────
     if (paymentMethod === 'WALLET') {
@@ -406,7 +434,8 @@ export class OrdersService {
       },
     });
 
-    // Financial settlement is idempotent and owns the merchant/agent ledger + wallet credit.\n    if (status === OrderStatus.DELIVERED) {\n      try {\n        await this.finance.settleOrder(id);\n      } catch (e: any) {\n        console.error(`[ORDER] Settlement failed for ${id}:`, e?.message);\n        throw e;\n      }\n    }\n\n    // Admin's order screen previously had no live path at all for this —
+    // Financial settlement is idempotent and owns the merchant/agent ledger + wallet credit.\n    if (status === OrderStatus.DELIVERED) {
+      await this.promoCodes.completeReservation(undefined, id).catch(() => {});\n      try {\n        await this.finance.settleOrder(id);\n      } catch (e: any) {\n        console.error(`[ORDER] Settlement failed for ${id}:`, e?.message);\n        throw e;\n      }\n    }\n\n    // Admin's order screen previously had no live path at all for this —
     // manual refresh only, regardless of what changed.
     await this.notifyAdmins('order:status', { orderId: id, status });
 
@@ -489,6 +518,7 @@ export class OrdersService {
       }
       return tx.order.update({ where: { id: order.id }, data: { status: OrderStatus.CANCELLED, paid: false, updatedAt: new Date() } as any, include: { items: { include: { product: true } }, customer: true, market: true, merchant: true } });
     });
+    await this.promoCodes.cancelReservation(undefined, id).catch(() => {});
     await this.notifyAdmins('order:status', { orderId: id, status: OrderStatus.CANCELLED });
     if (order.marketId) {
       const agents = await this.prisma.agent.findMany({ where: { marketId: order.marketId, active: true }, select: { userId: true } });
