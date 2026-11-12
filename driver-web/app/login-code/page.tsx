@@ -54,8 +54,8 @@ export default function LoginWithCode() {
     setBusy(true);
     setError('');
     try {
-      await loginWithCode(fullPhone(), code.trim());
-      router.replace('/');
+      const result = await loginWithCode(fullPhone(), code.trim());
+      router.replace(result?.user?.mustChangePassword ? '/change-password' : '/');
     } catch (e: any) {
       const msg = e instanceof ApiError ? e.message : '';
       if (msg.includes('CODE_EXPIRED')) setError(dt('That code has expired. Ask for a new one.'));
