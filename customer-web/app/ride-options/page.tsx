@@ -83,6 +83,9 @@ function RideOptionsContent() {
   const [step, setStep] = useState<'select' | 'confirm'>('select');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [promoCode, setPromoCode] = useState('');
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoMessage, setPromoMessage] = useState('');
+  const [validatingPromo, setValidatingPromo] = useState(false);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [routeInfo, setRouteInfo] = useState<{ distanceText: string; durationText: string } | null>(null);
@@ -127,11 +130,22 @@ function RideOptionsContent() {
   };
 
   const handleSelect = (service: ServiceType) => {
+    setPromoDiscount(0); setPromoMessage('');
     setSelected(service);
     setStep('confirm');
   };
 
-  const selectedFare = selected ? fares[selected] : 0;
+  const selectedFare = selected ? Math.max(0, fares[selected] - promoDiscount) : 0;
+  const applyPromo = async () => {
+    if (!selected || !promoCode.trim()) { setPromoMessage(t('Enter a promo code first.')); return; }
+    setValidatingPromo(true); setPromoMessage(''); setPromoDiscount(0);
+    try {
+      const result = await validateRidePromo(promoCode.trim(), selected, fares[selected]);
+      setPromoDiscount(result.discountAmount);
+      setPromoMessage(t('Promo applied. You save {{amount}} RWF.').replace('{{amount}}', result.discountAmount.toLocaleString()));
+    } catch (e: any) { setPromoMessage(e?.message || t('This promo code is not valid for this ride.')); }
+    finally { setValidatingPromo(false); }
+  };
   const walletInsufficient = paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < selectedFare;
 
   const handleBook = async () => {
@@ -149,7 +163,7 @@ function RideOptionsContent() {
         destinationLng: destLng,
         paymentMethod,
         expectedFare: fares[selected],
-        promoCode: promoCode.trim() || undefined,
+        promoCode: promoDiscount > 0 ? promoCode.trim() : undefined,
       });
       router.push(`/tracking?tripId=${trip.id}`);
     } catch (err) {
@@ -422,7 +436,9 @@ function RideOptionsContent() {
 
           <div className="rounded-xl border border-gray-200 bg-white px-3 py-3">
             <label htmlFor="ride-promo-code" className="mb-1.5 block text-xs font-bold text-gray-600">{t('Promo code')}</label>
-            <input id="ride-promo-code" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 32))} placeholder={t('Enter promo code (optional)')} autoCapitalize="characters" className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-gray-900 outline-none focus:border-zana-primary" />
+            <div className="flex gap-2"><input id="ride-promo-code" value={promoCode} onChange={e => { setPromoCode(e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 32)); setPromoDiscount(0); setPromoMessage(''); }} placeholder={t('Enter promo code (optional)')} autoCapitalize="characters" className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-gray-900 outline-none focus:border-zana-primary" /><button type="button" onClick={applyPromo} disabled={validatingPromo || !selected || !promoCode.trim()} className="rounded-lg bg-zana-primary px-4 py-2 text-xs font-black text-white disabled:opacity-50">{validatingPromo ? '...' : t('Apply')}</button></div>
+            {promoMessage && <p className={`mt-2 text-xs font-semibold ${promoDiscount > 0 ? 'text-emerald-700' : 'text-red-600'}`}>{promoMessage}</p>}
+            {promoDiscount > 0 && <div className="mt-2 flex justify-between text-xs"><span className="text-gray-500">{t('Discount')}</span><strong className="text-emerald-700">−{promoDiscount.toLocaleString()} RWF</strong></div>}
           </div>
 
           {/* Fare breakdown note */}
@@ -447,7 +463,7 @@ function RideOptionsContent() {
                 {t('Finding your driver...')}
               </>
             ) : (
-              `${t(selected === 'BIKE' ? 'Confirm Moto' : 'Confirm Car')} · ${selected ? fares[selected].toLocaleString() : '—'} RWF`
+              `${t(selected === 'BIKE' ? 'Confirm Moto' : 'Confirm Car')} · ${selected ? selectedFare.toLocaleString() : '—'} RWF`
             )}
           </button>
 
