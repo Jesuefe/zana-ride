@@ -11,6 +11,7 @@ import { DriversService } from '../drivers/drivers.service';
 import { ServiceType, TripStatus, DriverOnlineStatus } from '@prisma/client';
 import { estimateDurationMinutes } from './fare.util';
 import { FareService } from './fare.service';
+import { PromoCodesService } from '../promotions/promo-codes.service';
 
 type LatLng = { lat: number; lng: number };
 
@@ -28,6 +29,7 @@ export class TripsService {
     private pointsService: PointsService,
     private cancellationService: CancellationService,
     private gateway: ZanaGateway,
+    private promoCodes: PromoCodesService,
   ) {}
 
   private async roadRoute(pickup: LatLng, destination: LatLng) {
@@ -114,6 +116,7 @@ export class TripsService {
       destinationLng: number;
       paymentMethod?: string;
       expectedFare?: number;
+      promoCode?: string;
     },
     count: number,
     trustedQuote?: { distanceKm: number; fare: number },
@@ -153,26 +156,41 @@ export class TripsService {
     }
 
     const groupId = count > 1 ? randomUUID() : null;
+    if (data.promoCode && count !== 1) throw new BadRequestException('PROMO_CODES_NOT_AVAILABLE_FOR_GROUP_BOOKINGS');
+    const promo = data.promoCode
+      ? await this.promoCodes.validate(customerId, data.promoCode, 'RIDES', est.fare)
+      : null;
 
-    const created = await Promise.all(
+    const createTripData = {
+      customerId, serviceType: data.serviceType, pickupAddress: data.pickupAddress,
+      pickupLat: data.pickupLat, pickupLng: data.pickupLng,
+      destinationAddress: data.destinationAddress, destinationLat: data.destinationLat,
+      destinationLng: data.destinationLng, distanceKm: est.distanceKm,
+      estimatedFare: est.fare, promoCode: promo?.promo.code ?? null,
+      promoDiscount: promo?.discountAmount ?? 0,
+      customerPayableFare: promo?.payableAmount ?? est.fare,
+      status: TripStatus.SEARCHING_DRIVER, groupId,
+      groupSeatIndex: count > 1 ? 1 : null,
+      paymentMethod: data.paymentMethod ?? 'CASH',
+    };
+    const created = promo
+      ? [await this.prisma.$transaction(async tx => {
+          const trip = await tx.trip.create({ data: createTripData as any });
+          await this.promoCodes.reserve(tx, {
+            promo: promo.promo, userId: customerId, serviceScope: 'RIDES',
+            originalAmount: est.fare, discountAmount: promo.discountAmount,
+            payableAmount: promo.payableAmount, tripId: trip.id,
+          });
+          return trip;
+        }, { isolationLevel: 'Serializable' })]
+      : await Promise.all(
+
       Array.from({ length: count }).map((_, i) =>
         this.prisma.trip.create({
           data: {
-            customerId,
-            serviceType: data.serviceType,
-            pickupAddress: data.pickupAddress,
-            pickupLat: data.pickupLat,
-            pickupLng: data.pickupLng,
-            destinationAddress: data.destinationAddress,
-            destinationLat: data.destinationLat,
-            destinationLng: data.destinationLng,
-            distanceKm: est.distanceKm,
-            estimatedFare: est.fare,
-            status: TripStatus.SEARCHING_DRIVER,
-            groupId,
+            ...createTripData,
             groupSeatIndex: count > 1 ? i + 1 : null,
-            paymentMethod: data.paymentMethod ?? 'CASH',
-          },
+          } as any,
         }),
       ),
     );
@@ -186,6 +204,7 @@ export class TripsService {
         where: { id: { in: created.map((t) => t.id) } },
         data: { status: TripStatus.NO_DRIVER_FOUND },
       });
+      if (promo) await this.promoCodes.cancelReservation(created[0].id);
       return this.prisma.trip.findMany({ where: { id: { in: created.map((t) => t.id) } } });
     }
 
@@ -542,10 +561,12 @@ export class TripsService {
     // a failure here should never surface as an error to the driver app.
     if (status === TripStatus.RIDE_COMPLETED) {
       const fare = (updated as any).finalFare ?? trip.estimatedFare;
+      const customerFare = Math.max(0, fare - ((trip as any).promoDiscount ?? 0));
+      if ((trip as any).promoCode) await this.promoCodes.completeReservation(tripId).catch(() => {});
       const paymentMethod = (trip as any).paymentMethod ?? 'CASH';
 
       // ── Record transaction for every payment type ────────────────────
-      this.recordTripTransaction(trip.customerId, fare, paymentMethod, tripId).catch(() => {});
+      this.recordTripTransaction(trip.customerId, customerFare, paymentMethod, tripId).catch(() => {});
 
       if (trip.driverId) {
         // CASH is unambiguous — the driver physically collects it right
@@ -561,6 +582,7 @@ export class TripsService {
         // confirmed — or via the explicit cash-fallback endpoint if the
         // driver switches.
         if (paymentMethod === 'CASH') {
+          if ((trip as any).promoDiscount > 0) this.creditPromoCashSubsidy(trip.driverId, tripId, (trip as any).promoDiscount).catch(() => {});
           this.commissionDebtService.handleTripCompletion(tripId, fare, trip.driverId, paymentMethod).catch(() => {});
         }
         this.pointsService.earnForRide(trip.customerId, fare, tripId).catch(() => {});
@@ -612,6 +634,7 @@ export class TripsService {
 
     const targetStatus = by === 'CUSTOMER' ? TripStatus.CUSTOMER_CANCELLED : TripStatus.DRIVER_CANCELLED;
     const updated = await this.updateStatus(tripId, targetStatus);
+    if ((trip as any).promoCode) await this.promoCodes.cancelReservation(tripId).catch(() => {});
 
     // Any driver still holding a live offer for this ride needs to know
     // it's gone right away, not just find out whenever their own 20s
@@ -837,6 +860,18 @@ export class TripsService {
   }
 
 
+  private async creditPromoCashSubsidy(driverId: string, tripId: string, amount: number) {
+    if (!amount || amount <= 0) return;
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId }, select: { userId: true } });
+    if (!driver?.userId) return;
+    const wallet = await this.prisma.wallet.upsert({ where: { userId: driver.userId }, create: { userId: driver.userId, balance: 0 }, update: {} });
+    const updated = await this.prisma.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: amount } } });
+    await this.prisma.walletTransaction.create({ data: {
+      walletId: wallet.id, amount, balanceBefore: wallet.balance, balanceAfter: updated.balance,
+      reference: `PROMO_CASH_SUBSIDY:${tripId}`, description: `Zana-funded ride promotion subsidy for trip ${tripId}`, status: 'COMPLETED',
+    } as any });
+  }
+
   private async recordTripTransaction(customerId: string, fare: number, paymentMethod: string, tripId: string) {
     const description = `Ride — ${paymentMethod === 'CASH' ? 'Cash' : paymentMethod === 'WALLET' ? 'Zana Wallet' : 'Mobile Money'}`;
 
@@ -909,7 +944,7 @@ export class TripsService {
     if (!trip) throw new NotFoundException('Trip not found');
     if (trip.driver?.user?.id !== driverUserId) throw new ForbiddenException('Not your trip');
 
-    const fare = trip.finalFare ?? trip.estimatedFare;
+    const fare = (trip as any).customerPayableFare ?? Math.max(0, (trip.finalFare ?? trip.estimatedFare) - ((trip as any).promoDiscount ?? 0));
     const phone = overridePhone?.trim() || trip.customer?.phone;
     if (!phone) throw new BadRequestException('NO_PHONE_NUMBER');
 
@@ -989,7 +1024,7 @@ export class TripsService {
         // Record the payment against the customer's wallet history
         await this.recordTripTransaction(
           trip.customerId,
-          trip.finalFare ?? trip.estimatedFare,
+          (trip as any).customerPayableFare ?? Math.max(0, (trip.finalFare ?? trip.estimatedFare) - ((trip as any).promoDiscount ?? 0)),
           'MOBILE_MONEY',
           tripId,
         ).catch(() => {});
