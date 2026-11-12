@@ -532,6 +532,7 @@ export class TripsService {
         trip.startedAt,
       );
       data.finalFare = trip.estimatedFare + waitingFee;
+      data.customerPayableFare = Math.max(0, trip.estimatedFare + waitingFee - ((trip as any).promoDiscount ?? 0));
     }
 
     // Atomic guard against the same transition being applied twice — a
