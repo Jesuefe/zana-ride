@@ -220,6 +220,7 @@ export class DeliveriesService {
             this.logger.log(`[DELIVERY] MoMo prompt sent to ${chargePhone} | ${payableFee} RWF`);
           } catch (e: any) {
             this.logger.error(`[DELIVERY] MoMo charge failed: ${e?.message}`);
+            await this.prisma.delivery.update({ where: { id: delivery.id }, data: { status: DeliveryStatus.CANCELLED } as any }).catch(() => {});
             await this.promos.cancelReservation(undefined, undefined, delivery.id).catch(() => {});
             throw new BadRequestException('MOMO_CHARGE_FAILED');
           }
