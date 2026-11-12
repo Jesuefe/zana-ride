@@ -27,3 +27,7 @@ CREATE INDEX "MerchantPromotion_merchantId_startsAt_endsAt_idx" ON "MerchantProm
 CREATE INDEX "MerchantPromotion_status_startsAt_endsAt_idx" ON "MerchantPromotion"("status","startsAt","endsAt");
 CREATE UNIQUE INDEX "MerchantPromotionItem_promotionId_productId_key" ON "MerchantPromotionItem"("promotionId","productId");
 CREATE INDEX "MerchantPromotionItem_productId_idx" ON "MerchantPromotionItem"("productId");
+
+ALTER TABLE "Order" ADD COLUMN "promotionId" TEXT;
+ALTER TABLE "Order" ADD CONSTRAINT "Order_promotionId_fkey" FOREIGN KEY ("promotionId") REFERENCES "MerchantPromotion"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+CREATE INDEX "Order_promotionId_idx" ON "Order"("promotionId");
