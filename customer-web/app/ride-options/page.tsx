@@ -169,6 +169,7 @@ function RideOptionsContent() {
           <BrandedMap
             origin={pickup}
             destination={{ lat: destLat, lng: destLng }}
+            vehicleType={selected ?? 'BIKE'}
             height="100%"
             draggablePickup
             onPickupChange={handlePickupChange}
