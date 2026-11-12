@@ -9,6 +9,7 @@ export type MerchantProfile = {
   user: { firstName: string | null; lastName: string | null; phone: string; wallet: { balance: number } | null };
   prepMinutes?: number | null;
   deliveryMinutes?: number | null;
+  promoExempt?: boolean;
 };
 
 export type ApiUser = { id: string; phone: string; firstName: string | null; lastName: string | null; role: string; mustChangePassword?: boolean };
