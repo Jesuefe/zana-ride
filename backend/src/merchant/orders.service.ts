@@ -204,46 +204,46 @@ export class OrdersService {
 
     const trackingCode = 'ZN' + Math.random().toString(36).slice(2, 8).toUpperCase();
 
-    const order = await this.prisma.order.create({
-      data: {
-        customerId,
-        merchantId: data.merchantId ?? null,
-        marketId: data.marketId ?? null,
-        promotionId: data.promotionId ?? null,
-        total: grandTotal,
-        promoCode: promo?.promo.code ?? null,
-        promoDiscount,
-        deliveryFee,
-        status: OrderStatus.PENDING,
-        prepMinutes,
-        paymentMethod,
-        trackingCode,
-        dropoffAddress: data.dropoffAddress,
-        dropoffLat: data.dropoffLat,
-        dropoffLng: data.dropoffLng,
-        receiverPhone: data.receiverPhone,
-        note: data.note,
-        items: {
-          create: data.items.map(item => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: itemPriceOverrides.get(item.productId) ?? products.find(p => p.id === item.productId)!.price,
-            referenceCostAtOrder: products.find(p => p.id === item.productId)!.referenceCost,
-          })),
-        },
+    const order = await this.prisma.$transaction(async tx => {
+      const createdOrder = await tx.order.create({
+        data: {
+          customerId,
+          merchantId: data.merchantId ?? null,
+          marketId: data.marketId ?? null,
+          promotionId: data.promotionId ?? null,
+          total: grandTotal,
+          promoCode: promo?.promo.code ?? null,
+          promoDiscount,
+          deliveryFee,
+          status: OrderStatus.PENDING,
+          prepMinutes,
+          paymentMethod,
+          trackingCode,
+          dropoffAddress: data.dropoffAddress,
+          dropoffLat: data.dropoffLat,
+          dropoffLng: data.dropoffLng,
+          receiverPhone: data.receiverPhone,
+          note: data.note,
+          items: {
+            create: data.items.map(item => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: itemPriceOverrides.get(item.productId) ?? products.find(p => p.id === item.productId)!.price,
+              referenceCostAtOrder: products.find(p => p.id === item.productId)!.referenceCost,
+            })),
+          },
       } as any,
-      include: { items: { include: { product: true } }, merchant: true },
-    });
-
-    if (promo) {
-      await this.prisma.$transaction(async tx => {
+        include: { items: { include: { product: true } }, merchant: true },
+      });
+      if (promo) {
         await this.promoCodes.reserve(tx, {
           promo: promo.promo, userId: customerId, serviceScope: promo.promo.serviceScope,
           originalAmount: promo.originalAmount, discountAmount: promo.discountAmount,
-          payableAmount: promo.payableAmount, orderId: order.id,
+          payableAmount: promo.payableAmount, orderId: createdOrder.id,
         });
-      }, { isolationLevel: 'Serializable' });
-    }
+      }
+      return createdOrder;
+    }, { isolationLevel: 'Serializable' });
 
     // ── Take the money ─────────────────────────────────────────────────────
     if (paymentMethod === 'WALLET') {
