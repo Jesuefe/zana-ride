@@ -24,8 +24,9 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await login(identifier.trim(), password);
+      const result = await login(identifier.trim(), password);
       haptic('success');
+      if (result.user?.mustChangePassword) { router.replace('/change-password'); return; }
 
       // A customer may have lost connectivity, closed the app, or restarted
       // the phone while a ride was still active. Never create a new ride here:
