@@ -201,6 +201,7 @@ model MerchantPromotion {
   updatedAt   DateTime                 @updatedAt
   merchant    Merchant                 @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   items       MerchantPromotionItem[]
+  orders      Order[]
 
   @@index([merchantId, startsAt, endsAt])
   @@index([status, startsAt, endsAt])
@@ -621,6 +622,7 @@ model Order {
   customerId               String
   merchantId               String?
   marketId                 String?
+  promotionId              String?
   agentId                  String?
   total                    Int
   deliveryFee              Int                 @default(0)
@@ -651,9 +653,11 @@ model Order {
   customer                 User                @relation("CustomerOrders", fields: [customerId], references: [id])
   market                   Market?             @relation(fields: [marketId], references: [id])
   merchant                 Merchant?           @relation("MerchantOrders", fields: [merchantId], references: [id])
+  promotion                MerchantPromotion?   @relation(fields: [promotionId], references: [id], onDelete: SetNull)
   items                    OrderItem[]
 
   @@index([merchantId, status, createdAt])
+  @@index([promotionId])
   @@index([merchantId, readyAt])
   @@index([marketId, status, createdAt])
   @@index([agentId, status, createdAt])
