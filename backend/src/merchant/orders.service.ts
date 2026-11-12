@@ -51,10 +51,18 @@ export class OrdersService {
     }
   }
 
-  async validatePromoCode(customerId: string, code: string, merchantId: string, amount: number, deliveryFee: number) {
-    const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId }, select: { category: true, status: true } });
-    if (!merchant || merchant.status !== 'APPROVED') throw new BadRequestException('MERCHANT_NOT_AVAILABLE');
-    const scope = String(merchant.category).toUpperCase() === 'FOOD' ? 'FOOD' : 'SHOPPING';
+  async validatePromoCode(customerId: string, code: string, merchantId: string | undefined, marketId: string | undefined, amount: number, deliveryFee: number) {
+    let scope = 'SHOPPING';
+    if (merchantId) {
+      const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId }, select: { category: true, status: true } });
+      if (!merchant || merchant.status !== 'APPROVED') throw new BadRequestException('MERCHANT_NOT_AVAILABLE');
+      scope = String(merchant.category).toUpperCase() === 'FOOD' ? 'FOOD' : 'SHOPPING';
+    } else if (marketId) {
+      const market = await this.prisma.market.findUnique({ where: { id: marketId }, select: { id: true } });
+      if (!market) throw new BadRequestException('MARKET_NOT_AVAILABLE');
+    } else {
+      throw new BadRequestException('MERCHANT_OR_MARKET_REQUIRED');
+    }
     const campaign = await this.prisma.promoCode.findUnique({ where: { code: String(code).trim().toUpperCase() }, select: { serviceScope: true } });
     const validationScope = campaign?.serviceScope === 'DELIVERIES' ? 'DELIVERIES' : scope;
     const result = await this.promoCodes.validate(customerId, code, validationScope, campaign?.serviceScope === 'DELIVERIES' ? deliveryFee : amount);
