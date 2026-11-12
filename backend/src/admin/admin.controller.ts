@@ -200,7 +200,7 @@ export class AdminController {
     if (!['ALL','RIDES','FOOD','DELIVERIES','SHOPPING'].includes(serviceScope)) throw new BadRequestException('Invalid service scope.');
     if (!['PERCENT','FIXED'].includes(discountType)) throw new BadRequestException('Invalid discount type.');
     if (!Number.isInteger(discountValue) || discountValue < 1 || (discountType === 'PERCENT' && discountValue > 100)) throw new BadRequestException('Enter a valid discount value.');
-    if (!['ZANA','MERCHANT','PARTNER','SHARED'].includes(fundingSource)) throw new BadRequestException('Invalid discount funding source.');
+    if (fundingSource !== 'ZANA') throw new BadRequestException('Only Zana-funded promotions are enabled until merchant and partner settlement integrations are ready.');
     if (!Number.isFinite(startsAt.getTime()) || !Number.isFinite(endsAt.getTime()) || endsAt <= startsAt) throw new BadRequestException('Enter a valid campaign date range.');
     const maxDiscount = body.maxDiscount === '' || body.maxDiscount == null ? null : Number(body.maxDiscount);
     const maxUses = body.maxUses === '' || body.maxUses == null ? null : Number(body.maxUses);
