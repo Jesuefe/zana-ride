@@ -117,18 +117,17 @@ export class DeliveriesService {
       imageUrl = await this.storage.uploadPackageImage(input.imageBase64);
     }
 
-    const promo = input.promoCode && payerId
-      ? await this.promos.validate(payerId, input.promoCode, 'DELIVERIES', fee)
-      : null;
-    const promoDiscount = promo?.discountAmount ?? 0;
-    const payableFee = fee - promoDiscount;
-
     // ── Take payment before the delivery exists ───────────────────────────
     // A courier should never be dispatched for an unpaid job.
     const paymentMethod = owner.merchantId ? 'WALLET' : ((input as any).paymentMethod ?? 'WALLET');
     const payerId = owner.customerId;
     const merchantPayerId = owner.merchantId ? (await this.prisma.merchant.findUnique({ where: { id: owner.merchantId }, select: { userId: true } }))?.userId : undefined;
     const chargeUserId = payerId ?? merchantPayerId;
+    const promo = input.promoCode && payerId
+      ? await this.promos.validate(payerId, input.promoCode, 'DELIVERIES', fee)
+      : null;
+    const promoDiscount = promo?.discountAmount ?? 0;
+    const payableFee = fee - promoDiscount;
 
     if (paymentMethod === 'WALLET' && chargeUserId) {
       const wallet = await this.prisma.wallet.findUnique({ where: { userId: chargeUserId } });
@@ -193,7 +192,7 @@ export class DeliveriesService {
         await this.prisma.delivery.update({
           where: { id: delivery.id }, data: { paid: true } as any,
         });
-        this.logger.log(`[DELIVERY] ${(delivery as any).trackingCode} paid from wallet | ${fee} RWF`);
+        this.logger.log(`[DELIVERY] ${(delivery as any).trackingCode} paid from wallet | ${payableFee} RWF`);
       } else if (paymentMethod === 'MOBILE_MONEY') {
         const customer = await this.prisma.user.findUnique({
           where: { id: payerId }, select: { phone: true },
@@ -207,6 +206,8 @@ export class DeliveriesService {
           // no error thrown, but the delivery still got created and
           // would then sit permanently stuck (never payable, so never
           // dispatchable) with no explanation to the customer at all.
+          await this.prisma.delivery.update({ where: { id: delivery.id }, data: { status: DeliveryStatus.CANCELLED } }).catch(() => {});
+          await this.promos.cancelReservation(undefined, undefined, delivery.id).catch(() => {});
           throw new BadRequestException('NO_PHONE_NUMBER');
         }
         try {
@@ -214,7 +215,7 @@ export class DeliveriesService {
             await this.prisma.delivery.update({
               where: { id: delivery.id }, data: { momoRef: res.ref } as any,
             });
-            this.logger.log(`[DELIVERY] MoMo prompt sent to ${chargePhone} | ${fee} RWF`);
+            this.logger.log(`[DELIVERY] MoMo prompt sent to ${chargePhone} | ${payableFee} RWF`);
           } catch (e: any) {
             this.logger.error(`[DELIVERY] MoMo charge failed: ${e?.message}`);
             await this.promos.cancelReservation(undefined, undefined, delivery.id).catch(() => {});
@@ -323,11 +324,7 @@ export class DeliveriesService {
 
     const data: any = { status };
     if (status === DeliveryStatus.PICKED_UP) data.pickedUpAt = new Date();
-    if (status === DeliveryStatus.CANCELLED) {
-      await this.promos.cancelReservation(undefined, undefined, id).catch(() => {});
-    }
     if (status === DeliveryStatus.DELIVERED) {
-      await this.promos.completeReservation(undefined, undefined, id).catch(() => {});
       data.deliveredAt = new Date();
       // Schedule the package photo for removal a week after confirmation.
       data.imageDeleteAfter = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -349,6 +346,9 @@ export class DeliveriesService {
       where: { id },
       include: { order: { include: { merchant: true } }, merchant: { select: { userId: true } } },
     });
+    if (status === DeliveryStatus.CANCELLED) await this.promos.cancelReservation(undefined, undefined, id).catch(() => {});
+    if (status === DeliveryStatus.DELIVERED) await this.promos.completeReservation(undefined, undefined, id).catch(() => {});
+
     // Genuinely shouldn't happen — this row was just the target of the
     // atomic update above — but TypeScript is right that findUnique's
     // return type allows it, and a silent null here would be worse than
