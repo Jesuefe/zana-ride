@@ -125,6 +125,7 @@ function RideOptionsContent() {
   }, [pickup.lat, pickup.lng, destLat, destLng, t]);
 
   const handlePickupChange = (coords: { lat: number; lng: number }) => {
+    setPromoDiscount(0); setPromoMessage('');
     setPickup(coords);
     setStep('select');
   };
