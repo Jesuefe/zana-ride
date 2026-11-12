@@ -33,7 +33,7 @@ export class FinanceService {
       if (!order.paid) throw new BadRequestException('ORDER_NOT_PAID');
 
       if (order.merchantId) {
-        const gross = Math.max(0, order.total - order.deliveryFee);
+        const gross = Math.max(0, order.total - order.deliveryFee + ((order as any).promoDiscount ?? 0));
         const promoProductIds = new Set((order.promotion?.items ?? []).map(item => item.productId));
         // Promotional combo products are commission-free for Zana.
         // Apply the normal 15% rate only to non-promotional product lines.
