@@ -41,16 +41,25 @@ export class PromoCodesService {
   }
 
   async cancelReservation(tripId?: string, orderId?: string, deliveryId?: string) {
+    // Never allow an omitted identifier to turn this into a bulk cancellation.
+    if (!tripId && !orderId && !deliveryId) return;
     const where = tripId ? { tripId } : orderId ? { orderId } : { deliveryId };
     await this.prisma.$transaction(async tx => {
       const redemption = await tx.promoCodeRedemption.findFirst({ where: { ...where, status: 'RESERVED' } });
       if (!redemption) return;
-      await tx.promoCodeRedemption.update({ where: { id: redemption.id }, data: { status: 'CANCELLED' } });
+      // Conditional state transition makes duplicate/concurrent cancellation
+      // idempotent, so usageCount can only be decremented once.
+      const cancelled = await tx.promoCodeRedemption.updateMany({
+        where: { id: redemption.id, status: 'RESERVED' },
+        data: { status: 'CANCELLED' },
+      });
+      if (cancelled.count !== 1) return;
       await tx.promoCode.update({ where: { id: redemption.promoCodeId }, data: { usageCount: { decrement: 1 } } });
     });
   }
 
   async completeReservation(tripId?: string, orderId?: string, deliveryId?: string) {
+    if (!tripId && !orderId && !deliveryId) return;
     const where = tripId ? { tripId } : orderId ? { orderId } : { deliveryId };
     await this.prisma.promoCodeRedemption.updateMany({ where: { ...where, status: 'RESERVED' }, data: { status: 'REDEEMED' } });
   }
