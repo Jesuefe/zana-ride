@@ -3,8 +3,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
-    if (err || !user) return super.handleRequest(err, user, info, context);
+  handleRequest(err: any, user: any, info: any, context: ExecutionContext, status?: any) {
+    if (err || !user) return super.handleRequest(err, user, info, context, status);
     const request = context.switchToHttp().getRequest();
     const path = String(request.originalUrl || request.url || '').split('?')[0];
     const isPasswordChange = request.method === 'POST' && path.endsWith('/auth/password/change');
