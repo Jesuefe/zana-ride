@@ -55,6 +55,7 @@ export default function AccountSettingsPage() {
       </div>
 
       <div className="space-y-4">
+        <button onClick={() => router.push('/change-password')} className="w-full rounded-2xl border border-emerald-100 bg-white p-4 text-left shadow-sm"><span className="block text-sm font-semibold text-gray-900">Change password</span><span className="mt-1 block text-xs text-gray-500">Update your account sign-in password</span></button>
         <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
           <h2 className="font-semibold text-gray-900">{t('Personal Info')}</h2>
           <div>
