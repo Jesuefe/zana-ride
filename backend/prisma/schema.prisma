@@ -1343,3 +1343,30 @@ model StatutoryRemittance {
   @@unique([period, obligationType])
   @@index([status, dueDate])
 }
+
+model PromoCode {
+  id               String   @id @default(uuid())
+  code             String   @unique
+  name             String
+  description      String?
+  serviceScope     String   @default("ALL")
+  discountType     String   @default("PERCENT")
+  discountValue    Int
+  maxDiscount      Int?
+  minSpend         Int      @default(0)
+  maxUses          Int?
+  perUserLimit     Int      @default(1)
+  usageCount       Int      @default(0)
+  fundingSource    String   @default("ZANA")
+  creatorName      String?
+  creatorHandle    String?
+  startsAt         DateTime
+  endsAt           DateTime
+  status           String   @default("ACTIVE")
+  createdBy        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([status, startsAt, endsAt])
+  @@index([serviceScope])
+}
