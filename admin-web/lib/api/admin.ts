@@ -299,3 +299,5 @@ export async function reviewMerchantPromotion(id: string, status: string, reason
 export async function setMerchantPromotionExemption(id: string, exempt: boolean, reason?: string) {
   return api.patch(`/admin/merchants/${id}/promotion-exemption`, { exempt, reason });
 }
+
+export async function resendAssistedCredentials(userId: string) { return api.post<any>(`/admin/onboarding/${encodeURIComponent(userId)}/resend-credentials`, {}); }
