@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ShoppingCart, Plus, Minus, MapPin, Loader2, Store, Package, Search, Star, Clock3 } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Plus, Minus, MapPin, Loader2, Store, Package, Search, Star, Clock3, Tag } from 'lucide-react';
 import { fetchMarketplaceWithLocation, placeOrder, MarketplaceMerchant, MarketplaceProduct, CartItem } from '../../../lib/api/marketplace';
 import { getStoredPickup } from '../../../lib/location';
 import OrderRecipient, { OrderRecipient as OrderRecipientValue } from '../../../components/OrderRecipient';
@@ -27,6 +27,7 @@ function StoreContent() {
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MOBILE_MONEY'>('WALLET');
   const [promoCode, setPromoCode] = useState('');
+  const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [recipient, setRecipient] = useState<OrderRecipientValue>({ forSomeoneElse: false, name: '', phone: '', address: pickup.address ?? 'Current location', lat: pickup.lat, lng: pickup.lng, note: '' });
 
@@ -52,7 +53,11 @@ function StoreContent() {
       .finally(() => setLoading(false));
   }, [merchantId]);
 
-  const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+  const rawCartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+  const selectedPromotion = merchant?.promotions?.find(p => p.id === selectedPromotionId);
+  const promotionValid = !!selectedPromotion && selectedPromotion.items.every(item => cart.some(i => i.product.id === item.product.id && i.quantity === 1));
+  const promoSavings = promotionValid && selectedPromotion ? Math.max(0, selectedPromotion.items.reduce((sum, item) => sum + item.product.price, 0) - selectedPromotion.comboPrice) : 0;
+  const cartTotal = rawCartTotal - promoSavings;
   const deliveryFee = merchant?.deliveryFee ?? 0;
   const walletShort =
     paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < (cartTotal + deliveryFee);
@@ -65,6 +70,20 @@ function StoreContent() {
       if (idx >= 0) return prev.map((i, n) => n === idx ? { ...i, quantity: i.quantity + 1 } : i);
       return [...prev, { product, quantity: 1, merchantId: merchant!.id }];
     });
+  };
+
+  const addComboToCart = (promotion: NonNullable<MarketplaceMerchant['promotions']>[number]) => {
+    setCart(current => {
+      const next = [...current];
+      for (const item of promotion.items) {
+        const index = next.findIndex(i => i.product.id === item.product.id);
+        if (index >= 0) next[index] = { ...next[index], quantity: 1 };
+        else next.push({ product: item.product, quantity: 1, merchantId: merchant!.id });
+      }
+      return next;
+    });
+    setSelectedPromotionId(promotion.id);
+    setShowCart(true);
   };
 
   const removeFromCart = (productId: string) =>
@@ -98,6 +117,7 @@ function StoreContent() {
     try {
       const order = await placeOrder({
         merchantId: merchant.id,
+        promotionId: promotionValid ? selectedPromotionId ?? undefined : undefined,
         items: cart.map(i => ({ productId: i.product.id, quantity: i.quantity })),
         dropoffLat: recipient.lat,
         dropoffLng: recipient.lng,
@@ -224,6 +244,20 @@ function StoreContent() {
         </div>
       </div>
 
+      {merchant.promotions && merchant.promotions.length > 0 && (
+        <section className="px-4 mb-5">
+          <div className="mb-3 flex items-center gap-2"><Tag size={17} className="text-zana-primary"/><h2 className="text-base font-black text-gray-900">Combo promotions</h2></div>
+          <div className="space-y-3">
+            {merchant.promotions.map(p => (
+              <div key={p.id} className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3"><div><p className="font-black text-gray-900">{p.title}</p><p className="mt-1 text-xs text-gray-500">{p.items.map(i=>i.product.name).join(' + ')}</p></div><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">COMBO DEAL</span></div>
+                <div className="mt-3 flex items-center justify-between gap-3"><div><p className="text-lg font-black text-zana-primary">{p.comboPrice.toLocaleString()} RWF</p><p className="text-[10px] text-gray-400">Normal price {p.items.reduce((sum,i)=>sum+i.product.price,0).toLocaleString()} RWF</p></div><button onClick={()=>addComboToCart(p)} className="rounded-xl bg-zana-primary px-4 py-2.5 text-xs font-bold text-white">Add combo</button></div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Products, grouped by category */}
       <div className="px-4 space-y-5">
         {groupedProducts.length === 0 && (
@@ -321,6 +355,8 @@ function StoreContent() {
                   </div>
                 </div>
               ))}
+              {promoSavings > 0 && <div className="flex justify-between text-xs font-bold text-emerald-700"><span>Combo promotion savings</span><span>−{promoSavings.toLocaleString()} RWF</span></div>}
+              {selectedPromotionId && !promotionValid && <p className="text-[11px] text-amber-700">Add every combo item once to keep this promotion applied.</p>}
               <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
                 <span className="text-gray-600">{t("Delivery")}</span>
                 <span className="font-semibold">{deliveryFee.toLocaleString()} RWF</span>
