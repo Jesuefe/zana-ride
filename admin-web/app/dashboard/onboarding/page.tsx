@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import AdminShell from '../../../components/AdminShell';
-import { createAssistedDriver, createAssistedMerchant } from '../../../lib/api/admin';
+import { createAssistedDriver, createAssistedMerchant, resendAssistedCredentials } from '../../../lib/api/admin';
 
 type AccountType = 'DRIVER' | 'MERCHANT';
 const field = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-800 outline-none focus:border-[#00A082]';
@@ -14,6 +14,7 @@ export default function AssistedOnboardingPage() {
   const [error,setError]=useState('');
   const [result,setResult]=useState<any>(null);
   const set=(key:string,value:string)=>setForm(v=>({...v,[key]:value}));
+  const retryEmail=async()=>{if(!result?.accountId)return;setSaving(true);setError('');try{const retry=await resendAssistedCredentials(result.accountId);setResult((current:any)=>({...current,emailSent:retry.emailSent,message:retry.message}));}catch(e:any){setError(e?.message||'Could not retry email delivery.');}finally{setSaving(false);}};
   const submit=async()=>{
     setSaving(true);setError('');setResult(null);
     try {
@@ -51,7 +52,7 @@ export default function AssistedOnboardingPage() {
       </div></div>}
       <div className="mt-5 rounded-xl bg-slate-50 p-4 text-xs leading-5 text-slate-600">The account will be created as pending approval. The temporary password is emailed directly to the account holder and must be changed at first login. Staff cannot view or retrieve the password.</div>
       {error&&<p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-      {result&&<div role="status" className={`mt-4 rounded-xl p-4 text-sm ${result.emailSent?'bg-emerald-50 text-emerald-800':'bg-amber-50 text-amber-900'}`}><p className="font-bold">{result.emailSent?'Account created and email sent':'Account created, but email was not delivered'}</p><p className="mt-1">{result.message}</p><p className="mt-1 text-xs">Account reference: {result.accountId}</p></div>}
+      {result&&<div role="status" className={`mt-4 rounded-xl p-4 text-sm ${result.emailSent?'bg-emerald-50 text-emerald-800':'bg-amber-50 text-amber-900'}`}><p className="font-bold">{result.emailSent?'Account created and email sent':'Account created, but email was not delivered'}</p><p className="mt-1">{result.message}</p><p className="mt-1 text-xs">Account reference: {result.accountId}</p>{!result.emailSent&&<button onClick={retryEmail} disabled={saving} className="mt-3 rounded-lg bg-amber-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">{saving?'Retrying…':'Generate new password and retry email'}</button>}</div>}
       <button onClick={submit} disabled={saving||!form.email||!form.phone||!form.firstName||(type==='DRIVER'?(!form.vehicle||!form.plate):!form.businessName)} className="mt-5 w-full rounded-xl bg-[#00A082] px-5 py-3.5 text-sm font-bold text-white disabled:opacity-40">{saving?'Creating account…':`Create ${type==='DRIVER'?'driver':'merchant'} account and email credentials`}</button>
     </section>
   </div></AdminShell>;
