@@ -79,6 +79,7 @@ export default function DriverProfilePage() {
       </div>
 
       <div className="p-4 space-y-4">
+        <button onClick={() => router.push('/change-password')} className="w-full rounded-2xl bg-white px-4 py-3.5 text-left shadow-sm"><span className="block text-sm font-bold text-gray-900">Change password</span><span className="mt-1 block text-xs text-gray-500">Update your account sign-in password</span></button>
         <button
           onClick={() => router.push('/profile/safety')}
           className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3.5 shadow-sm"

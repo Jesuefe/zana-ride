@@ -13,6 +13,7 @@ export type MarketplaceMerchant = {
   etaMinutes?: number; prepTimeSource?: 'RECENT_ORDER_HISTORY' | 'MERCHANT_DEFAULT'; prepSampleCount?: number;
   averageRating?: number | null; reviewCount?: number;
   products: MarketplaceProduct[];
+  promotions?: { id: string; title: string; description?: string | null; comboPrice: number; startsAt: string; endsAt: string; items: { id: string; product: MarketplaceProduct }[] }[];
 };
 
 export type CartItem = { product: MarketplaceProduct; quantity: number; merchantId: string };
@@ -30,6 +31,7 @@ export async function fetchMarketplaceWithLocation(
 export async function placeOrder(data: {
   merchantId?: string;
   marketId?: string;
+  promotionId?: string;
   items: { productId: string; quantity: number }[];
   dropoffLat: number; dropoffLng: number; dropoffAddress: string;
   paymentMethod: 'WALLET' | 'MOBILE_MONEY';

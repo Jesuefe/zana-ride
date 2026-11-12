@@ -9,6 +9,8 @@ import { ImpactFundDisbursementService } from './impact-fund-disbursement.servic
 import { FinanceExtensionsService } from './finance-extensions.service';
 import { AdminAuditInterceptor } from './admin-audit.interceptor';
 import { createCipheriv, createHash, randomBytes } from 'crypto';
+import * as bcrypt from 'bcryptjs';
+import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaypackService } from '../wallet/paypack.service';
 import { ZanaAiService } from '../zana-ai/zana-ai.service';
@@ -28,11 +30,151 @@ export class AdminController {
     private prisma: PrismaService,
     private paypackService: PaypackService,
     private zanaAiService: ZanaAiService,
+    private emailService: EmailService,
   ) {}
 
   @Roles('ADMIN', 'STAFF')
   @Get('me')
   getAdminSession(@CurrentUser() user: JwtPayload) { return { role: user.role, accessRole: user.accessRole || (user.role === 'ADMIN' ? 'ADMIN' : 'OPERATIONS') }; }
+
+
+
+  @Post('onboarding/:userId/resend-credentials')
+  async resendAssistedOnboardingCredentials(@CurrentUser() actor: JwtPayload, @Param('userId') userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { driver: true, merchant: true } });
+    if (!user || !['DRIVER', 'MERCHANT'].includes(user.role) || !user.email) throw new BadRequestException('Assisted driver or merchant account with an email address not found.');
+    const temporaryPassword = randomBytes(18).toString('base64url');
+    const password = await bcrypt.hash(temporaryPassword, 12);
+    await this.prisma.user.update({ where: { id: user.id }, data: { password, mustChangePassword: true } });
+    const emailSent = await this.emailService.sendAssistedOnboardingCredentials(user.email, user.firstName || 'there', user.role as 'DRIVER' | 'MERCHANT', user.email, temporaryPassword);
+    await this.prisma.auditLog.create({ data: {
+      actorId: actor.sub, action: 'ASSISTED_ONBOARDING_CREDENTIALS_RESENT', entityType: 'User', entityId: user.id,
+      metadataJson: JSON.stringify({ emailSent, role: user.role }),
+    } });
+    return { emailSent, message: emailSent ? 'A new temporary password has been emailed. The previous password no longer works.' : 'Email delivery failed again. Check the transactional email configuration.' };
+  }
+
+  @Post('onboarding/driver')
+  async assistedDriverOnboarding(@CurrentUser() actor: JwtPayload, @Body() body: any) {
+    const email = String(body.email ?? '').trim().toLowerCase();
+    const phone = String(body.phone ?? '').trim();
+    const firstName = String(body.firstName ?? '').trim();
+    const lastName = String(body.lastName ?? '').trim();
+    const vehicle = String(body.vehicle ?? '').trim();
+    const plate = String(body.plate ?? '').trim().toUpperCase();
+    const serviceType = String(body.serviceType ?? '').trim().toUpperCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new BadRequestException('Enter a valid email address.');
+    if (!/^\+?[0-9]{9,15}$/.test(phone)) throw new BadRequestException('Enter a valid international phone number.');
+    if (!firstName || !vehicle || !plate || !['BIKE', 'ECONOMY', 'COMFORT'].includes(serviceType)) throw new BadRequestException('Driver name, vehicle, plate and valid service type are required.');
+    const [existingPhone, existingEmail] = await Promise.all([
+      this.prisma.user.findUnique({ where: { phone }, select: { id: true } }),
+      this.prisma.user.findUnique({ where: { email }, select: { id: true } }),
+    ]);
+    if (existingPhone || existingEmail) throw new BadRequestException('An account already exists with this phone number or email.');
+    const temporaryPassword = randomBytes(18).toString('base64url');
+    const password = await bcrypt.hash(temporaryPassword, 12);
+    const user = await this.prisma.user.create({
+      data: {
+        phone, email, password, mustChangePassword: true, phoneVerified: false,
+        firstName, lastName: lastName || null, role: UserRole.DRIVER, status: UserStatus.ACTIVE,
+        wallet: { create: { balance: 0 } },
+        driver: { create: {
+          vehicle, plate, serviceType: serviceType as any,
+          driverMode: ['RIDES', 'DELIVERIES', 'BOTH'].includes(body.driverMode) ? body.driverMode : 'BOTH',
+          approvalStatus: DriverApprovalStatus.PENDING,
+          vehicles: { create: { vehicleType: serviceType === 'BIKE' ? 'MOTORCYCLE' : 'CAR', make: vehicle, plate, status: 'PENDING' } },
+        } },
+      },
+      include: { driver: true },
+    });
+    await this.prisma.auditLog.create({ data: {
+      actorId: actor.sub, action: 'ASSISTED_DRIVER_ACCOUNT_CREATED', entityType: 'User', entityId: user.id,
+      afterJson: JSON.stringify({ role: user.role, email, phone, driverId: user.driver?.id }),
+    } });
+    const emailSent = await this.emailService.sendAssistedOnboardingCredentials(email, firstName, 'DRIVER', email, temporaryPassword);
+    return { created: true, accountId: user.id, role: user.role, emailSent, message: emailSent ? 'Driver account created and login details emailed.' : 'Account created, but email delivery failed. Do not ask the driver to guess the password; retry credential delivery.' };
+  }
+
+  @Post('onboarding/merchant')
+  async assistedMerchantOnboarding(@CurrentUser() actor: JwtPayload, @Body() body: any) {
+    const email = String(body.email ?? '').trim().toLowerCase();
+    const phone = String(body.phone ?? '').trim();
+    const firstName = String(body.firstName ?? '').trim();
+    const lastName = String(body.lastName ?? '').trim();
+    const businessName = String(body.businessName ?? '').trim();
+    const category = String(body.category ?? 'GOODS').trim().toUpperCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new BadRequestException('Enter a valid email address.');
+    if (!/^\+?[0-9]{9,15}$/.test(phone)) throw new BadRequestException('Enter a valid international phone number.');
+    if (!firstName || !businessName || !['FOOD', 'GIFTS', 'GOODS'].includes(category)) throw new BadRequestException('Contact name, business name and a valid category are required.');
+    const [existingPhone, existingEmail] = await Promise.all([
+      this.prisma.user.findUnique({ where: { phone }, select: { id: true } }),
+      this.prisma.user.findUnique({ where: { email }, select: { id: true } }),
+    ]);
+    if (existingPhone || existingEmail) throw new BadRequestException('An account already exists with this phone number or email.');
+    const temporaryPassword = randomBytes(18).toString('base64url');
+    const password = await bcrypt.hash(temporaryPassword, 12);
+    const user = await this.prisma.user.create({
+      data: {
+        phone, email, password, mustChangePassword: true, phoneVerified: false,
+        firstName, lastName: lastName || null, role: UserRole.MERCHANT, status: UserStatus.ACTIVE,
+        wallet: { create: { balance: 0 } },
+        merchant: { create: {
+          businessName, category: category as any, branch: String(body.branch ?? '').trim() || null,
+          whatsappPhone: String(body.whatsappPhone ?? '').trim() || phone,
+          status: MerchantStatus.PENDING,
+        } },
+      },
+      include: { merchant: true },
+    });
+    await this.prisma.auditLog.create({ data: {
+      actorId: actor.sub, action: 'ASSISTED_MERCHANT_ACCOUNT_CREATED', entityType: 'User', entityId: user.id,
+      afterJson: JSON.stringify({ role: user.role, email, phone, merchantId: user.merchant?.id, businessName }),
+    } });
+    const emailSent = await this.emailService.sendAssistedOnboardingCredentials(email, firstName, 'MERCHANT', email, temporaryPassword);
+    return { created: true, accountId: user.id, role: user.role, emailSent, message: emailSent ? 'Merchant account created and login details emailed.' : 'Account created, but email delivery failed. Retry credential delivery before handing over access.' };
+  }
+
+
+  @Get('promotions')
+  async listMerchantPromotions(@Query('status') status?: string) {
+    return this.prisma.merchantPromotion.findMany({
+      where: status && ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED', 'ACTIVE'].includes(status) ? { status } : {},
+      include: { merchant: { select: { id: true, businessName: true, promoExempt: true, user: { select: { email: true, phone: true } } } }, items: { include: { product: true } } },
+      orderBy: { createdAt: 'desc' }, take: 500,
+    });
+  }
+
+  @Roles('ADMIN')
+  @Patch('merchants/:id/promotion-exemption')
+  async setMerchantPromotionExemption(@CurrentUser() actor: JwtPayload, @Param('id') id: string, @Body() body: { exempt: boolean; reason?: string }) {
+    if (typeof body.exempt !== 'boolean') throw new BadRequestException('Exemption must be true or false.');
+    const reason = String(body.reason ?? '').trim();
+    if (body.exempt && reason.length < 5) throw new BadRequestException('A reason of at least 5 characters is required to grant an exemption.');
+    const current = await this.prisma.merchant.findUnique({ where: { id }, select: { id: true, promoExempt: true, promoExemptionReason: true } });
+    if (!current) throw new BadRequestException('Merchant not found.');
+    const updated = await this.prisma.merchant.update({ where: { id }, data: { promoExempt: body.exempt, promoExemptionReason: body.exempt ? reason : null } });
+    await this.prisma.auditLog.create({ data: {
+      actorId: actor.sub, action: body.exempt ? 'MERCHANT_PROMOTION_EXEMPTION_GRANTED' : 'MERCHANT_PROMOTION_EXEMPTION_REVOKED',
+      entityType: 'Merchant', entityId: id, beforeJson: JSON.stringify(current),
+      afterJson: JSON.stringify({ promoExempt: updated.promoExempt, promoExemptionReason: updated.promoExemptionReason }),
+    } });
+    return { id: updated.id, promoExempt: updated.promoExempt, promoExemptionReason: updated.promoExemptionReason };
+  }
+
+  @Roles('ADMIN', 'STAFF')
+  @Patch('promotions/:id/status')
+  async reviewMerchantPromotion(@CurrentUser() actor: JwtPayload, @Param('id') id: string, @Body() body: { status: string; reason?: string }) {
+    if (!['APPROVED', 'REJECTED', 'SUSPENDED'].includes(body.status)) throw new BadRequestException('Promotion status must be APPROVED, REJECTED or SUSPENDED.');
+    const current = await this.prisma.merchantPromotion.findUnique({ where: { id }, select: { id: true, status: true } });
+    if (!current) throw new BadRequestException('Promotion not found.');
+    const updated = await this.prisma.merchantPromotion.update({ where: { id }, data: { status: body.status } });
+    await this.prisma.auditLog.create({ data: {
+      actorId: actor.sub, action: 'MERCHANT_PROMOTION_REVIEWED', entityType: 'MerchantPromotion', entityId: id,
+      beforeJson: JSON.stringify(current), afterJson: JSON.stringify({ status: updated.status }),
+      metadataJson: JSON.stringify({ reason: String(body.reason ?? '').trim() }),
+    } });
+    return updated;
+  }
 
   @Roles('ADMIN')
   @Get('rider-registrations')

@@ -9,9 +9,10 @@ export type MerchantProfile = {
   user: { firstName: string | null; lastName: string | null; phone: string; wallet: { balance: number } | null };
   prepMinutes?: number | null;
   deliveryMinutes?: number | null;
+  promoExempt?: boolean;
 };
 
-export type ApiUser = { id: string; phone: string; firstName: string | null; lastName: string | null; role: string };
+export type ApiUser = { id: string; phone: string; firstName: string | null; lastName: string | null; role: string; mustChangePassword?: boolean };
 
 export async function login(identifier: string, password: string) {
   const result = await api.post<{ token: string; user: ApiUser }>('/auth/login', { identifier, password });
@@ -226,4 +227,15 @@ export async function fetchAgentEarnings() {
 
 export async function requestAgentPriceChange(id: string, data: { referenceCost: number; reason?: string }) {
   return api.patch(`/agent/products/${id}/price-request`, data);
+}
+export type MerchantPromotion = {
+  id: string; title: string; description: string | null; comboPrice: number;
+  startsAt: string; endsAt: string; status: string;
+  items: { id: string; product: Product }[];
+};
+export async function createMerchantPromotion(data: { title: string; description?: string; productIds: string[]; comboPrice: number; startsAt: string; endsAt: string }) {
+  return api.post<MerchantPromotion>('/merchant/promotions', data);
+}
+export async function fetchMerchantPromotions() {
+  return api.get<MerchantPromotion[]>('/merchant/promotions');
 }

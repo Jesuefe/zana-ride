@@ -83,6 +83,18 @@ export class MerchantController {
     return this.merchantService.deleteProduct(user.sub, id);
   }
 
+  @Post('promotions')
+  async createPromotion(@CurrentUser() user: JwtPayload, @Body() body: { title: string; description?: string; productIds: string[]; comboPrice: number; startsAt: string; endsAt: string }) {
+    const merchant = await this.merchantService.findByUserId(user.sub);
+    return this.merchantService.createPromotion(merchant.id, body);
+  }
+
+  @Get('promotions')
+  async getMyPromotions(@CurrentUser() user: JwtPayload) {
+    const merchant = await this.merchantService.findByUserId(user.sub);
+    return this.merchantService.getMyPromotions(merchant.id);
+  }
+
   @Patch('location')
   async updateLocation(
     @CurrentUser() user: JwtPayload,
@@ -121,6 +133,16 @@ export class MerchantController {
 @Controller('products')
 export class PublicProductsController {
   constructor(private prisma: PrismaService) {}
+
+  @Get('promotions')
+  async findPromotions() {
+    const now = new Date();
+    return this.prisma.merchantPromotion.findMany({
+      where: { status: 'APPROVED', startsAt: { lte: now }, endsAt: { gt: now }, merchant: { status: 'APPROVED' } },
+      include: { merchant: { select: { id: true, businessName: true, branch: true, logoUrl: true } }, items: { include: { product: true } } },
+      orderBy: { startsAt: 'asc' }, take: 100,
+    });
+  }
 
   @Get()
   async findAll(@Query('category') category?: MerchantCategory) {

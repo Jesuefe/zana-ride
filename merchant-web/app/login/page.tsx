@@ -25,6 +25,7 @@ export default function LoginPage() { const {t}=useLang();
     setError(null);
     try {
       const { user } = await login(email.trim(), password);
+      if (user.mustChangePassword) { router.replace('/change-password'); return; }
 
       // Merchants and market agents both sign in here, then land on
       // whichever dashboard fits their role.

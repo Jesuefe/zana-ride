@@ -284,3 +284,20 @@ export async function payStatutoryRemittance(id: string, data: any) { return api
 
 export async function updateStatutoryRemittance(id: string, data: any) { return api.patch(`/admin/statutory-remittances/${id}`, data); }
 export async function verifyStatutoryRemittance(id: string, verificationNote: string) { return api.post(`/admin/statutory-remittances/${id}/verify`, { verificationNote }); }
+export async function createAssistedDriver(data: { email: string; phone: string; firstName: string; lastName?: string; vehicle: string; plate: string; serviceType: string; driverMode?: string }) {
+  return api.post<any>('/admin/onboarding/driver', data);
+}
+export async function createAssistedMerchant(data: { email: string; phone: string; firstName: string; lastName?: string; businessName: string; category: string; branch?: string; whatsappPhone?: string }) {
+  return api.post<any>('/admin/onboarding/merchant', data);
+}
+export async function getMerchantPromotions(status?: string) {
+  return api.get<any[]>(`/admin/promotions${status ? `?status=${encodeURIComponent(status)}` : ''}`);
+}
+export async function reviewMerchantPromotion(id: string, status: string, reason?: string) {
+  return api.patch(`/admin/promotions/${id}/status`, { status, reason });
+}
+export async function setMerchantPromotionExemption(id: string, exempt: boolean, reason?: string) {
+  return api.patch(`/admin/merchants/${id}/promotion-exemption`, { exempt, reason });
+}
+
+export async function resendAssistedCredentials(userId: string) { return api.post<any>(`/admin/onboarding/${encodeURIComponent(userId)}/resend-credentials`, {}); }

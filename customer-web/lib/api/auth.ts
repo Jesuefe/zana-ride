@@ -7,6 +7,7 @@ export type ApiUser = {
   lastName: string | null;
   email: string | null;
   role: string;
+  mustChangePassword?: boolean;
 };
 
 type AuthResponse = { token: string; user: ApiUser };

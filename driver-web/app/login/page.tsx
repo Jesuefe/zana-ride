@@ -21,8 +21,8 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await login(identifier.trim(), password);
-      router.push('/');
+      const result = await login(identifier.trim(), password);
+      router.push(result.user?.mustChangePassword ? '/change-password' : '/');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : dt('Could not reach the server.'));
     } finally {

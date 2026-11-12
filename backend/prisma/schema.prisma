@@ -14,6 +14,7 @@ model User {
   phoneVerified        Boolean              @default(true)
   email                String?              @unique
   password             String?
+  mustChangePassword   Boolean              @default(false)
   adminTotpSecretEnc   String?
   adminTotpPendingSecretEnc String?
   adminTotpEnabled     Boolean              @default(false)
@@ -150,6 +151,9 @@ model Merchant {
   payoutPhone              String?
   payoutProvider           String?
   payoutVerifiedAt         DateTime?
+  promoExempt              Boolean              @default(false)
+  promoExemptionReason     String?
+  promotions               MerchantPromotion[]
   deliveries               Delivery[]
   user                     User                 @relation(fields: [userId], references: [id])
   settlements              MerchantSettlement[]
@@ -176,11 +180,42 @@ model Product {
   updatedAt     DateTime             @updatedAt
   priceHistory  MarketPriceHistory[]
   orderItems    OrderItem[]
+  promotionItems MerchantPromotionItem[]
   market        Market?              @relation(fields: [marketId], references: [id])
   merchant      Merchant?            @relation(fields: [merchantId], references: [id])
 
   @@index([merchantId])
   @@index([marketId])
+}
+
+model MerchantPromotion {
+  id          String                   @id @default(uuid())
+  merchantId  String
+  title       String
+  description String?
+  comboPrice  Int
+  startsAt    DateTime
+  endsAt      DateTime
+  status      String                   @default("PENDING")
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  merchant    Merchant                 @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  items       MerchantPromotionItem[]
+  orders      Order[]
+
+  @@index([merchantId, startsAt, endsAt])
+  @@index([status, startsAt, endsAt])
+}
+
+model MerchantPromotionItem {
+  id           String            @id @default(uuid())
+  promotionId  String
+  productId    String
+  promotion    MerchantPromotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product      Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, productId])
+  @@index([productId])
 }
 
 model Market {
@@ -587,6 +622,7 @@ model Order {
   customerId               String
   merchantId               String?
   marketId                 String?
+  promotionId              String?
   agentId                  String?
   total                    Int
   deliveryFee              Int                 @default(0)
@@ -617,9 +653,11 @@ model Order {
   customer                 User                @relation("CustomerOrders", fields: [customerId], references: [id])
   market                   Market?             @relation(fields: [marketId], references: [id])
   merchant                 Merchant?           @relation("MerchantOrders", fields: [merchantId], references: [id])
+  promotion                MerchantPromotion?   @relation(fields: [promotionId], references: [id], onDelete: SetNull)
   items                    OrderItem[]
 
   @@index([merchantId, status, createdAt])
+  @@index([promotionId])
   @@index([merchantId, readyAt])
   @@index([marketId, status, createdAt])
   @@index([agentId, status, createdAt])

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, PackagePlus, PackageSearch, Wallet, Package, ShoppingBag, Menu, X, LogOut, Sun, Moon, Smartphone } from 'lucide-react';
+import { LayoutDashboard, PackagePlus, PackageSearch, Wallet, Package, ShoppingBag, Tag, Menu, X, LogOut, Sun, Moon, Smartphone } from 'lucide-react';
 import { clearToken } from '../lib/api/client';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../lib/ThemeContext';
@@ -14,6 +14,7 @@ const merchantNav = [
   { href: '/new-delivery', label: 'New Delivery', icon: PackagePlus },
   { href: '/deliveries', label: 'Deliveries', icon: PackageSearch },
   { href: '/products', label: 'My Products', icon: Package },
+  { href: '/promotions', label: 'Combo Promotions', icon: Tag },
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/wallet', label: 'Wallet', icon: Wallet },
   { href: '/earnings', label: 'Earnings', icon: Wallet },

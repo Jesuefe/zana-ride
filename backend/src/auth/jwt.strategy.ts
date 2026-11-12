@@ -39,6 +39,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       where: { id: payload.sub },
       select: {
         status: true,
+        mustChangePassword: true,
         adminTotpEnabled: true,
         adminTotpEnabledAt: true,
         staffMember: { select: { accessRole: true, active: true } },
@@ -63,6 +64,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
       return { ...payload, accessRole: user.staffMember.accessRole || 'OPERATIONS' };
     }
-    return payload;
+    return { ...payload, mustChangePassword: user.mustChangePassword };
   }
 }

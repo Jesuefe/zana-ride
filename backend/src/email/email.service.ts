@@ -106,6 +106,27 @@ export class EmailService {
     );
   }
 
+
+  async sendAssistedOnboardingCredentials(to: string, firstName: string, accountType: 'DRIVER' | 'MERCHANT', loginEmail: string, temporaryPassword: string): Promise<boolean> {
+    const escape = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const name = escape(firstName || 'there');
+    const email = escape(loginEmail);
+    const password = escape(temporaryPassword);
+    return this.send(
+      to,
+      'Your Zana Ride account is ready',
+      this.letterhead(`
+        <h2 style="margin:0 0 16px;">Welcome to Zana Ride, ${name}</h2>
+        <p>Your ${accountType === 'DRIVER' ? 'driver' : 'merchant'} account has been created with help from our team.</p>
+        <p><strong>Sign-in email:</strong> ${email}</p>
+        <p><strong>Temporary password:</strong></p>
+        <p style="font-size:22px;font-weight:700;letter-spacing:1px;color:#00A082;word-break:break-all;">${password}</p>
+        <p>For your security, you must change this temporary password the first time you sign in. You can then change your password anytime from your account settings.</p>
+        <p>If you did not request this account, contact Zana Ride support immediately.</p>
+      `),
+    );
+  }
+
   // Admin's "compose to any email" tool — subject/body typed by the
   // admin, always wrapped in the same branded letterhead as every
   // other Zana email, rather than going out as bare unstyled text.

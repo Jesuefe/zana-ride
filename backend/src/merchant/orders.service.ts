@@ -52,6 +52,7 @@ export class OrdersService {
   async create(customerId: string, data: {
     merchantId?: string;
     marketId?: string;
+    promotionId?: string;
     items: { productId: string; quantity: number }[];
     dropoffAddress?: string;
     dropoffLat?: number;
@@ -94,9 +95,33 @@ export class OrdersService {
       throw new BadRequestException('One or more products are unavailable');
     }
 
+    const itemPriceOverrides = new Map<string, number>();
+    if (data.promotionId) {
+      if (!data.merchantId) throw new BadRequestException('PROMOTIONS_REQUIRE_A_MERCHANT_ORDER');
+      const promotion = await this.prisma.merchantPromotion.findFirst({
+        where: { id: data.promotionId, merchantId: data.merchantId, status: 'APPROVED', startsAt: { lte: new Date() }, endsAt: { gt: new Date() } },
+        include: { items: { include: { product: true } } },
+      });
+      if (!promotion) throw new BadRequestException('PROMOTION_NOT_AVAILABLE');
+      if (promotion.items.length < 2) throw new BadRequestException('PROMOTION_COMBO_INVALID');
+      const selected = new Map(data.items.map(item => [item.productId, item.quantity]));
+      for (const promoItem of promotion.items) {
+        if (selected.get(promoItem.productId) !== 1) throw new BadRequestException('ADD_EACH_COMBO_PRODUCT_ONCE_TO_USE_THIS_PROMOTION');
+      }
+      const regularComboTotal = promotion.items.reduce((sum, item) => sum + item.product.price, 0);
+      if (promotion.comboPrice <= 0 || promotion.comboPrice >= regularComboTotal) throw new BadRequestException('PROMOTION_PRICE_INVALID');
+      let allocated = 0;
+      promotion.items.forEach((item, index) => {
+        const adjusted = index === promotion.items.length - 1
+          ? promotion.comboPrice - allocated
+          : Math.floor(item.product.price * promotion.comboPrice / regularComboTotal);
+        itemPriceOverrides.set(item.productId, adjusted);
+        allocated += adjusted;
+      });
+    }
     const total = data.items.reduce((sum, item) => {
       const product = products.find(p => p.id === item.productId)!;
-      return sum + product.price * item.quantity;
+      return sum + (itemPriceOverrides.get(product.id) ?? product.price) * item.quantity;
     }, 0);
 
     // Never trust a fee sent by the client — recompute it from the
@@ -158,6 +183,7 @@ export class OrdersService {
         customerId,
         merchantId: data.merchantId ?? null,
         marketId: data.marketId ?? null,
+        promotionId: data.promotionId ?? null,
         total: grandTotal,
         deliveryFee,
         status: OrderStatus.PENDING,
@@ -173,7 +199,7 @@ export class OrdersService {
           create: data.items.map(item => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: products.find(p => p.id === item.productId)!.price,
+            price: itemPriceOverrides.get(item.productId) ?? products.find(p => p.id === item.productId)!.price,
             referenceCostAtOrder: products.find(p => p.id === item.productId)!.referenceCost,
           })),
         },
@@ -473,6 +499,7 @@ export class OrdersService {
 
   // Fetches approved products grouped by merchant for the marketplace.
   async getMarketplace(category?: string, customerLat?: number, customerLng?: number) {
+    const now = new Date();
     const merchants = await this.prisma.merchant.findMany({
       where: {
         status: 'APPROVED',
@@ -482,6 +509,10 @@ export class OrdersService {
         products: {
           where: { status: 'APPROVED', available: true, ...(category ? { category: category as any } : {}) },
           orderBy: { createdAt: 'desc' },
+        },
+        promotions: {
+          where: { status: 'APPROVED', startsAt: { lte: now }, endsAt: { gt: now } },
+          include: { items: { include: { product: true } } },
         },
       },
     });
