@@ -757,7 +757,7 @@ export class AuthService {
 
     const hashed = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({
-      where: { id: user.id }, data: { password: hashed },
+      where: { id: user.id }, data: { password: hashed, mustChangePassword: false },
     });
 
     await this.clearOtp(user.phone);
