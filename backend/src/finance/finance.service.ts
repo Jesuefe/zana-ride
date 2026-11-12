@@ -25,6 +25,7 @@ export class FinanceService {
     return this.prisma.$transaction(async tx => {
       const order = await tx.order.findUnique({ where: { id: orderId }, include: {
         merchant: { select: { id: true, userId: true } },
+        promotion: { include: { items: { select: { productId: true } } } },
         items: { include: { product: true } },
       }});
       if (!order) throw new NotFoundException('Order not found');
@@ -33,8 +34,14 @@ export class FinanceService {
 
       if (order.merchantId) {
         const gross = Math.max(0, order.total - order.deliveryFee);
+        const promoProductIds = new Set((order.promotion?.items ?? []).map(item => item.productId));
+        // Promotional combo products are commission-free for Zana.
+        // Apply the normal 15% rate only to non-promotional product lines.
+        const commissionableGross = order.items
+          .filter(item => !promoProductIds.has(item.productId))
+          .reduce((sum, item) => sum + item.price * item.quantity, 0);
         const rate = 15;
-        const commission = Math.round(gross * rate / 100);
+        const commission = Math.round(commissionableGross * rate / 100);
         const net = gross - commission;
         const settlement = await tx.merchantSettlement.create({ data: { orderId, merchantId: order.merchantId, grossAmount: gross, commissionRate: rate, commissionAmount: commission, merchantNet: net }});
         if (order.merchant?.userId && net > 0) {
