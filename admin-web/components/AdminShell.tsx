@@ -33,7 +33,7 @@ const SENIOR_NAV = [
   { label: 'Service Zones', href: '/dashboard/service-zones', icon: MapPin, group: 'Operations' },
   { label: 'Support', href: '/dashboard/support', icon: MessageCircle, group: 'Operations' },
   { label: 'Products', href: '/dashboard/products', icon: Package, group: 'Commerce' },
-  { label: 'Combo Promotions', href: '/dashboard/promotions', icon: Tag, group: 'Commerce' },
+  { label: 'Promo Codes', href: '/dashboard/promotions', icon: Tag, group: 'Commerce' },
   { label: 'Markets', href: '/dashboard/markets', icon: MapPin, group: 'Commerce' },
   { label: 'Media Library', href: '/dashboard/media', icon: ImageIcon, group: 'Commerce' },
   { label: 'Financial', href: '/dashboard/financial', icon: DollarSign, group: 'Finance & system' },
