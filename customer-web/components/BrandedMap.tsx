@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { loadGoogleMaps } from '../lib/mapsLoader';
 
 type LatLng = { lat: number; lng: number };
@@ -54,6 +54,7 @@ export default function BrandedMap({
   onMapClick?: (coords: LatLng) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
   const mapRef = useRef<any>(null);
   const driverMarkerRef = useRef<any>(null);
   const originMarkerRef = useRef<any>(null);
@@ -151,10 +152,12 @@ export default function BrandedMap({
     }
   }, [onRouteInfo, onRouteDeviation, vehicleType]);
 
-  // Init map once
+  // Init map once. Surface configuration/authentication failures instead
+  // of leaving an unexplained blank map or an unhandled promise rejection.
   useEffect(() => {
+    let cancelled = false;
     loadGoogleMaps().then(() => {
-      if (!containerRef.current || initDone.current) return;
+      if (cancelled || !containerRef.current || initDone.current) return;
       initDone.current = true;
       const G = (window as any).google.maps;
 
@@ -217,7 +220,18 @@ export default function BrandedMap({
       }
       // Fetch initial route
       fetchRoute();
+    }).catch((error) => {
+      if (cancelled) return;
+      console.error('[Zana map] Google Maps failed to initialize:', error);
+      setMapError(
+        'Map unavailable. Please check the Google Maps key and website restrictions.',
+      );
     });
+
+    return () => {
+      cancelled = true;
+      clearTimeout(routeTimerRef.current);
+    };
   }, []);
 
   // Live driver marker update — smooth animation
@@ -285,6 +299,21 @@ export default function BrandedMap({
   return (
     <div style={{ position: 'relative', width: '100%', height }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      {mapError && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'absolute', inset: 0, zIndex: 3,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20, textAlign: 'center',
+            background: '#f3f6f5', color: '#52615a',
+            fontSize: 13, lineHeight: 1.5,
+          }}
+        >
+          {mapError}
+        </div>
+      )}
       {vehicleType?.toUpperCase() === 'BIKE' && destination && (
         <div
           role="note"
