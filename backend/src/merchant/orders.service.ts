@@ -170,7 +170,7 @@ export class OrdersService {
         : serviceScope === 'FOOD' || serviceScope === 'SHOPPING' ? total : originalGrandTotal
       : originalGrandTotal;
     const promo = data.promoCode
-      ? await this.promoCodes.validate(customerId, data.promoCode, serviceScope, promoBase)
+      ? await this.promoCodes.validate(customerId, data.promoCode, (await this.prisma.promoCode.findUnique({ where: { code: String(data.promoCode).trim().toUpperCase() }, select: { serviceScope: true } }))?.serviceScope === 'DELIVERIES' ? 'DELIVERIES' : serviceScope, promoBase)
       : null;
     const promoDiscount = promo?.discountAmount ?? 0;
     const grandTotal = Math.max(0, originalGrandTotal - promoDiscount);
