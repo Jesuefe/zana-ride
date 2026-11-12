@@ -473,6 +473,7 @@ export class OrdersService {
 
   // Fetches approved products grouped by merchant for the marketplace.
   async getMarketplace(category?: string, customerLat?: number, customerLng?: number) {
+    const now = new Date();
     const merchants = await this.prisma.merchant.findMany({
       where: {
         status: 'APPROVED',
@@ -482,6 +483,10 @@ export class OrdersService {
         products: {
           where: { status: 'APPROVED', available: true, ...(category ? { category: category as any } : {}) },
           orderBy: { createdAt: 'desc' },
+        },
+        promotions: {
+          where: { status: 'APPROVED', startsAt: { lte: now }, endsAt: { gt: now } },
+          include: { items: { include: { product: true } } },
         },
       },
     });
