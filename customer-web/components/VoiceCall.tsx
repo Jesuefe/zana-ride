@@ -102,7 +102,6 @@ export default function VoiceCall({
 
   // ── Connect to LiveKit room ────────────────────────────────────────────────
   const connectToRoom = useCallback(async (wsUrl: string, token: string, callId: string) => {
-    console.log('[CALL] Creating LiveKit room');
     const room = new Room({
       adaptiveStream: true,
       dynacast: true,
@@ -113,22 +112,18 @@ export default function VoiceCall({
     // ── Event handlers ──────────────────────────────────────────────────────
 
     room.on(RoomEvent.Connected, () => {
-      console.log('[CALL] LiveKit connected');
     });
 
     room.on(RoomEvent.Reconnecting, () => {
-      console.log('[CALL] Reconnecting...');
       setState('reconnecting');
       startRecoveryWindow();
     });
 
     room.on(RoomEvent.Reconnected, async () => {
-      console.log('[CALL] Reconnected — restoring media');
       await restoreMedia();
     });
 
     room.on(RoomEvent.ConnectionStateChanged, (connectionState) => {
-      console.log('[CALL] LiveKit connection state:', connectionState);
       if (connectionState === ConnectionState.Connected && localMediaReady) void publishMediaReady();
     });
 
@@ -137,14 +132,12 @@ export default function VoiceCall({
         const message = JSON.parse(new TextDecoder().decode(payload));
         if (message?.type === 'ZANA_MEDIA_READY' && participant) {
           remotePeerMediaReady = true;
-          console.log('[CALL] Remote peer confirmed microphone publication:', participant.identity);
           markMediaReady();
         }
       } catch {}
     });
 
     room.on(RoomEvent.Disconnected, () => {
-      console.log('[CALL] Disconnected');
       if (state !== 'ended') handleEnd();
     });
 
@@ -197,7 +190,6 @@ export default function VoiceCall({
       clearInterval(timerRef.current);
       timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
       api.post(`/calls/${callId}/connected`).catch(() => {});
-      console.log('[CALL] TWO-WAY AUDIO CONFIRMED — five gates passed');
     };
 
     const startRecoveryWindow = () => {
@@ -230,20 +222,17 @@ export default function VoiceCall({
     };
 
     room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-      console.log('[CALL] Remote participant connected:', participant.identity);
       // Re-send our media-ready signal whenever the peer arrives so a
       // message sent before the peer joined can never strand the handshake.
       if (localMediaReady) void publishMediaReady();
     });
 
     room.on(RoomEvent.ParticipantDisconnected, () => {
-      console.log('[CALL] Remote participant left');
       handleEnd();
     });
 
     room.on(RoomEvent.TrackSubscribed, async (track, _pub, participant) => {
       if (track.kind !== Track.Kind.Audio) return;
-      console.log('[CALL] Remote audio subscribed from:', participant.identity);
       const el = track.attach() as HTMLAudioElement;
       el.autoplay = true;
       el.muted = false;
@@ -256,7 +245,6 @@ export default function VoiceCall({
         remoteAudioReady = true;
         setAudioBlocked(false);
         markMediaReady();
-        console.log('[CALL] Remote audio playback confirmed');
       } catch (err) {
         console.error('[CALL] Remote audio playback blocked:', err);
         setAudioBlocked(true);
@@ -271,20 +259,16 @@ export default function VoiceCall({
 
     room.on(RoomEvent.TrackUnsubscribed, (track) => {
       if (track.kind === Track.Kind.Audio) {
-        console.log('[CALL] Remote audio unsubscribed');
         track.detach().forEach(el => el.remove());
       }
     });
 
     // ── Connect ─────────────────────────────────────────────────────────────
-    console.log('[CALL] Connecting to LiveKit...');
     await room.connect(wsUrl, token);
-    console.log('[CALL] LiveKit connected — enabling microphone');
 
     // Handles the case ParticipantConnected structurally cannot: the
     // other side got here first and is already in the room right now.
     if (room.remoteParticipants.size > 0) {
-      console.log('[CALL] Remote participant already present:', room.remoteParticipants.size);
     }
 
     // Request mic permission and publish
@@ -296,7 +280,6 @@ export default function VoiceCall({
       localMediaReady = true;
       await publishMediaReady();
       markMediaReady();
-      console.log('[CALL] Microphone enabled and published:', micPublication.track.sid ?? 'ok');
     } catch (err: any) {
       console.error('[CALL] Microphone error:', err);
       if (err?.message?.includes('Permission')) {
@@ -363,7 +346,6 @@ export default function VoiceCall({
     const newMuted = !muted;
     await roomRef.current.localParticipant.setMicrophoneEnabled(!newMuted);
     setMuted(newMuted);
-    console.log(`[CALL] Microphone ${newMuted ? 'muted' : 'unmuted'}`);
   };
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;

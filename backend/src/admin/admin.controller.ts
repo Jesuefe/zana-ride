@@ -1040,68 +1040,6 @@ export class AdminController {
     return this.adminService.updateFare(serviceType, body, user.sub);
   }
 
-  // Live-testing only — see setDriverTestLocation in admin.service.ts
-  // for what this actually does and why it's safe by default.
-  @Roles('ADMIN')
-  @Patch('drivers/:id/test-location')
-  setDriverTestLocation(@Param('id') id: string, @Body() body: { lat: number | null; lng: number | null }) {
-    return this.adminService.setDriverTestLocation(id, body.lat, body.lng);
-  }
-
-  @Roles('ADMIN')
-  @Get('drivers/test-locations')
-  listDriverTestLocations() {
-    return this.adminService.listDriverTestLocations();
-  }
-
-  // DANGEROUS — see scatterAllDriverTestLocations in admin.service.ts.
-  @Roles('ADMIN')
-  @Post('drivers/test-locations/scatter')
-  scatterAllDriverTestLocations(@Body() body: { centerLat: number; centerLng: number; radiusMeters?: number }) {
-    return this.adminService.scatterAllDriverTestLocations(body.centerLat, body.centerLng, body.radiusMeters);
-  }
-
-  @Roles('ADMIN')
-  @Post('drivers/test-locations/clear-all')
-  clearAllDriverTestLocations() {
-    return this.adminService.clearAllDriverTestLocations();
-  }
-
-  // ---- Same set of endpoints, for customer accounts ----
-
-  @Roles('ADMIN')
-  @Patch('customers/:id/test-location')
-  setCustomerTestLocation(@Param('id') id: string, @Body() body: { lat: number | null; lng: number | null }) {
-    return this.adminService.setCustomerTestLocation(id, body.lat, body.lng);
-  }
-
-  @Roles('ADMIN')
-  @Get('customers/test-locations')
-  listCustomerTestLocations() {
-    return this.adminService.listCustomerTestLocations();
-  }
-
-  // DANGEROUS
-  @Roles('ADMIN')
-  @Post('customers/test-locations/scatter')
-  scatterAllCustomerTestLocations(@Body() body: { centerLat: number; centerLng: number; radiusMeters?: number }) {
-    return this.adminService.scatterAllCustomerTestLocations(body.centerLat, body.centerLng, body.radiusMeters);
-  }
-
-  @Roles('ADMIN')
-  @Post('customers/test-locations/clear-all')
-  clearAllCustomerTestLocations() {
-    return this.adminService.clearAllCustomerTestLocations();
-  }
-
-  // "Destroy the session" — clears every driver AND customer test
-  // location in one call, once a live test has wrapped up.
-  @Roles('ADMIN')
-  @Post('test-locations/clear-all')
-  clearAllTestLocations() {
-    return this.adminService.clearAllTestLocations();
-  }
-
   @Roles('ADMIN')
   @Post('merchant-invites')
   generateInvite(@CurrentUser() user: JwtPayload) {

@@ -45,7 +45,6 @@ const SENIOR_NAV = [
   { label: 'Finance Controls', href: '/dashboard/finance-controls', icon: ClipboardList, group: 'Finance & system' },
   { label: 'Security', href: '/dashboard/security', icon: ShieldCheck, group: 'Finance & system' },
   { label: 'System Health', href: '/dashboard/system-health', icon: Activity, group: 'Finance & system' },
-  { label: 'Test Lab', href: '/dashboard/test-locations', icon: Smartphone, group: 'Finance & system' },
   { label: 'Test Accounts', href: '/dashboard/test-accounts', icon: Users, group: 'Finance & system' },
   { label: 'Merchant Invites', href: '/dashboard/invites', icon: ShieldCheck, group: 'Finance & system' },
   { label: 'Settings', href: '/dashboard/settings', icon: Settings, group: 'Finance & system' },
@@ -90,7 +89,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             const financePaths = ['/dashboard/financial', '/dashboard/impact-funds', '/dashboard/expenses', '/dashboard/finance-controls'];
             if (pathname === '/dashboard' || !financePaths.some(path => pathname === path || pathname.startsWith(path + '/'))) router.replace('/dashboard/financial');
           } else {
-            const adminOnly = ['/dashboard/impact-funds', '/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/finance-controls', '/dashboard/test-locations', '/dashboard/test-accounts', '/dashboard/invites', '/dashboard/service-zones'];
+            const adminOnly = ['/dashboard/impact-funds', '/dashboard/financial', '/dashboard/staff', '/dashboard/expenses', '/dashboard/settings', '/dashboard/finance-controls', '/dashboard/test-accounts', '/dashboard/invites', '/dashboard/service-zones'];
             if (adminOnly.some(path => pathname === path || pathname.startsWith(path + '/'))) router.replace('/dashboard');
           }
         }).catch(() => router.replace('/dashboard'));

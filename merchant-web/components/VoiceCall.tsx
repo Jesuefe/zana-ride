@@ -174,7 +174,6 @@ export default function VoiceCall({ context, contextId, incomingCallId, incoming
         setCallState('connected');
         if (!timerRef.current) timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
         api.post(`/calls/${callId}/connected`).catch(() => {});
-        console.log('[CALL] TWO-WAY AUDIO CONFIRMED — five gates passed');
       };
 
       const publishMediaReady = async () => {
@@ -240,7 +239,6 @@ export default function VoiceCall({ context, contextId, incomingCallId, incoming
       };
 
       room.on(RoomEvent.ParticipantConnected, (participant) => {
-        console.log('[CALL] Remote participant connected:', participant.identity);
         if (localMediaReadyRef.current) void publishMediaReady();
       });
 
@@ -249,25 +247,21 @@ export default function VoiceCall({ context, contextId, incomingCallId, incoming
           const message = JSON.parse(new TextDecoder().decode(payload));
           if (message?.type === 'ZANA_MEDIA_READY' && participant) {
             remotePeerMediaReadyRef.current = true;
-            console.log('[CALL] Remote peer confirmed microphone publication:', participant.identity);
             markMediaReady();
           }
         } catch {}
       });
 
       room.on(RoomEvent.Reconnecting, () => {
-        console.log('[CALL] Reconnecting...');
         setCallState('connecting');
         startRecoveryWindow();
       });
 
       room.on(RoomEvent.Reconnected, async () => {
-        console.log('[CALL] Reconnected — restoring media');
         await restoreMedia();
       });
 
       room.on(RoomEvent.ConnectionStateChanged, (connectionState: ConnectionState) => {
-        console.log('[CALL] LiveKit connection state:', connectionState);
         if (connectionState === ConnectionState.Connected && localMediaReadyRef.current) {
           void publishMediaReady();
         }
@@ -275,7 +269,6 @@ export default function VoiceCall({ context, contextId, incomingCallId, incoming
 
       room.on(RoomEvent.TrackSubscribed, async (track, _publication, participant) => {
         if (track.kind !== Track.Kind.Audio) return;
-        console.log('[CALL] Remote audio subscribed from:', participant.identity);
         const el = track.attach() as HTMLAudioElement;
         el.autoplay = true;
         el.muted = false;
@@ -287,7 +280,6 @@ export default function VoiceCall({ context, contextId, incomingCallId, incoming
           remoteAudioReadyRef.current = true;
           setAudioBlocked(false);
           markMediaReady();
-          console.log('[CALL] Remote audio playback confirmed');
         } catch (err) {
           console.error('[CALL] Remote audio playback blocked:', err);
           setAudioBlocked(true);
@@ -335,7 +327,6 @@ export default function VoiceCall({ context, contextId, incomingCallId, incoming
       localMediaReadyRef.current = true;
       await publishMediaReady();
       markMediaReady();
-      console.log('[CALL] Microphone published and verified');
 
       // Stay in "ringing" state until other party joins
       setCallState('ringing');
