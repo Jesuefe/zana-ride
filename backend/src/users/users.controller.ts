@@ -19,6 +19,11 @@ export class UsersController {
     return this.usersService.updateProfile(user.sub, body);
   }
 
+  @Delete('me')
+  deleteMe(@CurrentUser() user: JwtPayload) {
+    return this.usersService.deleteAccount(user.sub);
+  }
+
   @Patch('language')
   updateLanguage(@CurrentUser() user: JwtPayload, @Body() body: { language: string }) {
     return this.usersService.updateLanguage(user.sub, body.language);

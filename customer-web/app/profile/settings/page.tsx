@@ -6,7 +6,7 @@ import LanguageSelector from '../../../components/LanguageSelector';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, Phone, Mail, Save, Loader2 } from 'lucide-react';
 import { fetchMe, ApiUser } from '../../../lib/api/auth';
-import { api } from '../../../lib/api/client';
+import { api, clearToken } from '../../../lib/api/client';
 import { ApiError } from '../../../lib/api/client';
 
 export default function AccountSettingsPage() {
@@ -19,6 +19,9 @@ export default function AccountSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     fetchMe().then(u => {
@@ -38,6 +41,18 @@ export default function AccountSettingsPage() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('Could not save changes.'));
     } finally { setSaving(false); }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true); setDeleteError('');
+    try {
+      await api.delete('/users/me');
+      clearToken();
+      router.replace('/login');
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : t('Could not delete your account. Please contact support.'));
+      setDeleting(false);
+    }
   };
 
   return (
@@ -94,6 +109,20 @@ export default function AccountSettingsPage() {
         <button onClick={handleSave} disabled={saving} className="w-full bg-zana-primary text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40">
           {saving ? <Loader2 size={16} className="animate-spin" /> : saved ? <><Save size={16} /> {t('Saved!')}</> : <><Save size={16} /> {t('Save Changes')}</>}
         </button>
+
+        <div className="mt-6 rounded-2xl border border-red-200 bg-white p-4">
+          <h2 className="text-sm font-bold text-red-600">{t('Delete account')}</h2>
+          <p className="mt-1 text-xs text-gray-500">{t('Permanently removes your personal details and signs you out. Ride and payment records are kept only as required by law. This cannot be undone.')}</p>
+          {!confirmDelete ? (
+            <button type="button" onClick={() => setConfirmDelete(true)} className="mt-3 w-full rounded-xl border border-red-300 py-3 text-sm font-semibold text-red-600">{t('Delete my account')}</button>
+          ) : (
+            <div className="mt-3 flex gap-2">
+              <button type="button" onClick={() => setConfirmDelete(false)} disabled={deleting} className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-gray-700">{t('Cancel')}</button>
+              <button type="button" onClick={handleDeleteAccount} disabled={deleting} className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white disabled:opacity-40">{deleting ? t('Deleting…') : t('Yes, delete')}</button>
+            </div>
+          )}
+          {deleteError && <p className="mt-2 text-xs text-red-600">{deleteError}</p>}
+        </div>
       </div>
     </div>
   );

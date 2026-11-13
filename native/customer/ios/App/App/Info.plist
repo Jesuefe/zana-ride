@@ -28,7 +28,7 @@
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
@@ -60,8 +60,10 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
-		<string>voip</string>
 	</array>
+
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
