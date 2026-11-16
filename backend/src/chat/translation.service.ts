@@ -65,10 +65,6 @@ export class TranslationService {
     return this.config.get<string>('GOOGLE_TRANSLATE_API_KEY') ?? '';
   }
 
-  private get geminiApiKey() {
-    return this.config.get<string>('GEMINI_API_KEY') ?? '';
-  }
-
   // Translates a navigation phrase using the hardcoded map.
   // Falls back to the original text if the phrase isn't found.
   translateNav(phrase: string, lang: Lang): string {
@@ -85,57 +81,48 @@ export class TranslationService {
     return phrase;
   }
 
-  // Translates arbitrary text via Google Translate API.
+  // Translates arbitrary text through Google Cloud Translation Basic (v2).
+  // If sourceLang is omitted, Google detects the source language automatically.
   async translate(text: string, targetLang: Lang, sourceLang?: Lang): Promise<string> {
     if (!text.trim()) return text;
-    const languageNames: Record<Lang, string> = { en: 'English', fr: 'French', rw: 'Kinyarwanda' };
+
+    if (!this.googleApiKey) {
+      this.logger.warn('Google Cloud Translation is not configured; returning the original message');
+      return text;
+    }
 
     try {
-      if (this.googleApiKey) {
-        const params = new URLSearchParams({
-          q: text, target: targetLang, key: this.googleApiKey, format: 'text',
+      const res = await fetch('https://translation.googleapis.com/language/translate/v2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-goog-api-key': this.googleApiKey,
+        },
+        body: JSON.stringify({
+          q: text,
+          target: targetLang,
+          format: 'text',
           ...(sourceLang ? { source: sourceLang } : {}),
-        });
-        const res = await fetch(`https://translation.googleapis.com/language/translate/v2?${params}`);
-        if (!res.ok) throw new Error(`Google Translate API error: ${res.status}`);
-        const data = await res.json() as any;
-        return data.data?.translations?.[0]?.translatedText ?? text;
+        }),
+        signal: AbortSignal.timeout(12000),
+      });
+
+      if (!res.ok) {
+        // Do not log message content or the API key.
+        const details = (await res.text()).slice(0, 300);
+        throw new Error(`Google Cloud Translation API returned HTTP ${res.status}: ${details}`);
       }
 
-      // Use the Gemini key already documented for the backend deployment.
-      if (this.geminiApiKey) {
-        const model = this.config.get<string>('GEMINI_MODEL') ?? 'gemini-2.5-flash';
-        const sourceInstruction = sourceLang
-          ? `The source language is ${languageNames[sourceLang]}.`
-          : 'Detect the source language automatically.';
-        const prompt = [
-          'Translate the message below faithfully and naturally.',
-          sourceInstruction,
-          `Translate it into ${languageNames[targetLang]}.`,
-          'Preserve names, addresses, numbers, prices and the original meaning.',
-          'Return only the translated message, with no quotation marks or explanation.',
-          '',
-          text,
-        ].join('\\n');
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(this.geminiApiKey)}`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
-          }),
-        });
-        if (!res.ok) throw new Error(`Gemini translation API error: ${res.status}`);
-        const data = await res.json() as any;
-        const translated = data.candidates?.[0]?.content?.parts?.map((part: any) => part.text ?? '').join('').trim();
-        return translated || text;
+      const data = await res.json() as {
+        data?: { translations?: Array<{ translatedText?: string }> };
+      };
+      const translated = data.data?.translations?.[0]?.translatedText;
+      if (typeof translated !== 'string' || !translated.trim()) {
+        throw new Error('Google Cloud Translation returned an empty translation');
       }
-
-      this.logger.warn('No translation API key configured; returning original message');
-      return text;
+      return translated;
     } catch (err) {
-      this.logger.error(`Translation failed: ${err}`);
+      this.logger.error(`Google Cloud Translation failed; preserving original message: ${err instanceof Error ? err.message : 'unknown error'}`);
       return text;
     }
   }
