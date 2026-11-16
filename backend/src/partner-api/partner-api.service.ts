@@ -37,6 +37,8 @@ export class PartnerApiService {
     return this.prisma.$transaction(async (tx) => {
       const prior = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: ledgerReference } });
       if (prior) {
+        const existingWallet = await tx.apiPartnerWallet.findUnique({ where: { id: prior.walletId }, select: { partnerId: true } });
+        if (!existingWallet || existingWallet.partnerId !== partnerId) throw new NotFoundException('RESERVATION_NOT_FOUND');
         if (prior.amount !== amount) throw new ConflictException('IDEMPOTENCY_REFERENCE_AMOUNT_MISMATCH');
         return { secured: true, replayed: true, reference, amount, currency: 'RWF', status: 'RESERVED' };
       }
@@ -63,8 +65,12 @@ export class PartnerApiService {
     const ledgerReference = 'settle:' + reference;
     return this.prisma.$transaction(async (tx) => {
       const prior = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: ledgerReference } });
-      if (prior) return { settled: true, replayed: true, reference, amount: prior.amount, status: 'SETTLED' };
-      const wallet = await this.walletForPartner(tx, partnerId);
+      if (prior) {
+        const existingWallet = await tx.apiPartnerWallet.findUnique({ where: { id: prior.walletId }, select: { partnerId: true } });
+        if (!existingWallet || existingWallet.partnerId !== partnerId) throw new NotFoundException('RESERVATION_NOT_FOUND');
+        return { settled: true, replayed: true, reference, amount: prior.amount, status: 'SETTLED' };
+      }
+      const wallet = await this.walletForPartner(tx, partnerId, true);
       const reservation = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'reserve:' + reference } });
       if (!reservation || reservation.walletId !== wallet.id) throw new ConflictException('DELIVERY_RESERVATION_NOT_FOUND');
       const released = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'release:' + reference } });
@@ -91,8 +97,12 @@ export class PartnerApiService {
     const ledgerReference = 'release:' + reference;
     return this.prisma.$transaction(async (tx) => {
       const prior = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: ledgerReference } });
-      if (prior) return { released: true, replayed: true, reference, amount: prior.amount, status: 'RELEASED' };
-      const wallet = await this.walletForPartner(tx, partnerId);
+      if (prior) {
+        const existingWallet = await tx.apiPartnerWallet.findUnique({ where: { id: prior.walletId }, select: { partnerId: true } });
+        if (!existingWallet || existingWallet.partnerId !== partnerId) throw new NotFoundException('RESERVATION_NOT_FOUND');
+        return { released: true, replayed: true, reference, amount: prior.amount, status: 'RELEASED' };
+      }
+      const wallet = await this.walletForPartner(tx, partnerId, true);
       const reservation = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'reserve:' + reference } });
       if (!reservation || reservation.walletId !== wallet.id) throw new ConflictException('DELIVERY_RESERVATION_NOT_FOUND');
       const settled = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'settle:' + reference } });
@@ -130,7 +140,7 @@ export class PartnerApiService {
       select: { currency: true, available: true, reserved: true, creditLimit: true, suspendedAt: true, updatedAt: true },
     });
     if (!wallet) throw new NotFoundException('PARTNER_WALLET_NOT_CONFIGURED');
-    return { ...wallet, creditAvailable: Math.max(0, wallet.creditLimit - Math.max(0, wallet.reserved - wallet.available)) };
+    return { ...wallet, creditAvailable: 0, billingMode: 'PREPAID_ONLY' };
   }
 
   async transactions(partnerId: string, scopes: string[], limitInput?: string) {
