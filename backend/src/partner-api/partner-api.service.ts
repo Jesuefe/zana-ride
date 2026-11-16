@@ -243,7 +243,7 @@ export class PartnerApiService {
       where: { walletId: wallet.id },
       orderBy: { createdAt: 'desc' },
       take: limit,
-      select: { id: true, type: true, amount: true, availableBefore: true, availableAfter: true, reservedBefore: true, reservedAfter: true, reference: true, description: true, createdAt: true },
+      select: { id: true, type: true, amount: true, status: true, providerRef: true, availableBefore: true, availableAfter: true, reservedBefore: true, reservedAfter: true, reference: true, description: true, createdAt: true },
     });
   }
 }
