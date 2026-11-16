@@ -18,5 +18,7 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
+RUN chown -R node:node /app
+USER node
 EXPOSE 4000
 CMD ["sh", "-c", "npx prisma db push --accept-data-loss=false && node dist/src/main.js"]

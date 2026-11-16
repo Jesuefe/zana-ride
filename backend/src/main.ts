@@ -24,6 +24,10 @@ async function bootstrap() {
   const corsOrigins = (process.env.CORS_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
   app.enableCors({ origin: corsOrigins.length ? corsOrigins : true, credentials: true });
 
+  if (!process.env.SETTINGS_ENCRYPTION_KEY) {
+    console.warn('[SECURITY] SETTINGS_ENCRYPTION_KEY is not set; encrypted settings and TOTP secrets fall back to JWT_SECRET. Set a dedicated key.');
+  }
+
   const port = process.env.PORT ?? 4000;
   app.useGlobalFilters(new PrismaExceptionFilter());
   await app.listen(port, '0.0.0.0');
