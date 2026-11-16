@@ -19,7 +19,7 @@ export default function BottomNav() {
   if (hidden) return null;
 
   return (
-    <nav aria-label={t('Main navigation')} className="zana-bottom-nav">
+    <nav aria-label={t('Main navigation')} className="zana-bottom-nav" data-bottom-nav>
       {items.map((item) => {
         const active = pathname === item.href;
         const Icon = item.icon;

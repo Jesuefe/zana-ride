@@ -22,7 +22,7 @@ export default function DriverShell({ children }: { children: React.ReactNode })
 
   return (
     <AuthGuard>
-      <div className="min-h-screen w-full max-w-[480px] mx-auto overflow-x-hidden pb-16">
+      <div className="app-frame w-full max-w-[480px] mx-auto">
         <SplashGate>
           <ThemeProvider>{children}</ThemeProvider>
         </SplashGate>

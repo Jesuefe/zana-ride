@@ -21,7 +21,7 @@ export default function DriverBottomNav() {
   if (HIDE_ON.some(p => pathname.startsWith(p))) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-100 safe-area-pb">
+    <nav data-bottom-nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-100 safe-area-pb">
       <div className="flex items-center max-w-[480px] mx-auto">
         {tabs.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== '/' && pathname.startsWith(href));
