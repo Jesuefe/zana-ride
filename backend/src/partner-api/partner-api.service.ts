@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -7,6 +7,110 @@ export class PartnerApiService {
 
   private assertScope(scopes: string[], required: string) {
     if (!scopes.includes(required) && !scopes.includes('*')) throw new ForbiddenException('INSUFFICIENT_API_SCOPE');
+  }
+
+
+  private validateAmount(amount: number) {
+    if (!Number.isSafeInteger(amount) || amount <= 0) {
+      throw new BadRequestException('AMOUNT_MUST_BE_A_POSITIVE_INTEGER_IN_RWF');
+    }
+  }
+
+  private validateReference(reference: string) {
+    if (typeof reference !== 'string' || !/^[A-Za-z0-9._:-]{3,120}$/.test(reference)) {
+      throw new BadRequestException('INVALID_EXTERNAL_REFERENCE');
+    }
+  }
+
+  private async walletForPartner(tx: any, partnerId: string) {
+    const wallet = await tx.apiPartnerWallet.findUnique({ where: { partnerId } });
+    if (!wallet) throw new NotFoundException('PARTNER_WALLET_NOT_CONFIGURED');
+    if (wallet.suspendedAt) throw new ConflictException('PARTNER_WALLET_SUSPENDED');
+    return wallet;
+  }
+
+  async reserve(partnerId: string, scopes: string[], reference: string, amount: number) {
+    this.assertScope(scopes, 'wallet:reserve');
+    this.validateReference(reference);
+    this.validateAmount(amount);
+    const ledgerReference = 'reserve:' + reference;
+    return this.prisma.$transaction(async (tx) => {
+      const prior = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: ledgerReference } });
+      if (prior) {
+        if (prior.amount !== amount) throw new ConflictException('IDEMPOTENCY_REFERENCE_AMOUNT_MISMATCH');
+        return { secured: true, replayed: true, reference, amount, currency: 'RWF', status: 'RESERVED' };
+      }
+      const wallet = await this.walletForPartner(tx, partnerId);
+      const changed = await tx.apiPartnerWallet.updateMany({
+        where: { id: wallet.id, suspendedAt: null, available: { gte: amount } },
+        data: { available: { decrement: amount }, reserved: { increment: amount } },
+      });
+      if (changed.count !== 1) throw new ConflictException('INSUFFICIENT_PREPAID_BALANCE');
+      const after = await tx.apiPartnerWallet.findUniqueOrThrow({ where: { id: wallet.id } });
+      await tx.apiPartnerWalletTransaction.create({ data: {
+        walletId: wallet.id, type: 'RESERVED', amount,
+        availableBefore: wallet.available, availableAfter: after.available,
+        reservedBefore: wallet.reserved, reservedAfter: after.reserved,
+        reference: ledgerReference, description: 'Prepaid funds reserved for delivery ' + reference,
+      }});
+      return { secured: true, replayed: false, reference, amount, currency: wallet.currency, status: 'RESERVED', available: after.available, reserved: after.reserved };
+    }, { isolationLevel: 'Serializable' });
+  }
+
+  async settle(partnerId: string, scopes: string[], reference: string) {
+    this.assertScope(scopes, 'wallet:settle');
+    this.validateReference(reference);
+    const ledgerReference = 'settle:' + reference;
+    return this.prisma.$transaction(async (tx) => {
+      const prior = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: ledgerReference } });
+      if (prior) return { settled: true, replayed: true, reference, amount: prior.amount, status: 'SETTLED' };
+      const wallet = await this.walletForPartner(tx, partnerId);
+      const reservation = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'reserve:' + reference } });
+      if (!reservation || reservation.walletId !== wallet.id) throw new ConflictException('DELIVERY_RESERVATION_NOT_FOUND');
+      const released = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'release:' + reference } });
+      if (released) throw new ConflictException('DELIVERY_RESERVATION_ALREADY_RELEASED');
+      const changed = await tx.apiPartnerWallet.updateMany({
+        where: { id: wallet.id, reserved: { gte: reservation.amount } },
+        data: { reserved: { decrement: reservation.amount } },
+      });
+      if (changed.count !== 1) throw new ConflictException('RESERVED_BALANCE_INCONSISTENT');
+      const after = await tx.apiPartnerWallet.findUniqueOrThrow({ where: { id: wallet.id } });
+      await tx.apiPartnerWalletTransaction.create({ data: {
+        walletId: wallet.id, type: 'SETTLED', amount: reservation.amount,
+        availableBefore: wallet.available, availableAfter: after.available,
+        reservedBefore: wallet.reserved, reservedAfter: after.reserved,
+        reference: ledgerReference, description: 'Prepaid delivery charge settled ' + reference,
+      }});
+      return { settled: true, replayed: false, reference, amount: reservation.amount, status: 'SETTLED', available: after.available, reserved: after.reserved };
+    }, { isolationLevel: 'Serializable' });
+  }
+
+  async release(partnerId: string, scopes: string[], reference: string, reason?: string) {
+    this.assertScope(scopes, 'wallet:release');
+    this.validateReference(reference);
+    const ledgerReference = 'release:' + reference;
+    return this.prisma.$transaction(async (tx) => {
+      const prior = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: ledgerReference } });
+      if (prior) return { released: true, replayed: true, reference, amount: prior.amount, status: 'RELEASED' };
+      const wallet = await this.walletForPartner(tx, partnerId);
+      const reservation = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'reserve:' + reference } });
+      if (!reservation || reservation.walletId !== wallet.id) throw new ConflictException('DELIVERY_RESERVATION_NOT_FOUND');
+      const settled = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'settle:' + reference } });
+      if (settled) throw new ConflictException('DELIVERY_ALREADY_SETTLED');
+      const changed = await tx.apiPartnerWallet.updateMany({
+        where: { id: wallet.id, reserved: { gte: reservation.amount } },
+        data: { reserved: { decrement: reservation.amount }, available: { increment: reservation.amount } },
+      });
+      if (changed.count !== 1) throw new ConflictException('RESERVED_BALANCE_INCONSISTENT');
+      const after = await tx.apiPartnerWallet.findUniqueOrThrow({ where: { id: wallet.id } });
+      await tx.apiPartnerWalletTransaction.create({ data: {
+        walletId: wallet.id, type: 'RELEASED', amount: reservation.amount,
+        availableBefore: wallet.available, availableAfter: after.available,
+        reservedBefore: wallet.reserved, reservedAfter: after.reserved,
+        reference: ledgerReference, description: reason?.slice(0, 240) || 'Unused delivery reservation released ' + reference,
+      }});
+      return { released: true, replayed: false, reference, amount: reservation.amount, status: 'RELEASED', available: after.available, reserved: after.reserved };
+    }, { isolationLevel: 'Serializable' });
   }
 
   async account(partnerId: string, scopes: string[]) {
