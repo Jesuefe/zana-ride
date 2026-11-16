@@ -22,10 +22,10 @@ export class PartnerApiService {
     }
   }
 
-  private async walletForPartner(tx: any, partnerId: string) {
+  private async walletForPartner(tx: any, partnerId: string, allowSuspended = false) {
     const wallet = await tx.apiPartnerWallet.findUnique({ where: { partnerId } });
     if (!wallet) throw new NotFoundException('PARTNER_WALLET_NOT_CONFIGURED');
-    if (wallet.suspendedAt) throw new ConflictException('PARTNER_WALLET_SUSPENDED');
+    if (wallet.suspendedAt && !allowSuspended) throw new ConflictException('PARTNER_WALLET_SUSPENDED');
     return wallet;
   }
 
