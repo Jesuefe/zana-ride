@@ -146,3 +146,34 @@ body > .skiptranslate {
   background: none !important;
   box-shadow: none !important;
 }
+
+/* ── Scrollbars: hidden everywhere, scrolling untouched ─────────────────
+   The apps are touch-first (and run inside Capacitor WebViews), so scroll
+   chrome only adds visual noise and eats width. Content still scrolls. */
+html, body, * { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+html, body { overscroll-behavior: none; }
+/* `clip` (unlike `hidden`) never creates a scroll container, so it cannot
+   produce a second scrollbar or break position: sticky. */
+@supports (overflow: clip) {
+  html, body { overflow-x: clip; }
+}
+
+/* ── No phantom scroll ──────────────────────────────────────────────────
+   The frame reserves room for the bottom nav only while the nav is
+   rendered (it is hidden on login/sign-up/etc.). Full-height pages are
+   sized to what remains of the viewport, so a short page fits exactly and
+   only scrolls when its content really is taller than the screen. */
+:root { --app-nav-reserve: 4rem; --app-shell-bottom: 0px; }
+body:has([data-bottom-nav]) {
+  --app-shell-bottom: calc(var(--app-nav-reserve) + env(safe-area-inset-bottom, 0px));
+}
+.app-frame {
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: var(--app-shell-bottom);
+  --app-page-h: calc(100dvh - var(--app-shell-bottom));
+}
+.app-frame .min-h-screen { min-height: var(--app-page-h); }
+.app-frame .h-screen { height: var(--app-page-h); }

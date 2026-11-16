@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LangProvider>
           <ThemeProvider>
             <AuthGuard>
-              <div className="app-shell min-h-screen pb-16 w-full relative overflow-x-clip">
+              <div className="app-shell w-full relative">
                 <SplashGate>{children}</SplashGate></div>
               <BottomNav />
               <RealtimeNotificationAlert />

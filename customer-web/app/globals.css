@@ -2844,3 +2844,34 @@ body:has(.zana-dispatch-minimal) .app-shell,
 @media (prefers-reduced-motion: reduce) {
   .zana-login-map *, .zana-login-submit, .zana-login-input { animation: none !important; transition: none !important; }
 }
+
+/* ── Scrollbars: hidden everywhere, scrolling untouched ─────────────────
+   The apps are touch-first (and run inside Capacitor WebViews), so scroll
+   chrome only adds visual noise and eats width. Content still scrolls. */
+html, body, * { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+html, body { overscroll-behavior: none; }
+/* `clip` (unlike `hidden`) never creates a scroll container, so it cannot
+   produce a second scrollbar or break position: sticky. */
+@supports (overflow: clip) {
+  html, body { overflow-x: clip; }
+}
+
+/* ── No phantom scroll ──────────────────────────────────────────────────
+   Space for the bottom dock is reserved only while the dock is rendered
+   (it is hidden on login, search, tracking…). Full-height pages are sized
+   to what is left of the viewport, so a short page fits exactly and only
+   scrolls when its content really is taller than the screen. */
+:root { --zana-shell-bottom: var(--zana-safe-bottom, 0px); }
+body:has([data-bottom-nav]) {
+  --zana-shell-bottom: calc(var(--zana-bottom-nav-reserve, 4.85rem) + var(--zana-safe-bottom, 0px));
+}
+.app-shell {
+  --zana-page-min-h: calc(100dvh - var(--zana-safe-top, 0px) - var(--zana-shell-bottom));
+  padding-bottom: var(--zana-shell-bottom) !important;
+}
+.app-shell .min-h-screen,
+.app-shell .zana-login-page,
+.app-shell .zana-city-home {
+  min-height: var(--zana-page-min-h);
+}

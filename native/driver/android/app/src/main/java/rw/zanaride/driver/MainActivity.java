@@ -1,6 +1,7 @@
 package rw.zanaride.driver;
 
 import android.os.Bundle;
+import android.view.View;
 import android.webkit.PermissionRequest;
 
 import com.getcapacitor.BridgeActivity;
@@ -11,6 +12,11 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // No scrollbars or edge-glow in the WebView; content still scrolls.
+        getBridge().getWebView().setVerticalScrollBarEnabled(false);
+        getBridge().getWebView().setHorizontalScrollBarEnabled(false);
+        getBridge().getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
 
         // Extend Capacitor's own chrome client rather than replacing it.
         // This keeps file chooser behavior while granting permissions needed
