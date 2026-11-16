@@ -18,6 +18,8 @@ All endpoints are under the existing global prefix `/api/v1`.
 - `GET /partner/account` — requires `account:read`
 - `GET /partner/wallet` — requires `wallet:read`
 - `GET /partner/wallet/transactions?limit=25` — requires `wallet:read`
+- `POST /partner/wallet/topups` — JSON `{ "reference": "invoice-2026-001", "phone": "+2507XXXXXXXX", "amount": 50000 }`, requires `wallet:topup`
+- `GET /partner/wallet/topups/{reference}/status` — requires `wallet:read`
 - `POST /partner/wallet/reservations` — JSON `{ "reference": "restaurant-order-123", "amount": 2500 }`, requires `wallet:reserve`
 - `POST /partner/wallet/reservations/{reference}/settle` — requires `wallet:settle`
 - `POST /partner/wallet/reservations/{reference}/release` — optional JSON `{ "reason": "Order cancelled before pickup" }`, requires `wallet:release`
