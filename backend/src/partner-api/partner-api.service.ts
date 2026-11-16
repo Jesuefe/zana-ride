@@ -33,7 +33,7 @@ export class PartnerApiService {
     this.assertScope(scopes, 'wallet:reserve');
     this.validateReference(reference);
     this.validateAmount(amount);
-    const ledgerReference = 'reserve:' + reference;
+    const ledgerReference = 'reserve:' + partnerId + ':' + reference;
     return this.prisma.$transaction(async (tx) => {
       const prior = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: ledgerReference } });
       if (prior) {
@@ -62,7 +62,7 @@ export class PartnerApiService {
   async settle(partnerId: string, scopes: string[], reference: string) {
     this.assertScope(scopes, 'wallet:settle');
     this.validateReference(reference);
-    const ledgerReference = 'settle:' + reference;
+    const ledgerReference = 'settle:' + partnerId + ':' + reference;
     return this.prisma.$transaction(async (tx) => {
       const prior = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: ledgerReference } });
       if (prior) {
@@ -71,9 +71,9 @@ export class PartnerApiService {
         return { settled: true, replayed: true, reference, amount: prior.amount, status: 'SETTLED' };
       }
       const wallet = await this.walletForPartner(tx, partnerId, true);
-      const reservation = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'reserve:' + reference } });
+      const reservation = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'reserve:' + partnerId + ':' + reference } });
       if (!reservation || reservation.walletId !== wallet.id) throw new ConflictException('DELIVERY_RESERVATION_NOT_FOUND');
-      const released = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'release:' + reference } });
+      const released = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'release:' + partnerId + ':' + reference } });
       if (released) throw new ConflictException('DELIVERY_RESERVATION_ALREADY_RELEASED');
       const changed = await tx.apiPartnerWallet.updateMany({
         where: { id: wallet.id, reserved: { gte: reservation.amount } },
@@ -94,7 +94,7 @@ export class PartnerApiService {
   async release(partnerId: string, scopes: string[], reference: string, reason?: string) {
     this.assertScope(scopes, 'wallet:release');
     this.validateReference(reference);
-    const ledgerReference = 'release:' + reference;
+    const ledgerReference = 'release:' + partnerId + ':' + reference;
     return this.prisma.$transaction(async (tx) => {
       const prior = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: ledgerReference } });
       if (prior) {
@@ -105,7 +105,7 @@ export class PartnerApiService {
       const wallet = await this.walletForPartner(tx, partnerId, true);
       const reservation = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'reserve:' + reference } });
       if (!reservation || reservation.walletId !== wallet.id) throw new ConflictException('DELIVERY_RESERVATION_NOT_FOUND');
-      const settled = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'settle:' + reference } });
+      const settled = await tx.apiPartnerWalletTransaction.findUnique({ where: { reference: 'settle:' + partnerId + ':' + reference } });
       if (settled) throw new ConflictException('DELIVERY_ALREADY_SETTLED');
       const changed = await tx.apiPartnerWallet.updateMany({
         where: { id: wallet.id, reserved: { gte: reservation.amount } },
@@ -137,7 +137,7 @@ export class PartnerApiService {
     this.assertScope(scopes, 'wallet:read');
     const wallet = await this.prisma.apiPartnerWallet.findUnique({
       where: { partnerId },
-      select: { currency: true, available: true, reserved: true, creditLimit: true, suspendedAt: true, updatedAt: true },
+      select: { currency: true, available: true, reserved: true, suspendedAt: true, updatedAt: true },
     });
     if (!wallet) throw new NotFoundException('PARTNER_WALLET_NOT_CONFIGURED');
     return { ...wallet, creditAvailable: 0, billingMode: 'PREPAID_ONLY' };
