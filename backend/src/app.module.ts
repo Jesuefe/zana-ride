@@ -17,6 +17,7 @@ import { TripsModule } from './trips/trips.module';
 import { WalletModule } from './wallet/wallet.module';
 import { MerchantModule } from './merchant/merchant.module';
 import { DeliveriesModule } from './deliveries/deliveries.module';
+import { PartnerApiModule } from './partner-api/partner-api.module';
 import { AdminModule } from './admin/admin.module';
 import { ChatModule } from './chat/chat.module';
 import { SosModule } from './sos/sos.module';
@@ -52,6 +53,7 @@ import { MerchantRegistrationController } from './merchant-registration.controll
     WalletModule,
     MerchantModule,
     DeliveriesModule,
+    PartnerApiModule,
     AdminModule,
     ChatModule,
     SosModule,
