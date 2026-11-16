@@ -40,8 +40,8 @@ import { MerchantRegistrationController } from './merchant-registration.controll
     PurchaseFloatModule,
     GatewayModule,
     ThrottlerModule.forRoot([
-      { name: 'short', ttl: 1000, limit: 10 },
-      { name: 'long', ttl: 60000, limit: 200 },
+      { name: 'short', ttl: 1000, limit: 30 },
+      { name: 'long', ttl: 60000, limit: 600 },
     ]),
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
@@ -60,6 +60,7 @@ import { MerchantRegistrationController } from './merchant-registration.controll
     ZanaAiModule,
     DownloadsModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
   controllers: [HealthController, CustomerSupportController, CustomerSupportChatsController, AdminSupportChatsController, AdminCustomerSummaryController, RiderRegistrationController, MerchantRegistrationController],
 })
 export class AppModule {}

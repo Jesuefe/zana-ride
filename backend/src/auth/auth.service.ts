@@ -478,17 +478,35 @@ export class AuthService {
   }
 
   async login(identifier: string, password: string) {
+    // Per-account lockout: 10 failures in 15 minutes blocks further password
+    // attempts for that identifier, independent of the per-IP throttler.
+    const failKey = `login:fail:${String(identifier ?? '').trim().toLowerCase()}`;
+    try {
+      const failures = Number((await this.redis.get(failKey)) ?? 0);
+      if (failures >= 10) {
+        throw new UnauthorizedException('Too many failed attempts — try again in 15 minutes or reset your password.');
+      }
+    } catch (e) {
+      if (e instanceof UnauthorizedException) throw e;
+    }
+    const recordFailure = async () => {
+      try { await this.redis.incr(failKey, 15 * 60); } catch { /* redis unavailable — IP throttler still applies */ }
+    };
+
     const user = await this.prisma.user.findFirst({
       where: { OR: [{ phone: identifier }, { email: identifier }] },
     });
     if (!user || !user.password) {
+      await recordFailure();
       throw new UnauthorizedException('Invalid email/phone or password');
     }
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
+      await recordFailure();
       throw new UnauthorizedException('Invalid email/phone or password');
     }
+    try { await this.redis.del(failKey); } catch { /* ignore */ }
 
     if (user.role === 'ADMIN') {
       if (user.status !== 'ACTIVE') throw new UnauthorizedException('ACCOUNT_NOT_ACTIVE');

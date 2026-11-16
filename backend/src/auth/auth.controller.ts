@@ -1,4 +1,5 @@
 import { Body, Controller, Post, Query, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RequestOtpDto, VerifyOtpDto } from './dto/otp.dto';
 import { RecoverAdminDto } from './dto/password-auth.dto';
@@ -52,6 +53,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ short: { limit: 3, ttl: 1000 }, long: { limit: 10, ttl: 60000 } })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto.identifier, dto.password);
   }
