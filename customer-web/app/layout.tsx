@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeProvider>
             <AuthGuard>
               <div className="app-shell w-full relative">
-                <SplashGate>{children}</SplashGate></div>
+                <SplashGate><div className="app-page">{children}</div></SplashGate></div>
               <BottomNav />
               <RealtimeNotificationAlert />
             </AuthGuard>
