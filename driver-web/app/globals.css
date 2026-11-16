@@ -160,20 +160,21 @@ html, body { overscroll-behavior: none; }
 }
 
 /* ── No phantom scroll ──────────────────────────────────────────────────
-   The frame reserves room for the bottom nav only while the nav is
-   rendered (it is hidden on login/sign-up/etc.). Full-height pages are
-   sized to what remains of the viewport, so a short page fits exactly and
-   only scrolls when its content really is taller than the screen. */
+   Pages stay full-height. Room for the bottom nav is added as a
+   transparent bottom border on the page's own root element, so the page
+   background keeps painting underneath the nav (no mismatched strip), a
+   short page fits the screen exactly, and a long page can still scroll its
+   last content clear of the nav. The reserve exists only while the nav is
+   rendered (it is hidden on login/sign-up/etc.). */
 :root { --app-nav-reserve: 4rem; --app-shell-bottom: 0px; }
 body:has([data-bottom-nav]) {
   --app-shell-bottom: calc(var(--app-nav-reserve) + env(safe-area-inset-bottom, 0px));
 }
-.app-frame {
+.app-frame { box-sizing: border-box; min-height: 100vh; min-height: 100dvh; }
+.app-page > :last-child:not(.fixed) {
   box-sizing: border-box;
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding-bottom: var(--app-shell-bottom);
-  --app-page-h: calc(100dvh - var(--app-shell-bottom));
+  border-bottom: var(--app-shell-bottom) solid transparent;
 }
-.app-frame .min-h-screen { min-height: var(--app-page-h); }
-.app-frame .h-screen { height: var(--app-page-h); }
+.min-h-screen { min-height: 100vh; min-height: 100dvh; }
+/* Full-screen map/sheet pages: the border-box keeps the sheet above the nav */
+.app-page > .h-screen:last-child { height: 100vh; height: 100dvh; }

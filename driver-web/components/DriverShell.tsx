@@ -24,7 +24,7 @@ export default function DriverShell({ children }: { children: React.ReactNode })
     <AuthGuard>
       <div className="app-frame w-full max-w-[480px] mx-auto">
         <SplashGate>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider><div className="app-page">{children}</div></ThemeProvider>
         </SplashGate>
         {!preLogin && <GlobalCallNotification />}
         {!preLogin && <RealtimeNotificationAlert />}

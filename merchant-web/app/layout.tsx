@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LangProvider>
           <AuthGuard>
             <div className="app-frame w-full max-w-[480px] mx-auto relative">
-              <SplashGate><ThemeProvider>{children}</ThemeProvider></SplashGate>
+              <SplashGate><ThemeProvider><div className="app-page">{children}</div></ThemeProvider></SplashGate>
             </div>
             <MerchantBottomNav />
             <OrderAlarm />
