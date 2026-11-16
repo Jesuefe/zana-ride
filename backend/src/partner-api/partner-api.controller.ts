@@ -15,13 +15,13 @@ export class PartnerApiController {
   }
 
   @Post('wallet/reservations/:reference/settle')
-  settle(@Req() request: PartnerRequest, @Req() req: any) {
-    return this.service.settle(request.partner.id, request.partner.scopes, req.params.reference);
+  settle(@Req() request: PartnerRequest, @Param('reference') reference: string) {
+    return this.service.settle(request.partner.id, request.partner.scopes, reference);
   }
 
   @Post('wallet/reservations/:reference/release')
-  release(@Req() request: PartnerRequest, @Req() req: any, @Body() body: { reason?: string }) {
-    return this.service.release(request.partner.id, request.partner.scopes, req.params.reference, body?.reason);
+  release(@Req() request: PartnerRequest, @Param('reference') reference: string, @Body() body: { reason?: string }) {
+    return this.service.release(request.partner.id, request.partner.scopes, reference, body?.reason);
   }
 
   @Get('account')
