@@ -9,6 +9,16 @@ type PartnerRequest = { partner: { id: string; scopes: string[] } };
 export class PartnerApiController {
   constructor(private readonly service: PartnerApiService) {}
 
+  @Post('wallet/topups')
+  initiateTopUp(@Req() request: PartnerRequest, @Body() body: { reference: string; phone: string; amount: number }) {
+    return this.service.initiateTopUp(request.partner.id, request.partner.scopes, body.reference, body.phone, body.amount);
+  }
+
+  @Get('wallet/topups/:reference/status')
+  checkTopUpStatus(@Req() request: PartnerRequest, @Param('reference') reference: string) {
+    return this.service.checkTopUpStatus(request.partner.id, request.partner.scopes, reference);
+  }
+
   @Post('wallet/reservations')
   reserve(@Req() request: PartnerRequest, @Body() body: { reference: string; amount: number }) {
     return this.service.reserve(request.partner.id, request.partner.scopes, body.reference, body.amount);
