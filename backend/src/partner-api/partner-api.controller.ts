@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { PartnerApiKeyGuard } from './partner-api-key.guard';
 import { PartnerApiService } from './partner-api.service';
 
