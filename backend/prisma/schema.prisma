@@ -1400,3 +1400,89 @@ model PromoCodeRedemption {
   @@index([promoCodeId, userId, status])
   @@index([userId, createdAt])
 }
+
+
+// External restaurant and commerce integrations. API credentials are stored as
+// SHA-256 hashes; the plaintext secret is shown only once when provisioned.
+model ApiPartner {
+  id          String                  @id @default(uuid())
+  name        String
+  status      String                  @default("PENDING")
+  contactEmail String?
+  contactPhone String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  credentials ApiCredential[]
+  wallet      ApiPartnerWallet?
+  idempotencyKeys ApiIdempotencyKey[]
+
+  @@index([status, createdAt])
+}
+
+model ApiCredential {
+  id          String     @id @default(uuid())
+  partnerId   String
+  name        String
+  keyPrefix   String
+  secretHash  String     @unique
+  scopes      String[]
+  environment String     @default("LIVE")
+  active      Boolean    @default(true)
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime   @default(now())
+  partner     ApiPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId, active])
+  @@index([keyPrefix])
+}
+
+model ApiPartnerWallet {
+  id          String                       @id @default(uuid())
+  partnerId   String                       @unique
+  currency    String                       @default("RWF")
+  available   Int                          @default(0)
+  reserved    Int                          @default(0)
+  creditLimit Int                          @default(0)
+  suspendedAt DateTime?
+  createdAt   DateTime                     @default(now())
+  updatedAt   DateTime                     @updatedAt
+  partner     ApiPartner                   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  transactions ApiPartnerWalletTransaction[]
+}
+
+model ApiPartnerWalletTransaction {
+  id            String           @id @default(uuid())
+  walletId      String
+  type          String
+  amount        Int
+  availableBefore Int
+  availableAfter  Int
+  reservedBefore  Int
+  reservedAfter   Int
+  reference     String           @unique
+  providerRef   String?          @unique
+  status        String           @default("COMPLETED")
+  description   String?
+  metadataJson String?
+  createdAt     DateTime         @default(now())
+  wallet        ApiPartnerWallet @relation(fields: [walletId], references: [id], onDelete: Restrict)
+
+  @@index([walletId, createdAt])
+  @@index([type, createdAt])
+}
+
+model ApiIdempotencyKey {
+  id          String     @id @default(uuid())
+  partnerId   String
+  key         String
+  requestHash String
+  responseJson String?
+  status      String     @default("PROCESSING")
+  createdAt   DateTime   @default(now())
+  expiresAt   DateTime
+  partner     ApiPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@unique([partnerId, key])
+  @@index([expiresAt])
+}
