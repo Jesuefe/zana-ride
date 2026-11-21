@@ -5,12 +5,15 @@ import android.view.View;
 import android.webkit.PermissionRequest;
 
 import com.getcapacitor.BridgeActivity;
+
+import rw.zanaride.driver.DriverBackgroundLocationPlugin;
 import com.getcapacitor.BridgeWebChromeClient;
 
 public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(DriverBackgroundLocationPlugin.class);
         super.onCreate(savedInstanceState);
 
         // No scrollbars or edge-glow in the WebView; content still scrolls.

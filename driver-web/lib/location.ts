@@ -20,12 +20,10 @@ export function getCurrentPosition(): Promise<Coords | null> {
 // Starts continuous GPS tracking, calling onUpdate with each new reading.
 // Returns a cleanup function to stop watching.
 //
-// V1: foreground-only, via the plain browser geolocation API — tracking
-// stops if the screen locks or the app is backgrounded. Background
-// tracking (via @capacitor-community/background-geolocation, which this
-// used previously) is a deliberate V2 addition, not something removed
-// by accident — it needs its own Google Play background-location review
-// pass, which V1 is intentionally shipping without.
+// Browser sessions use the foreground geolocation API. The private Android
+// APK additionally starts DriverBackgroundLocationService when the driver
+// goes online; that native foreground service continues GPS updates while
+// the WebView is backgrounded or the screen is locked.
 export function watchPosition(onUpdate: (coords: Coords) => void): () => void {
   if (typeof window === 'undefined' || !navigator.geolocation) return () => {};
 
