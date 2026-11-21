@@ -69,6 +69,7 @@ export default function ContactPage() {
             <div className="contact-topic"><span>02</span><div><strong>Drivers & merchants</strong><p>Joining the network or growing with Zana.</p></div></div>
             <div className="contact-topic"><span>03</span><div><strong>Partners & investors</strong><p>Strategic partnerships and business opportunities.</p></div></div>
           </div>
+          <a className="contact-home-link" href="/support">Customer Support</a>
           <a className="contact-home-link" href="/">← Explore Zana Ride</a>
         </aside>
       </section>
