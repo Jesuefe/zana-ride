@@ -69,3 +69,30 @@ export function getCurrentPositionFresh(): Promise<Coords | null> {
     );
   });
 }
+
+// Live GPS reading for screens that must not guess (markets, delivery fees).
+// Returns null when the position can't be determined, so callers can say so
+// instead of showing a made-up distance. Tries high accuracy first, then a
+// coarser fix, and keeps the stored pickup in sync on success.
+export function getLivePosition(): Promise<Coords | null> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    const onSuccess = (pos: GeolocationPosition) => {
+      const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      storePickup(coords);
+      resolve(coords);
+    };
+    navigator.geolocation.getCurrentPosition(
+      onSuccess,
+      () => navigator.geolocation.getCurrentPosition(
+        onSuccess,
+        () => resolve(null),
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+      ),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+    );
+  });
+}

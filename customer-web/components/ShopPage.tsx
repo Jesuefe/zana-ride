@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Clock3, MapPin, Star, Store } from 'lucide-react';
 import { fetchMarketplaceWithLocation, MarketplaceMerchant } from '../lib/api/marketplace';
-import { getStoredPickup } from '../lib/location';
+import { requestLiveLocation } from '../lib/location';
 
 type Props = {
   category: 'FOOD' | 'GIFTS' | 'GOODS';
@@ -24,13 +24,13 @@ type Props = {
 export default function ShopPage({ category, title, emptyMessage }: Props) {
   const { t } = useLang();
   const router = useRouter();
-  const pickup = getStoredPickup();
 
   const [merchants, setMerchants] = useState<MarketplaceMerchant[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMarketplaceWithLocation(category, pickup.lat, pickup.lng)
+    requestLiveLocation()
+      .then(c => fetchMarketplaceWithLocation(category, c.lat, c.lng))
       .then(setMerchants)
       .catch(() => {})
       .finally(() => setLoading(false));

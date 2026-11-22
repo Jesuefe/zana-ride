@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ShoppingCart, Plus, Minus, MapPin, Loader2, Store, Package, Search, Star, Clock3, Tag } from 'lucide-react';
 import { fetchMarketplaceWithLocation, placeOrder, validateOrderPromo, MarketplaceMerchant, MarketplaceProduct, CartItem } from '../../../lib/api/marketplace';
-import { getStoredPickup } from '../../../lib/location';
+import { getStoredPickup, requestLiveLocation } from '../../../lib/location';
 import OrderRecipient, { OrderRecipient as OrderRecipientValue } from '../../../components/OrderRecipient';
 import { useLang } from '../../../lib/LangContext';
 import ZanaLoading from '../../../components/ZanaLoading';
@@ -50,7 +50,12 @@ function StoreContent() {
   // dedicated endpoint if the merchant count grows enough to matter.
   useEffect(() => {
     if (!merchantId) { setLoading(false); return; }
-    fetchMarketplaceWithLocation(category, pickup.lat, pickup.lng)
+    // Refresh GPS first so distance/fee use where the customer really is.
+    requestLiveLocation()
+      .then(c => {
+        setRecipient(r => r.forSomeoneElse ? r : { ...r, lat: c.lat, lng: c.lng });
+        return fetchMarketplaceWithLocation(category, c.lat, c.lng);
+      })
       .then(list => setMerchant(list.find(m => m.id === merchantId) ?? null))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -343,7 +348,7 @@ function StoreContent() {
       {/* Cart */}
       {showCart && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={() => setShowCart(false)}>
-          <div className="w-full bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-h-[90dvh] overflow-y-auto overscroll-contain bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
 
             <div className="flex items-center justify-between mb-4">

@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Store, Clock } from 'lucide-react';
 import { fetchMarkets, Market } from '../../lib/api/marketplace';
 import { useLang } from '../../lib/LangContext';
+import { getLivePosition } from '../../lib/location';
 
 export default function MarketsPage() {
   const { t } = useLang();
   const router = useRouter();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
+  const [located, setLocated] = useState(true);
 
   useEffect(() => {
     const load = (lat?: number, lng?: number) =>
@@ -19,16 +21,12 @@ export default function MarketsPage() {
         .catch(() => {})
         .finally(() => setLoading(false));
 
-    // Distance and fee depend on where the customer is, so ask first.
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        p => load(p.coords.latitude, p.coords.longitude),
-        () => load(),
-        { timeout: 6000 },
-      );
-    } else {
-      load();
-    }
+    // Distance and fee depend on where the customer is, so get an accurate
+    // GPS fix first (high accuracy, then a coarser fallback).
+    getLivePosition().then(c => {
+      setLocated(!!c);
+      if (c) load(c.lat, c.lng); else load();
+    });
   }, []);
 
   return (
@@ -44,6 +42,11 @@ export default function MarketsPage() {
       </div>
 
       <div className="px-4 pt-4 space-y-3">
+        {!loading && !located && (
+          <div className="rounded-xl bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+            {t('Turn on location for Zana to see your real distance and delivery fee.')}
+          </div>
+        )}
         {loading && (
           <div className="flex justify-center py-10">
             <div className="w-6 h-6 border-2 border-zana-primary border-t-transparent rounded-full animate-spin" />
@@ -87,11 +90,17 @@ export default function MarketsPage() {
                   <Clock size={11} /> {m.etaMinutes} min
                 </span>
                 <span className="text-gray-300">·</span>
-                <span className="text-gray-500">{m.distanceText}</span>
-                <span className="text-gray-300">·</span>
-                <span className="font-bold text-zana-primary">
-                  {m.deliveryFee.toLocaleString()} RWF {t('delivery')}
-                </span>
+                {located ? (
+                  <>
+                    <span className="text-gray-500">{m.distanceText}</span>
+                    <span className="text-gray-300">·</span>
+                    <span className="font-bold text-zana-primary">
+                      {m.deliveryFee.toLocaleString()} RWF {t('delivery')}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-gray-400">{t('Distance and fee shown once location is on')}</span>
+                )}
               </div>
 
               <p className="text-[11px] text-gray-400 mt-1.5">
