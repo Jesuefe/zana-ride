@@ -6,6 +6,7 @@ import { ArrowLeft, Store, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { fetchMarket, placeOrder, quoteMarketOrder, validateOrderPromo } from '../../../lib/api/marketplace';
 import { fetchWallet } from '../../../lib/api/trips';
 import { useLang } from '../../../lib/LangContext';
+import { getLivePosition } from '../../../lib/location';
 
 type Item = { product: any; quantity: number };
 
@@ -35,11 +36,7 @@ function MarketContent() {
     if (!marketId) { setLoading(false); return; }
     fetchMarket(marketId).then(setMarket).catch(() => {}).finally(() => setLoading(false));
     fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(() => {});
-    navigator.geolocation?.getCurrentPosition(
-      p => setPos({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => {},
-      { timeout: 6000 },
-    );
+    getLivePosition().then(c => { if (c) setPos(c); });
   }, [marketId]);
 
   const qty = (id: string) => cart.find(c => c.product.id === id)?.quantity ?? 0;
@@ -227,7 +224,7 @@ function MarketContent() {
 
       {checkout && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={() => setCheckout(false)}>
-          <div className="w-full bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-h-[90dvh] overflow-y-auto overscroll-contain bg-white rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
             <p className="font-black text-lg text-gray-900 mb-4">{t('Confirm your order')}</p>
 
