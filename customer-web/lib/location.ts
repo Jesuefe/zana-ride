@@ -35,14 +35,21 @@ export function requestLiveLocation(): Promise<Coords> {
       resolve(getStoredPickup());
       return;
     }
+    const onSuccess = (pos: GeolocationPosition) => {
+      const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      storePickup(coords);
+      resolve(coords);
+    };
+    // Try high accuracy first; if it times out indoors, fall back to a
+    // coarser (network/Wi-Fi) fix instead of keeping a stale location.
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        storePickup(coords);
-        resolve(coords);
-      },
-      () => resolve(getStoredPickup()),
-      { enableHighAccuracy: true, timeout: 8000 },
+      onSuccess,
+      () => navigator.geolocation.getCurrentPosition(
+        onSuccess,
+        () => resolve(getStoredPickup()),
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+      ),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
     );
   });
 }
