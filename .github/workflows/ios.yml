@@ -1,69 +1,74 @@
-name: Build iOS (TestFlight)
+name: Build Zana Customer iOS (TestFlight)
 
 on:
   push:
     branches: [main]
     paths:
-      - 'native/**'
+      - 'native/customer/**'
       - '.github/workflows/ios.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  build-customer:
     runs-on: macos-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        app:
-          - dir: driver
-            bundle_id: com.bastionholdings.zana.driver
-          - dir: customer
-            bundle_id: com.bastionholdings.zana
-
     steps:
       - uses: actions/checkout@v5
+
+      - name: Validate Apple signing configuration
+        env:
+          API_KEY_BASE64: ${{ secrets.IOS_API_KEY_BASE64 }}
+          API_KEY_ID: ${{ vars.IOS_ASC_KEY_ID }}
+          API_ISSUER_ID: ${{ vars.IOS_ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ vars.IOS_TEAM_ID }}
+        run: |
+          test -n "$API_KEY_BASE64" || { echo "::error::Missing IOS_API_KEY_BASE64 secret"; exit 1; }
+          test -n "$API_KEY_ID" || { echo "::error::Missing IOS_ASC_KEY_ID repository variable"; exit 1; }
+          test -n "$API_ISSUER_ID" || { echo "::error::Missing IOS_ASC_ISSUER_ID repository variable"; exit 1; }
+          test "$APPLE_TEAM_ID" = "65WTVA72SM" || { echo "::error::Set IOS_TEAM_ID repository variable to 65WTVA72SM"; exit 1; }
 
       - name: Set up Node
         uses: actions/setup-node@v5
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: native/customer/package-lock.json
 
       - name: Install dependencies
-        working-directory: native/${{ matrix.app.dir }}
+        working-directory: native/customer
         run: npm install
 
       - name: Sync Capacitor
-        working-directory: native/${{ matrix.app.dir }}
+        working-directory: native/customer
         run: npx cap sync ios
 
       - name: Install CocoaPods
-        working-directory: native/${{ matrix.app.dir }}/ios/App
+        working-directory: native/customer/ios/App
         run: pod install
 
-      - name: Install the App Store Connect API key
+      - name: Install App Store Connect API key
         env:
           API_KEY_BASE64: ${{ secrets.IOS_API_KEY_BASE64 }}
+          API_KEY_ID: ${{ vars.IOS_ASC_KEY_ID }}
+          API_ISSUER_ID: ${{ vars.IOS_ASC_ISSUER_ID }}
         run: |
-          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_4949DJ3PMM.p8"
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
           mkdir -p "$(dirname "$KEY_PATH")"
-          echo "$API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
+          printf '%s' "$API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
-
+          echo "ASC_KEY_ID=$API_KEY_ID" >> "$GITHUB_ENV"
+          echo "ASC_ISSUER_ID=$API_ISSUER_ID" >> "$GITHUB_ENV"
           API_JSON="$RUNNER_TEMP/appstoreconnect_api.json"
-          python3 - "$KEY_PATH" "$API_JSON" <<'PY'
+          python3 - "$KEY_PATH" "$API_JSON" "$API_KEY_ID" "$API_ISSUER_ID" <<'PY'
           import json, sys
-          key_path, json_path = sys.argv[1], sys.argv[2]
-          with open(key_path, "r", encoding="utf-8") as f:
+          key_path, json_path, key_id, issuer_id = sys.argv[1:]
+          with open(key_path, encoding="utf-8") as f:
               key = f.read()
           with open(json_path, "w", encoding="utf-8") as f:
-              json.dump({
-                  "key_id": "4949DJ3PMM",
-                  "issuer_id": "78eef06e-8cf0-4f3d-9c62-380ae304adee",
-                  "key": key,
-                  "in_house": False
-              }, f)
+              json.dump({"key_id": key_id, "issuer_id": issuer_id, "key": key, "in_house": False}, f)
           PY
           chmod 600 "$API_JSON"
           echo "ASC_API_JSON=$API_JSON" >> "$GITHUB_ENV"
@@ -71,102 +76,83 @@ jobs:
       - name: Install fastlane
         run: gem install fastlane --no-document
 
-      - name: Build archive with Xcode cloud signing
-        working-directory: native/${{ matrix.app.dir }}/ios/App
+      - name: Build signed customer archive
+        working-directory: native/customer/ios/App
+        env:
+          APPLE_TEAM_ID: ${{ vars.IOS_TEAM_ID }}
         run: |
-          rm -rf build
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$PWD/build/ZanaCustomer.xcarchive" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="rw.zanaride.customer" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
+            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=YES \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            clean archive
+
+      - name: Export signed customer IPA
+        working-directory: native/customer/ios/App
+        env:
+          APPLE_TEAM_ID: ${{ vars.IOS_TEAM_ID }}
+        run: |
           mkdir -p build
-
-          xcodebuild             -workspace App.xcworkspace             -scheme App             -configuration Release             -destination "generic/platform=iOS"             -archivePath "$PWD/build/App.xcarchive"             DEVELOPMENT_TEAM=BX52G3KQ85             CURRENT_PROJECT_VERSION="${{ github.run_number }}"             IPHONEOS_DEPLOYMENT_TARGET=15.0             CODE_SIGN_STYLE=Automatic             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO             -allowProvisioningUpdates             -authenticationKeyPath "$ASC_KEY_PATH"             -authenticationKeyID "4949DJ3PMM"             -authenticationKeyIssuerID "78eef06e-8cf0-4f3d-9c62-380ae304adee"             clean archive
-
-      - name: Export signed IPA
-        working-directory: native/${{ matrix.app.dir }}/ios/App
-        run: |
           cat > build/ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>method</key>
-            <string>app-store</string>
-            <key>teamID</key>
-            <string>BX52G3KQ85</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>uploadSymbols</key>
-            <true/>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
           </dict>
           </plist>
           EOF
+          xcodebuild -exportArchive \
+            -archivePath "$PWD/build/ZanaCustomer.xcarchive" \
+            -exportPath "$PWD/build/export" \
+            -exportOptionsPlist "$PWD/build/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          IPA="$(find build/export -maxdepth 1 -name '*.ipa' -print -quit)"
+          test -n "$IPA" || { echo "::error::Xcode did not export an IPA"; exit 1; }
+          cp "$IPA" build/zana-customer.ipa
 
-          xcodebuild             -exportArchive             -archivePath "$PWD/build/App.xcarchive"             -exportPath "$PWD/build/export"             -exportOptionsPlist "$PWD/build/ExportOptions.plist"             -allowProvisioningUpdates             -authenticationKeyPath "$ASC_KEY_PATH"             -authenticationKeyID "4949DJ3PMM"             -authenticationKeyIssuerID "78eef06e-8cf0-4f3d-9c62-380ae304adee"
-
-          cp build/export/*.ipa build/zana-${{ matrix.app.dir }}.ipa
-
-      - name: Validate exported IPA bundle identifiers
-        working-directory: native/${{ matrix.app.dir }}/ios/App
+      - name: Verify customer bundle identifier
+        working-directory: native/customer/ios/App
         run: |
           rm -rf build/ipa-check
           mkdir -p build/ipa-check
-          unzip -q "build/zana-${{ matrix.app.dir }}.ipa" -d build/ipa-check
+          unzip -q build/zana-customer.ipa -d build/ipa-check
+          APP_PATH="$(find build/ipa-check/Payload -maxdepth 1 -name '*.app' -print -quit)"
+          ACTUAL=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")
+          echo "Built bundle ID: $ACTUAL"
+          test "$ACTUAL" = "rw.zanaride.customer" || { echo "::error::Unexpected bundle ID $ACTUAL"; exit 1; }
 
-          python3 - <<'PY'
-          import plistlib
-          from pathlib import Path
-          from collections import defaultdict
-
-          payload = Path("build/ipa-check/Payload")
-          apps = list(payload.glob("*.app"))
-          if len(apps) != 1:
-              raise SystemExit(f"Expected exactly one app bundle in IPA, found {len(apps)}")
-
-          app = apps[0]
-          grouped = defaultdict(list)
-          for plist_path in app.rglob("Info.plist"):
-              try:
-                  with plist_path.open("rb") as f:
-                      info = plistlib.load(f)
-                  bundle_id = info.get("CFBundleIdentifier")
-                  if bundle_id:
-                      grouped[bundle_id].append(str(plist_path.relative_to(app)))
-              except Exception:
-                  pass
-
-          print("Exported bundle identifiers:")
-          for bundle_id, paths in sorted(grouped.items()):
-              print(f"  {bundle_id}")
-              for path in paths:
-                  print(f"    - {path}")
-
-          expected = "${{ matrix.app.bundle_id }}"
-          root_info = plistlib.loads((app / "Info.plist").read_bytes())
-          actual = root_info.get("CFBundleIdentifier")
-          if actual != expected:
-              raise SystemExit(f"Root app bundle ID mismatch: expected {expected}, got {actual}")
-
-          duplicates = {k: v for k, v in grouped.items() if len(v) > 1}
-          if duplicates:
-              print("\nERROR: duplicate CFBundleIdentifier values found:")
-              for bundle_id, paths in duplicates.items():
-                  print(f"  {bundle_id}:")
-                  for path in paths:
-                      print(f"    - {path}")
-              raise SystemExit(1)
-          PY
-
-      - name: Upload to TestFlight
-        working-directory: native/${{ matrix.app.dir }}/ios/App
+      - name: Upload customer app to TestFlight
+        working-directory: native/customer/ios/App
         run: |
           fastlane pilot upload \
-            --ipa "build/zana-${{ matrix.app.dir }}.ipa" \
-            --app_identifier "${{ matrix.app.bundle_id }}" \
+            --ipa build/zana-customer.ipa \
+            --app_identifier "rw.zanaride.customer" \
             --skip_waiting_for_build_processing true \
             --api_key_path "$ASC_API_JSON"
 
-      - name: Upload .ipa as a downloadable artifact
+      - name: Save IPA artifact
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: zana-${{ matrix.app.dir }}-ipa
-          path: native/${{ matrix.app.dir }}/ios/App/build/*.ipa
+          name: zana-customer-ipa
+          path: native/customer/ios/App/build/*.ipa
           if-no-files-found: warn
