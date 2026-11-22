@@ -14,7 +14,7 @@ import { fetchWallet, recoverActiveRide } from '../lib/api/trips';
 import { haptic } from '../lib/haptics';
 import { api } from '../lib/api/client';
 import { useLang } from '../lib/LangContext';
-import { getStoredPickup } from '../lib/location';
+import { getStoredPickup, requestLiveLocation } from '../lib/location';
 import './zana-city-home.css';
 
 type SheetState = 'peek' | 'half' | 'full';
@@ -83,6 +83,8 @@ export default function HomePage() {
   useEffect(() => {
     let cancelled = false;
     setPickup(getStoredPickup());
+    // Replace the cached/default pickup with the rider's real GPS position.
+    requestLiveLocation().then(coords => { if (!cancelled) setPickup(coords); });
     loadHomeData();
     const recover = async () => {
       try {

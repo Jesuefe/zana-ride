@@ -4,7 +4,7 @@ import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Briefcase, Clock3, Home, MapPin, MapPinned, Plus, Search, X, Loader2, ChevronRight } from 'lucide-react';
 import BrandedMap from '../../components/BrandedMap';
-import { getStoredPickup, setStoredPickup } from '../../lib/location';
+import { getStoredPickup, setStoredPickup, requestLiveLocation } from '../../lib/location';
 import { resolveLocationCode } from '../../lib/api/deliveries';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
@@ -29,12 +29,13 @@ const distanceText=(km:number)=>km<1?`${Math.max(100,Math.round(km*1000/50)*50)}
 function Highlight({text,query}:{text:string;query:string}){const i=text.toLowerCase().indexOf(query.toLowerCase());if(i<0||!query)return <>{text}</>;return <>{text.slice(0,i)}<strong>{text.slice(i,i+query.length)}</strong>{text.slice(i+query.length)}</>;}
 
 function SearchContent(){
- const {t}=useLang(),router=useRouter(),inputRef=useRef<HTMLInputElement>(null),touch=useRef<{y:number;time:number}|null>(null),debounce=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const {t}=useLang(),router=useRouter(),inputRef=useRef<HTMLInputElement>(null),touch=useRef<{y:number;time:number}|null>(null),debounce=useRef<ReturnType<typeof setTimeout>|null>(null),manualPickup=useRef(false);
  const [pickup,setPickup]=useState(getStoredPickup()),[pickupAddress,setPickupAddress]=useState('Current location'),[pickupEditing,setPickupEditing]=useState(false),[pickupQuery,setPickupQuery]=useState('');
  const [query,setQuery]=useState(''),[suggestions,setSuggestions]=useState<PlaceSuggestion[]>([]),[resolvingCode,setResolvingCode]=useState(false);
  const [saved,setSaved]=useState<SavedPlace[]>([]),[recents,setRecents]=useState<RecentPlace[]>([]),[loadingHome,setLoadingHome]=useState(true),[searching,setSearching]=useState(false);
  const [mapPicker,setMapPicker]=useState(false),[mapPoint,setMapPoint]=useState<{lat:number;lng:number}|null>(null),[mapAddress,setMapAddress]=useState(''),[resolvingMap,setResolvingMap]=useState(false),[error,setError]=useState('');
  useEffect(()=>{const id=window.setTimeout(()=>inputRef.current?.focus(),80);return()=>window.clearTimeout(id);},[]);
+ useEffect(()=>{let live=true;requestLiveLocation().then(c=>{if(live&&!manualPickup.current)setPickup(c)});return()=>{live=false}},[]);
  useEffect(()=>{let live=true;api.get<SavedPlace[]>('/users/saved-places').then(v=>{if(live)setSaved(Array.isArray(v)?v:[])}).catch(()=>{});
  api.get<any[]>('/rides/history').then(rows=>{if(!live||!Array.isArray(rows))return;const seen=new Set<string>(),out:RecentPlace[]=[];for(const r of rows){const lat=Number(r?.destinationLat),lng=Number(r?.destinationLng),address=r?.destinationAddress;if(!address||!Number.isFinite(lat)||!Number.isFinite(lng))continue;const k=`${lat.toFixed(4)}:${lng.toFixed(4)}`;if(seen.has(k))continue;seen.add(k);out.push({id:String(r.id??k),name:String(r.destinationName??address.split(',')[0]),address,lat,lng});if(out.length===5)break;}setRecents(out);}).catch(()=>{}).finally(()=>{if(live)setLoadingHome(false)});const fallback=window.setTimeout(()=>{if(live)setLoadingHome(false)},1500);return()=>{live=false;window.clearTimeout(fallback)};},[]);
  useEffect(()=>{let live=true;reverseGeocode(pickup.lat,pickup.lng).then(a=>{if(live&&a)setPickupAddress(a)});return()=>{live=false}},[pickup.lat,pickup.lng]);
@@ -46,7 +47,7 @@ function SearchContent(){
  const selectRecent=(p:RecentPlace)=>select({name:p.name,address:p.address,lat:p.lat,lng:p.lng});
  const selectPrediction=async(s:PlaceSuggestion)=>{setError('');const p=await getPlaceCoordinates(s.placeId);if(p)select({name:s.primaryText,address:p.address,lat:p.lat,lng:p.lng});else setError(t("Couldn't load that location. Try another result."));};
  const popular=async(p:{name:string;query:string})=>{setSearching(true);try{const rows=await searchPlaces(p.query,pickup),place=rows[0]?await getPlaceCoordinates(rows[0].placeId):null;if(place)select({name:p.name,address:place.address,lat:place.lat,lng:place.lng});else{setQuery(p.name);setSearching(false)}}catch{setSearching(false)}};
- const searchPickup=async()=>{if(pickupQuery.trim().length<2)return;const rows=await searchPlaces(pickupQuery,pickup),p=rows[0]?await getPlaceCoordinates(rows[0].placeId):null;if(!p)return;setPickup({lat:p.lat,lng:p.lng});setStoredPickup({lat:p.lat,lng:p.lng});setPickupAddress(p.address);setPickupEditing(false);setPickupQuery('');inputRef.current?.focus();};
+ const searchPickup=async()=>{if(pickupQuery.trim().length<2)return;const rows=await searchPlaces(pickupQuery,pickup),p=rows[0]?await getPlaceCoordinates(rows[0].placeId):null;if(!p)return;manualPickup.current=true;setPickup({lat:p.lat,lng:p.lng});setStoredPickup({lat:p.lat,lng:p.lng});setPickupAddress(p.address);setPickupEditing(false);setPickupQuery('');inputRef.current?.focus();};
  const pinOnMap=()=>{inputRef.current?.blur();setMapPicker(true);setMapPoint(null);setMapAddress('')};
  useEffect(()=>{let live=true;if(!mapPoint){setMapAddress('');return;}setResolvingMap(true);reverseGeocode(mapPoint.lat,mapPoint.lng).then(a=>{if(live)setMapAddress(a??`${mapPoint.lat.toFixed(5)}, ${mapPoint.lng.toFixed(5)}`)}).finally(()=>{if(live)setResolvingMap(false)});return()=>{live=false}},[mapPoint?.lat,mapPoint?.lng]);
  const confirmPin=()=>{if(mapPoint)select({name:mapAddress||'Pinned location',address:mapAddress||'Pinned location',lat:mapPoint.lat,lng:mapPoint.lng})};
