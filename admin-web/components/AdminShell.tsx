@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Car, Store, Package, MapPin, UserCheck, TrendingUp, UserPlus, Tag,
   LogOut, Truck, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
   Sun, Moon, Smartphone, Settings, Image as ImageIcon, ClipboardList, MessageCircle,
-  ChevronRight, Bell, Command, Activity, HeartHandshake
+  ChevronRight, Bell, Command, Activity, HeartHandshake, CreditCard
 } from 'lucide-react';
 import { getToken, clearToken, api } from '../lib/api/client';
 import { useTheme } from '../lib/ThemeContext';
