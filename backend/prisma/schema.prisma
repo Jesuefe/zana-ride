@@ -39,6 +39,7 @@ model User {
   deliveries           Delivery[]           @relation("CustomerDeliveries")
   driver               Driver?
   merchant             Merchant?
+  foodDeliveryPartner  FoodDeliveryPartner?
   orders               Order[]              @relation("CustomerOrders")
   pushTokens           PushToken[]
   ratingsGiven         Rating[]             @relation("RatingsGiven")
@@ -1360,6 +1361,7 @@ model StatutoryRemittance {
 
 model FoodDeliveryPartner {
   id           String   @id @default(uuid())
+  userId       String?  @unique
   name         String
   contactEmail String?
   status       String   @default("ACTIVE")
@@ -1368,6 +1370,7 @@ model FoodDeliveryPartner {
   apiKeyPrefix String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
   deliveries   Delivery[]
   transactions PartnerWalletTransaction[]
 
