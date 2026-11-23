@@ -128,23 +128,40 @@ export class FoodPartnersService {
     return { id: partnerId, status };
   }
 
-  async topUp(partnerId: string, amount: number, reference?: string) {
+  async topUp(partnerId: string, amount: number, reference: string) {
     if (!Number.isSafeInteger(amount) || amount <= 0) throw new BadRequestException('TOP_UP_AMOUNT_MUST_BE_POSITIVE_INTEGER_RWF');
-    return this.prisma.$transaction(async (tx) => {
-      const partner = await tx.foodDeliveryPartner.findUnique({ where: { id: partnerId } });
-      if (!partner) throw new NotFoundException('PARTNER_NOT_FOUND');
-      const updated = await tx.foodDeliveryPartner.update({
-        where: { id: partnerId }, data: { balance: { increment: amount } },
-        select: { balance: true },
+    const receipt = String(reference || '').trim();
+    if (!receipt || receipt.length > 120) throw new BadRequestException('UNIQUE_TOP_UP_REFERENCE_REQUIRED_MAX_120');
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.partnerWalletTransaction.findUnique({
+          where: { partnerId_transactionType_reference: { partnerId, transactionType: 'TOP_UP', reference: receipt } },
+        });
+        if (existing) return { partnerId, balance: existing.balanceAfter, credited: 0, duplicate: true, currency: 'RWF' };
+        const partner = await tx.foodDeliveryPartner.findUnique({ where: { id: partnerId } });
+        if (!partner) throw new NotFoundException('PARTNER_NOT_FOUND');
+        const updated = await tx.foodDeliveryPartner.update({
+          where: { id: partnerId }, data: { balance: { increment: amount } },
+          select: { balance: true },
+        });
+        await tx.partnerWalletTransaction.create({
+          data: {
+            partnerId, amount, transactionType: 'TOP_UP',
+            balanceBefore: updated.balance - amount, balanceAfter: updated.balance,
+            reference: receipt, description: 'Admin prepaid wallet top-up',
+          },
+        });
+        return { partnerId, balance: updated.balance, credited: amount, duplicate: false, currency: 'RWF' };
       });
-      await tx.partnerWalletTransaction.create({
-        data: {
-          partnerId, amount, balanceBefore: partner.balance, balanceAfter: updated.balance,
-          reference: reference?.trim() || null, description: 'Admin prepaid wallet top-up',
-        },
-      });
-      return { partnerId, balance: updated.balance, credited: amount, currency: 'RWF' };
-    });
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        const existing = await this.prisma.partnerWalletTransaction.findUnique({
+          where: { partnerId_transactionType_reference: { partnerId, transactionType: 'TOP_UP', reference: receipt } },
+        });
+        if (existing) return { partnerId, balance: existing.balanceAfter, credited: 0, duplicate: true, currency: 'RWF' };
+      }
+      throw error;
+    }
   }
 
   quote(input: { pickupLat: number; pickupLng: number; dropoffLat: number; dropoffLng: number }) {
@@ -180,6 +197,8 @@ export class FoodPartnersService {
           data: { balance: { decrement: quote.fee } },
         });
         if (debit.count !== 1) throw new ConflictException('INSUFFICIENT_PARTNER_WALLET_BALANCE');
+        const balanceAfterDebit = await tx.foodDeliveryPartner.findUnique({ where: { id: partnerId }, select: { balance: true } });
+        if (!balanceAfterDebit) throw new NotFoundException('PARTNER_NOT_FOUND');
         const delivery = await tx.delivery.create({
           data: {
             partnerId,
@@ -204,8 +223,8 @@ export class FoodPartnersService {
         });
         await tx.partnerWalletTransaction.create({
           data: {
-            partnerId, deliveryId: delivery.id, amount: -quote.fee,
-            balanceBefore: partner.balance, balanceAfter: partner.balance - quote.fee,
+            partnerId, deliveryId: delivery.id, amount: -quote.fee, transactionType: 'DELIVERY_FEE',
+            balanceBefore: balanceAfterDebit.balance + quote.fee, balanceAfter: balanceAfterDebit.balance,
             reference: input.partnerOrderRef.trim(), description: 'Food delivery dispatch fee',
           },
         });
@@ -255,9 +274,9 @@ export class FoodPartnersService {
       const updated = await tx.foodDeliveryPartner.update({ where: { id: partnerId }, data: { balance: { increment: delivery.fee } }, select: { balance: true } });
       await tx.partnerWalletTransaction.create({
         data: {
-          partnerId, amount: delivery.fee, balanceBefore: partner.balance,
-          balanceAfter: updated.balance, reference: delivery.partnerOrderRef,
-          description: 'Refund for cancelled undispached delivery',
+          partnerId, amount: delivery.fee, transactionType: 'REFUND',
+          balanceBefore: updated.balance - delivery.fee, balanceAfter: updated.balance,
+          reference: delivery.partnerOrderRef, description: 'Refund for cancelled undispached delivery',
         },
       });
       return { id: deliveryId, status: DeliveryStatus.CANCELLED, refunded: delivery.fee, balance: updated.balance, currency: 'RWF' };
@@ -276,7 +295,7 @@ export class FoodPartnersService {
   async transactions(partnerId: string) {
     return this.prisma.partnerWalletTransaction.findMany({
       where: { partnerId }, orderBy: { createdAt: 'desc' }, take: 100,
-      select: { amount: true, balanceBefore: true, balanceAfter: true, reference: true, description: true, createdAt: true },
+      select: { amount: true, transactionType: true, balanceBefore: true, balanceAfter: true, reference: true, description: true, createdAt: true },
     });
   }
 
