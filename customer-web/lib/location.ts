@@ -1,98 +1,42 @@
-import { KIGALI_CENTER } from './places';
-
-const PICKUP_KEY = 'zana_pickup_coords';
-
 export type Coords = { lat: number; lng: number; address?: string };
 
-// Reads the last known pickup location from localStorage, falling back to
-// Kigali's center if geolocation was never granted or hasn't run yet.
-export function getStoredPickup(): Coords {
-  if (typeof window === 'undefined') return KIGALI_CENTER;
-  try {
-    const raw = window.localStorage.getItem(PICKUP_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    // fall through to default
-  }
-  return KIGALI_CENTER;
-}
+// Shown whenever a live GPS position can't be obtained. There is deliberately
+// no saved or default (Kigali) fallback: a wrong pickup is worse than none.
+export const LOCATION_ERROR_MESSAGE =
+  "We can't get your location. Turn on location services, allow Zana to use it, then try again.";
 
-export function setStoredPickup(coords: Coords) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(PICKUP_KEY, JSON.stringify(coords));
-}
-
-function storePickup(coords: Coords) {
-  window.localStorage.setItem(PICKUP_KEY, JSON.stringify(coords));
-}
-
-// Requests the browser's real GPS location and caches it for the booking
-// flow to use as pickup. Silently keeps the previous/default value if the
-// user denies permission or the browser has no geolocation support.
-export function requestLiveLocation(): Promise<Coords> {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !navigator.geolocation) {
-      resolve(getStoredPickup());
-      return;
-    }
-    const onSuccess = (pos: GeolocationPosition) => {
-      const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      storePickup(coords);
-      resolve(coords);
-    };
-    // Try high accuracy first; if it times out indoors, fall back to a
-    // coarser (network/Wi-Fi) fix instead of keeping a stale location.
-    navigator.geolocation.getCurrentPosition(
-      onSuccess,
-      () => navigator.geolocation.getCurrentPosition(
-        onSuccess,
-        () => resolve(getStoredPickup()),
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
-      ),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
-    );
-  });
-}
-
-// Gets a fresh GPS reading without touching the stored pickup — used when
-// generating a location code, where accuracy matters more than reuse.
-export function getCurrentPositionFresh(): Promise<Coords | null> {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !navigator.geolocation) {
-      resolve(null);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
-  });
-}
-
-// Live GPS reading for screens that must not guess (markets, delivery fees).
-// Returns null when the position can't be determined, so callers can say so
-// instead of showing a made-up distance. Tries high accuracy first, then a
-// coarser fix, and keeps the stored pickup in sync on success.
+// Gets the device's live GPS position. Resolves null when it can't be
+// determined (unsupported, permission denied, timeout, no signal) so callers
+// can tell the user instead of guessing. Tries a high-accuracy fix first, then
+// a coarser network fix, but never retries after a permission denial and never
+// falls back to a stored or default location.
 export function getLivePosition(): Promise<Coords | null> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
       resolve(null);
       return;
     }
-    const onSuccess = (pos: GeolocationPosition) => {
-      const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      storePickup(coords);
-      resolve(coords);
-    };
+    const onSuccess = (pos: GeolocationPosition) =>
+      resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     navigator.geolocation.getCurrentPosition(
       onSuccess,
-      () => navigator.geolocation.getCurrentPosition(
-        onSuccess,
-        () => resolve(null),
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
-      ),
+      (err) => {
+        // 1 = PERMISSION_DENIED: a second attempt can't succeed.
+        if (err.code === 1) {
+          resolve(null);
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          onSuccess,
+          () => resolve(null),
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 },
+        );
+      },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
     );
   });
 }
+
+// Same live-only behaviour; kept as aliases so existing screens keep working.
+export const requestLiveLocation = getLivePosition;
+export const getCurrentPositionFresh = getLivePosition;
