@@ -420,6 +420,8 @@ model WalletTransaction {
 model Delivery {
   id               String         @id @default(uuid())
   merchantId       String?
+  partnerId        String?
+  partnerOrderRef  String?
   orderId          String?        @unique
   customerId       String?
   driverId         String?
@@ -456,6 +458,8 @@ model Delivery {
   customer         User?          @relation("CustomerDeliveries", fields: [customerId], references: [id])
   driver           Driver?        @relation("DriverDeliveries", fields: [driverId], references: [id])
   merchant         Merchant?      @relation(fields: [merchantId], references: [id])
+  partner          FoodDeliveryPartner? @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  partnerWalletTransaction PartnerWalletTransaction?
   order            Order?         @relation(fields: [orderId], references: [id])
   reviews          Review[]
   promoRedemption  PromoCodeRedemption?
@@ -1349,6 +1353,39 @@ model StatutoryRemittance {
 
   @@unique([period, obligationType])
   @@index([status, dueDate])
+}
+
+
+model FoodDeliveryPartner {
+  id           String   @id @default(uuid())
+  name         String
+  contactEmail String?
+  status       String   @default("ACTIVE")
+  balance      Int      @default(0)
+  apiKeyHash   String   @unique
+  apiKeyPrefix String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deliveries   Delivery[]
+  transactions PartnerWalletTransaction[]
+
+  @@index([status, createdAt])
+}
+
+model PartnerWalletTransaction {
+  id            String   @id @default(uuid())
+  partnerId     String
+  deliveryId    String?  @unique
+  amount        Int
+  balanceBefore Int
+  balanceAfter  Int
+  reference     String?
+  description   String?
+  createdAt     DateTime @default(now())
+  partner       FoodDeliveryPartner @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  delivery      Delivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+
+  @@index([partnerId, createdAt])
 }
 
 model PromoCode {
