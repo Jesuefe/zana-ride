@@ -1,34 +1,76 @@
-import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles.guard';
-import { FoodPartnerApiKeyGuard, FoodPartnersService } from './food-partners.service';
+import { FoodPartnerApiKeyGuard, FoodPartnerSessionGuard, FoodPartnersService } from './food-partners.service';
 
 @Controller('food-partners')
-@UseGuards(FoodPartnerApiKeyGuard)
 export class FoodPartnersController {
   constructor(private service: FoodPartnersService) {}
 
+  @Post('register')
+  register(@Body() body: { businessName: string; email: string; phone: string; password: string; contactName?: string }) {
+    return this.service.registerPortalAccount(body);
+  }
+
   @Post('quote')
+  @UseGuards(FoodPartnerApiKeyGuard)
   quote(@Body() body: any) { return this.service.quote(body); }
 
   @Post('deliveries')
+  @UseGuards(FoodPartnerApiKeyGuard)
   createDelivery(@Req() req: any, @Body() body: any) {
     return this.service.createDelivery(req.foodPartner.id, body);
   }
 
   @Get('wallet')
+  @UseGuards(FoodPartnerApiKeyGuard)
   wallet(@Req() req: any) { return this.service.wallet(req.foodPartner.id); }
 
   @Get('wallet/transactions')
+  @UseGuards(FoodPartnerApiKeyGuard)
   transactions(@Req() req: any) { return this.service.transactions(req.foodPartner.id); }
 
   @Get('deliveries/:id')
+  @UseGuards(FoodPartnerApiKeyGuard)
   getDelivery(@Req() req: any, @Param('id') id: string) {
     return this.service.getDelivery(req.foodPartner.id, id);
   }
 
   @Post('deliveries/:id/cancel')
+  @UseGuards(FoodPartnerApiKeyGuard)
   cancelDelivery(@Req() req: any, @Param('id') id: string) {
     return this.service.cancelDelivery(req.foodPartner.id, id);
+  }
+}
+
+@Controller('food-partners/portal')
+@UseGuards(JwtAuthGuard, FoodPartnerSessionGuard)
+export class FoodPartnerPortalController {
+  constructor(private service: FoodPartnersService) {}
+
+  @Get('me')
+  me(@Req() req: any) { return this.service.portalPartner(req.user.sub); }
+
+  @Get('overview')
+  overview(@Req() req: any) { return this.service.portalOverview(req.user.sub); }
+
+  @Get('deliveries')
+  deliveries(@Req() req: any, @Query('limit') limit?: string) {
+    return this.service.portalDeliveries(req.user.sub, limit ? Number(limit) : 50);
+  }
+
+  @Get('wallet')
+  wallet(@Req() req: any) {
+    return this.service.wallet(req.foodPartner.id);
+  }
+
+  @Get('wallet/transactions')
+  transactions(@Req() req: any) {
+    return this.service.transactions(req.foodPartner.id);
+  }
+
+  @Post('rotate-key')
+  rotateKey(@Req() req: any) {
+    return this.service.portalRotateKey(req.user.sub);
   }
 }
 
