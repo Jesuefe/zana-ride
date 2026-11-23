@@ -1,5 +1,6 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException, ForbiddenException, TooManyRequestsException } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
+import * as bcrypt from 'bcryptjs';
 import { DeliveryStatus, PackageWeight } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { DeliveriesService } from '../deliveries/deliveries.service';
@@ -9,6 +10,83 @@ const newApiKey = () => `zana_live_${randomBytes(32).toString('base64url')}`;
 
 @Injectable()
 export class FoodPartnersService {
+  async registerPortalAccount(input: { businessName: string; email: string; phone: string; password: string; contactName?: string }) {
+    const businessName = String(input.businessName || '').trim();
+    const email = String(input.email || '').trim().toLowerCase();
+    const phone = String(input.phone || '').trim();
+    const password = String(input.password || '');
+    if (!businessName || businessName.length > 120) throw new BadRequestException('BUSINESS_NAME_REQUIRED_MAX_120');
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw new BadRequestException('VALID_EMAIL_REQUIRED');
+    if (phone.replace(/\\D/g, '').length < 9) throw new BadRequestException('VALID_PHONE_REQUIRED');
+    if (password.length < 10) throw new BadRequestException('PASSWORD_MINIMUM_10_CHARACTERS');
+    const passwordHash = await bcrypt.hash(password, 12);
+    const apiKey = newApiKey();
+    try {
+      const partner = await this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            phone, email, password: passwordHash,
+            firstName: input.contactName?.trim() || businessName,
+            role: 'CUSTOMER',
+            status: 'ACTIVE',
+          },
+        });
+        return tx.foodDeliveryPartner.create({
+          data: {
+            userId: user.id, name: businessName, contactEmail: email, status: 'PENDING',
+            apiKeyHash: hashKey(apiKey), apiKeyPrefix: apiKey.slice(0, 18),
+          },
+          select: { id: true, name: true, contactEmail: true, status: true, balance: true, apiKeyPrefix: true, createdAt: true },
+        });
+      });
+      return { partner, message: 'Application received. Zana will review your business before API access is activated.' };
+    } catch (error: any) {
+      if (error?.code === 'P2002') throw new ConflictException('EMAIL_OR_PHONE_ALREADY_REGISTERED');
+      throw error;
+    }
+  }
+
+  async portalPartner(userId: string) {
+    const partner = await this.prisma.foodDeliveryPartner.findUnique({
+      where: { userId },
+      select: { id: true, name: true, contactEmail: true, status: true, balance: true, apiKeyPrefix: true, createdAt: true },
+    });
+    if (!partner) throw new ForbiddenException('BUSINESS_PARTNER_ACCOUNT_REQUIRED');
+    return partner;
+  }
+
+  async portalOverview(userId: string) {
+    const partner = await this.portalPartner(userId);
+    const [totalDeliveries, statusCounts, spend, recentDeliveries, recentTransactions] = await Promise.all([
+      this.prisma.delivery.count({ where: { partnerId: partner.id } }),
+      this.prisma.delivery.groupBy({ by: ['status'], where: { partnerId: partner.id }, _count: { _all: true } }),
+      this.prisma.partnerWalletTransaction.aggregate({ where: { partnerId: partner.id, amount: { lt: 0 } }, _sum: { amount: true } }),
+      this.prisma.delivery.findMany({ where: { partnerId: partner.id }, orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, partnerOrderRef: true, trackingCode: true, status: true, fee: true, createdAt: true, pickupAddress: true, dropoffAddress: true } }),
+      this.prisma.partnerWalletTransaction.findMany({ where: { partnerId: partner.id }, orderBy: { createdAt: 'desc' }, take: 5, select: { amount: true, balanceAfter: true, reference: true, description: true, createdAt: true } }),
+    ]);
+    return {
+      partner, currency: 'RWF', totalDeliveries,
+      totalSpent: Math.abs(spend._sum.amount || 0),
+      statusCounts: Object.fromEntries(statusCounts.map(item => [item.status, item._count._all])),
+      recentDeliveries, recentTransactions,
+    };
+  }
+
+  async portalDeliveries(userId: string, limit = 50) {
+    const partner = await this.portalPartner(userId);
+    const safeLimit = Math.min(100, Math.max(1, Number.isInteger(limit) ? limit : 50));
+    return this.prisma.delivery.findMany({
+      where: { partnerId: partner.id }, orderBy: { createdAt: 'desc' }, take: safeLimit,
+      select: { id: true, partnerOrderRef: true, trackingCode: true, status: true, fee: true, distanceKm: true, paid: true, pickupAddress: true, dropoffAddress: true, receiverName: true, createdAt: true, assignedAt: true, pickedUpAt: true, deliveredAt: true },
+    });
+  }
+
+  async portalRotateKey(userId: string) {
+    const partner = await this.portalPartner(userId);
+    if (partner.status !== 'ACTIVE') throw new ForbiddenException('PARTNER_NOT_ACTIVE');
+    return this.rotateKey(partner.id);
+  }
+
   constructor(private prisma: PrismaService, private deliveries: DeliveriesService) {}
 
   async createPartner(input: { name: string; contactEmail?: string }) {
@@ -233,7 +311,7 @@ export class FoodPartnerApiKeyGuard {
       select: { id: true, status: true },
     });
     if (!partner || partner.status !== 'ACTIVE') {
-      throw new (require('@nestjs/common').UnauthorizedException)('INVALID_API_KEY');
+      throw new UnauthorizedException('INVALID_API_KEY');
     }
     request.foodPartner = partner;
     return true;
