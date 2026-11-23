@@ -52,3 +52,20 @@ JWT-authenticated ADMIN endpoints:
 - `PATCH /admin/food-delivery-partners/:id/status` — set ACTIVE or SUSPENDED.
 
 Partner wallet top-ups in this first version are credited by an authorized Zana administrator after the payment is reconciled. Automated Paypack/Eversend top-up webhooks and outbound delivery-status webhooks are a separate integration phase; partners can poll the authenticated status endpoint meanwhile.
+
+
+## Zana Business portal
+Public partner page: `https://zanaride.rw/business`
+
+- `POST /food-partners/register` — self-service business application with business name, email, phone and password. New accounts are created as PENDING and require Zana review before delivery API access is enabled.
+- Sign in at the portal using the existing `POST /auth/login` endpoint with the business email and password.
+- The portal uses the resulting short/normal Zana bearer session token; the dashboard never asks partners to paste their API key into a browser.
+- `GET /food-partners/portal/me` — partner profile and approval status.
+- `GET /food-partners/portal/overview` — delivery totals, status breakdown, total spend, wallet balance and recent activity.
+- `GET /food-partners/portal/deliveries?limit=100` — latest deliveries (maximum 100).
+- `GET /food-partners/portal/wallet` and `GET /food-partners/portal/wallet/transactions` — wallet and ledger.
+- `POST /food-partners/portal/rotate-key` — issue a new API key once; the old key is invalidated immediately.
+
+Portal routes require a Zana JWT bearer token and a linked business partner account. Partner API routes require the private `X-Zana-API-Key`. Keep these credentials separate. The portal stores the login token in tab-scoped session storage; API keys should remain in the partner's server-side secret store.
+
+The first release provides polling for delivery status. It does not yet send outbound status webhooks or automatically process wallet top-ups. Partners can request a wallet top-up through Zana Business support; authorized Zana staff reconcile payment and credit the ledger.
