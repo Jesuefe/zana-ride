@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles.guard';
 import { FoodPartnerApiKeyGuard, FoodPartnersService } from './food-partners.service';
 
@@ -56,7 +56,7 @@ export class AdminFoodPartnersController {
 
   @Patch(':id/status')
   setStatus(@Param('id') id: string, @Body() body: { status: 'ACTIVE' | 'SUSPENDED' }) {
-    if (!['ACTIVE', 'SUSPENDED'].includes(body.status)) throw new (require('@nestjs/common').BadRequestException)('INVALID_PARTNER_STATUS');
+    if (!['ACTIVE', 'SUSPENDED'].includes(body.status)) throw new BadRequestException('INVALID_PARTNER_STATUS');
     return this.service.setPartnerStatus(id, body.status);
   }
 }
