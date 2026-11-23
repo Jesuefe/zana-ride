@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { DeliveryStatus, PackageWeight } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -218,6 +218,7 @@ export class FoodPartnersService {
   }
 }
 
+@Injectable()
 export class FoodPartnerApiKeyGuard {
   constructor(private prisma: PrismaService) {}
 
@@ -225,7 +226,7 @@ export class FoodPartnerApiKeyGuard {
     const request = context.switchToHttp().getRequest();
     const rawKey = request.headers['x-zana-api-key'];
     if (typeof rawKey !== 'string' || !rawKey.startsWith('zana_live_')) {
-      throw new (require('@nestjs/common').UnauthorizedException)('INVALID_API_KEY');
+      throw new UnauthorizedException('INVALID_API_KEY');
     }
     const partner = await this.prisma.foodDeliveryPartner.findUnique({
       where: { apiKeyHash: hashKey(rawKey) },
