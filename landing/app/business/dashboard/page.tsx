@@ -1,5 +1,7 @@
 'use client';
 
+import '../business.css';
+
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
