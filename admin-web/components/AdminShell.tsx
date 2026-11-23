@@ -22,6 +22,7 @@ const SENIOR_NAV = [
   { label: 'Rider Applications', href: '/dashboard/rider-registrations', icon: ClipboardList, group: 'People & partners' },
   { label: 'Merchants', href: '/dashboard/merchants', icon: Store, group: 'People & partners' },
   { label: 'Merchant Registrations', href: '/dashboard/merchant-registrations', icon: ClipboardList, group: 'People & partners' },
+  { label: 'Food Delivery Partners', href: '/dashboard/food-partners', icon: Truck, group: 'People & partners' },
   { label: 'Assisted Onboarding', href: '/dashboard/onboarding', icon: UserPlus, group: 'People & partners' },
   { label: 'Agents', href: '/dashboard/agents', icon: UserCheck, group: 'People & partners' },
   { label: 'Orders', href: '/dashboard/orders', icon: ShoppingBag, group: 'Operations' },
