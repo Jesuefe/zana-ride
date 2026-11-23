@@ -211,3 +211,7 @@ button{font:inherit}
   .contact-hero{padding:54px 22px 35px;grid-template-columns:1fr;gap:12px}.contact-hero h1{font-size:clamp(62px,15vw,86px)}.contact-hero-copy>p:not(.eyebrow){font-size:16px;margin-top:19px}.contact-orbit-art{height:220px;margin-top:5px}.contact-orbit-a{width:215px}.contact-orbit-b{width:165px}.contact-art-disc{width:105px;height:105px;border-radius:30px}.contact-art-disc span{font-size:58px}.contact-art-note{right:0;bottom:4px;padding:11px 13px}.contact-art-label{right:8%;top:0}
   .contact-content{padding:0 22px 55px;grid-template-columns:1fr;gap:28px}.contact-form-panel{padding:24px 20px;border-radius:22px}.contact-field-row{grid-template-columns:1fr;gap:19px}.contact-direct-card{padding:25px}.contact-footer{padding:22px;flex-wrap:wrap}.contact-footer .brand{font-size:23px}
 }
+
+.business-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.business-actions .text-link{font-size:13px;font-weight:750;color:var(--ink)}
+.business-actions .text-link:hover{color:var(--green)}
