@@ -22,6 +22,7 @@ CREATE TABLE "PartnerWalletTransaction" (
   "partnerId" TEXT NOT NULL,
   "deliveryId" TEXT,
   "amount" INTEGER NOT NULL,
+  "transactionType" TEXT NOT NULL DEFAULT 'DELIVERY_FEE',
   "balanceBefore" INTEGER NOT NULL,
   "balanceAfter" INTEGER NOT NULL,
   "reference" TEXT,
@@ -31,6 +32,7 @@ CREATE TABLE "PartnerWalletTransaction" (
 );
 CREATE UNIQUE INDEX "PartnerWalletTransaction_deliveryId_key" ON "PartnerWalletTransaction"("deliveryId");
 CREATE INDEX "PartnerWalletTransaction_partnerId_createdAt_idx" ON "PartnerWalletTransaction"("partnerId", "createdAt");
+CREATE UNIQUE INDEX "PartnerWalletTransaction_partnerId_transactionType_reference_key" ON "PartnerWalletTransaction"("partnerId", "transactionType", "reference");
 ALTER TABLE "PartnerWalletTransaction" ADD CONSTRAINT "PartnerWalletTransaction_partnerId_fkey"
   FOREIGN KEY ("partnerId") REFERENCES "FoodDeliveryPartner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "PartnerWalletTransaction" ADD CONSTRAINT "PartnerWalletTransaction_deliveryId_fkey"
