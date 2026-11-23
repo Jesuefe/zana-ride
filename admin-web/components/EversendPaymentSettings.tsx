@@ -1,147 +1,33 @@
 'use client';
-
-import { useEffect, useState } from 'react';
-import { api } from '../lib/api/client';
-import { CheckCircle2, CreditCard, Eye, EyeOff, RefreshCw, Save, ShieldCheck, Wifi, Copy } from 'lucide-react';
-
-type EversendSettings = {
-  provider: 'EVERSEND';
-  enabled: boolean;
-  environment: 'sandbox' | 'production';
-  baseUrl: string;
-  rail: 'auto' | 'mtn_momo' | 'airtel_money';
-  minWithdrawal: number;
-  configured: boolean;
-  apiKeyHint?: string | null;
-  clientIdHint?: string | null;
-  webhookConfigured?: boolean;
-  activeProvider?: string;
-};
-
-const WEBHOOK_URL = 'https://zana.ajumalink.com/api/v1/webhooks/eversend';
-
-export default function EversendPaymentSettings() {
-  const [settings, setSettings] = useState<EversendSettings>({
-    provider: 'EVERSEND',
-    enabled: false,
-    environment: 'sandbox',
-    baseUrl: 'https://api.eversend.co/v1',
-    rail: 'auto',
-    minWithdrawal: 1000,
-    configured: false,
-    webhookConfigured: false,
-  });
-  const [apiKey, setApiKey] = useState('');
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
-  const [webhookSecret, setWebhookSecret] = useState('');
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.get<EversendSettings>('/admin/settings/payments/eversend')
-      .then(setSettings)
-      .catch((e: any) => setError(e?.message ?? 'Could not load Eversend settings.'));
-  }, []);
-
-  const save = async () => {
-    setSaving(true); setMessage(null); setError(null);
-    try {
-      const next = await api.patch<EversendSettings>('/admin/settings/payments/eversend', {
-        enabled: settings.enabled,
-        environment: settings.environment,
-        baseUrl: settings.baseUrl,
-        rail: settings.rail,
-        minWithdrawal: settings.minWithdrawal,
-        apiKey: apiKey.trim() || undefined,
-        clientId: clientId.trim() || undefined,
-        clientSecret: clientSecret.trim() || undefined,
-        webhookSecret: webhookSecret.trim() || undefined,
-      });
-      setSettings(next);
-      setApiKey(''); setClientId(''); setClientSecret(''); setWebhookSecret('');
-      setMessage('Eversend settings saved securely.');
-    } catch (e: any) {
-      setError(e?.message ?? 'Could not save Eversend settings.');
-    } finally { setSaving(false); }
-  };
-
-  const test = async () => {
-    setTesting(true); setMessage(null); setError(null);
-    try {
-      const result: any = await api.post('/admin/settings/payments/eversend/test');
-      setMessage(`Eversend connection successful (${result.environment}).`);
-    } catch (e: any) {
-      setError(e?.message ?? 'Eversend connection test failed.');
-    } finally { setTesting(false); }
-  };
-
-  const copyWebhook = async () => {
-    try { await navigator.clipboard.writeText(WEBHOOK_URL); setMessage('Webhook URL copied.'); }
-    catch { setError('Could not copy webhook URL.'); }
-  };
-
-  return (
-    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="p-5 border-b border-gray-100 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-zana-primary/10 flex items-center justify-center text-zana-primary"><CreditCard size={20}/></div>
-          <div><h2 className="font-bold text-gray-900">Eversend payments</h2><p className="text-xs text-gray-500">Collections, driver and merchant payouts, and payment status updates.</p></div>
-        </div>
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${settings.enabled ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{settings.enabled ? 'Enabled' : 'Disabled'}</span>
-      </div>
-
-      <div className="p-5 space-y-5">
-        <label className="flex items-center justify-between gap-4 p-3 rounded-xl bg-gray-50">
-          <div><div className="text-sm font-semibold text-gray-900">Use Eversend for new transactions</div><div className="text-xs text-gray-500">When enabled, new collections and payouts route through Eversend. Existing Paypack transactions continue to reconcile with Paypack.</div></div>
-          <button type="button" onClick={() => setSettings(s => ({ ...s, enabled: !s.enabled }))} className={`relative w-11 h-6 rounded-full transition ${settings.enabled ? 'bg-zana-primary' : 'bg-gray-300'}`} aria-label="Enable Eversend"><span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition ${settings.enabled ? 'left-6' : 'left-1'}`}/></button>
-        </label>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <label><span className="text-xs font-semibold text-gray-600 block mb-1.5">Environment</span><select value={settings.environment} onChange={e => setSettings(s => ({ ...s, environment: e.target.value as EversendSettings['environment'] }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white"><option value="sandbox">Sandbox / Test</option><option value="production">Production / Live</option></select></label>
-          <label><span className="text-xs font-semibold text-gray-600 block mb-1.5">Rwanda mobile-money payout rail</span><select value={settings.rail} onChange={e => setSettings(s => ({ ...s, rail: e.target.value as EversendSettings['rail'] }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white"><option value="auto">Auto-detect MTN / Airtel</option><option value="mtn_momo">MTN Mobile Money only</option><option value="airtel_money">Airtel Money only</option></select></label>
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-600 block mb-1.5">Eversend API key <span className="font-normal text-gray-400">(or use Client ID + Client Secret below)</span></label>
-          <div className="relative"><input value={apiKey} onChange={e => setApiKey(e.target.value)} type={showApiKey ? 'text' : 'password'} placeholder={settings.apiKeyHint ? `Saved: ${settings.apiKeyHint} — leave blank to keep it` : 'sk_test_… or sk_live_…'} autoComplete="new-password" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 pr-10 text-sm font-mono"/><button type="button" onClick={() => setShowApiKey(v => !v)} className="absolute right-3 top-2.5 text-gray-400">{showApiKey ? <EyeOff size={17}/> : <Eye size={17}/>}</button></div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <label><span className="text-xs font-semibold text-gray-600 block mb-1.5">Client ID</span><input value={clientId} onChange={e => setClientId(e.target.value)} type="password" placeholder={settings.clientIdHint ? `Saved: ${settings.clientIdHint} — leave blank to keep it` : 'Eversend Client ID'} autoComplete="new-password" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono"/></label>
-          <label><span className="text-xs font-semibold text-gray-600 block mb-1.5">Client Secret</span><input value={clientSecret} onChange={e => setClientSecret(e.target.value)} type="password" placeholder="Eversend Client Secret" autoComplete="new-password" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono"/></label>
-        </div>
-        <p className="text-xs text-gray-500 -mt-3">Enter either an API key or both Client ID and Client Secret. Credentials are encrypted on the API server and never sent back to the browser.</p>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-600 block mb-1.5">Webhook signing secret <span className="font-normal text-gray-400">(required for signed webhooks)</span></label>
-          <div className="relative"><input value={webhookSecret} onChange={e => setWebhookSecret(e.target.value)} type={showWebhookSecret ? 'text' : 'password'} placeholder={settings.webhookConfigured ? 'Saved — leave blank to keep it' : 'Paste the secret generated by Eversend'} autoComplete="new-password" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 pr-10 text-sm font-mono"/><button type="button" onClick={() => setShowWebhookSecret(v => !v)} className="absolute right-3 top-2.5 text-gray-400">{showWebhookSecret ? <EyeOff size={17}/> : <Eye size={17}/>}</button></div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500"><span>Webhook URL:</span><code className="break-all">{WEBHOOK_URL}</code><button type="button" onClick={copyWebhook} className="inline-flex items-center gap-1 text-zana-primary font-semibold"><Copy size={13}/> Copy</button></div>
-          <p className="text-xs text-gray-500 mt-1">Register this URL in Eversend Settings → Developers, then paste the generated signing secret above.</p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <label><span className="text-xs font-semibold text-gray-600 block mb-1.5">API base URL</span><input value={settings.baseUrl} onChange={e => setSettings(s => ({ ...s, baseUrl: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono"/></label>
-          <label><span className="text-xs font-semibold text-gray-600 block mb-1.5">Minimum withdrawal (RWF)</span><input type="number" min={1000} step={100} value={settings.minWithdrawal} onChange={e => setSettings(s => ({ ...s, minWithdrawal: Math.max(1000, Number(e.target.value) || 1000) }))} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm"/></label>
-        </div>
-
-        {(message || error) && <div className={`rounded-lg p-3 text-sm ${error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{error || message}</div>}
-
-        <div className="flex flex-wrap gap-2">
-          <button onClick={save} disabled={saving} className="flex items-center gap-2 bg-zana-primary text-white font-semibold px-4 py-2.5 rounded-lg disabled:opacity-50"><Save size={16}/>{saving ? 'Saving…' : 'Save Eversend settings'}</button>
-          <button onClick={test} disabled={testing || !settings.configured} className="flex items-center gap-2 border border-gray-200 text-gray-700 font-semibold px-4 py-2.5 rounded-lg disabled:opacity-40">{testing ? <RefreshCw size={16} className="animate-spin"/> : <Wifi size={16}/>} {testing ? 'Testing…' : 'Test connection'}</button>
-        </div>
-
-        <div className="pt-3 border-t border-gray-100 grid md:grid-cols-3 gap-3 text-xs text-gray-500">
-          <div className="flex gap-2"><ShieldCheck size={15} className="text-zana-primary shrink-0"/>Credentials are encrypted at rest.</div>
-          <div className="flex gap-2"><EyeOff size={15} className="text-zana-primary shrink-0"/>Full secrets are never returned to the browser.</div>
-          <div className="flex gap-2"><CheckCircle2 size={15} className="text-zana-primary shrink-0"/>Use sandbox first, then production.</div>
-        </div>
-      </div>
-    </section>
-  );
+import {useEffect,useRef,useState} from 'react';
+import {api} from '../lib/api/client';
+import {ArrowRight,ArrowLeft,CheckCircle2,Copy,ExternalLink,Eye,EyeOff,HeartHandshake,KeyRound,LockKeyhole,PartyPopper,ShieldCheck,Sparkles,Volume2,VolumeX,Wifi,CreditCard} from 'lucide-react';
+type Settings={environment:'sandbox'|'production';configured:boolean;lastTestStatus?:string;lastTestedAt?:string|null;activeProvider:string;baseUrl:string;paymentsActive:boolean};
+const IP='173.212.255.134';
+export default function EversendPaymentSettings(){
+ const [s,setS]=useState<Settings>({environment:'sandbox',configured:false,lastTestStatus:'NOT_CONFIGURED',activeProvider:'PAYPACK',baseUrl:'https://api.eversend.co/v1',paymentsActive:false});
+ const [step,setStep]=useState(0),[id,setId]=useState(''),[secret,setSecret]=useState(''),[showId,setShowId]=useState(false),[showSecret,setShowSecret]=useState(false),[sound,setSound]=useState(false),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[testing,setTesting]=useState(false),[msg,setMsg]=useState(''),[err,setErr]=useState('');
+ const audio=useRef<AudioContext|null>(null);
+ const chime=(win=false)=>{if(!sound||typeof window==='undefined')return;try{const C=window.AudioContext||(window as any).webkitAudioContext;if(!C)return;const a=audio.current||new C();audio.current=a;if(a.state==='suspended')void a.resume();(win?[523,659,784,1047]:[660,880]).forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=f;o.type='sine';g.gain.setValueAtTime(.0001,a.currentTime+i*.11);g.gain.exponentialRampToValueAtTime(win?.07:.03,a.currentTime+i*.11+.02);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+i*.11+.2);o.connect(g);g.connect(a.destination);o.start(a.currentTime+i*.11);o.stop(a.currentTime+i*.11+.22);});}catch{}};
+ const go=(n:number)=>{chime();setErr('');setMsg('');setStep(n);};
+ useEffect(()=>{api.get<Settings>('/admin/settings/payments/eversend').then(v=>{setS(v);if(v.configured&&v.lastTestStatus==='SUCCESS')setStep(100);}).catch((e:any)=>setErr(e?.message||'Could not load setup.')).finally(()=>setLoading(false));},[]);
+ const save=async()=>{if(!id.trim()||!secret.trim()){setErr('We need both keys to connect Zana. Please check the Client ID and Client Secret.');return;}setSaving(true);setErr('');try{const v=await api.patch<Settings>('/admin/settings/payments/eversend',{environment:s.environment,clientId:id.trim(),clientSecret:secret.trim()});setS(v);setId('');setSecret('');setStep(4);chime(true);setMsg('Beautiful. Your credentials are encrypted and saved. One last check!');}catch(e:any){setErr(e?.message||'Could not save credentials.');}finally{setSaving(false);}};
+ const test=async()=>{setTesting(true);setErr('');try{await api.post('/admin/settings/payments/eversend/test');setS(v=>({...v,lastTestStatus:'SUCCESS'}));setStep(99);chime(true);}catch(e:any){setErr(e?.message||'Eversend could not verify these credentials. Check the environment and try again.');}finally{setTesting(false);}};
+ const copy=async()=>{try{await navigator.clipboard.writeText(IP);setMsg('Zana server IP copied!');}catch{setErr('Please select and copy the IP manually.');}};
+ const done=step===99;
+ if(step===100)return null;
+ return <section className="relative overflow-hidden rounded-[28px] border border-emerald-100 bg-[#f7fffc] shadow-[0_18px_60px_rgba(0,128,100,.1)]">
+ <style jsx>{'@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}@keyframes enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes confetti{0%{transform:translateY(-20px) rotate(0);opacity:0}15%{opacity:1}100%{transform:translateY(170px) rotate(220deg);opacity:0}}.floaty{animation:floaty 3.4s ease-in-out infinite}.enter{animation:enter .45s ease both}.confetti{position:absolute;top:-12px;width:8px;height:13px;border-radius:2px;animation:confetti 2.6s ease-in forwards}@media(prefers-reduced-motion:reduce){.floaty,.enter,.confetti{animation:none!important}}'}</style>
+ <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-emerald-200/40 blur-3xl"/><div className="pointer-events-none absolute -bottom-32 -left-24 h-72 w-72 rounded-full bg-yellow-200/50 blur-3xl"/>
+ <header className="relative flex items-center justify-between gap-3 border-b border-emerald-100 px-5 py-4 sm:px-7"><div className="flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#00A082] text-white"><LockKeyhole size={20}/></div><div><div className="text-sm font-black text-slate-900">Zana Founder Welcome</div><div className="text-xs text-slate-500">A little help getting payments ready</div></div></div><button type="button" onClick={()=>setSound(v=>!v)} className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-white px-3 py-2 text-xs font-semibold text-slate-600">{sound?<Volume2 size={15}/>:<VolumeX size={15}/>} Sound {sound?'on':'off'}</button></header>
+ {loading?<div className="p-12 text-center text-sm text-slate-500">Getting Zana's welcome ready…</div>:done?<div className="relative overflow-hidden px-5 py-12 text-center sm:px-10">{[8,18,29,43,57,69,81,92].map((v,i)=><i key={v} className="confetti" style={{left:v+'%',background:['#00A082','#FFC244','#72C9B5','#F59E0B'][i%4],animationDelay:i*.12+'s'}}/>)}<div className="floaty mx-auto flex h-24 w-24 items-center justify-center rounded-[30px] bg-[#00A082] text-white"><PartyPopper size={42}/></div><div className="mx-auto mt-7 max-w-xl"><span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800"><CheckCircle2 size={14}/> FOUNDER SETUP COMPLETE</span><h2 className="mt-4 text-3xl font-black text-slate-900 sm:text-4xl">You did it. Welcome aboard!</h2><p className="mt-3 text-base leading-7 text-slate-600">Eversend has verified your API credentials. We made setting up payments a little more fun — and you made it look easy.</p><div className="mx-auto mt-6 max-w-md rounded-2xl border border-emerald-100 bg-white p-4 text-left"><b className="flex items-center gap-2 text-sm text-slate-800"><ShieldCheck className="text-[#00A082]" size={17}/> Your setup is safely stored</b><p className="mt-1 text-xs leading-5 text-slate-500">This one-time welcome experience has signed off. Zana records completion on the server, so it will not appear again after refresh.</p></div><div className="mx-auto mt-4 max-w-md rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left"><b className="flex items-center gap-2 text-sm text-amber-900"><CreditCard size={17}/> One important next step</b><p className="mt-1 text-xs leading-5 text-amber-800">Credential verification does not switch live customer payments or driver payouts. Paypack remains active until Eversend collections, payouts, webhooks and reconciliation are separately tested and approved.</p></div><p className="mt-6 text-sm font-semibold text-[#00866f]">Thank you for building with Zana. Let's move Rwanda forward.</p><button type="button" onClick={()=>setStep(100)} className="mt-5 rounded-xl bg-[#00A082] px-6 py-3 text-sm font-bold text-white">Finish and close this setup</button></div></div>:<div className="relative mx-auto max-w-3xl px-5 py-7 sm:px-10 sm:py-10">
+ <div className="mb-7 flex items-center justify-between"><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-emerald-800"><Sparkles size={15}/> A friendly setup journey</div><span className="text-xs font-semibold text-slate-400">{step===0?'Just getting started':'Step '+step+' of 4'}</span></div>
+ {step===0&&<div className="enter text-center"><div className="floaty mx-auto flex h-24 w-24 items-center justify-center rounded-[30px] bg-gradient-to-br from-[#00A082] to-[#087c69] text-white"><HeartHandshake size={43}/></div><p className="mt-7 text-sm font-bold text-[#00866f]">HELLO FROM THE ZANA TEAM</p><h2 className="mx-auto mt-2 max-w-2xl text-3xl font-black leading-tight text-slate-900 sm:text-4xl">Hi, good day! You must be the owner of Zana?</h2><p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-slate-500">We've prepared a quick, friendly setup to connect Zana to its payment provider. No technical stress — we'll walk you through it.</p><div className="mt-8 flex flex-wrap justify-center gap-3"><button type="button" onClick={()=>go(1)} className="inline-flex items-center gap-2 rounded-xl bg-[#00A082] px-6 py-3.5 text-sm font-bold text-white shadow-lg">Yes, that's me <ArrowRight size={17}/></button><button type="button" onClick={()=>go(-1)} className="rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-semibold text-slate-600">I'm helping the owner</button></div></div>}
+ {step===-1&&<div className="enter mx-auto max-w-xl text-center"><HeartHandshake size={34} className="mx-auto text-[#00A082]"/><h2 className="mt-5 text-2xl font-black text-slate-900">That's absolutely fine.</h2><p className="mt-3 text-sm leading-6 text-slate-600">For security, only Zana's authorised founder account can save payment credentials. Please invite the founder to sign in and complete this short setup.</p><button type="button" onClick={()=>go(0)} className="mt-6 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700">Back</button></div>}
+ {step===1&&<div className="enter"><div className="flex items-start gap-4"><div className="floaty flex h-14 w-14 items-center justify-center rounded-2xl bg-yellow-100 text-amber-700"><PartyPopper size={27}/></div><div><p className="text-sm font-bold text-[#00866f]">NICE TO MEET YOU!</p><h2 className="mt-1 text-2xl font-black text-slate-900 sm:text-3xl">Great! Zana needs a way to get paid.</h2></div></div><p className="mt-5 text-sm leading-7 text-slate-600">Zana brings riders, drivers, restaurants and merchants together. A reliable payment connection helps customers pay, helps Zana track transactions, and supports the payment flows we build for drivers and merchants.</p><div className="mt-5 grid gap-3 sm:grid-cols-3">{[['Customers','Pay for rides, deliveries and orders'],['Merchants','Track payments for orders'],['Zana','Keep transactions organised']].map(([t,d])=><div key={t} className="rounded-2xl border border-emerald-100 bg-white p-4"><b className="text-sm text-slate-800">{t}</b><p className="mt-1 text-xs leading-5 text-slate-500">{d}</p></div>)}</div><div className="mt-5 rounded-2xl border border-yellow-200 bg-yellow-50 p-4"><b className="text-sm text-amber-900">And don't worry — we made it fun.</b><p className="mt-1 text-xs leading-5 text-amber-800">Just a few simple steps. Your secret keys stay private and are encrypted before they are saved.</p></div><div className="mt-7 flex justify-end"><button type="button" onClick={()=>go(2)} className="inline-flex items-center gap-2 rounded-xl bg-[#00A082] px-5 py-3 text-sm font-bold text-white">Let's get started <ArrowRight size={16}/></button></div></div>}
+ {step===2&&<div className="enter space-y-5"><div><p className="text-sm font-bold text-[#00866f]">FIRST, A LITTLE PREPARATION</p><h2 className="mt-1 text-2xl font-black text-slate-900">Let's get your Eversend access ready.</h2><p className="mt-2 text-sm leading-6 text-slate-500">Open your Eversend Business account. If API access is not enabled, ask Eversend to activate Merchant API access for Zana Ride.</p></div><ol className="space-y-3">{[['1','Sign in to Eversend Business','Make sure your business verification is complete.'],['2','Request Merchant API access','If needed, contact business@eversend.co and request API access for Zana Ride, Rwanda.'],['3','Find your API keys','In developer settings, copy the Client ID and Client Secret. Start with sandbox credentials.']].map(([n,t,d])=><li key={n} className="flex gap-3 rounded-2xl border border-emerald-100 bg-white p-4"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#00A082] text-xs font-black text-white">{n}</span><div><b className="text-sm text-slate-800">{t}</b><p className="mt-1 text-xs leading-5 text-slate-500">{d}</p></div></li>)}</ol><div className="rounded-2xl border border-blue-100 bg-blue-50 p-4"><b className="text-xs uppercase tracking-wider text-blue-800">Zana server IP — only if Eversend requests allowlisting</b><div className="mt-2 flex items-center gap-3"><code className="text-lg font-black text-blue-950">{IP}</code><button type="button" onClick={copy} className="inline-flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-bold text-blue-800"><Copy size={14}/> Copy</button></div></div><div className="flex flex-wrap items-center justify-between gap-3"><a className="inline-flex items-center gap-1 text-xs font-bold text-[#00866f]" href="https://eversend.readme.io/reference/before-getting-started" target="_blank" rel="noreferrer">Eversend API guide <ExternalLink size={13}/></a><button type="button" onClick={()=>go(3)} className="inline-flex items-center gap-2 rounded-xl bg-[#00A082] px-5 py-3 text-sm font-bold text-white">I have my keys <ArrowRight size={16}/></button></div></div>}
+ {step===3&&<div className="enter space-y-5"><div><p className="text-sm font-bold text-[#00866f]">YOU'RE DOING GREAT</p><h2 className="mt-1 text-2xl font-black text-slate-900">Let's introduce Zana to Eversend.</h2><p className="mt-2 text-sm leading-6 text-slate-500">Paste the two keys below. They are sent securely to Zana's backend and encrypted before being stored.</p></div><label className="block"><span className="mb-2 block text-xs font-bold text-slate-700">Which keys are you entering?</span><select value={s.environment} onChange={e=>setS(v=>({...v,environment:e.target.value as Settings['environment']}))} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold"><option value="sandbox">Sandbox / Test keys (recommended first)</option><option value="production">Production / Live keys</option></select></label><label className="block"><span className="mb-2 block text-xs font-bold text-slate-700">Eversend Client ID</span><div className="relative"><input value={id} onChange={e=>setId(e.target.value)} type={showId?'text':'password'} autoComplete="new-password" placeholder="Paste your Client ID here" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 font-mono text-sm"/><button type="button" onClick={()=>setShowId(v=>!v)} className="absolute right-3 top-3 text-slate-400" aria-label="Show or hide Client ID">{showId?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></label><label className="block"><span className="mb-2 block text-xs font-bold text-slate-700">Eversend Client Secret</span><div className="relative"><input value={secret} onChange={e=>setSecret(e.target.value)} type={showSecret?'text':'password'} autoComplete="new-password" placeholder="Paste your Client Secret here" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 font-mono text-sm"/><button type="button" onClick={()=>setShowSecret(v=>!v)} className="absolute right-3 top-3 text-slate-400" aria-label="Show or hide Client Secret">{showSecret?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></label><div className="rounded-2xl bg-slate-900 p-4 text-white"><b className="flex items-center gap-2 text-sm"><ShieldCheck size={17} className="text-emerald-300"/> Your keys are protected</b><p className="mt-2 text-xs leading-5 text-slate-300">Zana encrypts both keys on the server using AES-256-GCM. Your browser never receives the saved secret or an Eversend access token.</p></div><div className="flex items-center justify-between gap-3"><button type="button" onClick={()=>go(2)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600"><ArrowLeft size={16}/> Back</button><button type="button" onClick={save} disabled={saving||!id.trim()||!secret.trim()} className="inline-flex items-center gap-2 rounded-xl bg-[#00A082] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{saving?'Saving safely…':'Save my keys securely'} <LockKeyhole size={16}/></button></div></div>}
+ {step===4&&<div className="enter text-center"><div className="floaty mx-auto flex h-20 w-20 items-center justify-center rounded-[26px] bg-emerald-100 text-[#00A082]"><KeyRound size={36}/></div><p className="mt-6 text-sm font-bold text-[#00866f]">KEYS SAVED SECURELY</p><h2 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">One last little handshake.</h2><p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-500">Zana will now ask Eversend to verify the credentials. We only check authentication — we do not move money or switch live payments during this test.</p><button type="button" onClick={test} disabled={testing} className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#00A082] px-6 py-3.5 text-sm font-bold text-white disabled:opacity-50"><Wifi size={17}/>{testing?'Saying hello to Eversend…':'Test the connection'}</button></div>}
+ {(msg||err)&&<div role="status" className={'mt-6 rounded-xl border p-3 text-sm '+(err?'border-red-100 bg-red-50 text-red-700':'border-emerald-100 bg-emerald-50 text-emerald-800')}>{err||msg}</div>}<div className="mt-8 flex items-center justify-center gap-2 border-t border-emerald-100 pt-5 text-[11px] font-medium text-slate-400"><ShieldCheck size={13}/> Founder-only access · Encrypted credentials · No secrets shown back</div></div>}
+ </section>;
 }
