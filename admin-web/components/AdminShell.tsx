@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Car, Store, Package, MapPin, UserCheck, TrendingUp, UserPlus, Tag,
   LogOut, Truck, ShieldCheck, DollarSign, ShoppingBag, Menu, X, Search, Send,
   Sun, Moon, Smartphone, Settings, Image as ImageIcon, ClipboardList, MessageCircle,
-  ChevronRight, Bell, Command, Activity, HeartHandshake
+  ChevronRight, Bell, Command, Activity, HeartHandshake, CreditCard
 } from 'lucide-react';
 import { getToken, clearToken, api } from '../lib/api/client';
 import { useTheme } from '../lib/ThemeContext';
@@ -48,6 +48,7 @@ const SENIOR_NAV = [
   { label: 'System Health', href: '/dashboard/system-health', icon: Activity, group: 'Finance & system' },
   { label: 'Test Accounts', href: '/dashboard/test-accounts', icon: Users, group: 'Finance & system' },
   { label: 'Merchant Invites', href: '/dashboard/invites', icon: ShieldCheck, group: 'Finance & system' },
+  { label: 'Eversend Setup', href: '/dashboard/eversend', icon: CreditCard, group: 'Finance & system' },
   { label: 'Settings', href: '/dashboard/settings', icon: Settings, group: 'Finance & system' },
 ];
 
