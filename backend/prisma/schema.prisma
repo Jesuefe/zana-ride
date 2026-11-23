@@ -408,7 +408,6 @@ model WalletTransaction {
   id            String                  @id @default(uuid())
   walletId      String
   amount        Int
-  transactionType String  @default("DELIVERY_FEE")
   balanceBefore Int
   balanceAfter  Int
   reference     String?
@@ -1383,6 +1382,7 @@ model PartnerWalletTransaction {
   partnerId     String
   deliveryId    String?  @unique
   amount        Int
+  transactionType String  @default("DELIVERY_FEE")
   balanceBefore Int
   balanceAfter  Int
   reference     String?
