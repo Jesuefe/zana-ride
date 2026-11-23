@@ -462,51 +462,6 @@ model Delivery {
   partnerWalletTransaction PartnerWalletTransaction?
   order            Order?         @relation(fields: [orderId], references: [id])
   reviews          Review[]
-  promoRedemption  PromoCodeRedemption?model Delivery {
-  id               String         @id @default(uuid())
-  merchantId       String?
-  partnerId        String?
-  partnerOrderRef  String?
-  orderId          String?        @unique
-  customerId       String?
-  driverId         String?
-  itemDescription  String
-  weight           PackageWeight
-  imageUrl         String?
-  pickupAddress    String
-  pickupLat        Float
-  pickupLng        Float
-  dropoffAddress   String
-  dropoffLat       Float
-  dropoffLng       Float
-  trackingCode     String?        @unique
-  pickupPhotoUrl   String?
-  dropoffPhotoUrl  String?
-  paymentMethod    String         @default("WALLET")
-  paid             Boolean        @default(false)
-  momoRef          String?
-  routeSequence    Int?
-  acceptDeadline   DateTime?
-  receiverName     String?
-  receiverPhone    String
-  distanceKm       Float
-  fee              Int
-  promoDiscount    Int            @default(0)
-  status           DeliveryStatus @default(REQUESTED)
-  createdAt        DateTime       @default(now())
-  assignedAt       DateTime?
-  pickedUpAt       DateTime?
-  deliveredAt      DateTime?
-  imageDeleteAfter DateTime?
-  calls            Call[]
-  messages         ChatMessage[]
-  customer         User?          @relation("CustomerDeliveries", fields: [customerId], references: [id])
-  driver           Driver?        @relation("DriverDeliveries", fields: [driverId], references: [id])
-  merchant         Merchant?      @relation(fields: [merchantId], references: [id])
-  partner          FoodDeliveryPartner? @relation(fields: [partnerId], references: [id], onDelete: Restrict)
-  partnerWalletTransaction PartnerWalletTransaction?
-  order            Order?         @relation(fields: [orderId], references: [id])
-  reviews          Review[]
   promoRedemption  PromoCodeRedemption?
   @@unique([partnerId, partnerOrderRef])
   @@index([partnerId, createdAt])
