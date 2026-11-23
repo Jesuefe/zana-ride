@@ -87,6 +87,28 @@ export default function BrandedMap({
     catch { return new G.Marker({ position: pos, map }); }
   };
 
+  // Creates the pickup marker (draggable when the screen lets the rider adjust it).
+  const buildOriginMarker = (G: any, map: any, pos: LatLng) => {
+    if (draggablePickup && onPickupChange) {
+      const pickupDiv = document.createElement('div');
+      pickupDiv.innerHTML = `<div style="width:22px;height:22px;border-radius:50%;background:#00A082;border:3px solid white;box-shadow:0 2px 10px rgba(0,160,130,0.5);cursor:grab"></div>`;
+      try {
+        const m = new G.marker.AdvancedMarkerElement({ position: pos, map, content: pickupDiv, gmpDraggable: true });
+        m.addListener('dragend', (e: any) => onPickupChange({ lat: e.latLng.lat(), lng: e.latLng.lng() }));
+        originMarkerRef.current = m;
+      } catch {
+        const m = new G.Marker({ position: pos, map, draggable: true });
+        m.addListener('dragend', () => {
+          const p = m.getPosition();
+          if (p) onPickupChange({ lat: p.lat(), lng: p.lng() });
+        });
+        originMarkerRef.current = m;
+      }
+    } else {
+      originMarkerRef.current = makeMarker(G, map, pos, '#00A082', 16);
+    }
+  };
+
   const fetchRoute = useCallback(async () => {
     const G = (window as any).google?.maps;
     const map = mapRef.current;
@@ -161,7 +183,7 @@ export default function BrandedMap({
       initDone.current = true;
       const G = (window as any).google.maps;
 
-      const center = origin ?? driverPosition ?? { lat: -1.9536, lng: 30.0605 };
+      const center = originRef.current ?? driverPosition ?? { lat: -1.9536, lng: 30.0605 };
       mapRef.current = new G.Map(containerRef.current, {
         center, zoom: 14,
         mapId: 'zana_customer_map',
@@ -170,31 +192,8 @@ export default function BrandedMap({
       });
 
       // Markers
-      if (origin) originMarkerRef.current = makeMarker(G, mapRef.current, origin, '#00A082', 16);
+      if (originRef.current) buildOriginMarker(G, mapRef.current, originRef.current);
       if (destination) destMarkerRef.current = makeMarker(G, mapRef.current, destination, '#E6A82E', 16);
-
-      // Draggable pickup
-      if (draggablePickup && origin && onPickupChange) {
-        const pickupDiv = document.createElement('div');
-        pickupDiv.innerHTML = `<div style="width:22px;height:22px;border-radius:50%;background:#00A082;border:3px solid white;box-shadow:0 2px 10px rgba(0,160,130,0.5);cursor:grab"></div>`;
-        try {
-          const m = new G.marker.AdvancedMarkerElement({
-            position: origin, map: mapRef.current, content: pickupDiv, gmpDraggable: true,
-          });
-          m.addListener('dragend', (e: any) => {
-            const pos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-            onPickupChange(pos);
-          });
-          originMarkerRef.current = m;
-        } catch {
-          const m = new G.Marker({ position: origin, map: mapRef.current, draggable: true });
-          m.addListener('dragend', () => {
-            const pos = m.getPosition();
-            if (pos) onPickupChange({ lat: pos.lat(), lng: pos.lng() });
-          });
-          originMarkerRef.current = m;
-        }
-      }
 
       // Driver marker with pulse
       if (driverPosition) {
@@ -280,6 +279,23 @@ export default function BrandedMap({
       catch { return new G.Marker({ position: d, map }); }
     });
   }, [nearbyDrivers]);
+
+  // Follow the pickup: when a live position arrives (or changes) after the map
+  // has loaded, move/create the marker and recentre. Remove it if it's cleared.
+  useEffect(() => {
+    const G = (window as any).google?.maps;
+    const map = mapRef.current;
+    if (!G || !map || !initDone.current) return;
+    const m = originMarkerRef.current;
+    if (!origin) {
+      if (m) { try { m.map = null; } catch { m.setMap?.(null); } originMarkerRef.current = null; }
+      return;
+    }
+    if (!m) buildOriginMarker(G, map, origin);
+    else { try { m.position = origin; } catch { m.setPosition?.(origin); } }
+    map.panTo(origin);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origin?.lat, origin?.lng]);
 
   // Re-fetch the Google route whenever the trip endpoints or live navigation start changes.
   useEffect(() => {
