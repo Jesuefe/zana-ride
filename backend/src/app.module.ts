@@ -29,6 +29,7 @@ import { CustomerSupportController } from './support.controller';
 import { CustomerSupportChatsController, AdminSupportChatsController, AdminCustomerSummaryController } from './support-chats.controller';
 import { RiderRegistrationController } from './rider-registration.controller';
 import { MerchantRegistrationController } from './merchant-registration.controller';
+import { FoodPartnerModule } from './food-partners/food-partners.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { MerchantRegistrationController } from './merchant-registration.controll
     WalletModule,
     MerchantModule,
     DeliveriesModule,
+    FoodPartnerModule,
     AdminModule,
     ChatModule,
     SosModule,
