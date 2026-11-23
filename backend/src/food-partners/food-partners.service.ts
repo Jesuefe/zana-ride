@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException, ForbiddenException, TooManyRequestsException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { DeliveryStatus, PackageWeight } from '@prisma/client';
@@ -313,6 +313,23 @@ export class FoodPartnerApiKeyGuard {
     if (!partner || partner.status !== 'ACTIVE') {
       throw new UnauthorizedException('INVALID_API_KEY');
     }
+    request.foodPartner = partner;
+    return true;
+  }
+}
+
+
+@Injectable()
+export class FoodPartnerSessionGuard {
+  constructor(private prisma: PrismaService) {}
+  async canActivate(context: any) {
+    const request = context.switchToHttp().getRequest();
+    const userId = request.user?.sub;
+    if (!userId) throw new UnauthorizedException('LOGIN_REQUIRED');
+    const partner = await this.prisma.foodDeliveryPartner.findUnique({
+      where: { userId }, select: { id: true, status: true, name: true },
+    });
+    if (!partner) throw new ForbiddenException('BUSINESS_PARTNER_ACCOUNT_REQUIRED');
     request.foodPartner = partner;
     return true;
   }
