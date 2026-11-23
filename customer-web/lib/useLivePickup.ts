@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getLivePosition, type Coords } from './location';
+import { getLiveFix, describeLocationFailure, type Coords, type LocationFailure } from './location';
 import { reverseGeocode } from './geocode';
 
 export type PickupStatus = 'locating' | 'ready' | 'failed';
@@ -13,6 +13,7 @@ export function useLivePickup(enabled = true) {
   const [pickup, setPickup] = useState<Coords | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   const [status, setStatus] = useState<PickupStatus>('locating');
+  const [failure, setFailure] = useState<LocationFailure | null>(null);
   const attempt = useRef(0);
 
   const resolveAddress = useCallback((c: Coords, id: number) => {
@@ -24,14 +25,16 @@ export function useLivePickup(enabled = true) {
   // Runs one GPS attempt. State is only set from the async callback.
   const run = useCallback(() => {
     const id = ++attempt.current;
-    getLivePosition().then((c) => {
+    getLiveFix().then((r) => {
       if (id !== attempt.current) return;
-      if (c) {
-        setPickup(c);
+      if ('coords' in r) {
+        setPickup(r.coords);
+        setFailure(null);
         setStatus('ready');
-        resolveAddress(c, id);
+        resolveAddress(r.coords, id);
       } else {
         setPickup(null);
+        setFailure(r.failure);
         setStatus('failed');
       }
     });
@@ -63,5 +66,6 @@ export function useLivePickup(enabled = true) {
     return () => { ref.current++; };
   }, [run, enabled]);
 
-  return { pickup, address, status, retry, setManual };
+  const message = describeLocationFailure(failure);
+  return { pickup, address, status, message, retry, setManual };
 }

@@ -4,7 +4,6 @@ import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Briefcase, Clock3, Home, MapPin, MapPinned, Plus, Search, X, Loader2, ChevronRight } from 'lucide-react';
 import BrandedMap from '../../components/BrandedMap';
-import { LOCATION_ERROR_MESSAGE } from '../../lib/location';
 import { useLivePickup } from '../../lib/useLivePickup';
 import { resolveLocationCode } from '../../lib/api/deliveries';
 import { reverseGeocode } from '../../lib/geocode';
@@ -31,7 +30,7 @@ function Highlight({text,query}:{text:string;query:string}){const i=text.toLower
 
 function SearchContent(){
  const {t}=useLang(),router=useRouter(),inputRef=useRef<HTMLInputElement>(null),touch=useRef<{y:number;time:number}|null>(null),debounce=useRef<ReturnType<typeof setTimeout>|null>(null);
- const {pickup,address:liveAddress,status:pickupStatus,retry:retryLocation,setManual}=useLivePickup(),pickupAddress=pickupStatus==='locating'?'Locating…':pickupStatus==='failed'?"Can't get location":(liveAddress??'Current location'),[pickupEditing,setPickupEditing]=useState(false),[pickupQuery,setPickupQuery]=useState('');
+ const {pickup,address:liveAddress,status:pickupStatus,message:locationMessage,retry:retryLocation,setManual}=useLivePickup(),pickupAddress=pickupStatus==='locating'?'Locating…':pickupStatus==='failed'?"Can't get location":(liveAddress??'Current location'),[pickupEditing,setPickupEditing]=useState(false),[pickupQuery,setPickupQuery]=useState('');
  const [query,setQuery]=useState(''),[suggestions,setSuggestions]=useState<PlaceSuggestion[]>([]),[resolvingCode,setResolvingCode]=useState(false);
  const [saved,setSaved]=useState<SavedPlace[]>([]),[recents,setRecents]=useState<RecentPlace[]>([]),[loadingHome,setLoadingHome]=useState(true),[searching,setSearching]=useState(false);
  const [mapPicker,setMapPicker]=useState(false),[mapPoint,setMapPoint]=useState<{lat:number;lng:number}|null>(null),[mapAddress,setMapAddress]=useState(''),[resolvingMap,setResolvingMap]=useState(false),[error,setError]=useState('');
@@ -62,7 +61,7 @@ function SearchContent(){
    <header className="zana-search-header"><button className="zana-search-back" onClick={()=>router.back()} aria-label={t('Back to home')}><ArrowLeft size={21}/></button><div><span className="zana-search-eyebrow">ZANA · KIGALI</span><h1>{t('Where to?')}</h1></div><button className="zana-search-close" onClick={()=>router.back()} aria-label={t('Close destination search')}><X size={18}/></button></header>
    <div className="zana-search-fields"><div className="zana-search-route-rail" aria-hidden="true"><span className="pickup-dot"/><i/><span className="destination-square"/></div><div className="zana-search-field-stack">
     <button className="zana-search-pickup" onClick={()=>{setPickupEditing(v=>!v);setPickupQuery('');}} aria-label={t('Edit pickup location')}><span className="zana-search-field-label">{t('PICKUP')}</span><strong>{pickupAddress}</strong><span className="zana-search-edit">{t('Edit')}</span></button>
-    {pickupStatus==='failed'&&<div role="alert" style={{padding:'8px 14px',fontSize:13,color:'#b42318'}}>{t(LOCATION_ERROR_MESSAGE)} <button onClick={retryLocation} style={{fontWeight:800,textDecoration:'underline'}}>{t('Try again')}</button></div>}
+    {pickupStatus==='failed'&&<div role="alert" style={{padding:'8px 14px',fontSize:13,color:'#b42318'}}>{t(locationMessage)} <button onClick={retryLocation} style={{fontWeight:800,textDecoration:'underline'}}>{t('Try again')}</button></div>}
     {pickupEditing&&<div className="zana-search-pickup-edit"><input id="zana-pickup-edit" value={pickupQuery} onChange={e=>setPickupQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')searchPickup()}} placeholder={t('Search pickup location')}/><button onClick={searchPickup} aria-label={t('Search pickup')}><Search size={16}/></button></div>}
     <div className="zana-search-destination-row"><div className="zana-search-destination-input"><span className="zana-search-field-label">{t('DESTINATION')}</span><input ref={inputRef} value={query} onChange={e=>{setQuery(e.target.value);setError('');}} onKeyDown={e=>{if(e.key==='Enter'&&looksLikeZanaCode){e.preventDefault();useZanaCode();}}} placeholder={t('Search a place or enter a Zana Code')} aria-label={t('Destination or Zana Code')} autoComplete="off" autoFocus/></div><button className="zana-search-map-button" onClick={pinOnMap}><MapPinned size={15}/><span>{t('Choose on map')}</span></button></div>
    </div></div>

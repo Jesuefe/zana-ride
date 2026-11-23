@@ -30,7 +30,6 @@ import {
   Banknote,
   ShieldCheck,
 } from 'lucide-react';
-import { LOCATION_ERROR_MESSAGE } from '../../lib/location';
 import { useLivePickup } from '../../lib/useLivePickup';
 import { useLang } from '../../lib/LangContext';
 import { reverseGeocode } from '../../lib/geocode';
@@ -82,7 +81,7 @@ export default function DeliverPage() {
   const [capturing, setCapturing] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
 
-  const { pickup, address: livePickupAddress, status: pickupStatus, retry: retryLocation, setManual: setManualPickup } = useLivePickup();
+  const { pickup, address: livePickupAddress, status: pickupStatus, message: locationMessage, retry: retryLocation, setManual: setManualPickup } = useLivePickup();
   const pickupAddress = pickupStatus === 'locating' ? t('Locating…') : pickupStatus === 'failed' ? t("Can't get location") : (livePickupAddress ?? t('Current location'));
 
   const [dropoff, setDropoff] = useState<Dropoff>(null);
@@ -433,7 +432,7 @@ export default function DeliverPage() {
                     <p className="mt-1 text-sm font-semibold text-gray-900">{pickupAddress}</p>
                     {pickupStatus === 'failed' && (
                       <p role="alert" className="mt-1 text-xs font-bold text-red-600">
-                        {t(LOCATION_ERROR_MESSAGE)}{' '}
+                        {t(locationMessage)}{' '}
                         <button type="button" onClick={retryLocation} className="underline">{t('Try again')}</button>
                       </p>
                     )}

@@ -7,7 +7,6 @@ import { ArrowLeft, ChevronRight, Clock, MapPin, Check, Bike, CarFront } from 'l
 import { estimateRide, createRide, ServiceType, fetchWallet, validateRidePromo } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
-import { LOCATION_ERROR_MESSAGE } from '../../lib/location';
 import { useLivePickup } from '../../lib/useLivePickup';
 import { reverseGeocode } from '../../lib/geocode';
 import ZanaLoading from '../../components/ZanaLoading';
@@ -495,7 +494,7 @@ function RideOptionsGate() {
   if (live.status === 'failed') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-        <p role="alert" className="text-sm font-bold text-red-600">{t(LOCATION_ERROR_MESSAGE)}</p>
+        <p role="alert" className="text-sm font-bold text-red-600">{t(live.message)}</p>
         <button onClick={live.retry} className="rounded-2xl bg-zana-primary px-6 py-3 font-black text-white">{t('Try again')}</button>
         <button onClick={() => router.back()} className="text-sm font-bold text-gray-500">{t('Go back')}</button>
       </div>

@@ -14,7 +14,6 @@ import { fetchWallet, recoverActiveRide } from '../lib/api/trips';
 import { haptic } from '../lib/haptics';
 import { api } from '../lib/api/client';
 import { useLang } from '../lib/LangContext';
-import { LOCATION_ERROR_MESSAGE } from '../lib/location';
 import { useLivePickup } from '../lib/useLivePickup';
 import './zana-city-home.css';
 
@@ -58,7 +57,7 @@ export default function HomePage() {
   const [savedPlaces, setSavedPlaces] = useState<any[]>([]);
   const [recentPlace, setRecentPlace] = useState<Place | null>(null);
   const [mapFocusY, setMapFocusY] = useState(0.14);
-  const { pickup, address: pickupAddress, status: pickupStatus, retry: retryLocation } = useLivePickup();
+  const { pickup, address: pickupAddress, status: pickupStatus, message: locationMessage, retry: retryLocation } = useLivePickup();
   const [loadError, setLoadError] = useState(false);
   const [recoveringRide, setRecoveringRide] = useState(false);
   const [sheetState, setSheetState] = useState<SheetState>('half');
@@ -243,7 +242,7 @@ export default function HomePage() {
             </button>
             {pickupStatus === 'failed' && (
               <div role="alert" style={{ padding: '8px 14px', fontSize: 13, color: '#b42318' }}>
-                {t(LOCATION_ERROR_MESSAGE)}{' '}
+                {t(locationMessage)}{' '}
                 <button onClick={retryLocation} style={{ fontWeight: 800, textDecoration: 'underline' }}>{t('Try again')}</button>
               </div>
             )}
