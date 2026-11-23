@@ -57,6 +57,7 @@ export default function HomePage() {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [savedPlaces, setSavedPlaces] = useState<any[]>([]);
   const [recentPlace, setRecentPlace] = useState<Place | null>(null);
+  const [mapFocusY, setMapFocusY] = useState(0.14);
   const { pickup, address: pickupAddress, status: pickupStatus, retry: retryLocation } = useLivePickup();
   const [loadError, setLoadError] = useState(false);
   const [recoveringRide, setRecoveringRide] = useState(false);
@@ -80,6 +81,23 @@ export default function HomePage() {
       })
       .catch(noteFailure);
   };
+
+  // Keep the "you are here" pin in the visible gap between the top bar and
+  // the booking sheet, whatever the phone's screen size.
+  useEffect(() => {
+    const measure = () => {
+      const map = document.querySelector('.zana-city-map')?.getBoundingClientRect();
+      const bar = document.querySelector('.zana-city-topbar')?.getBoundingClientRect();
+      const sheet = document.querySelector('.zana-city-sheet')?.getBoundingClientRect();
+      if (!map || !sheet || !map.height) return;
+      const top = Math.max(0, (bar?.bottom ?? map.top) - map.top);
+      const bottom = Math.max(top, sheet.top - map.top);
+      const focus = (top + bottom) / 2 / map.height;
+      if (focus > 0.05 && focus < 0.6) setMapFocusY(focus);
+    };
+    const id = window.setTimeout(measure, 150);
+    return () => window.clearTimeout(id);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,14 +178,10 @@ export default function HomePage() {
   return (
     <main className="zana-city-home" data-sheet={sheetState}>
       <div className="zana-city-map" aria-label={t('Map of Kigali')}>
-        <BrandedMap origin={pickup ?? undefined} height="100%" />
+        <BrandedMap origin={pickup ?? undefined} height="100%" focusY={mapFocusY} />
         <div className="zana-city-contours" aria-hidden="true" />
-        <div className="zana-city-map-label zana-city-label-kacyiru">KACYIRU</div>
-        <div className="zana-city-map-label zana-city-label-kimihurura">KIMIHURURA</div>
-        <div className="zana-city-map-label zana-city-label-centre">KIGALI CITY CENTRE</div>
-        <div className="zana-city-signature-pin" aria-hidden="true"><span /></div>
         {pickupStatus === 'locating' && (
-          <div className="zana-city-finding" role="status" aria-live="polite">
+          <div className="zana-city-finding" role="status" aria-live="polite" style={{ top: `${mapFocusY * 100}%` }}>
             <span className="zana-city-finding-rings" aria-hidden="true"><i /><i /><i /></span>
             <span className="zana-city-finding-pill">{t('Finding you…')}</span>
           </div>
