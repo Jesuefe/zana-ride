@@ -1,4 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles.guard';
 import { FoodPartnerApiKeyGuard, FoodPartnerSessionGuard, FoodPartnersService } from './food-partners.service';
 
@@ -7,6 +8,7 @@ export class FoodPartnersController {
   constructor(private service: FoodPartnersService) {}
 
   @Post('register')
+  @Throttle({ short: { limit: 2, ttl: 1000 }, long: { limit: 5, ttl: 60000 } })
   register(@Body() body: { businessName: string; email: string; phone: string; password: string; contactName?: string }) {
     return this.service.registerPortalAccount(body);
   }
@@ -89,7 +91,7 @@ export class AdminFoodPartnersController {
   list() { return this.service.listPartners(); }
 
   @Post(':id/top-ups')
-  topUp(@Param('id') id: string, @Body() body: { amount: number; reference?: string }) {
+  topUp(@Param('id') id: string, @Body() body: { amount: number; reference: string }) {
     return this.service.topUp(id, body.amount, body.reference);
   }
 
