@@ -1,5 +1,7 @@
 'use client';
 
+import './business.css';
+
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
