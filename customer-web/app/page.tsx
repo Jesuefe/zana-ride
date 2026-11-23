@@ -166,6 +166,12 @@ export default function HomePage() {
         <div className="zana-city-map-label zana-city-label-kimihurura">KIMIHURURA</div>
         <div className="zana-city-map-label zana-city-label-centre">KIGALI CITY CENTRE</div>
         <div className="zana-city-signature-pin" aria-hidden="true"><span /></div>
+        {pickupStatus === 'locating' && (
+          <div className="zana-city-finding" role="status" aria-live="polite">
+            <span className="zana-city-finding-rings" aria-hidden="true"><i /><i /><i /></span>
+            <span className="zana-city-finding-pill">{t('Finding you…')}</span>
+          </div>
+        )}
       </div>
 
       <header className="zana-city-topbar">
