@@ -1,0 +1,31 @@
+name: Zana landing CI
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'landing/**'
+      - '.github/workflows/landing-ci.yml'
+  push:
+    branches:
+      - 'feat/food-delivery-partner-api'
+    paths:
+      - 'landing/**'
+      - '.github/workflows/landing-ci.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+      - name: Install dependencies
+        working-directory: landing
+        run: npm ci
+      - name: Build public website
+        working-directory: landing
+        run: npm run build
