@@ -16,8 +16,8 @@ export class FoodPartnersService {
     const phone = String(input.phone || '').trim();
     const password = String(input.password || '');
     if (!businessName || businessName.length > 120) throw new BadRequestException('BUSINESS_NAME_REQUIRED_MAX_120');
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw new BadRequestException('VALID_EMAIL_REQUIRED');
-    if (phone.replace(/\\D/g, '').length < 9) throw new BadRequestException('VALID_PHONE_REQUIRED');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new BadRequestException('VALID_EMAIL_REQUIRED');
+    if (phone.replace(/\D/g, '').length < 9) throw new BadRequestException('VALID_PHONE_REQUIRED');
     if (password.length < 10) throw new BadRequestException('PASSWORD_MINIMUM_10_CHARACTERS');
     const passwordHash = await bcrypt.hash(password, 12);
     const apiKey = newApiKey();
@@ -178,7 +178,7 @@ export class FoodPartnersService {
   }) {
     if (!input.partnerOrderRef?.trim() || input.partnerOrderRef.length > 100) throw new BadRequestException('PARTNER_ORDER_REF_REQUIRED_MAX_100');
     if (!input.pickupAddress?.trim() || !input.dropoffAddress?.trim()) throw new BadRequestException('PICKUP_AND_DROPOFF_ADDRESSES_REQUIRED');
-    if (!input.receiverPhone?.trim() || input.receiverPhone.replace(/\\D/g, '').length < 9) throw new BadRequestException('INVALID_RECEIVER_PHONE');
+    if (!input.receiverPhone?.trim() || input.receiverPhone.replace(/\D/g, '').length < 9) throw new BadRequestException('INVALID_RECEIVER_PHONE');
     this.validateCoordinates(input.pickupLat, input.pickupLng, 'PICKUP');
     this.validateCoordinates(input.dropoffLat, input.dropoffLng, 'DROPOFF');
 
