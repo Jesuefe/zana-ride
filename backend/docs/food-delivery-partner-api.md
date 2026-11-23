@@ -47,7 +47,7 @@ The delivery fee is recalculated by Zana on the server; a partner cannot submit 
 JWT-authenticated ADMIN endpoints:
 - `POST /admin/food-delivery-partners` — create partner; raw API key is returned once.
 - `GET /admin/food-delivery-partners` — list partners.
-- `POST /admin/food-delivery-partners/:id/top-ups` — credit prepaid RWF balance.
+- `POST /admin/food-delivery-partners/:id/top-ups` — credit prepaid RWF balance; include a unique payment receipt/reference.
 - `POST /admin/food-delivery-partners/:id/rotate-key` — rotate and return a new key once.
 - `PATCH /admin/food-delivery-partners/:id/status` — set ACTIVE or SUSPENDED.
 
@@ -67,5 +67,7 @@ Public partner page: `https://zanaride.rw/business`
 - `POST /food-partners/portal/rotate-key` — issue a new API key once; the old key is invalidated immediately.
 
 Portal routes require a Zana JWT bearer token and a linked business partner account. Partner API routes require the private `X-Zana-API-Key`. Keep these credentials separate. The portal stores the login token in tab-scoped session storage; API keys should remain in the partner's server-side secret store.
+
+Top-up references are mandatory and idempotent: reusing the same partner + receipt reference cannot credit the wallet twice. The wallet ledger records TOP_UP, DELIVERY_FEE and REFUND movements separately.
 
 The first release provides polling for delivery status. It does not yet send outbound status webhooks or automatically process wallet top-ups. Partners can request a wallet top-up through Zana Business support; authorized Zana staff reconcile payment and credit the ledger.
