@@ -30,7 +30,8 @@ import {
   Banknote,
   ShieldCheck,
 } from 'lucide-react';
-import { getStoredPickup, setStoredPickup } from '../../lib/location';
+import { LOCATION_ERROR_MESSAGE } from '../../lib/location';
+import { useLivePickup } from '../../lib/useLivePickup';
 import { useLang } from '../../lib/LangContext';
 import { reverseGeocode } from '../../lib/geocode';
 import { searchPlaces, getPlaceCoordinates, PlaceSuggestion } from '../../lib/places-api';
@@ -81,8 +82,8 @@ export default function DeliverPage() {
   const [capturing, setCapturing] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
 
-  const [pickup, setPickup] = useState(getStoredPickup());
-  const [pickupAddress, setPickupAddress] = useState('Locating…');
+  const { pickup, address: livePickupAddress, status: pickupStatus, retry: retryLocation, setManual: setManualPickup } = useLivePickup();
+  const pickupAddress = pickupStatus === 'locating' ? t('Locating…') : pickupStatus === 'failed' ? t("Can't get location") : (livePickupAddress ?? t('Current location'));
 
   const [dropoff, setDropoff] = useState<Dropoff>(null);
   const [destQuery, setDestQuery] = useState('');
@@ -118,10 +119,6 @@ export default function DeliverPage() {
   }, []);
 
   useEffect(() => {
-    reverseGeocode(pickup.lat, pickup.lng).then((a) => setPickupAddress(a ?? t('Current location')));
-  }, [pickup.lat, pickup.lng]);
-
-  useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!destQuery.trim()) {
       setSuggestions([]);
@@ -136,7 +133,7 @@ export default function DeliverPage() {
   }, [destQuery]);
 
   useEffect(() => {
-    if (!dropoff) {
+    if (!dropoff || !pickup) {
       setPromoPreview(null);
       setQuote(null);
       setQuoteLoading(false);
@@ -154,7 +151,7 @@ export default function DeliverPage() {
       .then((q) => setQuote({ fee: q.fee, distanceKm: q.distanceKm, durationMinutes: q.durationMinutes }))
       .catch(() => setQuote(null))
       .finally(() => setQuoteLoading(false));
-  }, [dropoff, weight, pickup.lat, pickup.lng]);
+  }, [dropoff, weight, pickup?.lat, pickup?.lng]);
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -214,7 +211,7 @@ export default function DeliverPage() {
   };
 
   const handleApplyPromo = async () => {
-    if (!quote || !dropoff || !promoCode.trim()) return;
+    if (!quote || !dropoff || !pickup || !promoCode.trim()) return;
     setPromoLoading(true); setPromoError(null); setPromoPreview(null);
     try {
       const result = await validateDeliveryPromo({ pickupLat: pickup.lat, pickupLng: pickup.lng, dropoffLat: dropoff.lat, dropoffLng: dropoff.lng, weight, code: promoCode.trim() });
@@ -225,11 +222,11 @@ export default function DeliverPage() {
   };
 
   const canSubmit =
-    selectedPackageType.trim().length > 1 && dropoff !== null && receiverPhone.replace(/\D/g, '').length >= 9 &&
+    selectedPackageType.trim().length > 1 && dropoff !== null && pickup !== null && receiverPhone.replace(/\D/g, '').length >= 9 &&
     (paymentMethod !== 'MOBILE_MONEY' || momoPhone.replace(/\D/g, '').length >= 9);
 
   const handleSubmit = async () => {
-    if (!dropoff) return;
+    if (!dropoff || !pickup) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -293,7 +290,7 @@ export default function DeliverPage() {
   const canContinue = step === 1
     ? selectedPackageType.trim().length > 1
     : step === 2
-      ? dropoff !== null
+      ? dropoff !== null && pickup !== null
       : step === 3
         ? receiverPhone.replace(/\D/g, '').length >= 9
         : canSubmit;
@@ -426,14 +423,20 @@ export default function DeliverPage() {
         {step === 2 && (
           <section className="zana-delivery-step animate-fade-slide-up space-y-4">
             <div className="overflow-hidden rounded-2xl border border-zana-border bg-[var(--zana-surface)]">
-              <BrandedMap origin={pickup} destination={dropoff ? { lat: dropoff.lat, lng: dropoff.lng } : undefined} draggablePickup
-                onPickupChange={(c) => { setPickup(c); setStoredPickup(c); }} height={220} />
+              <BrandedMap origin={pickup ?? undefined} destination={dropoff ? { lat: dropoff.lat, lng: dropoff.lng } : undefined} draggablePickup
+                onPickupChange={(c) => setManualPickup(c)} height={220} />
               <div className="space-y-3 p-4">
                 <div className="flex gap-3">
                   <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-zana-primary-light text-zana-primary"><MapPin size={16} /></span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{t('Pickup location')}</p>
                     <p className="mt-1 text-sm font-semibold text-gray-900">{pickupAddress}</p>
+                    {pickupStatus === 'failed' && (
+                      <p role="alert" className="mt-1 text-xs font-bold text-red-600">
+                        {t(LOCATION_ERROR_MESSAGE)}{' '}
+                        <button type="button" onClick={retryLocation} className="underline">{t('Try again')}</button>
+                      </p>
+                    )}
                     <p className="mt-1 text-[11px] text-gray-500">{t('Drag the green pin on the map to adjust.')}</p>
                   </div>
                 </div>

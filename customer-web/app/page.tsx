@@ -14,7 +14,8 @@ import { fetchWallet, recoverActiveRide } from '../lib/api/trips';
 import { haptic } from '../lib/haptics';
 import { api } from '../lib/api/client';
 import { useLang } from '../lib/LangContext';
-import { getStoredPickup, requestLiveLocation } from '../lib/location';
+import { LOCATION_ERROR_MESSAGE } from '../lib/location';
+import { useLivePickup } from '../lib/useLivePickup';
 import './zana-city-home.css';
 
 type SheetState = 'peek' | 'half' | 'full';
@@ -56,7 +57,7 @@ export default function HomePage() {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [savedPlaces, setSavedPlaces] = useState<any[]>([]);
   const [recentPlace, setRecentPlace] = useState<Place | null>(null);
-  const [pickup, setPickup] = useState({ lat: -1.9536, lng: 30.0605 });
+  const { pickup, address: pickupAddress, status: pickupStatus, retry: retryLocation } = useLivePickup();
   const [loadError, setLoadError] = useState(false);
   const [recoveringRide, setRecoveringRide] = useState(false);
   const [sheetState, setSheetState] = useState<SheetState>('half');
@@ -82,9 +83,6 @@ export default function HomePage() {
 
   useEffect(() => {
     let cancelled = false;
-    setPickup(getStoredPickup());
-    // Replace the cached/default pickup with the rider's real GPS position.
-    requestLiveLocation().then(coords => { if (!cancelled) setPickup(coords); });
     loadHomeData();
     const recover = async () => {
       try {
@@ -121,6 +119,7 @@ export default function HomePage() {
       router.push('/profile/places');
       return;
     }
+    if (!pickup) return;
     const params = new URLSearchParams({
       name: label,
       address: place.address,
@@ -128,12 +127,12 @@ export default function HomePage() {
       lng: String(place.lng),
       pickupLat: String(pickup.lat),
       pickupLng: String(pickup.lng),
-      pickupAddress: 'Current location',
+      pickupAddress: pickupAddress ?? 'Current location',
     });
     router.push(`/ride-options?${params.toString()}`);
   };
   const openRecent = () => {
-    if (!recentPlace) return;
+    if (!recentPlace || !pickup) return;
     const params = new URLSearchParams({
       name: recentPlace.label,
       address: recentPlace.address,
@@ -141,7 +140,7 @@ export default function HomePage() {
       lng: String(recentPlace.lng),
       pickupLat: String(pickup.lat),
       pickupLng: String(pickup.lng),
-      pickupAddress: 'Current location',
+      pickupAddress: pickupAddress ?? 'Current location',
     });
     router.push(`/ride-options?${params.toString()}`);
   };
@@ -161,7 +160,7 @@ export default function HomePage() {
   return (
     <main className="zana-city-home" data-sheet={sheetState}>
       <div className="zana-city-map" aria-label={t('Map of Kigali')}>
-        <BrandedMap origin={pickup} height="100%" />
+        <BrandedMap origin={pickup ?? undefined} height="100%" />
         <div className="zana-city-contours" aria-hidden="true" />
         <div className="zana-city-map-label zana-city-label-kacyiru">KACYIRU</div>
         <div className="zana-city-map-label zana-city-label-kimihurura">KIMIHURURA</div>
@@ -213,15 +212,21 @@ export default function HomePage() {
         <div className="zana-city-sheet-scroll">
           <div className="zana-city-booking-heading">
             <h1>{t('Where to today?')}</h1>
-            <span className="zana-city-locating"><i />{t('Current location')}</span>
+            <span className="zana-city-locating"><i />{pickupStatus === 'locating' ? t('Locating…') : pickupStatus === 'failed' ? t("Can't get location") : t('Current location')}</span>
           </div>
 
           <div className="zana-city-route-card">
             <button className="zana-city-route-row" onClick={openDestination} aria-label={t('Change pickup location')}>
               <span className="zana-city-route-dot" />
-              <span className="zana-city-route-text"><small>{t('PICKUP')}</small><strong>{t('Current location')}</strong></span>
+              <span className="zana-city-route-text"><small>{t('PICKUP')}</small><strong>{pickupStatus === 'locating' ? t('Locating…') : pickupStatus === 'failed' ? t("Can't get location") : (pickupAddress ?? t('Current location'))}</strong></span>
               <span className="zana-city-route-action">{t('Change')}</span>
             </button>
+            {pickupStatus === 'failed' && (
+              <div role="alert" style={{ padding: '8px 14px', fontSize: 13, color: '#b42318' }}>
+                {t(LOCATION_ERROR_MESSAGE)}{' '}
+                <button onClick={retryLocation} style={{ fontWeight: 800, textDecoration: 'underline' }}>{t('Try again')}</button>
+              </div>
+            )}
             <button className="zana-city-route-row zana-city-destination-row" onClick={openDestination}>
               <span className="zana-city-route-dot destination" />
               <span className="zana-city-route-text"><small>{t('DESTINATION')}</small><strong>{t('Where would you like to go?')}</strong></span>

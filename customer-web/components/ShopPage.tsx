@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Clock3, MapPin, Star, Store } from 'lucide-react';
 import { fetchMarketplaceWithLocation, MarketplaceMerchant } from '../lib/api/marketplace';
-import { requestLiveLocation } from '../lib/location';
+import { getLivePosition, LOCATION_ERROR_MESSAGE } from '../lib/location';
 
 type Props = {
   category: 'FOOD' | 'GIFTS' | 'GOODS';
@@ -27,10 +27,14 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
 
   const [merchants, setMerchants] = useState<MarketplaceMerchant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [locationFailed, setLocationFailed] = useState(false);
 
   useEffect(() => {
-    requestLiveLocation()
-      .then(c => fetchMarketplaceWithLocation(category, c.lat, c.lng))
+    getLivePosition()
+      .then(c => {
+        if (!c) { setLocationFailed(true); return [] as MarketplaceMerchant[]; }
+        return fetchMarketplaceWithLocation(category, c.lat, c.lng);
+      })
       .then(setMerchants)
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -46,6 +50,9 @@ export default function ShopPage({ category, title, emptyMessage }: Props) {
       </div>
 
       <div className="zana-marketplace-list p-4 sm:p-6">
+        {locationFailed && (
+          <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{t(LOCATION_ERROR_MESSAGE)}</p>
+        )}
         {loading && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-label={t('Loading stores')}>
             {[0, 1, 2].map((item) => (

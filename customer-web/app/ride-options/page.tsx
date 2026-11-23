@@ -7,7 +7,9 @@ import { ArrowLeft, ChevronRight, Clock, MapPin, Check, Bike, CarFront } from 'l
 import { estimateRide, createRide, ServiceType, fetchWallet, validateRidePromo } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
-import { getStoredPickup } from '../../lib/location';
+import { LOCATION_ERROR_MESSAGE } from '../../lib/location';
+import { useLivePickup } from '../../lib/useLivePickup';
+import { reverseGeocode } from '../../lib/geocode';
 import ZanaLoading from '../../components/ZanaLoading';
 
 type Option = { service: ServiceType; label: string; sub: string; icon: 'bike' | 'car' };
@@ -55,7 +57,7 @@ const PAYMENT_OPTIONS = [
   },
 ];
 
-function RideOptionsContent() {
+function RideOptionsContent({ initialPickup, initialAddress }: { initialPickup: { lat: number; lng: number }; initialAddress: string }) {
   const { t } = useLang();
   const router = useRouter();
   const params = useSearchParams();
@@ -65,15 +67,8 @@ function RideOptionsContent() {
   const destLat = Number(params.get('lat'));
   const destLng = Number(params.get('lng'));
   const preselected = params.get('service') as ServiceType | null;
-  const passedPickupLat = Number(params.get('pickupLat'));
-  const passedPickupLng = Number(params.get('pickupLng'));
-  const passedPickupAddress = params.get('pickupAddress') ?? 'Current Location';
-
-  const [pickup, setPickup] = useState(
-    Number.isFinite(passedPickupLat) && passedPickupLat !== 0
-      ? { lat: passedPickupLat, lng: passedPickupLng }
-      : getStoredPickup(),
-  );
+  const [pickup, setPickup] = useState(initialPickup);
+  const [pickupAddress, setPickupAddress] = useState(initialAddress);
 
   const [fares, setFares] = useState<Record<ServiceType, number>>({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
   const [fareError, setFareError] = useState<string | null>(null);
@@ -127,6 +122,8 @@ function RideOptionsContent() {
   const handlePickupChange = (coords: { lat: number; lng: number }) => {
     setPromoDiscount(0); setPromoMessage('');
     setPickup(coords);
+    setPickupAddress(t('Locating…'));
+    reverseGeocode(coords.lat, coords.lng).then(a => setPickupAddress(a ?? t('Current location')));
     setStep('select');
   };
 
@@ -156,7 +153,7 @@ function RideOptionsContent() {
     try {
       const trip = await createRide({
         serviceType: selected,
-        pickupAddress: passedPickupAddress,
+        pickupAddress,
         pickupLat: pickup.lat,
         pickupLng: pickup.lng,
         destinationAddress: destAddress,
@@ -211,7 +208,7 @@ function RideOptionsContent() {
                 <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
               </div>
               <div className="flex-1 min-w-0 space-y-2">
-                <p className="text-sm text-gray-700 truncate">{passedPickupAddress}</p>
+                <p className="text-sm text-gray-700 truncate">{pickupAddress}</p>
                 <p className="text-sm font-semibold text-gray-900 truncate">{destAddress || destName}</p>
               </div>
               {routeInfo && (
@@ -352,7 +349,7 @@ function RideOptionsContent() {
                 <div className="w-2 h-2 rounded-full bg-amber-500" />
               </div>
               <div className="flex-1 min-w-0 space-y-2">
-                <p className="text-xs text-gray-600 truncate">{passedPickupAddress}</p>
+                <p className="text-xs text-gray-600 truncate">{pickupAddress}</p>
                 <p className="text-xs font-semibold text-gray-800 truncate">{destAddress || destName}</p>
               </div>
               {routeInfo && (
@@ -477,10 +474,40 @@ function RideOptionsContent() {
   );
 }
 
+// Resolves the pickup before the booking screen mounts: the one passed from
+// the previous screen, otherwise a live GPS fix. There is no saved or default
+// fallback; when no location can be had we say so and let the rider retry.
+function RideOptionsGate() {
+  const { t } = useLang();
+  const router = useRouter();
+  const params = useSearchParams();
+  const lat = Number(params.get('pickupLat'));
+  const lng = Number(params.get('pickupLng'));
+  const passed = Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0;
+  const live = useLivePickup(!passed);
+
+  if (passed) {
+    return <RideOptionsContent initialPickup={{ lat, lng }} initialAddress={params.get('pickupAddress') ?? t('Current location')} />;
+  }
+  if (live.status === 'ready' && live.pickup) {
+    return <RideOptionsContent initialPickup={live.pickup} initialAddress={live.address ?? t('Current location')} />;
+  }
+  if (live.status === 'failed') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+        <p role="alert" className="text-sm font-bold text-red-600">{t(LOCATION_ERROR_MESSAGE)}</p>
+        <button onClick={live.retry} className="rounded-2xl bg-zana-primary px-6 py-3 font-black text-white">{t('Try again')}</button>
+        <button onClick={() => router.back()} className="text-sm font-bold text-gray-500">{t('Go back')}</button>
+      </div>
+    );
+  }
+  return <ZanaLoading label="Getting your location" />;
+}
+
 export default function RideOptionsPage() {
   return (
     <Suspense fallback={<ZanaLoading label="Loading your ZANA experience" />}>
-      <RideOptionsContent />
+      <RideOptionsGate />
     </Suspense>
   );
 }

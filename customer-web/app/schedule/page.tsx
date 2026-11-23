@@ -7,7 +7,7 @@ import { api } from '../../lib/api/client';
 import { useLang } from '../../lib/LangContext';
 import { fetchWallet } from '../../lib/api/trips';
 import { loadGoogleMaps } from '../../lib/mapsLoader';
-import { getStoredPickup } from '../../lib/location';
+import { getLivePosition, LOCATION_ERROR_MESSAGE } from '../../lib/location';
 import { reverseGeocode } from '../../lib/geocode';
 
 const SPECIAL_REQUESTS = [
@@ -105,12 +105,19 @@ export default function ScheduleRidePage() {
   const minTime = new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16);
   const maxTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
 
-  // Pre-fill pickup from stored GPS
+  // Pre-fill pickup from live GPS only. If it can't be read, say so and let
+  // the rider search for a pickup instead of guessing one.
   useEffect(() => {
-    const stored = getStoredPickup();
-    reverseGeocode(stored.lat, stored.lng).then(addr => {
-      setPickup({ address: addr ?? 'Current location', lat: stored.lat, lng: stored.lng });
+    let live = true;
+    getLivePosition().then(c => {
+      if (!live) return;
+      if (!c) { setError(t(LOCATION_ERROR_MESSAGE)); return; }
+      reverseGeocode(c.lat, c.lng).then(addr => {
+        if (live) setPickup(prev => prev ?? { address: addr ?? 'Current location', lat: c.lat, lng: c.lng });
+      });
     });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleBook = async () => {

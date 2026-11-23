@@ -4,7 +4,8 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ShoppingCart, Plus, Minus, MapPin, Loader2, Store, Package, Search, Star, Clock3, Tag } from 'lucide-react';
 import { fetchMarketplaceWithLocation, placeOrder, validateOrderPromo, MarketplaceMerchant, MarketplaceProduct, CartItem } from '../../../lib/api/marketplace';
-import { getStoredPickup, requestLiveLocation } from '../../../lib/location';
+import { getLivePosition, LOCATION_ERROR_MESSAGE, type Coords } from '../../../lib/location';
+import { reverseGeocode } from '../../../lib/geocode';
 import OrderRecipient, { OrderRecipient as OrderRecipientValue } from '../../../components/OrderRecipient';
 import { useLang } from '../../../lib/LangContext';
 import ZanaLoading from '../../../components/ZanaLoading';
@@ -15,7 +16,8 @@ function StoreContent() {
   const searchParams = useSearchParams();
   const merchantId = searchParams.get('id');
   const category = (searchParams.get('category') ?? 'GOODS') as 'FOOD' | 'GIFTS' | 'GOODS';
-  const pickup = getStoredPickup();
+  const [myLocation, setMyLocation] = useState<Coords | null>(null);
+  const [locationFailed, setLocationFailed] = useState(false);
 
   const [merchant, setMerchant] = useState<MarketplaceMerchant | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ function StoreContent() {
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [recipient, setRecipient] = useState<OrderRecipientValue>({ forSomeoneElse: false, name: '', phone: '', address: pickup.address ?? 'Current location', lat: pickup.lat, lng: pickup.lng, note: '' });
+  const [recipient, setRecipient] = useState<OrderRecipientValue>({ forSomeoneElse: false, name: '', phone: '', address: '', lat: 0, lng: 0, note: '' });
 
   useEffect(() => {
     import('../../../lib/api/trips').then(({ fetchWallet }) => {
@@ -51,9 +53,13 @@ function StoreContent() {
   useEffect(() => {
     if (!merchantId) { setLoading(false); return; }
     // Refresh GPS first so distance/fee use where the customer really is.
-    requestLiveLocation()
-      .then(c => {
-        setRecipient(r => r.forSomeoneElse ? r : { ...r, lat: c.lat, lng: c.lng });
+    getLivePosition()
+      .then(async c => {
+        if (!c) { setLocationFailed(true); throw new Error('no-location'); }
+        const address = await reverseGeocode(c.lat, c.lng);
+        const here = { ...c, address: address ?? undefined };
+        setMyLocation(here);
+        setRecipient(r => r.forSomeoneElse ? r : { ...r, lat: c.lat, lng: c.lng, address: address ?? 'Current location' });
         return fetchMarketplaceWithLocation(category, c.lat, c.lng);
       })
       .then(list => setMerchant(list.find(m => m.id === merchantId) ?? null))
@@ -128,6 +134,7 @@ function StoreContent() {
 
   const handleOrder = async () => {
     if (!cart.length || !merchant) return;
+    if (!recipient.forSomeoneElse && !myLocation) { setError(t(LOCATION_ERROR_MESSAGE)); return; }
     if (recipient.forSomeoneElse && (!recipient.name.trim() || !recipient.phone.trim() || !recipient.address.trim())) {
       setError(t('Add the recipient name, phone number and delivery address.'));
       setShowCart(true);
@@ -356,7 +363,10 @@ function StoreContent() {
               <button type="button" onClick={() => setShowCart(false)} className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 text-lg">×</button>
             </div>
 
-            <OrderRecipient value={recipient} onChange={setRecipient} defaultAddress={pickup.address ?? t('Current location')} defaultLat={pickup.lat} defaultLng={pickup.lng} />
+            <OrderRecipient value={recipient} onChange={setRecipient} defaultAddress={myLocation?.address ?? t('Current location')} defaultLat={myLocation?.lat ?? 0} defaultLng={myLocation?.lng ?? 0} />
+            {locationFailed && !recipient.forSomeoneElse && (
+              <p role="alert" className="mt-2 text-xs font-bold text-red-600">{t(LOCATION_ERROR_MESSAGE)}</p>
+            )}
 
             <div className="space-y-2 my-4">
               {cart.map(i => (
@@ -436,7 +446,7 @@ function StoreContent() {
 
             <button
               onClick={handleOrder}
-              disabled={ordering || walletShort || cart.length === 0}
+              disabled={ordering || walletShort || cart.length === 0 || (!recipient.forSomeoneElse && !myLocation)}
               className="w-full bg-zana-primary text-white font-black py-4 rounded-2xl mt-4 disabled:opacity-40 flex items-center justify-center gap-2 text-base"
             >
               {ordering
