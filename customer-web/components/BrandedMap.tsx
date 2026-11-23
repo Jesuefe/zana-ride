@@ -29,6 +29,7 @@ export default function BrandedMap({
   destination,
   driverPosition,
   height = 200,
+  focusY = 0.5,
   nearbyDrivers,
   vehicleType,
   draggablePickup,
@@ -43,6 +44,8 @@ export default function BrandedMap({
   destination?: LatLng;
   driverPosition?: LatLng | null;
   height?: number | string;
+  /** Where the pickup sits vertically (0 top, 1 bottom). Lower it when a sheet covers the map. */
+  focusY?: number;
   nearbyDrivers?: { lat: number; lng: number; id: string }[];
   vehicleType?: string;
   draggablePickup?: boolean;
@@ -85,6 +88,18 @@ export default function BrandedMap({
     div.innerHTML = `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>`;
     try { return new G.marker.AdvancedMarkerElement({ position: pos, map, content: div }); }
     catch { return new G.Marker({ position: pos, map }); }
+  };
+
+  // Centres on a point, then shifts so it lands at focusY of the map height
+  // (keeps the pin above a bottom sheet instead of hidden beneath it).
+  const focusOn = (map: any, G: any, pos: LatLng, animate: boolean) => {
+    const apply = () => {
+      const h = containerRef.current?.clientHeight ?? 0;
+      const offset = h * (0.5 - focusY);
+      if (offset) map.panBy(0, offset);
+    };
+    if (animate) map.panTo(pos); else map.setCenter(pos);
+    G.event.addListenerOnce(map, 'idle', apply);
   };
 
   // Creates the pickup marker (draggable when the screen lets the rider adjust it).
@@ -192,7 +207,10 @@ export default function BrandedMap({
       });
 
       // Markers
-      if (originRef.current) buildOriginMarker(G, mapRef.current, originRef.current);
+      if (originRef.current) {
+        buildOriginMarker(G, mapRef.current, originRef.current);
+        focusOn(mapRef.current, G, originRef.current, false);
+      }
       if (destination) destMarkerRef.current = makeMarker(G, mapRef.current, destination, '#E6A82E', 16);
 
       // Driver marker with pulse
@@ -293,7 +311,7 @@ export default function BrandedMap({
     }
     if (!m) buildOriginMarker(G, map, origin);
     else { try { m.position = origin; } catch { m.setPosition?.(origin); } }
-    map.panTo(origin);
+    focusOn(map, G, origin, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [origin?.lat, origin?.lng]);
 
