@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { AlertCircle, Check, Copy, KeyRound, Plus, RefreshCw, ShieldCheck, Wallet, X } from 'lucide-react';
 import AdminShell from '../../../components/AdminShell';
 import { api } from '../../../lib/api/client';
@@ -32,7 +33,7 @@ export default function FoodDeliveryPartnersPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  async function createPartner(event: React.FormEvent<HTMLFormElement>) {
+  async function createPartner(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy('create'); setError(''); setNotice('');
     try {
       const result = await api.post<any>('/admin/food-delivery-partners', { name, contactEmail: email || undefined });
