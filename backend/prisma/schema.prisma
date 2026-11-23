@@ -408,6 +408,7 @@ model WalletTransaction {
   id            String                  @id @default(uuid())
   walletId      String
   amount        Int
+  transactionType String  @default("DELIVERY_FEE")
   balanceBefore Int
   balanceAfter  Int
   reference     String?
@@ -1391,6 +1392,7 @@ model PartnerWalletTransaction {
   delivery      Delivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
 
   @@index([partnerId, createdAt])
+  @@unique([partnerId, transactionType, reference])
 }
 
 model PromoCode {
