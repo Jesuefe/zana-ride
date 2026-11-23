@@ -48,6 +48,7 @@ const SENIOR_NAV = [
   { label: 'System Health', href: '/dashboard/system-health', icon: Activity, group: 'Finance & system' },
   { label: 'Test Accounts', href: '/dashboard/test-accounts', icon: Users, group: 'Finance & system' },
   { label: 'Merchant Invites', href: '/dashboard/invites', icon: ShieldCheck, group: 'Finance & system' },
+  { label: 'Eversend Setup', href: '/dashboard/eversend', icon: CreditCard, group: 'Finance & system' },
   { label: 'Settings', href: '/dashboard/settings', icon: Settings, group: 'Finance & system' },
 ];
 
