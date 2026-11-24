@@ -2874,3 +2874,16 @@ body:has([data-bottom-nav]) {
   border-bottom: var(--zana-shell-bottom) solid transparent;
 }
 .min-h-screen { min-height: 100vh; min-height: 100dvh; }
+
+
+/* iOS Safari/WKWebView auto-zooms the whole page when a text field with a
+   font-size under 16px is focused, and stays zoomed afterwards (content looks
+   enlarged and clipped on the right). Keep every editable control at 16px on
+   touch-sized screens so focus never triggers the zoom. */
+@media (max-width: 1024px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
