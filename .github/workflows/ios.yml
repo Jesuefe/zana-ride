@@ -16,10 +16,8 @@ jobs:
       fail-fast: false
       matrix:
         app:
-          - dir: driver
-            bundle_id: com.bastionholdings.zana.driver
           - dir: customer
-            bundle_id: com.bastionholdings.zana
+            bundle_id: rw.zanaride.customer
 
     steps:
       - uses: actions/checkout@v5
@@ -41,45 +39,54 @@ jobs:
         working-directory: native/${{ matrix.app.dir }}/ios/App
         run: pod install
 
-      - name: Install the App Store Connect API key
+      - name: Import signing certificate and provisioning profile
         env:
-          API_KEY_BASE64: ${{ secrets.IOS_API_KEY_BASE64 }}
+          CERT_B64: ${{ secrets.IOS_DIST_CERT_B64 }}
+          KEY_ENC_B64: ${{ secrets.IOS_DIST_KEY_ENC_B64 }}
+          KEY_PASSPHRASE: ${{ secrets.IOS_CERT_KEY_PASSPHRASE }}
+          PROFILE_B64: ${{ secrets.IOS_PROFILE_B64 }}
         run: |
-          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_4949DJ3PMM.p8"
-          mkdir -p "$(dirname "$KEY_PATH")"
-          echo "$API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
-          chmod 600 "$KEY_PATH"
-          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          set -euo pipefail
+          for v in CERT_B64 KEY_ENC_B64 KEY_PASSPHRASE PROFILE_B64; do
+            if [ -z "${!v}" ]; then echo "::error::Missing secret for $v"; exit 1; fi
+          done
+          W="$RUNNER_TEMP/sign"; mkdir -p "$W"
+          echo "$CERT_B64" | base64 --decode > "$W/cert.cer"
+          echo "$KEY_ENC_B64" | base64 --decode > "$W/key.enc"
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:KEY_PASSPHRASE -in "$W/key.enc" -out "$W/key.pem"
+          openssl x509 -inform der -in "$W/cert.cer" -out "$W/cert.pem"
+          P12PW="$(openssl rand -hex 16)"
+          openssl pkcs12 -export -inkey "$W/key.pem" -in "$W/cert.pem" -out "$W/cert.p12" -passout "pass:$P12PW"
 
-          API_JSON="$RUNNER_TEMP/appstoreconnect_api.json"
-          python3 - "$KEY_PATH" "$API_JSON" <<'PY'
-          import json, sys
-          key_path, json_path = sys.argv[1], sys.argv[2]
-          with open(key_path, "r", encoding="utf-8") as f:
-              key = f.read()
-          with open(json_path, "w", encoding="utf-8") as f:
-              json.dump({
-                  "key_id": "4949DJ3PMM",
-                  "issuer_id": "78eef06e-8cf0-4f3d-9c62-380ae304adee",
-                  "key": key,
-                  "in_house": False
-              }, f)
-          PY
-          chmod 600 "$API_JSON"
-          echo "ASC_API_JSON=$API_JSON" >> "$GITHUB_ENV"
+          KC="$RUNNER_TEMP/build.keychain-db"; KCPW="$(openssl rand -hex 16)"
+          security create-keychain -p "$KCPW" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KCPW" "$KC"
+          security import "$W/cert.p12" -k "$KC" -P "$P12PW" -A -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KCPW" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" login.keychain-db
+          security find-identity -v -p codesigning "$KC"
 
-      - name: Install fastlane
-        run: gem install fastlane --no-document
+          echo "$PROFILE_B64" | base64 --decode > "$W/profile.mobileprovision"
+          security cms -D -i "$W/profile.mobileprovision" > "$W/profile.plist"
+          PUUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$W/profile.plist")
+          PNAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$W/profile.plist")
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$W/profile.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$PUUID.mobileprovision"
+          echo "PROFILE_NAME=$PNAME" >> "$GITHUB_ENV"
+          echo "Installed profile: $PNAME"
 
-      - name: Build archive with Xcode cloud signing
+      - name: Build archive (unsigned)
         working-directory: native/${{ matrix.app.dir }}/ios/App
         run: |
-          rm -rf build
-          mkdir -p build
+          rm -rf build; mkdir -p build
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
+            -destination "generic/platform=iOS" -archivePath "$PWD/build/App.xcarchive" \
+            DEVELOPMENT_TEAM=65WTVA72SM CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            IPHONEOS_DEPLOYMENT_TARGET=15.0 CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            clean archive
 
-          xcodebuild             -workspace App.xcworkspace             -scheme App             -configuration Release             -destination "generic/platform=iOS"             -archivePath "$PWD/build/App.xcarchive"             DEVELOPMENT_TEAM=BX52G3KQ85             CURRENT_PROJECT_VERSION="${{ github.run_number }}"             IPHONEOS_DEPLOYMENT_TARGET=15.0             CODE_SIGN_STYLE=Automatic             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO             -allowProvisioningUpdates             -authenticationKeyPath "$ASC_KEY_PATH"             -authenticationKeyID "4949DJ3PMM"             -authenticationKeyIssuerID "78eef06e-8cf0-4f3d-9c62-380ae304adee"             clean archive
-
-      - name: Export signed IPA
+      - name: Export signed IPA (manual signing)
         working-directory: native/${{ matrix.app.dir }}/ios/App
         run: |
           cat > build/ExportOptions.plist <<EOF
@@ -87,20 +94,18 @@ jobs:
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>method</key>
-            <string>app-store</string>
-            <key>teamID</key>
-            <string>BX52G3KQ85</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>uploadSymbols</key>
-            <true/>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>65WTVA72SM</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict><key>${{ matrix.app.bundle_id }}</key><string>$PROFILE_NAME</string></dict>
+            <key>uploadSymbols</key><true/>
           </dict>
           </plist>
           EOF
-
-          xcodebuild             -exportArchive             -archivePath "$PWD/build/App.xcarchive"             -exportPath "$PWD/build/export"             -exportOptionsPlist "$PWD/build/ExportOptions.plist"             -allowProvisioningUpdates             -authenticationKeyPath "$ASC_KEY_PATH"             -authenticationKeyID "4949DJ3PMM"             -authenticationKeyIssuerID "78eef06e-8cf0-4f3d-9c62-380ae304adee"
-
+          xcodebuild -exportArchive -archivePath "$PWD/build/App.xcarchive" \
+            -exportPath "$PWD/build/export" -exportOptionsPlist "$PWD/build/ExportOptions.plist"
           cp build/export/*.ipa build/zana-${{ matrix.app.dir }}.ipa
 
       - name: Validate exported IPA bundle identifiers
@@ -156,12 +161,12 @@ jobs:
 
       - name: Upload to TestFlight
         working-directory: native/${{ matrix.app.dir }}/ios/App
+        env:
+          APPLE_ID: ${{ secrets.IOS_APPLE_ID }}
+          APP_PASSWORD: ${{ secrets.IOS_APP_SPECIFIC_PASSWORD }}
         run: |
-          fastlane pilot upload \
-            --ipa "build/zana-${{ matrix.app.dir }}.ipa" \
-            --app_identifier "${{ matrix.app.bundle_id }}" \
-            --skip_waiting_for_build_processing true \
-            --api_key_path "$ASC_API_JSON"
+          xcrun altool --upload-app -f "build/zana-${{ matrix.app.dir }}.ipa" -t ios \
+            -u "$APPLE_ID" -p "$APP_PASSWORD"
 
       - name: Upload .ipa as a downloadable artifact
         if: always()
