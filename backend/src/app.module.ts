@@ -30,6 +30,7 @@ import { CustomerSupportChatsController, AdminSupportChatsController, AdminCusto
 import { RiderRegistrationController } from './rider-registration.controller';
 import { MerchantRegistrationController } from './merchant-registration.controller';
 import { FoodPartnerModule } from './food-partners/food-partners.module';
+import { ServiceAreasModule } from './service-areas/service-areas.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { FoodPartnerModule } from './food-partners/food-partners.module';
     FinanceModule,
     ZanaAiModule,
     DownloadsModule,
+    ServiceAreasModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
   controllers: [HealthController, CustomerSupportController, CustomerSupportChatsController, AdminSupportChatsController, AdminCustomerSummaryController, RiderRegistrationController, MerchantRegistrationController],
