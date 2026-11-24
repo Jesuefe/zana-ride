@@ -1,0 +1,50 @@
+name: Generate iOS Certificate Signing Request
+
+# Run manually (Actions tab > this workflow > Run workflow).
+# Produces a CSR to upload to developer.apple.com > Certificates > Add.
+# The private key is encrypted with the IOS_CERT_KEY_PASSPHRASE repo secret
+# before upload (artifacts on public repos are publicly downloadable).
+
+on:
+  workflow_dispatch:
+    inputs:
+      common_name:
+        description: 'Common name for the CSR'
+        default: 'Zana Ride Distribution'
+      email:
+        description: 'Email for the CSR'
+        default: 'support@zanaride.rw'
+
+permissions:
+  contents: read
+
+jobs:
+  csr:
+    runs-on: macos-latest
+    steps:
+      - name: Generate key and CSR
+        env:
+          PASSPHRASE: ${{ secrets.IOS_CERT_KEY_PASSPHRASE }}
+          CN: ${{ inputs.common_name }}
+          EMAIL: ${{ inputs.email }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PASSPHRASE:-}" ]; then
+            echo "::error::Repo secret IOS_CERT_KEY_PASSPHRASE is not set. Add it under Settings > Secrets and variables > Actions, then re-run."
+            exit 1
+          fi
+          mkdir -p out
+          openssl genrsa -out ios_distribution.key 2048
+          openssl req -new -key ios_distribution.key -out out/ZanaRide.certSigningRequest \
+            -subj "/emailAddress=${EMAIL}/CN=${CN}/C=RW"
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+            -pass env:PASSPHRASE -in ios_distribution.key -out out/ios_distribution.key.enc
+          shred -u ios_distribution.key 2>/dev/null || rm -f ios_distribution.key
+          openssl req -in out/ZanaRide.certSigningRequest -noout -subject -verify
+
+      - name: Upload CSR and encrypted key
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-csr
+          path: out/
+          retention-days: 3
