@@ -799,7 +799,7 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException('WRONG_PASSWORD');
 
     const hashed = await bcrypt.hash(newPassword, 10);
-    await this.prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
+    await this.prisma.user.update({ where: { id: user.id }, data: { password: hashed, mustChangePassword: false } });
     return { changed: true };
   }
 
