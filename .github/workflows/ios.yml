@@ -45,7 +45,11 @@ jobs:
         run: |
           KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_LTDWSBY5P4.p8"
           mkdir -p "$(dirname "$KEY_PATH")"
-          echo "$API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
+          if printf '%s' "$API_KEY_BASE64" | grep -q "BEGIN PRIVATE KEY"; then
+            printf '%s\n' "$API_KEY_BASE64" > "$KEY_PATH"
+          else
+            echo "$API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
+          fi
           chmod 600 "$KEY_PATH"
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
