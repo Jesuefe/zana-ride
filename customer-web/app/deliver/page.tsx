@@ -423,7 +423,7 @@ export default function DeliverPage() {
         {step === 2 && (
           <section className="zana-delivery-step animate-fade-slide-up space-y-4">
             <div className="overflow-hidden rounded-2xl border border-zana-border bg-[var(--zana-surface)]">
-              <BrandedMap origin={pickup ?? undefined} destination={dropoff ? { lat: dropoff.lat, lng: dropoff.lng } : undefined} draggablePickup
+              <BrandedMap origin={pickup ?? undefined} destination={dropoff ? { lat: dropoff.lat, lng: dropoff.lng } : undefined} draggablePickup gestureHandling="cooperative"
                 onPickupChange={(c) => setManualPickup(c)} height={220} />
               <div className="space-y-3 p-4">
                 <div className="flex gap-3">
