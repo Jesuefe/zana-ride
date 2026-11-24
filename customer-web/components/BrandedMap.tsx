@@ -33,6 +33,7 @@ export default function BrandedMap({
   nearbyDrivers,
   vehicleType,
   draggablePickup,
+  gestureHandling,
   onPickupChange,
   onRouteInfo,
   navigationStart,
@@ -49,6 +50,8 @@ export default function BrandedMap({
   nearbyDrivers?: { lat: number; lng: number; id: string }[];
   vehicleType?: string;
   draggablePickup?: boolean;
+  /** Override map touch handling. 'cooperative' lets one-finger swipes scroll the page. */
+  gestureHandling?: 'greedy' | 'cooperative' | 'none' | 'auto';
   onPickupChange?: (coords: LatLng) => void;
   onRouteInfo?: (info: { distanceText: string; durationText: string } | null) => void;
   navigationStart?: LatLng | null;
@@ -203,7 +206,7 @@ export default function BrandedMap({
         center, zoom: 14,
         mapId: 'zana_customer_map',
         disableDefaultUI: true,
-        gestureHandling: draggablePickup || onMapClick ? 'greedy' : 'none',
+        gestureHandling: gestureHandling ?? (draggablePickup || onMapClick ? 'greedy' : 'none'),
       });
 
       // Markers
