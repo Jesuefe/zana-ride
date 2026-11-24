@@ -72,7 +72,7 @@ body {
 }
 
 .animate-fade-slide-up {
-  animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .animate-fade-in {
@@ -656,7 +656,7 @@ button, a {
 .zana-destination-wrap,
 .zana-promo-panel,
 .zana-wallet-tip {
-  animation: zanaContentEnter .42s cubic-bezier(.2,.75,.25,1) both;
+  animation: zanaContentEnter .42s cubic-bezier(.2,.75,.25,1) backwards;
 }
 .zana-home-section { animation-delay: .04s; }
 .zana-promo-panel { animation-delay: .08s; }
@@ -1001,7 +1001,7 @@ html, body { background-color: var(--background); color: var(--foreground); }
 .zana-loading-inline .zana-loading-title { font-size: .8rem; }
 .zana-loading-inline .zana-loading-track { width: 84px; height: 2px; }
 .zana-loading-inline .zana-loading-skeletons { display: none; }
-.zana-page-enter { animation: zanaPageEnter .32s cubic-bezier(.2,.75,.25,1) both; }
+.zana-page-enter { animation: zanaPageEnter .32s cubic-bezier(.2,.75,.25,1) backwards; }
 .zana-skeleton-block { position: relative; overflow: hidden; background: var(--zana-card, #edf2ef); border: 1px solid var(--zana-border, #e5ece8); border-radius: 16px; }
 .zana-skeleton-block::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(100deg,transparent 10%,rgba(255,255,255,.7) 50%,transparent 90%); animation: zanaLoadingShimmer 1.5s ease-in-out infinite; }
 @keyframes zanaLoadingLift { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-3px) scale(1.025); } }
@@ -2886,4 +2886,21 @@ body:has([data-bottom-nav]) {
   textarea {
     font-size: 16px !important;
   }
+}
+
+
+/* Overlays vs. the bottom dock ------------------------------------------
+   1) Entrance animations used fill-mode "both", which kept a transform on the
+      page wrapper after they finished. A transformed ancestor becomes the
+      containing block for position:fixed descendants and traps their z-index,
+      so full-screen overlays (camera, sheets) were sized to the page instead
+      of the screen and painted underneath the dock (z-index 60). "backwards"
+      keeps the same entrance but leaves no transform behind.
+   2) Bottom sheets use z-50 and the dock is z-60, so their buttons/inputs
+      could sit behind the dock. Hide the dock while any full-screen overlay
+      is open. */
+body:has(.fixed.inset-0) .zana-bottom-nav {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
