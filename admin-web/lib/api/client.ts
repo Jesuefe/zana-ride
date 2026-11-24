@@ -21,7 +21,11 @@ async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!res.ok) {
     // A database reset or revoked session makes the cached admin JWT invalid.
     // Do not leave the dashboard rendering with endless 401 placeholders.
-    if (res.status === 401 && typeof window !== 'undefined') {
+    const needsPasswordChange = res.status === 401 && payload?.message === 'PASSWORD_CHANGE_REQUIRED';
+    if (needsPasswordChange && typeof window !== 'undefined') {
+      // Valid session, but the account must set its own password first.
+      if (window.location.pathname !== '/change-password') window.location.replace('/change-password');
+    } else if (res.status === 401 && typeof window !== 'undefined') {
       clearToken();
       if (window.location.pathname !== '/login') window.location.replace('/login');
     }
@@ -51,4 +55,10 @@ export async function resetPassword(identifier: string, code: string, password: 
   const result = await api.post<any>('/auth/password/reset', { identifier, code, password });
   if (result?.token) setToken(result.token);
   return result;
+}
+
+// ── Password change (required on first login) ───────────────────────────────
+
+export async function changePassword(currentPassword: string, newPassword: string) {
+  return api.post<{ changed: boolean }>('/auth/password/change', { currentPassword, newPassword });
 }
