@@ -53,7 +53,20 @@ export class AuthService {
     private storage: StorageService,
   ) {}
 
+  // App Store reviewers sit outside Rwanda and cannot receive an SMS, so a
+  // single dedicated customer number can sign in with a fixed code. Both
+  // values come from the environment; with either unset this is fully off.
+  // It never applies to any other number, and the account is a plain
+  // CUSTOMER (admins are rejected below regardless).
+  private isReviewLogin(phone: string, code?: string) {
+    const reviewPhone = this.config.get<string>('APP_REVIEW_PHONE')?.trim();
+    const reviewCode = this.config.get<string>('APP_REVIEW_CODE')?.trim();
+    if (!reviewPhone || !reviewCode || phone !== reviewPhone) return false;
+    return code === undefined ? true : code === reviewCode;
+  }
+
   async requestOtp(phone: string, email?: string) {
+    if (this.isReviewLogin(phone)) return { sent: true };
     // Was previously unlimited — nothing stopped repeatedly requesting a
     // code for the same number, which costs real SMS money and enables
     // flooding a number with texts. Five requests per 10 minutes is
@@ -122,11 +135,15 @@ export class AuthService {
       throw new UnauthorizedException('Too many incorrect attempts — please request a new code.');
     }
 
-    const entry = await this.readOtp(phone);
-    if (!entry || entry.code !== code || Date.now() > entry.expiresAt) {
-      throw new UnauthorizedException('Invalid or expired code');
+    if (this.isReviewLogin(phone, code)) {
+      // fixed review code accepted; skip the stored-code check
+    } else {
+      const entry = await this.readOtp(phone);
+      if (!entry || entry.code !== code || Date.now() > entry.expiresAt) {
+        throw new UnauthorizedException('Invalid or expired code');
+      }
+      await this.clearOtp(phone);
     }
-    await this.clearOtp(phone);
 
     let user = await this.prisma.user.findUnique({ where: { phone } });
     if (user?.role === 'ADMIN') throw new UnauthorizedException('ADMIN_PASSWORD_AND_AUTHENTICATOR_REQUIRED');
