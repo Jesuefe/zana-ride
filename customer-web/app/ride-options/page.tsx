@@ -3,13 +3,14 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useLang } from '../../lib/LangContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ChevronRight, Clock, MapPin, Check, Bike, CarFront } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Clock, MapPin, Check, Bike, CarFront, Pencil, Search, Loader2, X } from 'lucide-react';
 import { estimateRide, createRide, ServiceType, fetchWallet, validateRidePromo } from '../../lib/api/trips';
 import { ApiError } from '../../lib/api/client';
 import BrandedMap from '../../components/BrandedMap';
 import { LOCATION_ERROR_MESSAGE } from '../../lib/location';
 import { useLivePickup } from '../../lib/useLivePickup';
 import { reverseGeocode } from '../../lib/geocode';
+import { searchPlaces, getPlaceCoordinates, type PlaceSuggestion } from '../../lib/places-api';
 import ZanaLoading from '../../components/ZanaLoading';
 
 type Option = { service: ServiceType; label: string; sub: string; icon: 'bike' | 'car' };
@@ -69,6 +70,26 @@ function RideOptionsContent({ initialPickup, initialAddress }: { initialPickup: 
   const preselected = params.get('service') as ServiceType | null;
   const [pickup, setPickup] = useState(initialPickup);
   const [pickupAddress, setPickupAddress] = useState(initialAddress);
+  const [editingPickup, setEditingPickup] = useState(false);
+  const [pickupQuery, setPickupQuery] = useState('');
+  const [pickupResults, setPickupResults] = useState<PlaceSuggestion[]>([]);
+  const [pickupSearching, setPickupSearching] = useState(false);
+
+  // Inline pickup search on the booking screen (in addition to dragging the pin).
+  useEffect(() => {
+    if (!editingPickup) return;
+    const q = pickupQuery.trim();
+    if (q.length < 2) { setPickupResults([]); setPickupSearching(false); return; }
+    setPickupSearching(true);
+    let live = true;
+    const id = setTimeout(() => {
+      searchPlaces(q, pickup)
+        .then(rows => { if (live) setPickupResults(rows); })
+        .catch(() => { if (live) setPickupResults([]); })
+        .finally(() => { if (live) setPickupSearching(false); });
+    }, 300);
+    return () => { live = false; clearTimeout(id); };
+  }, [pickupQuery, editingPickup, pickup]);
 
   const [fares, setFares] = useState<Record<ServiceType, number>>({ BIKE: 0, ECONOMY: 0, COMFORT: 0 });
   const [fareError, setFareError] = useState<string | null>(null);
@@ -119,12 +140,23 @@ function RideOptionsContent({ initialPickup, initialAddress }: { initialPickup: 
     fetchWallet().then((w: any) => setWalletBalance(w.balance)).catch(() => {});
   }, [pickup.lat, pickup.lng, destLat, destLng, t]);
 
-  const handlePickupChange = (coords: { lat: number; lng: number }) => {
+  const handlePickupChange = (coords: { lat: number; lng: number }, knownAddress?: string) => {
     setPromoDiscount(0); setPromoMessage('');
-    setPickup(coords);
-    setPickupAddress(t('Locating…'));
-    reverseGeocode(coords.lat, coords.lng).then(a => setPickupAddress(a ?? t('Current location')));
+    setPickup({ lat: coords.lat, lng: coords.lng });
+    if (knownAddress) setPickupAddress(knownAddress);
+    else {
+      setPickupAddress(t('Locating…'));
+      reverseGeocode(coords.lat, coords.lng).then(a => setPickupAddress(a ?? t('Current location')));
+    }
     setStep('select');
+  };
+
+  const closePickupEdit = () => { setEditingPickup(false); setPickupQuery(''); setPickupResults([]); };
+  const choosePickup = async (s: PlaceSuggestion) => {
+    const p = await getPlaceCoordinates(s.placeId);
+    if (!p) return;
+    handlePickupChange({ lat: p.lat, lng: p.lng }, p.address);
+    closePickupEdit();
   };
 
   const handleSelect = (service: ServiceType) => {
@@ -184,9 +216,12 @@ function RideOptionsContent({ initialPickup, initialAddress }: { initialPickup: 
             vehicleType={selected ?? 'BIKE'}
             height="100%"
             draggablePickup
-            onPickupChange={handlePickupChange}
+            onPickupChange={c => handlePickupChange(c)}
             onRouteInfo={setRouteInfo}
           />
+          <div className="pointer-events-none absolute bottom-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white shadow">
+            {t('Drag the green pin to adjust pickup')}
+          </div>
           <button
             onClick={() => router.back()}
             className="zana-glass-control absolute top-10 left-4 z-10 w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"
@@ -208,7 +243,52 @@ function RideOptionsContent({ initialPickup, initialAddress }: { initialPickup: 
                 <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
               </div>
               <div className="flex-1 min-w-0 space-y-2">
-                <p className="text-sm text-gray-700 truncate">{pickupAddress}</p>
+                <button
+                  type="button"
+                  onClick={() => (editingPickup ? closePickupEdit() : setEditingPickup(true))}
+                  aria-expanded={editingPickup}
+                  aria-label={t('Change pickup')}
+                  className="flex w-full items-center gap-2 text-left"
+                >
+                  <span className="flex-1 min-w-0 text-sm text-gray-700 truncate">{pickupAddress}</span>
+                  <span className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-zana-primary">
+                    {editingPickup ? <X size={13} /> : <Pencil size={12} />}{editingPickup ? t('Cancel') : t('Edit')}
+                  </span>
+                </button>
+                {editingPickup && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+                      <input
+                        autoFocus
+                        value={pickupQuery}
+                        onChange={e => setPickupQuery(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && pickupResults[0]) choosePickup(pickupResults[0]); if (e.key === 'Escape') closePickupEdit(); }}
+                        placeholder={t('Search pickup location')}
+                        autoComplete="off"
+                        enterKeyHint="search"
+                        className="flex-1 min-w-0 bg-transparent text-base outline-none"
+                      />
+                      {pickupSearching ? <Loader2 size={16} className="animate-spin text-zana-primary" /> : <Search size={16} className="text-zana-primary" />}
+                    </div>
+                    {pickupResults.length > 0 && (
+                      <div className="max-h-56 overflow-y-auto rounded-xl border border-gray-100 bg-white">
+                        {pickupResults.slice(0, 6).map(r => (
+                          <button key={r.placeId} type="button" onClick={() => choosePickup(r)} className="flex w-full items-start gap-2 border-b border-gray-50 px-3 py-2.5 text-left last:border-0">
+                            <MapPin size={15} className="mt-0.5 shrink-0 text-zana-primary" />
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-semibold text-gray-900">{r.primaryText}</span>
+                              <span className="block truncate text-xs text-gray-500">{r.secondaryText || t('Kigali, Rwanda')}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {!pickupSearching && pickupQuery.trim().length >= 2 && pickupResults.length === 0 && (
+                      <p className="text-xs text-gray-500">{t('No matching places. Try another spelling or set the pickup on the map.')}</p>
+                    )}
+                    <p className="text-[11px] text-gray-400">{t('Drag the green pin to adjust pickup')}</p>
+                  </div>
+                )}
                 <p className="text-sm font-semibold text-gray-900 truncate">{destAddress || destName}</p>
               </div>
               {routeInfo && (

@@ -115,3 +115,16 @@
   -webkit-text-fill-color: #84918b;
   opacity: 1;
 }
+
+/* Pickup edit panel: live suggestions + set on map */
+.zana-search-pickup-panel{display:flex;flex-direction:column;gap:8px}
+.zana-search-pickup-edit{align-items:center}
+.zana-search-pickup-actions{display:flex;flex-wrap:wrap;gap:6px}
+.zana-search-pickup-actions button{display:inline-flex;align-items:center;gap:5px;min-height:34px;padding:0 11px;border:1px solid #cfe7dc;border-radius:999px;background:#eef8f3;color:#007d66;font-size:11px;font-weight:800}
+.zana-search-pickup-results{display:flex;flex-direction:column;max-height:240px;overflow-y:auto;border:1px solid #e3ede8;border-radius:12px;background:#fff}
+.zana-search-pickup-results .zana-search-result{animation:none;opacity:1;transform:none;padding-left:8px;padding-right:8px}
+.zana-search-pickup-note{padding:2px 4px;color:#6b7a72;font-size:11px;line-height:1.4}
+.zana-search-pickup-note.error{color:#b42318}
+.dark .zana-search-pickup-actions button{background:#19392e;border-color:#315a48;color:#7dd9ba}
+.dark .zana-search-pickup-results{background:#15211b;border-color:#293b31}
+.dark .zana-search-pickup-note{color:#a0b0a5}
